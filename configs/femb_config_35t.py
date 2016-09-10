@@ -42,9 +42,9 @@ class FEMB_CONFIG:
 	self.femb.write_reg( 3, 0x01230000) #31 - enable ADC test pattern, 
 
 	#Set ADC latch_loc
-	self.femb.write_reg( self.REG_LATCHLOC, 0x66666666)
+	self.femb.write_reg( self.REG_LATCHLOC,0x77777677 )
 	#Set ADC clock phase
-	self.femb.write_reg( self.REG_CLKPHASE, 0x55)
+	self.femb.write_reg( self.REG_CLKPHASE, 0X1f)
 
 	#internal test pulser control
 	self.femb.write_reg( 5, 0x02000001)
@@ -196,6 +196,17 @@ class FEMB_CONFIG:
         #for regNum in range(self.REG_FESPI_RDBACK_BASE,self.REG_FESPI_RDBACK_BASE+34,1):
         #        val = self.femb.read_reg( regNum)
         #        print hex(val)
+
+    def setInternalPulser(self,pulserEnable,pulseHeight):
+	pulserEnable = int(pulserEnable)
+	if (pulserEnable < 0 ) or (pulserEnable > 1):
+		return
+	pulserEnableVal = int(pulserEnable)
+	if (pulseHeight < 0 ) or (pulseHeight > 32):
+		return
+	pulseHeightVal = int(pulseHeight)
+	self.femb.write_reg_bits( 5 , 0, 0x1F, pulseHeightVal )
+	self.femb.write_reg_bits( 13 , 1, 0x1, pulserEnableVal )
 
     def syncADC(self):
 	#turn on ADC test mode
