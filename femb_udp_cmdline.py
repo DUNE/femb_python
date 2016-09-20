@@ -135,31 +135,37 @@ class FEMB_UDP:
         #get N data packets
         rawdataPackets = []
         for packet in range(0,numVal,1):
-                data = []
+                data = None
                 try:
                         data = sock_data.recv(1024)
                 except socket.timeout:
                         #print "FEMB_UDP--> Error get_data_packets: No data packet received from board, quitting"
                         sock_data.close()
-                        return []
-                rawdataPackets.append(data)
+                        return None
+		if data != None:
+                	rawdataPackets.append(data)
         sock_data.close()
 
         return rawdataPackets
 
     def get_data_samples(self, rawdataPackets):
-      if len(rawdataPackets) == 0:
-	return None
+	if rawdataPackets == None:
+		return None
+	if len(rawdataPackets) == 0:
+		return None
 
-      dataPackets = []
-      for rawdata in rawdataPackets:
-        data = struct.unpack_from(">512H",rawdata)
-        #print data[1]
-        data = data[8:]
-        #dataPackets.append(data)
-        dataPackets = dataPackets + list(data)
+      	dataPackets = []
+      	for rawdata in rawdataPackets:
+		if len(rawdata) < 1024:	
+			dataPackets = None
+			return None
+        	data = struct.unpack_from(">512H",rawdata)
+        	#print data[1]
+        	data = data[8:]
+        	#dataPackets.append(data)
+        	dataPackets = dataPackets + list(data)
 
-      return dataPackets
+      	return dataPackets
 
     def get_data(self, num):
       numVal = int(num)
