@@ -46,17 +46,16 @@ class GUI_WINDOW():
         window.show_all()
 
         #call plots
-	#call(["python", "plot_data.py" ])
-	self.plot_process = Popen(["python", "plot_data.py" ])
+        self.plot_process = Popen(["python", "plot_data.py"])
 
     def define_general_commands_column(self):
         #Define general commands column-----------------------------------
-	frame_cmd = Gtk.Frame()
-	frame_cmd.set_label("General Commands")
+        frame_cmd = Gtk.Frame()
+        frame_cmd.set_label("General Commands")
         self.main_hbox.pack_start(frame_cmd, True, True, 10) 
 
-	vbox_cmd = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-	frame_cmd.add(vbox_cmd)
+        vbox_cmd = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        frame_cmd.add(vbox_cmd)
 
         #add general command buttons column
 
@@ -95,7 +94,7 @@ class GUI_WINDOW():
         self.writereg_entry.set_text("Enter Register Value")
         writereg_box.pack_start(self.writereg_entry,True, True, 0)
 
-	#add reset plot button to command column
+        #add reset plot button to command column
         reset_plot_button = Gtk.Button.new_with_label("Reset Plots")
         reset_plot_button.connect("clicked", self.reset_plot)
         vbox_cmd.pack_start(reset_plot_button, False, False, 0)
@@ -109,12 +108,12 @@ class GUI_WINDOW():
 
     def define_config_commands_column(self):
         #Define configuration command column-----------------------------------
-	frame_config = Gtk.Frame()
-	frame_config.set_label("Configuration Commands")
+        frame_config = Gtk.Frame()
+        frame_config.set_label("Configuration Commands")
         self.main_hbox.pack_start(frame_config, True, True, 10) 
 
-	vbox_config = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-	frame_config.add(vbox_config)
+        vbox_config = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        frame_config.add(vbox_config)
 
         #add reset button
         reset_box = Gtk.HBox(True,0)
@@ -152,12 +151,12 @@ class GUI_WINDOW():
 
     def define_feasic_config_commands_column(self):
         #Define FE ASIC configuration column-----------------------------------
-	frame_feasic_config = Gtk.Frame()
-	frame_feasic_config.set_label("FE-ASIC Configuration")
+        frame_feasic_config = Gtk.Frame()
+        frame_feasic_config.set_label("FE-ASIC Configuration")
         self.main_hbox.pack_start(frame_feasic_config, True, True, 10) 
 
-	vbox_feasic_config = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-	frame_feasic_config.add(vbox_feasic_config)
+        vbox_feasic_config = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        frame_feasic_config.add(vbox_feasic_config)
 
         #add configure all FE-ASIC channels button
         feasic_config_box = Gtk.HBox(True,0)
@@ -217,12 +216,12 @@ class GUI_WINDOW():
 
     def define_adcasic_config_commands_column(self):
         #Define FE ASIC configuration column-----------------------------------
-	frame_adcasic_config = Gtk.Frame()
-	frame_adcasic_config.set_label("ADC ASIC Configuration")
+        frame_adcasic_config = Gtk.Frame()
+        frame_adcasic_config.set_label("ADC ASIC Configuration")
         self.main_hbox.pack_start(frame_adcasic_config, True, True, 10) 
 
-	vbox_adcasic_config = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
-	frame_adcasic_config.add(vbox_adcasic_config)
+        vbox_adcasic_config = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        frame_adcasic_config.add(vbox_adcasic_config)
 
         #add configure all ADC-ASIC channels button
         adc_config_box = Gtk.HBox(True,0)
@@ -276,11 +275,11 @@ class GUI_WINDOW():
         #self.femb_config.initBoard()
 
     def reset_plot(self, button):
-	self.plot_process.kill()
-	self.plot_process = Popen(["python", "plot_data.py" ])
+        self.plot_process.kill()
+        self.plot_process = Popen(["python", "plot_data.py" ])
 
     def destroy(self, window):
-	self.plot_process.kill()
+        self.plot_process.kill()
         Gtk.main_quit()
 
 def main():

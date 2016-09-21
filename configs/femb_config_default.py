@@ -9,5 +9,5 @@ class FEMB_CONFIG:
 
     #__INIT__#
     def __init__(self):
-	print "FEMB CONFIG ERROR: Configuration file has not been specified! Run setup.py to specify configuration file. Program will terminate!"
-	sys.exit(0)
+        print "FEMB CONFIG ERROR: Configuration file has not been specified! Run setup.py to specify configuration file. Program will terminate!"
+        sys.exit(0)
