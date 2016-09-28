@@ -1,5 +1,3 @@
-#!/usr/bin/env python33
-
 import string
 import ROOT
 #from ROOT import TFile, TTree

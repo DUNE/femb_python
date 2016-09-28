@@ -1,5 +1,3 @@
-#!/usr/bin/env python33
-
 import struct
 import sys 
 import string

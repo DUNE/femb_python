@@ -1,4 +1,4 @@
-#!/usr/bin/env python33
+#!/usr/bin/python3.4
 import sys
 from subprocess import call
 

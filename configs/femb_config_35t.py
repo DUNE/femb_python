@@ -1,5 +1,3 @@
-#!/usr/bin/env python33
-
 import sys 
 import string
 import time
