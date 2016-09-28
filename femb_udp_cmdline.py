@@ -6,6 +6,7 @@ import string
 import socket
 import time
 from socket import AF_INET, SOCK_DGRAM
+import binascii
 
 class FEMB_UDP:
 
@@ -109,7 +110,7 @@ class FEMB_UDP:
                 #print "FEMB_UDP--> Error read_reg: No read packet received from board, quitting"
                 sock_readresp.close()
                 return -1        
-        dataHex = data.encode('hex')
+        dataHex = binascii.hexlify( data ) 
         sock_readresp.close()
 
         #extract register value from response

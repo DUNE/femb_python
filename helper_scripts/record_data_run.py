@@ -1,5 +1,4 @@
-#!/usr/bin/env python33
-
+#!/usr/bin/python3.4
 import string
 from femb_rootdata import FEMB_ROOTDATA
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3.4
 from time import sleep
 from gi.repository import Gtk
 from femb_config import FEMB_CONFIG
