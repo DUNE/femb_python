@@ -30,7 +30,10 @@ class CONFIG:
         print("CONFIG.configFeAsic: no FE ASIC present in configuration")
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
-      pass
+      if self.fe_config:
+        self.fe_config.setInternalPulser()
+      else:
+        print("CONFIG.setInternalPulser: no FE ASIC present in configuration")
 
     def syncADC(self):
       if self.adc_config:

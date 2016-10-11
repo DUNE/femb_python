@@ -90,6 +90,17 @@ class FE_CONFIG:
         #        val = self.femb.read_reg( regNum)
         #        print hex(val)
 
+    def setInternalPulser(self,pulserEnable,pulseHeight):
+        pulserEnable = int(pulserEnable)
+        if (pulserEnable < 0 ) or (pulserEnable > 1):
+                return
+        pulserEnableVal = int(pulserEnable)
+        if (pulseHeight < 0 ) or (pulseHeight > 32):
+                return
+        pulseHeightVal = int(pulseHeight)
+        self.femb.write_reg_bits( 5 , 0, 0x1F, pulseHeightVal )
+        self.femb.write_reg_bits( 13 , 1, 0x1, pulserEnableVal )
+
     #__INIT__#
     def __init__(self,config_file,femb_udp_obj):
         #set FEMB UDP object
