@@ -113,11 +113,11 @@ setup(
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
-        #'console_scripts': [
-        #    'sample=sample:main',
-        #],
+        'console_scripts': [
+            'femb_gui_test=femb_python.gui:main',
+        ],
         #'gui_scripts': [
-        #    'sample=sample:main',
+        #    'femb_test=femb_python.gui:main',
         #],
     },
 )

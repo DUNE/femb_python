@@ -1,7 +1,7 @@
 #!/usr/bin/python3.4
 from time import sleep
 from gi.repository import Gtk
-from femb_config import FEMB_CONFIG
+from .femb_config import FEMB_CONFIG
 
 import numpy as np
 from matplotlib import pyplot

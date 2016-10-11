@@ -2,8 +2,8 @@ import string
 import ROOT
 #from ROOT import TFile, TTree
 from array import array
-from femb_config import FEMB_CONFIG
-from femb_udp_cmdline import FEMB_UDP
+from .femb_config import FEMB_CONFIG
+from .femb_udp_cmdline import FEMB_UDP
 import uuid
 import datetime
 import time

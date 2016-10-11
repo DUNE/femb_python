@@ -53,10 +53,10 @@ while 1:
     k = np.arange(n)
     T = n/Fs
     frq = k/T # two sides frequency range
-    frq = frq[range(n/2)] # one side frequency range
+    frq = frq[:n//2] # one side frequency range
 
     Yfft = np.fft.fft(yarr)/n # fft computing and normalization
-    Yfft = Yfft[range(n/2)]
+    Yfft = Yfft[:n//2]
     frq = frq[1:]
     Yfft = Yfft[1:]
 
