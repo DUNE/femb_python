@@ -1,39 +1,18 @@
-import sys 
-import string
 import time
-from femb_udp_cmdline import FEMB_UDP
 
-class FEMB_CONFIG:
-    def resetBoard(self):
-        #Reset system
-        self.femb.write_reg( self.REG_RESET, 1)
-        time.sleep(5.)
+class ADC_CONFIG:
 
-        #Reset registers
-        self.femb.write_reg( self.REG_RESET, 2)
-        time.sleep(1.)
+    def reset(self):
 
-        #Time stamp reset
-        #femb.write_reg( 0, 4)
-        #time.sleep(0.5)
-        
         #Reset ADC ASICs
         self.femb.write_reg( self.REG_ASIC_RESET, 1)
         time.sleep(0.5)
 
-        #Reset FE ASICs
-        self.femb.write_reg( self.REG_ASIC_RESET, 2)
-        time.sleep(0.5)
-
-    def initBoard(self):
+    def configureDefault(self):
         #set up default registers
         
         #Reset ADC ASICs
         self.femb.write_reg( self.REG_ASIC_RESET, 1)
-        time.sleep(0.5)
-
-        #Reset FE ASICs
-        self.femb.write_reg( self.REG_ASIC_RESET, 2)
         time.sleep(0.5)
 
         #Set ADC test pattern register
@@ -47,21 +26,6 @@ class FEMB_CONFIG:
         #internal test pulser control
         self.femb.write_reg( 5, 0x02000001)
         self.femb.write_reg( 13, 0x0) #enable
-
-        #Set test and readout mode register
-        self.femb.write_reg( 7, 0x0000) #11-8 = channel select, 3-0 = ASIC select
-
-        #Set number events per header
-        self.femb.write_reg( 8, 0x0)
-
-          #FE ASIC SPI registers
-        print("Config FE ASIC SPI")
-        for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+34,1):
-                self.femb.write_reg( regNum, 0xC4C4C4C4)
-        self.femb.write_reg( self.REG_FESPI_BASE+8, 0xC400C400 )
-        self.femb.write_reg( self.REG_FESPI_BASE+16, 0x00C400C4 )
-        self.femb.write_reg( self.REG_FESPI_BASE+25, 0xC400C400 )
-        self.femb.write_reg( self.REG_FESPI_BASE+33, 0x00C400C4 )
 
         #ADC ASIC SPI registers
         print("Config ADC ASIC SPI")
@@ -112,99 +76,12 @@ class FEMB_CONFIG:
         #self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         #time.sleep(0.1)
 
-        #Write FE ASIC SPI
-        print("Program FE ASIC SPI")
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
-        time.sleep(0.1)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
-        time.sleep(0.1)
-
         """
         print("Check ADC ASIC SPI")
         for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+34,1):
                 val = self.femb.read_reg( regNum ) 
                 print(hex(val))
-
-        print("Check FE ASIC SPI")
-        for regNum in range(self.REG_FESPI_RDBACK_BASE,self.REG_FESPI_RDBACK_BASE+34,1):
-                val = self.femb.read_reg( regNum)            
-                print(hex(val))
         """
-
-    def selectChannel(self,asic,chan):
-        asicVal = int(asic)
-        if (asicVal < 0 ) or (asicVal > 7 ) :
-                print("femb_config_femb : selectChan - invalid ASIC number")
-                return
-        chVal = int(chan)
-        if (chVal < 0 ) or (chVal > 15 ) :
-                print("femb_config_femb : selectChan - invalid channel number")
-                return
-
-        #print "Selecting ASIC " + str(asicVal) + ", channel " + str(chVal)
-
-        regVal = (chVal << 8 ) + asicVal
-        self.femb.write_reg( self.REG_SEL_CH, regVal)
-
-    def configFeAsic(self,gain,shape,base):
-        gainVal = int(gain)
-        if (gainVal < 0 ) or (gainVal > 3):
-                return
-        shapeVal = int(shape)
-        if (shapeVal < 0 ) or (shapeVal > 3):
-                return
-        baseVal = int(base)
-        if (baseVal < 0 ) or (baseVal > 1):
-                return
-
-        #get ASIC channel config register SPI values        
-        chReg = 0x0
-        gainArray = [0,2,1,3]
-        shapeArray = [2,0,3,1] #I don't know why
-        chReg = (gainArray[gainVal] << 4 ) + (shapeArray[shapeVal] << 2)
-
-        if (baseVal == 0) :
-                chReg = chReg + 0x40
-
-        #enable test capacitor here
-        chReg = chReg + 0x80 #enabled
-        #chReg = chReg + 0x0 #disabled
-
-        #need better organization of SPI, just store in words for now
-        word1 = chReg + (chReg << 8) + (chReg << 16) + (chReg << 24)
-        word2 = (chReg << 8) + (chReg << 24)
-        word3 = chReg + (chReg << 16)
-
-        print("Config FE ASIC SPI")
-        for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+34,1):
-                self.femb.write_reg( regNum, word1)
-        self.femb.write_reg( self.REG_FESPI_BASE+8, word2 )
-        self.femb.write_reg( self.REG_FESPI_BASE+16, word3 )
-        self.femb.write_reg( self.REG_FESPI_BASE+25, word2 )
-        self.femb.write_reg( self.REG_FESPI_BASE+33, word3 )
-
-        #Write FE ASIC SPI
-        print("Program FE ASIC SPI")
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
-        time.sleep(0.1)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
-        time.sleep(0.1)
-
-        #print "Check FE ASIC SPI"
-        #for regNum in range(self.REG_FESPI_RDBACK_BASE,self.REG_FESPI_RDBACK_BASE+34,1):
-        #        val = self.femb.read_reg( regNum)
-        #        print hex(val)
-
-    def setInternalPulser(self,pulserEnable,pulseHeight):
-        pulserEnable = int(pulserEnable)
-        if (pulserEnable < 0 ) or (pulserEnable > 1):
-                return
-        pulserEnableVal = int(pulserEnable)
-        if (pulseHeight < 0 ) or (pulseHeight > 32):
-                return
-        pulseHeightVal = int(pulseHeight)
-        self.femb.write_reg_bits( 5 , 0, 0x1F, pulseHeightVal )
-        self.femb.write_reg_bits( 13 , 1, 0x1, pulserEnableVal )
 
     def syncADC(self):
         #turn on ADC test mode
@@ -282,24 +159,14 @@ class FEMB_CONFIG:
         #if program reaches here, sync has failed
         print("ADC SYNC process failed for ADC # " + str(adc))
 
-
     #__INIT__#
-    def __init__(self):
-        #declare board specific registers
-        self.FEMB_VER = "35t"
-        self.REG_RESET = 0
-        self.REG_ASIC_RESET = 1
-        self.REG_ASIC_SPIPROG = 2
-        self.REG_SEL_ASIC = 7 
-        self.REG_SEL_CH = 7
-        self.REG_FESPI_BASE = 592
-        self.REG_ADCSPI_BASE = 512
-        self.REG_FESPI_RDBACK_BASE = 632
-        self.REG_ADCSPI_RDBACK_BASE = 552
-        self.REG_HS = 17
-        self.REG_LATCHLOC = 4
-        self.REG_CLKPHASE = 6
-        self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
-
-        #initialize FEMB UDP object
-        self.femb = FEMB_UDP()
+    def __init__(self,config_file,femb_udp_obj):
+        #set FEMB UDP object
+        self.config_file = config_file
+        self.femb = femb_udp_obj
+        for key in self.config_file.listKeys("ADC_ASIC"):
+          value = self.config_file.adcParam(key)
+          key = key.upper()
+          setattr(self,key,value)
+          print(key,getattr(self,key))
+        print("ADC object attrs: ",dir(self))
