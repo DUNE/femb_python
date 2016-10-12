@@ -2,11 +2,10 @@
 from time import sleep
 from gi.repository import Gtk
 from .femb_config import FEMB_CONFIG
+from . import plot_data
 
 import numpy as np
 from matplotlib import pyplot
-
-from subprocess import Popen
 
 class GUI_WINDOW():
 
@@ -46,7 +45,7 @@ class GUI_WINDOW():
         window.show_all()
 
         #call plots
-        self.plot_process = Popen(["python", "plot_data.py"])
+        plot_data.main()
 
     def define_general_commands_column(self):
         #Define general commands column-----------------------------------
@@ -276,7 +275,7 @@ class GUI_WINDOW():
 
     def reset_plot(self, button):
         self.plot_process.kill()
-        self.plot_process = Popen(["python", "plot_data.py" ])
+        plot_data.main()
 
     def destroy(self, window):
         self.plot_process.kill()
