@@ -164,6 +164,11 @@ class ADC_CONFIG:
         #set FEMB UDP object
         self.config_file = config_file
         self.femb = femb_udp_obj
+        for key in self.config_file.listKeys("BOARD"):
+          value = self.config_file.boardParam(key)
+          key = key.upper()
+          setattr(self,key,value)
+          print(key,getattr(self,key))
         for key in self.config_file.listKeys("ADC_ASIC"):
           value = self.config_file.adcParam(key)
           key = key.upper()

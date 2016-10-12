@@ -1,7 +1,7 @@
 #!/usr/bin/python3.4
 from time import sleep
 from gi.repository import Gtk
-from .femb_config import FEMB_CONFIG
+from .configuration import CONFIG, get_env_config_file
 from . import plot_data
 
 import numpy as np
@@ -15,7 +15,7 @@ class GUI_WINDOW():
     def __init__(self):
 
         #define configuration object
-        self.femb_config = FEMB_CONFIG()
+        self.femb_config = CONFIG(get_env_config_file())
 
         #do any checks here for system state
 

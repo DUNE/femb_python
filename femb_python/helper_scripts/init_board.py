@@ -1,7 +1,6 @@
-#!/usr/bin/python3.4
-import sys
-import os
-from femb_config import FEMB_CONFIG
-femb_config = FEMB_CONFIG()
+from ..configuration import CONFIG, get_env_config_file
 
-femb_config.initBoard()
+def main():
+    config_file = get_env_config_file()
+    femb_config = CONFIG(config_file)
+    femb_config.initBoard()
