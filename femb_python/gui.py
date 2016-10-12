@@ -45,7 +45,7 @@ class GUI_WINDOW():
         window.show_all()
 
         #call plots
-        plot_data.main()
+        self.data_window = plot_data.DATA_WINDOW()
 
     def define_general_commands_column(self):
         #Define general commands column-----------------------------------
@@ -274,11 +274,15 @@ class GUI_WINDOW():
         #self.femb_config.initBoard()
 
     def reset_plot(self, button):
-        self.plot_process.kill()
-        plot_data.main()
+        #print("in reset_plot: self.data_window: ",self.data_window)
+        #print(dir(self.data_window))
+        print("window visible: ",self.data_window.get_property("visible"))
+        if self.data_window.get_property("visible"):
+          self.data_window.reset()
+        else:
+          self.data_window = plot_data.DATA_WINDOW()
 
     def destroy(self, window):
-        self.plot_process.kill()
         Gtk.main_quit()
 
 def main():
