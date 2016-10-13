@@ -1,3 +1,7 @@
+"""
+This module contains a class that displays a live ADC readout and its FFT.
+Configuration and channel selection are handled elsewhere.
+"""
 from gi.repository import Gtk
 
 import time
@@ -6,9 +10,9 @@ from matplotlib.figure import Figure
 from matplotlib import animation
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 
-from .femb_udp_cmdline import FEMB_UDP
+from .femb_udp import FEMB_UDP
 
-class DATA_WINDOW(Gtk.Window):
+class TRACE_FFT_WINDOW(Gtk.Window):
   """
   This window displays a live ADC redout and its FFT
   """
@@ -131,7 +135,7 @@ class DATA_WINDOW(Gtk.Window):
     return xarr, yarr, frq, Yfft_norm
     
 def main():
-    window = DATA_WINDOW()
+    window = TRACE_FFT_WINDOW()
     window.connect("delete-event", Gtk.main_quit)
     window.connect("destroy", Gtk.main_quit)
     Gtk.main()

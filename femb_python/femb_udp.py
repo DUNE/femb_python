@@ -1,3 +1,6 @@
+"""
+This is the UDB interface to the femb
+"""
 import struct
 import sys 
 import string
@@ -7,6 +10,9 @@ from socket import AF_INET, SOCK_DGRAM
 import binascii
 
 class FEMB_UDP:
+    """
+    This is the UDB interface to the femb
+    """
 
     def write_reg(self, reg , data ):
         regVal = int(reg)

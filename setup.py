@@ -115,7 +115,7 @@ setup(
     entry_points={
         'console_scripts': [
             'femb_gui_test=femb_python.gui:main',
-            'femb_plot_data=femb_python.plot_data:main',
+            'femb_show_trace_fft=femb_python.trace_fft_window:main',
             'femb_init_board=femb_python.helper_scripts.init_board:main',
         ],
         #'gui_scripts': [

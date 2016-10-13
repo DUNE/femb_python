@@ -1,23 +1,26 @@
-#!/usr/bin/python3.4
+"""
+Module containes an example GUI. The main window configures the FEMB 
+while trace_fft_window provides a second window with live trace and FFT.
+"""
 from time import sleep
 from gi.repository import Gtk
 from .configuration import CONFIG, get_env_config_file
-#from .femb_config import FEMB_CONFIG
-from . import plot_data
+from . import trace_fft_window
 
 import numpy as np
 from matplotlib import pyplot
 
 class GUI_WINDOW():
+    """
+    GUI window defined entirely in init function
+    individual sub-panes/frames defined in functions to keep things organized
+    Note: main_hbox is the main container, it's a class member so functions can access it
+    """
 
-    #GUI window defined entirely in init function
-    #individual sub-panes/frames defined in functions to keep things organized
-    #Note: main_hbox is the main container, it's a class member so functions can access it
     def __init__(self):
 
         #define configuration object
         self.femb_config = CONFIG(get_env_config_file())
-#        self.femb_config = FEMB_CONFIG()
 
         #do any checks here for system state
 
@@ -47,7 +50,7 @@ class GUI_WINDOW():
         window.show_all()
 
         #call plots
-        self.data_window = plot_data.DATA_WINDOW()
+        self.data_window = trace_fft_window.TRACE_FFT_WINDOW()
 
     def define_general_commands_column(self):
         #Define general commands column-----------------------------------
@@ -282,7 +285,7 @@ class GUI_WINDOW():
         if self.data_window.get_property("visible"):
           self.data_window.reset()
         else:
-          self.data_window = plot_data.DATA_WINDOW()
+          self.data_window = trace_fft_window.TRACE_FFT_WINDOW()
 
     def destroy(self, window):
         Gtk.main_quit()

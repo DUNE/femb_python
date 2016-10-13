@@ -1,11 +1,17 @@
+"""
+Main Configuration module.
+"""
 import os.path
 from .config_file_parser import CONFIG_FILE
 from .adc_asic_config import ADC_CONFIG
 from .fe_asic_config import FE_CONFIG
 from .board_config import BOARD_CONFIG
-from ..femb_udp_cmdline import FEMB_UDP
+from ..femb_udp import FEMB_UDP
 
 class CONFIG:
+    """
+    Main configuration class. Rangles other classes that configure the ADC ASIC, FE ASIC, and FEMB itself.
+    """
 
     def resetBoard(self):
       self.board.reset()
