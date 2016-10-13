@@ -2,13 +2,13 @@ import string
 import ROOT
 #from ROOT import TFile, TTree
 from array import array
-from .femb_config import FEMB_CONFIG
-from .femb_udp_cmdline import FEMB_UDP
+from .configuration import CONFIG
+from .femb_udp import FEMB_UDP
 import uuid
 import datetime
 import time
 
-class FEMB_ROOTDATA:
+class WRITE_ROOT_TREE:
 
     def record_data_run(self):
         f = ROOT.TFile( self.filename, 'recreate' )
@@ -91,4 +91,9 @@ class FEMB_ROOTDATA:
         self.maxchan = 127
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
-        self.femb_config = FEMB_CONFIG()
+        self.femb_config = CONFIG()
+
+def main():
+  wrt = WRITE_ROOT_TREE()
+  wrt.record_data_run()
+
