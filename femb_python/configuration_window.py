@@ -10,7 +10,7 @@ from . import trace_fft_window
 import numpy as np
 from matplotlib import pyplot
 
-class GUI_WINDOW():
+class CONFIGURATION_WINDOW():
     """
     GUI window defined entirely in init function
     individual sub-panes/frames defined in functions to keep things organized
@@ -26,7 +26,7 @@ class GUI_WINDOW():
 
         #define main GUI window
         window = Gtk.Window()
-        window.set_title("Live Feed")
+        window.set_title("FEMB Test-stand Configuration")
         window.set_default_size(600, 150)
         window.set_position(Gtk.WindowPosition.CENTER)
         window.connect('destroy', self.destroy)
@@ -48,9 +48,6 @@ class GUI_WINDOW():
 
         #Show GUI
         window.show_all()
-
-        #call plots
-        self.data_window = trace_fft_window.TRACE_FFT_WINDOW()
 
     def define_general_commands_column(self):
         #Define general commands column-----------------------------------
@@ -99,7 +96,7 @@ class GUI_WINDOW():
         writereg_box.pack_start(self.writereg_entry,True, True, 0)
 
         #add reset plot button to command column
-        reset_plot_button = Gtk.Button.new_with_label("Reset Plots")
+        reset_plot_button = Gtk.Button.new_with_label("Show/Reset Plots")
         reset_plot_button.connect("clicked", self.reset_plot)
         vbox_cmd.pack_start(reset_plot_button, False, False, 0)
 
@@ -282,16 +279,20 @@ class GUI_WINDOW():
         #print("in reset_plot: self.data_window: ",self.data_window)
         #print(dir(self.data_window))
         #print("window visible: ",self.data_window.get_property("visible"))
-        if self.data_window.get_property("visible"):
-          self.data_window.reset()
-        else:
-          self.data_window = trace_fft_window.TRACE_FFT_WINDOW()
+        try:
+          if self.data_window.get_property("visible"):
+            self.data_window.reset()
+          else:
+            self.data_window = trace_fft_window.TRACE_FFT_WINDOW()
+        except AttributeError:
+            self.data_window = trace_fft_window.TRACE_FFT_WINDOW()
 
     def destroy(self, window):
         Gtk.main_quit()
 
 def main():
-    app = GUI_WINDOW()
+    app = CONFIGURATION_WINDOW()
+    app.reset_plot(None)
     Gtk.main()
 
 if __name__ == '__main__':
