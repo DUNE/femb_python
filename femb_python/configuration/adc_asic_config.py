@@ -10,33 +10,24 @@ class ADC_CONFIG:
 
     def configureDefault(self):
         #set up default registers
-        
-        #Reset ADC ASICs
-        self.femb.write_reg( self.REG_ASIC_RESET, 1)
-        time.sleep(0.5)
 
         #Set ADC test pattern register
         self.femb.write_reg( 3, 0x01230000) #31 - enable ADC test pattern, 
 
         #Set ADC latch_loc
-        self.femb.write_reg( self.REG_LATCHLOC,0x77777677 )
+        self.femb.write_reg( self.REG_LATCHLOC, self.VAL_LATCHLOC )
         #Set ADC clock phase
-        self.femb.write_reg( self.REG_CLKPHASE, 0X1f)
-
-        #internal test pulser control
-        self.femb.write_reg( 5, 0x02000001)
-        self.femb.write_reg( 13, 0x0) #enable
-
+        self.femb.write_reg( self.REG_CLKPHASE, self.VAL_CLKPHASE)
         #ADC ASIC SPI registers
         print("Config ADC ASIC SPI")
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 0, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 1, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 2, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 3, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 4, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 5, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 6, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 7, 0xc0c0c0c)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 0, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 1, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 2, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 3, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 4, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 5, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 6, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 7, 0xC0C0C0C)
         self.femb.write_reg( self.REG_ADCSPI_BASE + 8, 0x18321832)
         self.femb.write_reg( self.REG_ADCSPI_BASE + 9, 0x18181818)
         self.femb.write_reg( self.REG_ADCSPI_BASE + 10, 0x18181818)
@@ -54,15 +45,15 @@ class ADC_CONFIG:
         self.femb.write_reg( self.REG_ADCSPI_BASE + 22, 0x30303030)
         self.femb.write_reg( self.REG_ADCSPI_BASE + 23, 0x30303030)
         self.femb.write_reg( self.REG_ADCSPI_BASE + 24, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 25, 0x60c860c8)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 26, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 27, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 28, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 29, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 30, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 31, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 32, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 33, 0x90609060)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 25, 0x60c868c8)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 26, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 27, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 28, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 29, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 30, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 31, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 32, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 33, 0x9060A868)
         self.femb.write_reg( self.REG_ADCSPI_BASE + 34, 0x10001)        
 
         #ADC ASIC sync
@@ -73,15 +64,21 @@ class ADC_CONFIG:
         print("Program ADC ASIC SPI")
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         time.sleep(0.1)
-        #self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        #time.sleep(0.1)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+        time.sleep(0.1)
 
-        """
         print("Check ADC ASIC SPI")
         for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+34,1):
                 val = self.femb.read_reg( regNum ) 
                 print(hex(val))
-        """
+
+        #enable streaming
+        #self.femb.write_reg( 9, 0x8)
+
+        #LBNE_ADC_MODE
+        if hasattr(self,"REG_LBNEADCMODE") and hasattr(self,"VAL_LBNEADCMODE"):
+            print("Setting REG_LBNEADCMODE ({}) to VAL_LBNEADCMODE ({:x})".format(self.REG_LBNEADCMODE,self.VAL_LBNEADCMODE))
+            self.femb.write_reg( self.REG_LBNEADCMODE, self.VAL_LBNEADCMODE)
 
     def syncADC(self):
         #turn on ADC test mode

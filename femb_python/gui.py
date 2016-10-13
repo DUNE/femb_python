@@ -2,6 +2,7 @@
 from time import sleep
 from gi.repository import Gtk
 from .configuration import CONFIG, get_env_config_file
+#from .femb_config import FEMB_CONFIG
 from . import plot_data
 
 import numpy as np
@@ -16,6 +17,7 @@ class GUI_WINDOW():
 
         #define configuration object
         self.femb_config = CONFIG(get_env_config_file())
+#        self.femb_config = FEMB_CONFIG()
 
         #do any checks here for system state
 
@@ -276,7 +278,7 @@ class GUI_WINDOW():
     def reset_plot(self, button):
         #print("in reset_plot: self.data_window: ",self.data_window)
         #print(dir(self.data_window))
-        print("window visible: ",self.data_window.get_property("visible"))
+        #print("window visible: ",self.data_window.get_property("visible"))
         if self.data_window.get_property("visible"):
           self.data_window.reset()
         else:

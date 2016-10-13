@@ -39,9 +39,9 @@ class FEMB_CONFIG:
         #Set ADC clock phase
         self.femb.write_reg( self.REG_CLKPHASE, 0x55)
 
-        #internal test pulser control
-        self.femb.write_reg( 5, 0x00000000)
-        self.femb.write_reg( 13, 0x0) #enable
+        ##internal test pulser control
+        #self.femb.write_reg( 5, 0x00000000)
+        #self.femb.write_reg( 13, 0x0) #enable
 
         #Set test and readout mode register
         self.femb.write_reg( 7, 0x0000) #11-8 = channel select, 3-0 = ASIC select

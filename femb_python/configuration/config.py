@@ -15,6 +15,7 @@ class CONFIG:
         self.adc.reset()
 
     def initBoard(self):
+      self.resetBoard()
       self.board.configureDefault()
       if self.fe:
         self.fe.configureDefault()

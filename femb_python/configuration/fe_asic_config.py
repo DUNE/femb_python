@@ -10,10 +10,6 @@ class FE_CONFIG:
     def configureDefault(self):
         #set up default registers
         
-        #Reset FE ASICs
-        self.femb.write_reg( self.REG_ASIC_RESET, 2)
-        time.sleep(0.5)
-
         #internal test pulser control
         self.femb.write_reg( 5, 0x02000001)
         self.femb.write_reg( 13, 0x0) #enable
