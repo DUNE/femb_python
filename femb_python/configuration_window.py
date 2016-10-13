@@ -10,7 +10,7 @@ from . import trace_fft_window
 import numpy as np
 from matplotlib import pyplot
 
-class CONFIGURATION_WINDOW():
+class CONFIGURATION_WINDOW(Gtk.Window):
     """
     GUI window defined entirely in init function
     individual sub-panes/frames defined in functions to keep things organized
@@ -18,21 +18,19 @@ class CONFIGURATION_WINDOW():
     """
 
     def __init__(self):
+        Gtk.Window.__init__(self, title="FEMB Test-stand Configuration")
 
         #define configuration object
         self.femb_config = CONFIG(get_env_config_file())
 
         #do any checks here for system state
 
-        #define main GUI window
-        window = Gtk.Window()
-        window.set_title("FEMB Test-stand Configuration")
-        window.set_default_size(600, 150)
-        window.set_position(Gtk.WindowPosition.CENTER)
-        window.connect('destroy', self.destroy)
+        #configure window
+        self.set_default_size(600, 150)
+        self.set_position(Gtk.WindowPosition.CENTER)
 
         self.main_hbox = Gtk.HBox(True,0)
-        window.add(self.main_hbox)
+        self.add(self.main_hbox)
 
         #Define general commands column
         self.define_general_commands_column()
@@ -47,7 +45,7 @@ class CONFIGURATION_WINDOW():
         self.define_adcasic_config_commands_column()
 
         #Show GUI
-        window.show_all()
+        self.show_all()
 
     def define_general_commands_column(self):
         #Define general commands column-----------------------------------
@@ -99,11 +97,6 @@ class CONFIGURATION_WINDOW():
         reset_plot_button = Gtk.Button.new_with_label("Show/Reset Plots")
         reset_plot_button.connect("clicked", self.reset_plot)
         vbox_cmd.pack_start(reset_plot_button, False, False, 0)
-
-        #add quit button to command column
-        quit_button = Gtk.Button.new_with_label("QUIT")
-        quit_button.connect("clicked", self.destroy)
-        vbox_cmd.pack_start(quit_button, False, False, 0)
 
         #END general commands column-----------------------------------
 
@@ -275,24 +268,23 @@ class CONFIGURATION_WINDOW():
         print("call_adcasic_config")
         #self.femb_config.initBoard()
 
-    def reset_plot(self, button):
-        #print("in reset_plot: self.data_window: ",self.data_window)
-        #print(dir(self.data_window))
-        #print("window visible: ",self.data_window.get_property("visible"))
-        try:
-          if self.data_window.get_property("visible"):
-            self.data_window.reset()
-          else:
-            self.data_window = trace_fft_window.TRACE_FFT_WINDOW()
-        except AttributeError:
-            self.data_window = trace_fft_window.TRACE_FFT_WINDOW()
+    def call_quit(self, button):
+        print("call_adcasic_config")
 
-    def destroy(self, window):
-        Gtk.main_quit()
+    def reset_plot(self, button):
+        try:
+          if self.plot_window.get_property("visible"):
+            self.plot_window.reset()
+          else:
+            self.plot_window = trace_fft_window.TRACE_FFT_WINDOW()
+        except AttributeError:
+            self.plot_window = trace_fft_window.TRACE_FFT_WINDOW()
 
 def main():
     app = CONFIGURATION_WINDOW()
     app.reset_plot(None)
+    app.connect("delete-event", Gtk.main_quit)
+    app.connect("destroy", Gtk.main_quit)
     Gtk.main()
 
 if __name__ == '__main__':
