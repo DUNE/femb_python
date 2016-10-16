@@ -30,9 +30,9 @@ class ADC_ASIC_REG_MAPPING:
             pos = (7-chip)*137 + ( 15 - chn) * 8
             regs_bool5_8[pos:pos+8] = chn_reg_bool
         else:
-            print "Chip Number exceeds the maximum value"
+            print("Chip Number exceeds the maximum value")
 
-        length = len(regs_bool1_4)/16
+        length = len(regs_bool1_4)//16
 
         for i in range(length):
            m = 0
@@ -75,9 +75,9 @@ class ADC_ASIC_REG_MAPPING:
             pos = (7-chip)*137 + 128
             regs_bool5_8[pos:pos+9] = global_reg
         else:
-            print "Chip Number exceeds the maximum value"
+            print("Chip Number exceeds the maximum value")
 
-        length = len(regs_bool1_4)/16
+        length = len(regs_bool1_4)//16
 
         for i in range(length):
            m = 0
@@ -107,6 +107,30 @@ class ADC_ASIC_REG_MAPPING:
             self.set_chip( chip, d, pcsr, pdsr, slp, tstin,
                  res2, f1, clk0, clk1, frqc, en_gr, res1, f2, res0)
 
+    def __str__(self):
+        """
+        If you print a ADC_ASIC_REG_MAPPING object, this will be called
+        """
+        nPerRow = 4
+        outString = ""
+        for iReg in range(len(self.REGS)):
+            if iReg % nPerRow == 0:
+                outString += "\n"
+            outString += "{:#010x} ".format(self.REGS[iReg])
+        return outString
+
+    def printBinary(self,register=-1):
+        """
+        Prints out registers in binary
+        """
+        outString = ""
+        if register >= 0:
+            outString += "{:#034b}\n".format(self.REGS[register])
+        else:
+          for iReg in range(len(self.REGS)):
+            outString += "{:#034b}\n".format(self.REGS[iReg])
+        print(outString)
+
     #__INIT__#
     def __init__(self):
 	#declare board specific registers
@@ -120,8 +144,148 @@ class ADC_ASIC_REG_MAPPING:
                      0x60606060, 0x60606060, 0x60606060, 0x60606060,
                      0x60606060, 0x90609060, 0x00010001 ]
 
-#a = ADC_ASIC_REG_MAPPING()
-#print a.REGS
-#a.set_sbnd_board(pcsr=0,pdsr=0, frqc=0)
-#for i in a.REGS:
-#    print hex(i)
+if __name__ == "__main__":
+    a = ADC_ASIC_REG_MAPPING()
+    print("Default:")
+    print(a)
+    a.set_sbnd_board()
+    print("set_sbnd_board:")
+    print(a)
+    a.REGS = [0 for reg in a.REGS]
+    print("All 0:")
+    print(a)
+    a.set_chip_global(3, res2 = 0, f1 = 0, clk0 = 0, clk1 = 0, 
+                        frqc = 0, en_gr = 0, res1 = 0, f2 = 0, res0 = 1)
+#    print("Set chip 3 global regs res0=1 only:")
+#    print(a)
+#
+#    a.REGS = [0 for reg in a.REGS]
+#    a.set_chip_global(3, res2 = 0, f1 = 0, clk0 = 0, clk1 = 0, 
+#                        frqc = 0, en_gr = 0, res1 = 0, f2 = 1, res0 = 0)
+#    print("Set chip 3 global regs f2=1 only:")
+#    print(a)
+#
+#    a.REGS = [0 for reg in a.REGS]
+#    a.set_chip_global(3, res2 = 0, f1 = 0, clk0 = 0, clk1 = 0, 
+#                        frqc = 0, en_gr = 0, res1 = 1, f2 = 0, res0 = 0)
+#    print("Set chip 3 global regs res1=1 only:")
+#    print(a)
+#
+#    a.REGS = [0 for reg in a.REGS]
+#    a.set_chip_global(3, res2 = 0, f1 = 1, clk0 = 0, clk1 = 0, 
+#                        frqc = 0, en_gr = 0, res1 = 0, f2 = 0, res0 = 0)
+#    print("Set chip 3 global regs f1=1 only:")
+#    print(a)
+#
+#    a.REGS = [0 for reg in a.REGS]
+#    a.set_chip_global(3, res2 = 1, f1 = 0, clk0 = 0, clk1 = 0, 
+#                        frqc = 0, en_gr = 0, res1 = 0, f2 = 0, res0 = 0)
+#    print("Set chip 3 global regs res2=1 only:")
+#    print(a)
+#
+#
+    #a.REGS = [0 for reg in a.REGS]
+    #a.set_chip_global(7, res2 = 1, f1 = 1, clk0 = 1, clk1 = 1, 
+    #                    frqc = 1, en_gr = 1, res1 = 1, f2 = 1, res0 = 1)
+    #print("Set chip 7 global regs res0=1 only:")
+    #print(a)
+
+    #a.REGS = [0 for reg in a.REGS]
+    #a.set_chn_reg(chip=7, chn=15, d=0b1111, pcsr=0, pdsr=0, slp=0, tstin=0 )
+    #print("Set chip 7 channel 15 D0=0b1111 only:")
+    #print(a)
+    #a.printBinary()
+
+    #a.REGS = [0 for reg in a.REGS]
+    #a.set_chn_reg(chip=3, chn=15, d=0b1111, pcsr=0, pdsr=0, slp=0, tstin=0 )
+    #print("Set chip 3 channel 15 D0=0b1111 only:")
+    #print(a)
+
+    #a.REGS = [0 for reg in a.REGS]
+    #a.set_chn_reg(chip=3, chn=15, d=0b1111, pcsr=0, pdsr=0, slp=1, tstin=0 )
+    #print("Set chip 3 channel 15 D0=0b1111  and slp=1 only:")
+    #print(a)
+    ##a.printBinary()
+
+    #a.REGS = [0 for reg in a.REGS]
+    #for chip in range(8):
+    #    for chn in range(16):
+    #        a.set_chn_reg(chip, chn, d=0b1111, pcsr=1, pdsr=1, slp=1, tstin=1 )     
+    #print("Set all chip opts to 1")
+    #print(a)
+    ##a.printBinary()
+
+    #for chn in range(16):
+    #    a.REGS = [0 for reg in a.REGS]
+    #    for chip in range(8):
+    #        a.set_chn_reg(chip, chn, d=0b1111, pcsr=1, pdsr=1, slp=1, tstin=1 )     
+    #    print("Set all chip ch {} d 0b1111".format(chn))
+    #    print(a)
+    ##a.printBinary()
+
+    #a.REGS = [0 for reg in a.REGS]
+    #a.set_chn_reg(chip=7, chn=14, d=0b1111, pcsr=0, pdsr=0, slp=0, tstin=0 )
+    #print("Set chip 7 channel 15 D0=0b1111 only:")
+    #print(a)
+    ##a.printBinary()
+
+    a.REGS = [0 for reg in a.REGS]
+    a.set_chn_reg(chip=2, chn=15, d=0b0100, pcsr=0, pdsr=0, slp=0, tstin=0 )
+    print("Set chip 2 channel 15 d1 only:")
+    print(a)
+    a.printBinary(8)
+
+    a.REGS = [0 for reg in a.REGS]
+    a.set_chn_reg(chip=2, chn=15, d=0b1000, pcsr=0, pdsr=0, slp=0, tstin=0 )
+    print("Set chip 2 channel 15 d0 only:")
+    print(a)
+    a.printBinary(8)
+
+    a.REGS = [0 for reg in a.REGS]
+    a.set_chn_reg(chip=6, chn=15, d=0b0100, pcsr=0, pdsr=0, slp=0, tstin=0 )
+    print("Set chip 6 channel 15 d1 only:")
+    print(a)
+    a.printBinary(8)
+
+    a.REGS = [0 for reg in a.REGS]
+    a.set_chn_reg(chip=6, chn=15, d=0b1000, pcsr=0, pdsr=0, slp=0, tstin=0 )
+    print("Set chip 6 channel 15 d0 only:")
+    print(a)
+    a.printBinary(8)
+
+    a.REGS = [0 for reg in a.REGS]
+    a.set_chip(chip=7,
+                 d=0x1111, pcsr=1, pdsr=1, slp=1, tstin=1,
+                 res2 = 1, f1 = 1, clk0 = 1, clk1 = 1, 
+                 frqc = 1, en_gr = 1, res1 = 1, f2 = 1, res0 = 1)
+    print("Set chip 7 channel all ones:")
+    print(a)
+    a.printBinary(8)
+
+
+    a.REGS = [0 for reg in a.REGS]
+    a.set_chip(chip=6,
+                 d=0x1111, pcsr=1, pdsr=1, slp=1, tstin=1,
+                 res2 = 1, f1 = 1, clk0 = 1, clk1 = 1, 
+                 frqc = 1, en_gr = 1, res1 = 1, f2 = 1, res0 = 1)
+    print("Set chip 6 channel all ones:")
+    print(a)
+    a.printBinary(8)
+
+    a.REGS = [0 for reg in a.REGS]
+    a.set_chip(chip=5,
+                 d=0x1111, pcsr=1, pdsr=1, slp=1, tstin=1,
+                 res2 = 1, f1 = 1, clk0 = 1, clk1 = 1, 
+                 frqc = 1, en_gr = 1, res1 = 1, f2 = 1, res0 = 1)
+    print("Set chip 5 channel all ones:")
+    print(a)
+    a.printBinary(8)
+
+    a.REGS = [0 for reg in a.REGS]
+    a.set_chip(chip=4,
+                 d=0x1111, pcsr=1, pdsr=1, slp=1, tstin=1,
+                 res2 = 1, f1 = 1, clk0 = 1, clk1 = 1, 
+                 frqc = 1, en_gr = 1, res1 = 1, f2 = 1, res0 = 1)
+    print("Set chip 4 channel all ones:")
+    print(a)
+    a.printBinary(8)
