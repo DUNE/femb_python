@@ -1,10 +1,11 @@
 """
 Main Configuration module.
 """
+import sys
 import os.path
 import time
 from .config_file_parser import CONFIG_FILE
-from .adc_asic_config import ADC_CONFIG
+from .adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
 from .fe_asic_config import FE_CONFIG
 from ..femb_udp import FEMB_UDP
 
@@ -40,13 +41,114 @@ class CONFIG:
       if self.fe:
         self.fe.configureDefault()
       if self.adc:
-        self.adc.configureDefault()
+        #self.adc.configureDefault()
+        self.configAdcAsic()
 
     def configFeAsic(self,gain,shape,base):
       if self.fe:
         self.fe.configFeAsic(gain,shape,base)
       else:
         print("CONFIG.configFeAsic: no FE ASIC present in configuration")
+
+    def configAdcAsic(self,regs=None):
+        self.configAdcAsicOld()
+        return
+        if not regs:
+            aarm = ADC_ASIC_REG_MAPPING()
+            regs = aarm.getREGS()
+        checkReadback = True
+        try:
+            checkReadback = not self.DONTCHECKREADBACK
+        except:
+            pass
+        #ADC ASIC SPI registers
+        print("CONFIG--> Config ADC ASIC SPI")
+        for k in range(10):
+            i = 0
+            for regNum in range(self.REG_ADCSPI_BASE,self.REG_ADCSPI_BASE+len(regs),1):
+                    self.femb.write_reg( regNum, regs[i])
+                    i = i + 1
+
+            #Write ADC ASIC SPI
+            print("CONFIG--> Program ADC ASIC SPI")
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+            time.sleep(0.1)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+            time.sleep(0.1)
+
+            print("CONFIG--> Check ADC ASIC SPI")
+            adcasic_rb_regs = []
+            for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+len(regs),1):
+                val = self.femb.read_reg( regNum ) 
+                adcasic_rb_regs.append( val )
+                print(hex(val))
+
+            if checkReadback:
+                if (adcasic_rb_regs !=regs  ) :
+                    if ( k == 1 ):
+                        sys.exit("CONFIG : Wrong readback. ADC SPI failed")
+                        return
+                else: 
+                    print("CONFIG--> ADC ASIC SPI is OK")
+                    break
+            else:
+                break
+
+    def configAdcAsicOld(self):
+        #ADC ASIC SPI registers
+        print("Config ADC ASIC SPI")
+        print("ADCADC")
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 0, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 1, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 2, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 3, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 4, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 5, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 6, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 7, 0xC0C0C0C)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 8, 0x18321832)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 9, 0x18181818)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 10, 0x18181818)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 11, 0x18181818)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 12, 0x18181818)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 13, 0x18181818)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 14, 0x18181818)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 15, 0x18181818)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 16, 0x64186418)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 17, 0x30303030)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 18, 0x30303030)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 19, 0x30303030)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 20, 0x30303030)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 21, 0x30303030)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 22, 0x30303030)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 23, 0x30303030)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 24, 0x30303030)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 25, 0x60c868c8)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 26, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 27, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 28, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 29, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 30, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 31, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 32, 0x60606868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 33, 0x9060A868)
+        self.femb.write_reg( self.REG_ADCSPI_BASE + 34, 0x10001)        
+
+        ##ADC ASIC sync
+        #self.femb.write_reg( 17, 0x1) # controls HS link, 0 for on, 1 for off
+        #self.femb.write_reg( 17, 0x0) # controls HS link, 0 for on, 1 for off        
+
+        #Write ADC ASIC SPI
+        print("Program ADC ASIC SPI")
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+        time.sleep(0.1)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+        time.sleep(0.1)
+
+        print("Check ADC ASIC SPI")
+        for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+34,1):
+                val = self.femb.read_reg( regNum ) 
+                print(hex(val))
 
     def selectChannel(self,asic,chan):
         asicVal = int(asic)
@@ -109,7 +211,8 @@ class CONFIG:
         self.fe = None
         #if self.config_file.hasADC():
         if True:
-          self.adc = ADC_CONFIG(self.config_file,self.femb)
+          #self.adc = ADC_CONFIG(self.config_file,self.femb)
+          self.adc = True
         if False:
           self.fe = FE_CONFIG(self.config_file,self.femb)
         for key in self.config_file.listKeys("GENERAL"):
@@ -120,7 +223,10 @@ class CONFIG:
           setattr(self,"TOGGLE_HSLINK",self.config_file.get("GENERAL","TOGGLE_HSLINK",isBool=True))
         except:
           setattr(self,"TOGGLE_HSLINK",False)
-          
+        try:
+          setattr(self,"DONTCHECKREADBACK",self.config_file.get("GENERAL","DONTCHECKREADBACK",isBool=True))
+        except:
+          setattr(self,"DONTCHECKREADBACK",False)
         
 
 if __name__ == "__main__":

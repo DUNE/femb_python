@@ -1,6 +1,4 @@
-#!/usr/bin/env python33
-
-import string
+#!/usr/bin/env python3
 
 class ADC_ASIC_REG_MAPPING:
 
@@ -192,6 +190,9 @@ class ADC_ASIC_REG_MAPPING:
                     pos = (7-chip)*137 + ( 15 - chn) * 8
                     result['channel'][chip].append(reversed(regs_bool5_8[pos:pos+8]))
         return result
+
+    def getREGS(self):
+        return self.REGS
 
     #__INIT__#
     def __init__(self, regs=None):
