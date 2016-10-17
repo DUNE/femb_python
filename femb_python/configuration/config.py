@@ -59,8 +59,30 @@ class CONFIG:
             print(("Setting all ADC channel config registers to {:#0"+str(nbits_channel+2)+"b}").format(channel_bits))
             arp = ASIC_REG_PACKING(nbits_global,nbits_channel)
             arp.set_board(global_bits,channel_bits)
-            #arp.set_board(0b00110010,0b00001100)
-            #arp.set_chip(0,0b00110101,0b00001101)
+            for iChip in range(self.NASICS):
+                try:
+                    global_bits = self.config_file.get("ADC_CONFIGURATION","ASIC{}_GLOBAL_BITS".format(iChip))
+                except:
+                    pass
+                else:
+                    print(("Setting ADC chip {} global config registers to {:#0"+str(nbits_global+2)+"b}").format(iChip,global_bits))
+                    arp.set_chip_global(iChip,global_bits)
+                try:
+                    channel_bits = self.config_file.get("ADC_CONFIGURATION","ASIC{}_CHANNEL_BITS".format(iChip))
+                except:
+                    pass
+                else:
+                    print(("Setting ADC chip {} channel config registers to {:#0"+str(nbits_channel+2)+"b}").format(iChip,channel_bits))
+                    for iChan in range(16):
+                        arp.set_chn_reg(iChip,iChan,channel_bits)
+                for iChan in range(16):
+                    try:
+                        channel_bits = self.config_file.get("ADC_CONFIGURATION","ASIC{}_CHANNEL{}_BITS".format(iChip,iChan))
+                    except:
+                        pass
+                    else:
+                        print(("Setting ADC chip {} channel {} config registers to {:#0"+str(nbits_channel+2)+"b}").format(iChip,iChan,channel_bits))
+                        arp.set_chn_reg(iChip,iChan,channel_bits)
             regs = arp.getREGS()
         checkReadback = True
         try:

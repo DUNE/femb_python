@@ -266,7 +266,7 @@ class CONFIGURATION_WINDOW(Gtk.Window):
 
     def call_adcasic_config(self, button):
         print("call_adcasic_config")
-        #self.femb_config.initBoard()
+        self.femb_config.configAdcAsic()
 
     def call_quit(self, button):
         print("call_adcasic_config")
