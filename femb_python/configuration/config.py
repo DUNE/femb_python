@@ -5,7 +5,8 @@ import sys
 import os.path
 import time
 from .config_file_parser import CONFIG_FILE
-from .adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
+#from .adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
+from .asic_reg_packing import ASIC_REG_PACKING
 from .fe_asic_config import FE_CONFIG
 from ..femb_udp import FEMB_UDP
 
@@ -54,8 +55,10 @@ class CONFIG:
         self.configAdcAsicOld()
         return
         if not regs:
-            aarm = ADC_ASIC_REG_MAPPING()
-            regs = aarm.getREGS()
+            arp = ASIC_REG_PACKING()
+            arp.set_board(0b00110010,0b00001100)
+            arp.set_chip(0,0b00110101,0b00001101)
+            regs = arp.getREGS()
         checkReadback = True
         try:
             checkReadback = not self.DONTCHECKREADBACK
