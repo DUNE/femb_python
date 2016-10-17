@@ -111,7 +111,7 @@ class FEMB_UDP:
         try:
                 data = sock_readresp.recv(1024)
         except socket.timeout:
-                #print "FEMB_UDP--> Error read_reg: No read packet received from board, quitting"
+                print("FEMB_UDP--> Error read_reg: No read packet received from board, quitting")
                 sock_readresp.close()
                 return -1        
         dataHex = binascii.hexlify( data ) 
@@ -119,7 +119,7 @@ class FEMB_UDP:
 
         #extract register value from response
         if int(dataHex[0:4],16) != regVal :
-                #print "FEMB_UDP--> Error read_reg: Invalid response packet"
+                print("FEMB_UDP--> Error read_reg: Invalid response packet")
                 return None
         dataHexVal = int(dataHex[4:12],16)
         #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,dataHexVal)
