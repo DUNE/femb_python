@@ -4,9 +4,33 @@ import string
 import time
 import math
 
-from femb_udp_cmdline import FEMB_UDP
-from femb_config import FEMB_CONFIG
-femb_config = FEMB_CONFIG()
+from ..femb_udp import FEMB_UDP
+from ..configuration import CONFIG, get_env_config_file
+
+def main():
+    config_file = get_env_config_file()
+    femb_config = CONFIG(config_file)
+    noiseMeasurements = []
+    for ch in range(0,128,1):
+        chan = int(ch)
+        femb_config.selectChannel( chan/16, chan % 16)
+        time.sleep(0.05)
+        data = femb_config.femb.get_data(1)
+        meanAndRms = calcMeanAndRms(data)
+        rms = 0
+        if len(meanAndRms) == 2 :
+            rms = round(meanAndRms[1],2)
+        #print meanAndRms[0]
+        #print meanAndRms[1]
+        #print "Ch " + str(ch) + "\tRMS " + str(rms)
+        noiseMeasurements.append(rms)
+    
+    for asic in range(0,8,1):
+        line = "ASIC " + str(asic)
+        baseCh = int(asic)*16
+        for ch in range(baseCh,baseCh + 16,1):
+            line = line + "\t" + str( noiseMeasurements[ch])
+        print( line )
 
 def calcMeanAndRms( data ):
     mean = 0
@@ -35,24 +59,3 @@ def calcMeanAndRms( data ):
 
     return (mean,rms)
 
-noiseMeasurements = []
-for ch in range(0,128,1):
-    chan = int(ch)
-    femb_config.selectChannel( chan/16, chan % 16)
-    time.sleep(0.05)
-    data = femb_config.femb.get_data(1)
-    meanAndRms = calcMeanAndRms(data)
-    rms = 0
-    if len(meanAndRms) == 2 :
-        rms = round(meanAndRms[1],2)
-    #print meanAndRms[0]
-    #print meanAndRms[1]
-    #print "Ch " + str(ch) + "\tRMS " + str(rms)
-    noiseMeasurements.append(rms)
-
-for asic in range(0,8,1):
-    line = "ASIC " + str(asic)
-    baseCh = int(asic)*16
-    for ch in range(baseCh,baseCh + 16,1):
-        line = line + "\t" + str( noiseMeasurements[ch])
-    print( line )
