@@ -116,8 +116,12 @@ setup(
         'console_scripts': [
             'femb_gui=femb_python.configuration_window:main',
             'femb_show_trace_fft=femb_python.trace_fft_window:main',
-            'femb_init_board=femb_python.helper_scripts.init_board:main',
             'femb_write_root_tree=femb_python.write_root_tree:main',
+
+            'femb_init_board=femb_python.helper_scripts.init_board:main',
+            'femb_read_reg=femb_python.helper_scripts.read_reg:main',
+            'femb_write_reg=femb_python.helper_scripts.write_reg:main',
+            'femb_dump_data=femb_python.helper_scripts.dump_data:main',
         ],
         #'gui_scripts': [
         #    'femb_test=femb_python.gui:main',
