@@ -23,11 +23,11 @@ class CONFIG:
       self.femb.write_reg( self.REG_RESET, 2)
       time.sleep(1.)
 
-      if self.fe:
+      if self.hasFE:
         #Reset FE ASICs
         self.femb.write_reg( self.REG_ASIC_RESET, 2)
         time.sleep(0.5)
-      if self.adc:
+      if self.hasADC:
         #Reset ADC ASICs
         self.femb.write_reg( self.REG_ASIC_RESET, 1)
         time.sleep(0.5)
@@ -38,18 +38,14 @@ class CONFIG:
       if self.TOGGLE_HSLINK:
         self.femb.write_reg( self.REG_HSLINK, 0x1)
         self.femb.write_reg( self.REG_HSLINK, 0x0)
-      if self.fe:
+      if self.hasFE:
         self.fe.configureDefault()
-      if self.adc:
+      if self.hasADC:
         self.configAdcAsic()
 
-    def configFeAsic(self,gain,shape,base):
-      if self.fe:
-        self.fe.configFeAsic(gain,shape,base)
-      else:
-        print("CONFIG.configFeAsic: no FE ASIC present in configuration")
-
     def configAdcAsic(self,regs=None):
+        if not self.hasADC:
+          print("CONFIG.configAdcAsic: no ADC ASIC present in configuration")
         if not regs: # then get from configuration file
             nbits_global = self.config_file.get("ADC_CONFIGURATION","NBITS_GLOBAL")
             nbits_channel = self.config_file.get("ADC_CONFIGURATION","NBITS_CHANNEL")
@@ -123,6 +119,57 @@ class CONFIG:
                 print("CONFIG--> Not checking if ADC readback is okay")
                 break
 
+    def configFeAsic(self,gain,shape,base):
+      if not self.hasFE:
+        print("CONFIG.configFeAsic: no FE ASIC present in configuration")
+      gainVal = int(gain)
+      if (gainVal < 0 ) or (gainVal > 3):
+              return
+      shapeVal = int(shape)
+      if (shapeVal < 0 ) or (shapeVal > 3):
+              return
+      baseVal = int(base)
+      if (baseVal < 0 ) or (baseVal > 1):
+              return
+
+      #get ASIC channel config register SPI values        
+      chReg = 0x0
+      gainArray = [0,2,1,3]
+      shapeArray = [2,0,3,1] #I don't know why
+      chReg = (gainArray[gainVal] << 4 ) + (shapeArray[shapeVal] << 2)
+
+      if (baseVal == 0) :
+              chReg = chReg + 0x40
+
+      #enable test capacitor here
+      chReg = chReg + 0x80 #enabled
+      #chReg = chReg + 0x0 #disabled
+
+      #need better organization of SPI, just store in words for now
+      word1 = chReg + (chReg << 8) + (chReg << 16) + (chReg << 24)
+      word2 = (chReg << 8) + (chReg << 24)
+      word3 = chReg + (chReg << 16)
+
+      print("Config FE ASIC SPI")
+      for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+34,1):
+              self.femb.write_reg( regNum, word1)
+      self.femb.write_reg( self.REG_FESPI_BASE+8, word2 )
+      self.femb.write_reg( self.REG_FESPI_BASE+16, word3 )
+      self.femb.write_reg( self.REG_FESPI_BASE+25, word2 )
+      self.femb.write_reg( self.REG_FESPI_BASE+33, word3 )
+
+      #Write FE ASIC SPI
+      print("Program FE ASIC SPI")
+      self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
+      time.sleep(0.1)
+      self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
+      time.sleep(0.1)
+
+      #print "Check FE ASIC SPI"
+      #for regNum in range(self.REG_FESPI_RDBACK_BASE,self.REG_FESPI_RDBACK_BASE+34,1):
+      #        val = self.femb.read_reg( regNum)
+      #        print hex(val)
+
     def selectChannel(self,asic,chan):
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal > self.NASICS - 1) :
@@ -137,28 +184,46 @@ class CONFIG:
         self.femb.write_reg( self.REG_SEL_CH, regVal)
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
-      if self.fe:
-        self.fe.setInternalPulser()
-      else:
+      if not self.hasFE:
         print("CONFIG.setInternalPulser: no FE ASIC present in configuration")
+        return
+      pulserEnable = int(pulserEnable)
+      if (pulserEnable < 0 ) or (pulserEnable > 1):
+              return
+      pulserEnableVal = int(pulserEnable)
+      if (pulseHeight < 0 ) or (pulseHeight > 32):
+              return
+      pulseHeightVal = int(pulseHeight)
+      self.femb.write_reg_bits( 5 , 0, 0x1F, pulseHeightVal )
+      self.femb.write_reg_bits( 13 , 1, 0x1, pulserEnableVal )
 
     def syncADC(self):
-      if self.adc:
-        self.adc.syncADC()
-      else:
+      if not self.hasADC:
         print("CONFIG.syncADC: no ADC ASIC present in configuration")
+      #turn on ADC test mode
+      print("Start sync ADC")
+      reg3 = self.femb.read_reg(3)
+      newReg3 = ( reg3 | 0x80000000 )
+      self.femb.write_reg( 3, newReg3 ) #31 - enable ADC test pattern
+      for a in range(0,8,1):
+              print("Test ADC " + str(a))
+              unsync = self.testUnsync(a)
+              if unsync != 0:
+                      print("ADC not synced, try to fix")
+                      self.fixUnsync(a)
+      LATCH = self.femb.read_reg( self.REG_LATCHLOC )
+      PHASE = self.femb.read_reg( self.REG_CLKPHASE )
+      print("Latch latency " + str(hex(LATCH)) + "\tPhase " + str(hex(PHASE)))
+      print("End sync ADC")
+
 
     def testUnsync(self, adc):
-      if self.adc:
-        self.adc.testUnsync(adc)
-      else:
-        print("CONFIG.syncADC: no ADC ASIC present in configuration")
+      if not self.hasADC:
+        print("CONFIG.testUnsync: no ADC ASIC present in configuration")
 
     def fixUnsync(self, adc):
-      if self.adc:
-        self.adc.fixUnsync(adc)
-      else:
-        print("CONFIG.syncADC: no ADC ASIC present in configuration")
+      if not self.hasADC:
+        print("CONFIG.fixUnsync: no ADC ASIC present in configuration")
 
     def setRegisterInitialVals(self):
         for key in self.config_file.listKeys("REGISTER_INITIAL_VALUES"):
@@ -180,14 +245,12 @@ class CONFIG:
         #read the config file
         self.filename = config_file_name
         self.config_file = CONFIG_FILE(self.filename)
-        self.adc = None
-        self.fe = None
-        #if self.config_file.hasADC():
-        if True:
-          #self.adc = ADC_CONFIG(self.config_file,self.femb)
-          self.adc = True
-        if False:
-          self.fe = FE_CONFIG(self.config_file,self.femb)
+        self.hasADC = False
+        self.hasFE = False
+        if self.config_file.hasADC():
+          self.hasADC = True
+        if self.config_file.hasFE():
+          self.hasFE = True
         for key in self.config_file.listKeys("GENERAL"):
           setattr(self,key.upper(),self.config_file.get("GENERAL",key))
         for key in self.config_file.listKeys("REGISTER_LOCATIONS"):

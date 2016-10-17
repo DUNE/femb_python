@@ -16,37 +16,16 @@ class CONFIG_FILE(object):
       self.parser.read(filename)
 
     def hasADC(self):
-      if "ADC_ASIC" in self.parser:
+      if "ADC_CONFIGURATION" in self.parser:
         return True
       else:
         return False
 
     def hasFE(self):
-      if "FE_ASIC" in self.parser:
+      if "FE_CONFIGURATION" in self.parser:
         return True
       else:
         return False
-
-    def boardParam(self,key,isBool=False):
-      """
-      Read a board configuration variable with name 'key'
-      The return type is always a string, unless isBool is True, then it is bool.
-      """
-      return self.get("BOARD",key,isBool)
-
-    def feParam(self,key,isBool=False):
-      """
-      Read a FE ASIC configuration variable with name 'key'
-      The return type is always a string, unless isBool is True, then it is bool.
-      """
-      return self.get("FE_ASIC",key,isBool)
-
-    def adcParam(self,key,isBool=False):
-      """
-      Read a ADC configuration variable with name 'key'
-      The return type is always a string, unless isBool is True, then it is bool.
-      """
-      return self.get("ADC_ASIC",key,isBool)
 
     def get(self,section,key,isBool=False):
       """
