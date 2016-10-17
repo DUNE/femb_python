@@ -2,22 +2,9 @@ import time
 
 class ADC_CONFIG:
 
-    def reset(self):
-
-        #Reset ADC ASICs
-        self.femb.write_reg( self.REG_ASIC_RESET, 1)
-        time.sleep(0.5)
-
     def configureDefault(self):
         #set up default registers
 
-        #Set ADC test pattern register
-        self.femb.write_reg( 3, 0x01230000) #31 - enable ADC test pattern, 
-
-        #Set ADC latch_loc
-        self.femb.write_reg( self.REG_LATCHLOC, self.VAL_LATCHLOC )
-        #Set ADC clock phase
-        self.femb.write_reg( self.REG_CLKPHASE, self.VAL_CLKPHASE)
         #ADC ASIC SPI registers
         print("Config ADC ASIC SPI")
         self.femb.write_reg( self.REG_ADCSPI_BASE + 0, 0xC0C0C0C)
@@ -56,10 +43,6 @@ class ADC_CONFIG:
         self.femb.write_reg( self.REG_ADCSPI_BASE + 33, 0x9060A868)
         self.femb.write_reg( self.REG_ADCSPI_BASE + 34, 0x10001)        
 
-        #ADC ASIC sync
-        self.femb.write_reg( 17, 0x1) # controls HS link, 0 for on, 1 for off
-        self.femb.write_reg( 17, 0x0) # controls HS link, 0 for on, 1 for off        
-
         #Write ADC ASIC SPI
         print("Program ADC ASIC SPI")
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
@@ -74,11 +57,6 @@ class ADC_CONFIG:
 
         #enable streaming
         #self.femb.write_reg( 9, 0x8)
-
-        #LBNE_ADC_MODE
-        if hasattr(self,"REG_LBNEADCMODE") and hasattr(self,"VAL_LBNEADCMODE"):
-            print("Setting REG_LBNEADCMODE ({}) to VAL_LBNEADCMODE ({:x})".format(self.REG_LBNEADCMODE,self.VAL_LBNEADCMODE))
-            self.femb.write_reg( self.REG_LBNEADCMODE, self.VAL_LBNEADCMODE)
 
     def syncADC(self):
         #turn on ADC test mode
@@ -161,14 +139,7 @@ class ADC_CONFIG:
         #set FEMB UDP object
         self.config_file = config_file
         self.femb = femb_udp_obj
-        for key in self.config_file.listKeys("BOARD"):
-          value = self.config_file.boardParam(key)
-          key = key.upper()
-          setattr(self,key,value)
-          print(key,getattr(self,key))
-        for key in self.config_file.listKeys("ADC_ASIC"):
-          value = self.config_file.adcParam(key)
-          key = key.upper()
-          setattr(self,key,value)
-          print(key,getattr(self,key))
-        print("ADC object attrs: ",dir(self))
+        for key in self.config_file.listKeys("GENERAL"):
+          setattr(self,key.upper(),self.config_file.get("GENERAL",key))
+        for key in self.config_file.listKeys("REGISTER_LOCATIONS"):
+          setattr(self,key.upper(),self.config_file.get("REGISTER_LOCATIONS",key))

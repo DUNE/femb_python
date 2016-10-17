@@ -102,14 +102,7 @@ class FE_CONFIG:
         #set FEMB UDP object
         self.config_file = config_file
         self.femb = femb_udp_obj
-        for key in self.config_file.listKeys("BOARD"):
-          value = self.config_file.boardParam(key)
-          key = key.upper()
-          setattr(self,key,value)
-          print(key,getattr(self,key))
-        for key in self.config_file.listKeys("FE_ASIC"):
-          value = self.config_file.feParam(key)
-          key = key.upper()
-          setattr(self,key,value)
-          print(key,getattr(self,key))
-        print("ADC object attrs: ",dir(self))
+        for key in self.config_file.listKeys("GENERAL"):
+          setattr(self,key.upper(),self.config_file.get("GENERAL",key))
+        for key in self.config_file.listKeys("REGISTER_LOCATIONS"):
+          setattr(self,key.upper(),self.config_file.get("REGISTER_LOCATIONS",key))
