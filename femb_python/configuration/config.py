@@ -5,7 +5,6 @@ import sys
 import os.path
 import time
 from .config_file_parser import CONFIG_FILE
-#from .adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
 from .asic_reg_packing import ASIC_REG_PACKING
 from .fe_asic_config import FE_CONFIG
 from ..femb_udp import FEMB_UDP
@@ -42,7 +41,6 @@ class CONFIG:
       if self.fe:
         self.fe.configureDefault()
       if self.adc:
-        #self.adc.configureDefault()
         self.configAdcAsic()
 
     def configFeAsic(self,gain,shape,base):
@@ -52,12 +50,17 @@ class CONFIG:
         print("CONFIG.configFeAsic: no FE ASIC present in configuration")
 
     def configAdcAsic(self,regs=None):
-        self.configAdcAsicOld()
-        return
-        if not regs:
-            arp = ASIC_REG_PACKING()
-            arp.set_board(0b00110010,0b00001100)
-            arp.set_chip(0,0b00110101,0b00001101)
+        if not regs: # then get from configuration file
+            nbits_global = self.config_file.get("ADC_CONFIGURATION","NBITS_GLOBAL")
+            nbits_channel = self.config_file.get("ADC_CONFIGURATION","NBITS_CHANNEL")
+            global_bits = self.config_file.get("ADC_CONFIGURATION","GLOBAL_BITS")
+            channel_bits = self.config_file.get("ADC_CONFIGURATION","CHANNEL_BITS")
+            print(("Setting all ADC global config registers to {:#0"+str(nbits_global+2)+"b}").format(global_bits))
+            print(("Setting all ADC channel config registers to {:#0"+str(nbits_channel+2)+"b}").format(channel_bits))
+            arp = ASIC_REG_PACKING(nbits_global,nbits_channel)
+            arp.set_board(global_bits,channel_bits)
+            #arp.set_board(0b00110010,0b00001100)
+            #arp.set_chip(0,0b00110101,0b00001101)
             regs = arp.getREGS()
         checkReadback = True
         try:
@@ -95,63 +98,8 @@ class CONFIG:
                     print("CONFIG--> ADC ASIC SPI is OK")
                     break
             else:
+                print("CONFIG--> Not checking if ADC readback is okay")
                 break
-
-    def configAdcAsicOld(self):
-        #ADC ASIC SPI registers
-        print("Config ADC ASIC SPI")
-        print("ADCADC")
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 0, 0xC0C0C0C)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 1, 0xC0C0C0C)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 2, 0xC0C0C0C)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 3, 0xC0C0C0C)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 4, 0xC0C0C0C)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 5, 0xC0C0C0C)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 6, 0xC0C0C0C)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 7, 0xC0C0C0C)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 8, 0x18321832)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 9, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 10, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 11, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 12, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 13, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 14, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 15, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 16, 0x64186418)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 17, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 18, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 19, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 20, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 21, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 22, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 23, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 24, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 25, 0x60c868c8)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 26, 0x60606868)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 27, 0x60606868)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 28, 0x60606868)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 29, 0x60606868)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 30, 0x60606868)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 31, 0x60606868)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 32, 0x60606868)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 33, 0x9060A868)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 34, 0x10001)        
-
-        ##ADC ASIC sync
-        #self.femb.write_reg( 17, 0x1) # controls HS link, 0 for on, 1 for off
-        #self.femb.write_reg( 17, 0x0) # controls HS link, 0 for on, 1 for off        
-
-        #Write ADC ASIC SPI
-        print("Program ADC ASIC SPI")
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.1)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.1)
-
-        print("Check ADC ASIC SPI")
-        for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+34,1):
-                val = self.femb.read_reg( regNum ) 
-                print(hex(val))
 
     def selectChannel(self,asic,chan):
         asicVal = int(asic)
