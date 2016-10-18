@@ -2,7 +2,6 @@ import string
 import ROOT
 #from ROOT import TFile, TTree
 from array import array
-from .configuration import CONFIG
 from .femb_udp import FEMB_UDP
 import uuid
 import datetime
@@ -21,7 +20,7 @@ class WRITE_ROOT_TREE:
 
         for ch in range(self.minchan,self.maxchan+1,1):
             chan[0] = int(ch)
-            self.femb_config.selectChannel( chan[0]/16, chan[0] % 16)
+            self.femb_config.selectChannel( chan[0]//16, chan[0] % 16)
             time.sleep(0.01)
             wf.clear()
             data = self.femb.get_data(self.numpacketsrecord)
@@ -66,11 +65,11 @@ class WRITE_ROOT_TREE:
         f.Close()
 
     #__INIT__#
-    def __init__(self):
+    def __init__(self,femb_config,filename,numpacketsrecord):
     #data taking variables
-        self.numpacketsrecord = 10
+        self.numpacketsrecord = numpacketsrecord
         #file name and metadata variables
-        self.filename = 'femb_rootdata_defaultname.root'
+        self.filename = filename
         self.treename = 'femb_wfdata'
         self.metaname = 'metadata'
         self.date = int( datetime.datetime.today().strftime('%Y%m%d%H%M') )
@@ -91,9 +90,29 @@ class WRITE_ROOT_TREE:
         self.maxchan = 127
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
-        self.femb_config = CONFIG()
+        self.femb_config = femb_config
+
+        nChannels = self.femb_config.NASICS*16
+        if self.maxchan >= nChannels:
+            self.maxchan = nChannels -1
 
 def main():
-  wrt = WRITE_ROOT_TREE()
+  from .configuration.argument_parser import ArgumentParser
+  from .configuration import CONFIG
+  from .configuration.config_file_finder import get_env_config_file, config_file_finder
+  parser = ArgumentParser(description="Dumps data to a root tree named 'femb_wfdata'")
+  parser.addConfigFileArgs()
+  parser.addNPacketsArgs(False,10)
+  parser.add_argument("outfilename",help="Output root file name")
+  args = parser.parse_args()
+
+  config_filename = args.config
+  if config_filename:
+    config_filename = config_file_finder(config_filename)
+  else:
+    config_filename = get_env_config_file()
+  config = CONFIG(config_filename)
+
+  wrt = WRITE_ROOT_TREE(config,args.outfilename,args.nPackets)
   wrt.record_data_run()
 

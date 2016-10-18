@@ -21,6 +21,19 @@ class ArgumentParser(argparse.ArgumentParser):
                             help="Configuration file name. Can be a path or one of the standard configurations, {}, in {}".format(get_standard_configurations(), get_standard_configuration_dir())
                             )
 
+    def addNPacketsArgs(self,required=False,default=None):
+        """
+        Adds an argument to get a config filename from the command line.
+        """
+        helpString = "Number of packets to process."
+        if default:
+          helpString += " default={}".format(default)
+        if required:
+          helpString += " (required)"
+        self.add_argument('-n','--nPackets',required=required, default=default,type=int,
+                            help=helpString
+                            )
+
 def convert_int_literals(instring):
       if instring[:2] == "0x":
         try:
