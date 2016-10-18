@@ -4,6 +4,9 @@ Interface to Rigol DG4000 Function Generator
 
 import time
 
+VMIN=0.
+VMAX=1.8
+
 class RigolDG4000(object):
     """
     Interface to Rigol DG4000 Function Generator
@@ -17,12 +20,13 @@ class RigolDG4000(object):
         self.filename = filename
         self.sourceNumber = sourceNumber
         self.sourceString = ":SOURce{}".format(sourceNumber)
+        self.outputString = ":OUTPut{}".format(sourceNumber)
 
     def writeCommand(self,command):
         """
         Writes a command string to the function generator
         """
-        print("Writing command '{}'".format(command))
+        #print("Writing command '{}'".format(command))
         with open(self.filename,'w') as wfile:
             wfile.write(command)
             time.sleep(0.1)
@@ -31,7 +35,7 @@ class RigolDG4000(object):
         """
         Stops output
         """
-        command = self.sourceString + ":STATe OFF"
+        command = self.outputString+":STATe OFF"
         self.writeCommand(command)
 
     def startSin(self,freq,amp,offset):
@@ -41,6 +45,9 @@ class RigolDG4000(object):
         amp amplitude in V
         offset offset in V
         """
+        self.stop()
+        if offset - amp < VMIN or offset + amp > VMAX:
+            raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
         commands = [
             self.sourceString+":FUNCtion SINusoid",
             self.sourceString+":FREQuency {:f}".format(freq),
@@ -49,28 +56,38 @@ class RigolDG4000(object):
         ]
         for command in commands:
             self.writeCommand(command)
+        time.sleep(0.5)
+        self.writeCommand(self.outputString+":STATe ON")
 
     def startDC(self,voltage):
         """
         Starts a DC signal
         voltage in V
         """
+        self.stop()
+        if voltage < VMIN or voltage > VMAX:
+            raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
         commands = [
             self.sourceString+":FUNCtion DC",
             self.sourceString+":VOLTage:OFFSet {:f}".format(voltage),
         ]
         for command in commands:
             self.writeCommand(command)
+        time.sleep(0.5)
+        self.writeCommand(self.outputString+":STATe ON")
 
 if __name__ == "__main__":
 
     fungen = RigolDG4000("/dev/usbtmc0")
     fungen.stop()
     print()
-    fungen.startSin(300,0.05,0.237)
+    fungen.startSin(300,0.1,0.2)
     time.sleep(3)
     print()
-    fungen.startDC(0.234)
+    fungen.startDC(0.15)
+    time.sleep(3)
+    print()
+    fungen.stop()
 
 #  with open("/dev/usbtmc0",'w') as wfile:
 #
