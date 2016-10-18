@@ -6,7 +6,6 @@ import os.path
 import time
 from .config_file_parser import CONFIG_FILE
 from .asic_reg_packing import ASIC_REG_PACKING
-from .fe_asic_config import FE_CONFIG
 from ..femb_udp import FEMB_UDP
 
 class CONFIG:
@@ -39,7 +38,7 @@ class CONFIG:
         self.femb.write_reg( self.REG_HSLINK, 0x1)
         self.femb.write_reg( self.REG_HSLINK, 0x0)
       if self.hasFE:
-        self.fe.configureDefault()
+        self.configFeAsic()
       if self.hasADC:
         self.configAdcAsic()
 
@@ -215,7 +214,6 @@ class CONFIG:
       PHASE = self.femb.read_reg( self.REG_CLKPHASE )
       print("Latch latency " + str(hex(LATCH)) + "\tPhase " + str(hex(PHASE)))
       print("End sync ADC")
-
 
     def testUnsync(self, adc):
       if not self.hasADC:
