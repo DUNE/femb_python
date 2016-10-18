@@ -124,6 +124,7 @@ setup(
             'femb_dump_data=femb_python.helper_scripts.dump_data:main',
             'femb_select_channel=femb_python.helper_scripts.select_channel:main',
             'femb_measureRMS=femb_python.helper_scripts.measureRms:main',
+            'femb_config_adc=femb_python.helper_scripts.config_adc:main',
         ],
         #'gui_scripts': [
         #    'femb_test=femb_python.gui:main',

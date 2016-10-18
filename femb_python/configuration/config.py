@@ -235,6 +235,18 @@ class CONFIG:
           print("Setting {}, reg {} to {:#010x}".format(regName,regLoc,regVal))
           self.femb.write_reg(regLoc,regVal)
 
+    def getADCVersion(self):
+        if self.hasADC:
+            return self.ADC_ASIC_VERSION
+        else:
+            return None
+
+    def getFEVersion(self):
+        if self.hasFE:
+            return self.FE_ASIC_VERSION
+        else:
+            return None
+
     #__INIT__#
     def __init__(self,config_file_name):
         print("Using configuration file: {}".format(os.path.abspath(config_file_name)))
@@ -261,7 +273,16 @@ class CONFIG:
           setattr(self,"DONTCHECKREADBACK",self.config_file.get("GENERAL","DONTCHECKREADBACK",isBool=True))
         except:
           setattr(self,"DONTCHECKREADBACK",False)
-        
+        if self.hasADC:
+            try:
+              setattr(self,"ADC_ASIC_VERSION",self.config_file.get("ADC_CONFIGURATION","ADC_ASIC_VERSION"))
+            except:
+              raise Exception("Configuration file '{}' has ADC_CONFIGURATION so must have ADC_ASIC_VERSION within.".format(self.filename))
+        if self.hasFE:
+            try:
+              setattr(self,"FE_ASIC_VERSION",self.config_file.get("FE_CONFIGURATION","FE_ASIC_VERSION"))
+            except:
+              raise Exception("Configuration file '{}' has FE_CONFIGURATION so must have FE_ASIC_VERSION within.".format(self.filename))
 
 if __name__ == "__main__":
     print("########################################")

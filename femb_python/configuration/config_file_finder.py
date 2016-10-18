@@ -34,3 +34,7 @@ def get_standard_configurations():
     standard_file_list = pkg_resources.resource_listdir(PKGNAME,PKGCONFIGPREFIX)
     standard_file_list = [i for i in standard_file_list if os.path.splitext(i)[1]==".ini"]
     return standard_file_list
+
+def get_standard_configuration_dir():
+    filename = pkg_resources.resource_filename(PKGNAME,PKGCONFIGPREFIX)
+    return filename

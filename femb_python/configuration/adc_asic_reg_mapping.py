@@ -20,7 +20,8 @@ class ADC_ASIC_REG_MAPPING:
         self.channel_bit_len = 8
         if version == 7:
           self.global_bit_len = 16
-        allzeroRegs = [0x0 for i in range(math.ceil((self.global_bit_len*16+self.channel_bit_len*8*16)/32.))]
+        nRegs = math.ceil((self.global_bit_len*8+self.channel_bit_len*8*16)/32.)
+        allzeroRegs = [0x0 for i in range(nRegs)]
         self.reg_packing = ASIC_REG_PACKING(self.global_bit_len,self.channel_bit_len,allzeroRegs)
 
     def getREGS(self):
