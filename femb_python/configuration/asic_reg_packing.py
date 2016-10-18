@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import math
+
 class ASIC_REG_PACKING:
 
 ####sec_chn_reg only sets a channel register, the other registers remains as before
@@ -203,6 +205,9 @@ class ASIC_REG_PACKING:
         self.gbl_reg_len = global_bit_len
         self.chipbits = self.gbl_reg_len + 16*self.chn_reg_len
         self.REGS = regs
+        self.nRegs = math.ceil((global_bit_len*8 + channel_bit_len*8*16)/32.)
+        if len(self.REGS) != self.nRegs:
+            raise Exception("Should be {} registers, but there are {}".format(self.nRegs,len(self.REGS)))
 
 if __name__ == "__main__":
     a = ASIC_REG_PACKING()
