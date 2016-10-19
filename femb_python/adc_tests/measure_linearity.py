@@ -25,20 +25,15 @@ class MEASURE_LINEARITY(object):
         self.fitMaxV = 2.5
 
     def analyzeLinearity(self,nSamples,fake=False):
-        codeHists, codeMod12Hists, bitHists = self.doHistograms(nSamples,fake)
+        codeHists, bitHists = self.doHistograms(nSamples,fake)
         fig, ax = plt.subplots(figsize=(8,8))
         for iChip in range(self.NASICS):
+            sumAllCodeHists = numpy.zeros(2**12)
             for iChan in range(16):
                 try:
                     codeHist = codeHists[iChip][iChan]
-                    nGoodSamples = sum(codeHist[1:-1])
-                    countIdeal = nGoodSamples / (2**12 - 2)
-                    dnl = codeHist/countIdeal - 1.
-                    dnl[0] = 0.
-                    dnl[-1] = 0.
-                    inl = numpy.zeros(dnl.shape)
-                    for i in range(len(dnl)-1):
-                        inl[i] = dnl[1:i+1].sum()
+                    sumAllCodeHists += codeHist
+                    dnl, inl = self.makeLinearityHistograms(codeHist)
                     codeNumbers = numpy.arange(len(dnl))
                     ax.plot(codeNumbers,dnl,"k-")
                     ax.set_xlabel("ADC Code")
@@ -60,6 +55,20 @@ class MEASURE_LINEARITY(object):
                     ax.cla()
                 except IndexError as e:
                     pass
+            dnlAll, inlAll = self.makeLinearityHistograms(sumAllCodeHists)
+            codeNumbers = numpy.arange(len(dnlAll))
+            ax.plot(codeNumbers,dnlAll,"k-")
+            ax.set_xlabel("ADC Code")
+            ax.set_ylabel("DNL [LSB]")
+            ax.set_title("Using Histograms Summed Over Channels of Chip: {0}".format(iChip))
+            ax.set_xticks([x*1024 for x in range(5)])
+            filename = "ADC_DNL_Sum"
+            fig.savefig(filename+".png")
+            fig.savefig(filename+".pdf")
+            ax.cla()
+            print("Chip: ",iChip)
+            for code in codeNumbers[dnl > 1.5]:
+               print("code: {}, code % 6: {} code % 8: {} code % 12: {}, code % 16: {}".format(code,code % 6,code % 8,code % 12,code % 16))
 
     def doHistograms(self,nSamples,fake=False):
         """
@@ -71,7 +80,6 @@ class MEASURE_LINEARITY(object):
             and the histograms are just arrays of counts.
 
             codeHists[iChip][iChan][iCode] = count
-            codeMod12Hists[iChip][iChan][iCode % 12] = count
             bitHists[iChip][iChan][iBit] = count
         """
 
@@ -84,11 +92,9 @@ class MEASURE_LINEARITY(object):
 
         fig, ax = plt.subplots(figsize=(8,8))
         codeHists = []
-        codeMod12Hists = []
         bitHists = []
         for iChip in range(self.NASICS):
             codeHists.append({})
-            codeMod12Hists.append({})
             bitHists.append({})
             for iChan in range(16):
                 x0 = linearFitData[iChip][iChan]["x0"]
@@ -112,18 +118,9 @@ class MEASURE_LINEARITY(object):
                     fig.savefig(filename+".pdf")
                     ax.cla()
 
-                    codeMod12Hist = self.makeCodeMod12Histogram(hist)
-                    codeMod12Hists[iChip][iChan] = codeMod12Hist
-                    ax.plot(range(len(codeMod12Hist)),codeMod12Hist,"ko")
-                    ax.set_xlabel("ADC Code % 12")
-                    ax.set_ylabel("Entries / (ADC Code % 12)")
-                    ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                    ax.set_xlim(-1,12)
-                    ax.set_xticks(range(0,12))
-                    filename = "ADC_CodeMod12Hist_Chip{}_Chan{}".format(iChip,iChan)
-                    fig.savefig(filename+".png")
-                    fig.savefig(filename+".pdf")
-                    ax.cla()
+                    if iChan == 4:
+                        for modX in [6,8,12,16]:
+                            self.plotModXHistogram(hist,modX,iChip,iChan)
 
                     bitHist = self.makeBitHistogram(hist)
                     bitHists[iChip][iChan] = bitHist
@@ -138,7 +135,7 @@ class MEASURE_LINEARITY(object):
                     fig.savefig(filename+".pdf")
                     ax.cla()
         self.funcgen.stop()
-        return codeHists,codeMod12Hists,bitHists
+        return codeHists,bitHists
 
     def makeRampHist(self,iChip,iChan,xLow,xHigh,nSamples,fake=False):
         """
@@ -371,25 +368,31 @@ class MEASURE_LINEARITY(object):
         avgerr = stddev/numpy.sqrt(len(samples))
         return avg, avgerr
 
-    def makeCodeMod12Histogram(self,counts):
+    def makeCodeModXHistogram(self,counts,modNumber):
         """
-        Makes a histogram of code % 12 from code histogram
+        Makes a histogram of code % modNumber from code 
+        histogram. Excludes bottom and top codes.
 
         counts is an array of counts 4096 long
 
-        Returns an array of counts 12 long
+        modNumber is the int to take the code mod
+
+        Returns an array of counts modNumber long
         """
         assert(len(counts)==4096)
-        result = numpy.zeros(12)
+        result = numpy.zeros(modNumber)
         indexArray = numpy.arange(len(counts))
-        for i in range(12):
-            goodElements = (indexArray % 12) == i
+        for i in range(modNumber):
+            goodElements = (indexArray % modNumber) == i
+            goodElements[0] = False
+            goodElements[-1] = False
             result[i] = numpy.sum(counts[goodElements])
         return result
 
     def makeBitHistogram(self,counts):
         """
-        Makes a histogram of times each bit=1.
+        Makes a histogram of times each bit=1. Excludes 
+        bottom and top codes.
 
         counts is an array of counts 4096 long
 
@@ -400,8 +403,45 @@ class MEASURE_LINEARITY(object):
         indexArray = numpy.arange(len(counts))
         for i in range(12):
             goodElements = ((indexArray >> i) & 0x1) > 0
+            goodElements[0] = False
+            goodElements[-1] = False
             result[i] = numpy.sum(counts[goodElements])
         return result
+
+    def makeLinearityHistograms(self,counts):
+        """
+        Makes arrays of DNL and INL.
+
+        counts is an array of counts 4096 long
+
+        Returns two arrays each 4096 long: (dnl,inl)
+        """
+        nCounts = len(counts)
+        nGoodSamples = sum(counts[1:-1])
+        countIdeal = nGoodSamples / (nCounts - 2)
+        dnl = counts/countIdeal - 1.
+        dnl[0] = 0.
+        dnl[-1] = 0.
+        inl = numpy.zeros(dnl.shape)
+        for i in range(len(dnl)-1):
+            inl[i] = dnl[1:i+1].sum()
+        return dnl,inl
+
+    def plotModXHistogram(self,hist,modNumber,iChip,iChan):
+        fig, ax = plt.subplots(figsize=(8,8))
+        codeModXHist = self.makeCodeModXHistogram(hist,modNumber)
+        ax.plot(range(len(codeModXHist)),codeModXHist,"ko")
+        ax.set_xlabel("ADC Code Mod {}".format(modNumber))
+        ax.set_ylabel("Entries / (ADC Code Mod {})".format(modNumber))
+        ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+        ax.set_xlim(-1,modNumber)
+        ax.set_xticks(range(0,modNumber))
+        filename = "ADC_CodeMod{}Hist_Chip{}_Chan{}".format(modNumber,iChip,iChan)
+        fig.savefig(filename+".png")
+        fig.savefig(filename+".pdf")
+        fig.clf()
+        return codeModXHist
+
         
 def main():
     from ..configuration.argument_parser import ArgumentParser
