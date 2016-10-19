@@ -21,6 +21,8 @@ class MEASURE_LINEARITY(object):
         self.funcgen = RigolDG4000("/dev/usbtmc0")
         self.settlingTime = 0.1 # second
         self.maxTries = 1000
+        self.fitMinV = 0.5
+        self.fitMaxV = 2.5
 
     def doHistograms(self,nSamples):
         """
@@ -28,7 +30,7 @@ class MEASURE_LINEARITY(object):
         the full ADC range + 10% on each end.
         """
 
-        linearFitData = self.doLinearFit(numpy.linspace(0.2,2.5,5),10)
+        linearFitData = self.doLinearFit(numpy.linspace(0.0,3.5,5),10)
 
         #canvas = ROOT.TCanvas()
         #result = []
@@ -47,7 +49,7 @@ class MEASURE_LINEARITY(object):
         #            hist = self.makeRampHist(iChip,iChan,xLow,xHigh,nSamples)
         #            hist.Draw()
         #            canvas.SaveAs("ADC_Hist_Chip{}_Chan{}.png".format(iChip,iChan))
-        #            #canvas.SaveAs("ADC_Hist_Chip{}_Chan{}.pdf".format(iChip,iChan))
+        #            canvas.SaveAs("ADC_Hist_Chip{}_Chan{}.pdf".format(iChip,iChan))
         #self.funcgen.stop()
 
     def makeRampHist(self,iChip,iChan,xLow,xHigh,nSamples):
@@ -103,10 +105,29 @@ class MEASURE_LINEARITY(object):
         """
         data = self.getADCDataDC(voltageList,nPackets)
         fig, ax = plt.subplots(figsize=(8,8))
+        figmany = plt.figure(figsize=(8,8))
 
         result = []
         for iChip in range(self.NASICS):
             result.append([])
+            figmany.clf()
+            manyaxes = []
+            for iChan in range(16):
+                manyaxes.append(figmany.add_subplot(4,4,iChan+1))
+                manyaxes[iChan].set_xlim(0,3.5)
+                manyaxes[iChan].set_ylim(0,2**12)
+                manyaxes[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
+                manyaxes[iChan].set_xticks([0,1,2,3])
+                yticks = [x*1024 for x in range(5)]
+                manyaxes[iChan].set_yticks(yticks)
+                if iChan % 4 != 0:
+                    manyaxes[iChan].set_yticklabels([])
+                else:
+                    manyaxes[iChan].set_ylabel("ADC Counts")
+                if iChan // 4 != 3:
+                    manyaxes[iChan].set_xticklabels([])
+                else:
+                    manyaxes[iChan].set_xlabel("Voltage [V]")
             for iChan in range(16):
                 voltages = numpy.array(data[iChip][iChan]["vlt"])
                 averages = numpy.array(data[iChip][iChan]["avg"])
@@ -123,18 +144,25 @@ class MEASURE_LINEARITY(object):
                 })
                 if x0:
                   print("Chip: {} Chan: {:2} x0: {:8.2g} +/- {:8.2g} mV m: {:8.2g} +/- {:8.2g} Counts/mV, chi2/ndf: {:10.2g}, FSR: {:10.3g} V".format(iChip,iChan,x0*1000.,x0err*1000.,m/1000.,merr/1000.,chi2ondf, fsr))
-                  lineplot = ax.plot(voltages,m*(voltages-x0),"b-",label="Fit")
+                  lineVoltages = numpy.array([self.fitMinV,self.fitMaxV])
+                  ax.plot(lineVoltages,m*(lineVoltages-x0),"b-",label="Fit")
+                  manyaxes[iChan].plot(lineVoltages,m*(lineVoltages-x0),"b-",label="Fit")
                 else:
                   print("Chip: {} Chan: {:2} fit failed".format(iChip,iChan))
-                dataplot = ax.errorbar(voltages,averages,fmt="ko",yerr=errors,label="Data")
+                ax.errorbar(voltages,averages,fmt="ko",yerr=errors,label="Data")
+                manyaxes[iChan].errorbar(voltages,averages,fmt="ko",yerr=errors,label="Data")
                 ax.set_xlabel("Voltage [V]")
                 ax.set_ylabel("ADC Output")
+                ax.set_xlim(0,3.5)
+                ax.set_ylim(0,2**12)
                 ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
                 ax.legend(loc='best')
                 filename = "ADC_Linearity_Chip{}_Chan{}".format(iChip,iChan)
                 fig.savefig(filename+".png")
                 fig.savefig(filename+".pdf")
                 ax.cla()
+            figmany.savefig("ADC_Linearity_Chip{}.png".format(iChan))
+            figmany.savefig("ADC_Linearity_Chip{}.pdf".format(iChan))
         return result
 
     def fitLineToData(self,voltages,counts,errors):
@@ -149,7 +177,7 @@ class MEASURE_LINEARITY(object):
         for iPoint in range(len(voltages)):
             graph.SetPoint(iPoint,voltages[iPoint],counts[iPoint])
             graph.SetPointError(iPoint,0.,errors[iPoint])
-        func = ROOT.TF1(uuid().hex,"[0]*(x-[1])",voltages[0],voltages[-1])
+        func = ROOT.TF1(uuid().hex,"[0]*(x-[1])",self.fitMinV,self.fitMaxV)
         fitresult = graph.Fit(func,"QFMEN0S")
 
         ndf = len(counts) - 2
