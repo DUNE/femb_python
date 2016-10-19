@@ -5,7 +5,7 @@ Interface to Rigol DG4000 Function Generator
 import time
 
 VMIN=0.
-VMAX=1.8
+VMAX=3.5
 
 class RigolDG4000(object):
     """
@@ -56,7 +56,7 @@ class RigolDG4000(object):
         ]
         for command in commands:
             self.writeCommand(command)
-        time.sleep(0.5)
+        time.sleep(0.1)
         self.writeCommand(self.outputString+":STATe ON")
 
     def startDC(self,voltage):
@@ -76,10 +76,37 @@ class RigolDG4000(object):
         time.sleep(0.5)
         self.writeCommand(self.outputString+":STATe ON")
 
+    def startRamp(self,freq,minV,maxV):
+        """
+        Starts a ramp (triangular wave) with
+        freq freqeuncy in Hz
+        minV minimum voltage in V
+        maxV maximum voltage in V
+        """
+        self.stop()
+        if minV < VMIN or minV > VMAX:
+            raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
+        if maxV < VMIN or maxV > VMAX:
+            raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
+        if minV >= maxV:
+            raise Exception("Ramp minVoltage {} >= maxVoltage {}".format(minV,maxV))
+        commands = [
+            self.sourceString+":FUNCtion RAMP",
+            self.sourceString+":FREQuency {:f}".format(freq),
+            self.sourceString+":VOLTage:LOW {:f}".format(minV),
+            self.sourceString+":VOLTage:HIGH {:f}".format(maxV),
+        ]
+        for command in commands:
+            self.writeCommand(command)
+        time.sleep(0.1)
+        self.writeCommand(self.outputString+":STATe ON")
+
 if __name__ == "__main__":
 
     fungen = RigolDG4000("/dev/usbtmc0")
     fungen.stop()
+    fungen.startRamp(7320,0.5,1.5)
+    time.sleep(3)
     print()
     fungen.startSin(300,0.1,0.2)
     time.sleep(3)
