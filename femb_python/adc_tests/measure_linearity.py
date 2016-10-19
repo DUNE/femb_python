@@ -24,13 +24,18 @@ class MEASURE_LINEARITY(object):
         self.fitMinV = 0.5
         self.fitMaxV = 2.5
 
-    def doHistograms(self,nSamples):
+    def doHistograms(self,nSamples,fake=False):
         """
         Creates histograms of data doing a linear ramp of 
         the full ADC range + 10% on each end.
         """
 
-        linearFitData = self.doLinearFit(numpy.linspace(0.0,3.5,15),10)
+        linearFitData = None
+        if not fake:
+            linearFitData = self.doLinearFit(numpy.linspace(0.0,3.5,15),10)
+        else:
+            eachChip = [ {"x0":0.0001,"FSR":3.5} for j in range(16)]
+            linearFitData = [eachChip for i in range(self.NASICS)]
 
         fig, ax = plt.subplots(figsize=(8,8))
         result = []
@@ -46,7 +51,7 @@ class MEASURE_LINEARITY(object):
                         xHigh = 3.5
                     if xLow < 0.:
                         xLow = 0.
-                    hist = self.makeRampHist(iChip,iChan,xLow,xHigh,nSamples)
+                    hist = self.makeRampHist(iChip,iChan,xLow,xHigh,nSamples,fake)
                     ax.semilogy(range(len(hist)),hist,"ko")
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("Entries / ADC Code")
@@ -70,33 +75,37 @@ class MEASURE_LINEARITY(object):
                     ax.cla()
         self.funcgen.stop()
 
-    def makeRampHist(self,iChip,iChan,xLow,xHigh,nSamples):
+    def makeRampHist(self,iChip,iChan,xLow,xHigh,nSamples,fake=False):
         """
         Makes a histogram of linear ramp data between xLow and xHigh 
         for iChip and iChan. The histogram will have at leas nSamples entries.
         """
         #print("makeRampHist: ",iChip,iChan,xLow,xHigh,nSamples)
 
-        self.funcgen.startRamp(734,xLow,xHigh)
-        self.config.selectChannel(iChip,iChan)
-        time.sleep(self.settlingTime)
+        if not fake:
+            self.funcgen.startRamp(734,xLow,xHigh)
+            self.config.selectChannel(iChip,iChan)
+            time.sleep(self.settlingTime)
 
-        samples = []
-        for iTry in range(self.maxTries):
-            raw_data = self.femb.get_data(100)
-        
-            for samp in raw_data:
-                chNum = ((samp >> 12 ) & 0xF)
-                if chNum != iChan:
-                    print("makeRampHist: chNum {} != iChan {}".format(chNum,iChan))
-                    continue
-                sampVal = (samp & 0xFFF)
-                samples.append(sampVal)
-            if len(samples) > nSamples:
-                break
-        binning = [i-0.5 for i in range(2**12+1)]
-        hist, bin_edges = numpy.histogram(samples,bins=binning)
-        return hist
+            samples = []
+            for iTry in range(self.maxTries):
+                raw_data = self.femb.get_data(100)
+            
+                for samp in raw_data:
+                    chNum = ((samp >> 12 ) & 0xF)
+                    if chNum != iChan:
+                        print("makeRampHist: chNum {} != iChan {}".format(chNum,iChan))
+                        continue
+                    sampVal = (samp & 0xFFF)
+                    samples.append(sampVal)
+                if len(samples) > nSamples:
+                    break
+            binning = [i-0.5 for i in range(2**12+1)]
+            hist, bin_edges = numpy.histogram(samples,bins=binning)
+            return hist
+        else:
+            hist = numpy.random.poisson(nSamples/2**12,size=2**12)
+            return hist
 
     def doLinearFit(self,voltageList,nPackets):
         """
@@ -331,4 +340,4 @@ def main():
     config = CONFIG(config_filename)
   
     measure_linearity = MEASURE_LINEARITY(config)
-    measure_linearity.doHistograms(1e5)
+    measure_linearity.doHistograms(1e5,fake=True)
