@@ -25,7 +25,7 @@ class MEASURE_LINEARITY(object):
         self.fitMaxV = 2.5
 
     def analyzeLinearity(self,nSamples,fake=False):
-        codeHists, bitHists = self.doHistograms(nSamples,fake)
+        codeHists, codeMod12Hists, bitHists = self.doHistograms(nSamples,fake)
         fig, ax = plt.subplots(figsize=(8,8))
         for iChip in range(self.NASICS):
             for iChan in range(16):
@@ -66,11 +66,12 @@ class MEASURE_LINEARITY(object):
         Creates histograms of data doing a linear ramp of 
         the full ADC range + 10% on each end.
 
-        Returns (codeHists, bitHists):
+        Returns (codeHists, codeMod12Hists, bitHists):
             where each one is a list of dicts of histograms, 
             and the histograms are just arrays of counts.
 
             codeHists[iChip][iChan][iCode] = count
+            codeMod12Hists[iChip][iChan][iCode % 12] = count
             bitHists[iChip][iChan][iBit] = count
         """
 
@@ -83,9 +84,11 @@ class MEASURE_LINEARITY(object):
 
         fig, ax = plt.subplots(figsize=(8,8))
         codeHists = []
+        codeMod12Hists = []
         bitHists = []
         for iChip in range(self.NASICS):
             codeHists.append({})
+            codeMod12Hists.append({})
             bitHists.append({})
             for iChan in range(16):
                 x0 = linearFitData[iChip][iChan]["x0"]
@@ -109,6 +112,19 @@ class MEASURE_LINEARITY(object):
                     fig.savefig(filename+".pdf")
                     ax.cla()
 
+                    codeMod12Hist = self.makeCodeMod12Histogram(hist)
+                    codeMod12Hists[iChip][iChan] = codeMod12Hist
+                    ax.plot(range(len(codeMod12Hist)),codeMod12Hist,"ko")
+                    ax.set_xlabel("ADC Code % 12")
+                    ax.set_ylabel("Entries / (ADC Code % 12)")
+                    ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+                    ax.set_xlim(-1,12)
+                    ax.set_xticks(range(0,12))
+                    filename = "ADC_CodeMod12Hist_Chip{}_Chan{}".format(iChip,iChan)
+                    fig.savefig(filename+".png")
+                    fig.savefig(filename+".pdf")
+                    ax.cla()
+
                     bitHist = self.makeBitHistogram(hist)
                     bitHists[iChip][iChan] = bitHist
                     ax.plot(range(len(bitHist)),bitHist,"ko")
@@ -122,7 +138,7 @@ class MEASURE_LINEARITY(object):
                     fig.savefig(filename+".pdf")
                     ax.cla()
         self.funcgen.stop()
-        return codeHists,bitHists
+        return codeHists,codeMod12Hists,bitHists
 
     def makeRampHist(self,iChip,iChan,xLow,xHigh,nSamples,fake=False):
         """
@@ -354,6 +370,22 @@ class MEASURE_LINEARITY(object):
         stddev = numpy.std(samples,ddof=1)
         avgerr = stddev/numpy.sqrt(len(samples))
         return avg, avgerr
+
+    def makeCodeMod12Histogram(self,counts):
+        """
+        Makes a histogram of code % 12 from code histogram
+
+        counts is an array of counts 4096 long
+
+        Returns an array of counts 12 long
+        """
+        assert(len(counts)==4096)
+        result = numpy.zeros(12)
+        indexArray = numpy.arange(len(counts))
+        for i in range(12):
+            goodElements = (indexArray % 12) == i
+            result[i] = numpy.sum(counts[goodElements])
+        return result
 
     def makeBitHistogram(self,counts):
         """
