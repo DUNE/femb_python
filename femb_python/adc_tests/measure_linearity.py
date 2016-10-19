@@ -30,7 +30,7 @@ class MEASURE_LINEARITY(object):
         the full ADC range + 10% on each end.
         """
 
-        linearFitData = self.doLinearFit(numpy.linspace(0.0,3.5,5),10)
+        linearFitData = self.doLinearFit(numpy.linspace(0.0,3.5,20),10)
 
         #canvas = ROOT.TCanvas()
         #result = []
@@ -149,8 +149,8 @@ class MEASURE_LINEARITY(object):
                   manyaxes[iChan].plot(lineVoltages,m*(lineVoltages-x0),"b-",label="Fit")
                 else:
                   print("Chip: {} Chan: {:2} fit failed".format(iChip,iChan))
-                ax.errorbar(voltages,averages,fmt="ko",yerr=errors,label="Data")
-                manyaxes[iChan].errorbar(voltages,averages,fmt="ko",yerr=errors,label="Data")
+                ax.errorbar(voltages,averages,fmt="ko",yerr=errors,xerr=0.,label="Data")
+                manyaxes[iChan].plot(voltages,averages,"ko",label="Data",markersize=3)
                 ax.set_xlabel("Voltage [V]")
                 ax.set_ylabel("ADC Output")
                 ax.set_xlim(0,3.5)
@@ -161,8 +161,8 @@ class MEASURE_LINEARITY(object):
                 fig.savefig(filename+".png")
                 fig.savefig(filename+".pdf")
                 ax.cla()
-            figmany.savefig("ADC_Linearity_Chip{}.png".format(iChan))
-            figmany.savefig("ADC_Linearity_Chip{}.pdf".format(iChan))
+            figmany.savefig("ADC_Linearity_Chip{}.png".format(iChip))
+            figmany.savefig("ADC_Linearity_Chip{}.pdf".format(iChip))
         return result
 
     def fitLineToData(self,voltages,counts,errors):
@@ -178,7 +178,7 @@ class MEASURE_LINEARITY(object):
             graph.SetPoint(iPoint,voltages[iPoint],counts[iPoint])
             graph.SetPointError(iPoint,0.,errors[iPoint])
         func = ROOT.TF1(uuid().hex,"[0]*(x-[1])",self.fitMinV,self.fitMaxV)
-        fitresult = graph.Fit(func,"QFMEN0S")
+        fitresult = graph.Fit(func,"QFMEN0S","",self.fitMinV,self.fitMaxV)
 
         ndf = len(counts) - 2
         chi2ondf = None
