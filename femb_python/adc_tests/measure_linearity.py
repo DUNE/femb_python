@@ -30,27 +30,45 @@ class MEASURE_LINEARITY(object):
         the full ADC range + 10% on each end.
         """
 
-        linearFitData = self.doLinearFit(numpy.linspace(0.0,3.5,20),10)
+        linearFitData = self.doLinearFit(numpy.linspace(0.0,3.5,15),10)
 
-        #canvas = ROOT.TCanvas()
-        #result = []
-        #for iChip in range(self.NASICS):
-        #    result.append([])
-        #    for iChan in range(16):
-        #        x0 = linearFitData[iChip][iChan]["x0"]
-        #        FSR = linearFitData[iChip][iChan]["FSR"]
-        #        if x0:
-        #            xLow = x0 - 0.1*FSR
-        #            xHigh = x0 + 1.1*FSR
-        #            if xHigh > 3.5: 
-        #                xHigh = 3.5
-        #            if xLow < 0.:
-        #                xLow = 0.
-        #            hist = self.makeRampHist(iChip,iChan,xLow,xHigh,nSamples)
-        #            hist.Draw()
-        #            canvas.SaveAs("ADC_Hist_Chip{}_Chan{}.png".format(iChip,iChan))
-        #            canvas.SaveAs("ADC_Hist_Chip{}_Chan{}.pdf".format(iChip,iChan))
-        #self.funcgen.stop()
+        fig, ax = plt.subplots(figsize=(8,8))
+        result = []
+        for iChip in range(self.NASICS):
+            result.append([])
+            for iChan in range(16):
+                x0 = linearFitData[iChip][iChan]["x0"]
+                FSR = linearFitData[iChip][iChan]["FSR"]
+                if x0:
+                    xLow = x0 - 0.1*FSR
+                    xHigh = x0 + 1.1*FSR
+                    if xHigh > 3.5: 
+                        xHigh = 3.5
+                    if xLow < 0.:
+                        xLow = 0.
+                    hist = self.makeRampHist(iChip,iChan,xLow,xHigh,nSamples)
+                    ax.semilogy(range(len(hist)),hist,"ko")
+                    ax.set_xlabel("ADC Code")
+                    ax.set_ylabel("Entries / ADC Code")
+                    ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+                    ax.set_xticks([x*1024 for x in range(5)])
+                    filename = "ADC_Hist_Chip{}_Chan{}".format(iChip,iChan)
+                    fig.savefig(filename+".png")
+                    fig.savefig(filename+".pdf")
+                    ax.cla()
+
+                    bitHist = self.makeBitHistogram(hist)
+                    ax.semilogy(range(len(bitHist)),bitHist,"ko")
+                    ax.set_xlabel("ADC Bit")
+                    ax.set_ylabel("Entries / ADC Bit")
+                    ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+                    ax.set_xlim(-1,12)
+                    ax.set_xticks(range(0,12))
+                    filename = "ADC_BitHist_Chip{}_Chan{}".format(iChip,iChan)
+                    fig.savefig(filename+".png")
+                    fig.savefig(filename+".pdf")
+                    ax.cla()
+        self.funcgen.stop()
 
     def makeRampHist(self,iChip,iChan,xLow,xHigh,nSamples):
         """
@@ -58,31 +76,26 @@ class MEASURE_LINEARITY(object):
         for iChip and iChan. The histogram will have at leas nSamples entries.
         """
         #print("makeRampHist: ",iChip,iChan,xLow,xHigh,nSamples)
-        hist = ROOT.TH1F(uuid().hex,
-                        "Chip: {} Channel: {}".format(iChip,iChan),
-                        2**12,-0.5,2**12-0.5
-                        )
-        hist.Sumw2()
-        hist.GetXaxis().SetTitle("ADC Code")
-        hist.GetYaxis().SetTitle("Entries / ADC Code")
 
         self.funcgen.startRamp(734,xLow,xHigh)
         self.config.selectChannel(iChip,iChan)
         time.sleep(self.settlingTime)
 
+        samples = []
         for iTry in range(self.maxTries):
             raw_data = self.femb.get_data(100)
         
-            samples = []
             for samp in raw_data:
                 chNum = ((samp >> 12 ) & 0xF)
                 if chNum != iChan:
                     print("makeRampHist: chNum {} != iChan {}".format(chNum,iChan))
                     continue
                 sampVal = (samp & 0xFFF)
-                hist.Fill(sampVal)
+                samples.append(sampVal)
             if len(samples) > nSamples:
                 break
+        binning = [i-0.5 for i in range(2**12+1)]
+        hist, bin_edges = numpy.histogram(samples,bins=binning)
         return hist
 
     def doLinearFit(self,voltageList,nPackets):
@@ -282,6 +295,22 @@ class MEASURE_LINEARITY(object):
         stddev = numpy.std(samples,ddof=1)
         avgerr = stddev/numpy.sqrt(len(samples))
         return avg, avgerr
+
+    def makeBitHistogram(self,counts):
+        """
+        Makes a histogram of times each bit=1.
+
+        counts is an array of counts 4096 long
+
+        Returns an array of counts 12 long
+        """
+        assert(len(counts)==4096)
+        result = numpy.zeros(12)
+        indexArray = numpy.arange(len(counts))
+        for i in range(12):
+            goodElements = ((indexArray >> i) & 0x1) > 0
+            result[i] = numpy.sum(counts[goodElements])
+        return result
         
 def main():
     from ..configuration.argument_parser import ArgumentParser
