@@ -125,6 +125,8 @@ setup(
             'femb_select_channel=femb_python.helper_scripts.select_channel:main',
             'femb_measureRMS=femb_python.helper_scripts.measureRms:main',
             'femb_config_adc=femb_python.helper_scripts.config_adc:main',
+
+            'femb_adc_measure_linearity=femb_python.adc_tests.measure_linearity:main',
         ],
         #'gui_scripts': [
         #    'femb_test=femb_python.gui:main',

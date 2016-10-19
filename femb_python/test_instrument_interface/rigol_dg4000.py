@@ -45,7 +45,6 @@ class RigolDG4000(object):
         amp amplitude in V
         offset offset in V
         """
-        self.stop()
         if offset - amp < VMIN or offset + amp > VMAX:
             raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
         commands = [
@@ -64,7 +63,6 @@ class RigolDG4000(object):
         Starts a DC signal
         voltage in V
         """
-        self.stop()
         if voltage < VMIN or voltage > VMAX:
             raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
         commands = [
@@ -83,7 +81,6 @@ class RigolDG4000(object):
         minV minimum voltage in V
         maxV maximum voltage in V
         """
-        self.stop()
         if minV < VMIN or minV > VMAX:
             raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
         if maxV < VMIN or maxV > VMAX:

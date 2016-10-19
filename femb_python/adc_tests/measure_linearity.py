@@ -1,8 +1,10 @@
 from ..femb_udp import FEMB_UDP
 from ..test_instrument_interface import RigolDG4000
 import time
+from uuid import uuid1 as uuid
 import numpy
 import matplotlib.pyplot as plt
+from ROOT import TGraphErrors, TF1
 
 class MEASURE_LINEARITY(object):
     """
@@ -17,23 +19,53 @@ class MEASURE_LINEARITY(object):
         self.NASICS = config.NASICS
         self.femb = FEMB_UDP()
         self.funcgen = RigolDG4000("/dev/usbtmc0")
-        self.settlingTime = 1. # second
+        self.settlingTime = 0.5 # second
 
     def plotADCData(self):
-        data = self.getADCData(numpy.linspace(0.2,1.6,3),10)
+        #data = self.getADCData(numpy.linspace(0.2,1.6,5),10)
+        data = self.getADCData(numpy.linspace(0.2,2.5,10),10)
         fig, ax = plt.subplots(figsize=(8,8))
         for iChip in range(self.NASICS):
             for iChan in range(16):
-                voltages = data[iChip][iChan]["vlt"]
-                averages = data[iChip][iChan]["avg"]
-                errors = data[iChip][iChan]["err"]
-                ax.errorbar(voltages,averages,fmt="o",yerr=errors)
+                voltages = numpy.array(data[iChip][iChan]["vlt"])
+                averages = numpy.array(data[iChip][iChan]["avg"])
+                errors = numpy.array(data[iChip][iChan]["err"])
+
+                x0, x0err, m, merr, chi2ondf, fsr = self.fitLineToData(voltages,averages,errors)
+                print("Chip: {} Chan: {:2} x0: {:8.2g} +/- {:8.2g} mV m: {:8.2g} +/- {:8.2g} Counts/mV, chi2/ndf: {:10.2g}, FSR: {:10.3g} V".format(iChip,iChan,x0*1000.,x0err*1000.,m/1000.,merr/1000.,chi2ondf, fsr))
+                lineplot = ax.plot(voltages,m*(voltages-x0),"b-",label="Fit")
+                dataplot = ax.errorbar(voltages,averages,fmt="ko",yerr=errors,label="Data")
                 ax.set_xlabel("Voltage [V]")
                 ax.set_ylabel("ADC Output")
+                ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+                ax.legend(loc='best')
                 filename = "ADC_Linearity_Chip{}_Chan{}".format(iChip,iChan)
                 fig.savefig(filename+".png")
                 fig.savefig(filename+".pdf")
                 ax.cla()
+
+    def fitLineToData(self,voltages,counts,errors):
+        """
+        Performs a least squares fit of y = counts +/- errors, x = voltages
+
+        returns x-intercept [V], x-intercept error [V], slope [Counts/V], slope error [Counts/V], chi2/ndf, estimated full scale range [V]
+        """
+        assert(len(voltages)==len(counts))
+        assert(len(errors)==len(counts))
+        graph = TGraphErrors()
+        for iPoint in range(len(voltages)):
+            graph.SetPoint(iPoint,voltages[iPoint],counts[iPoint])
+            graph.SetPointError(iPoint,0.,errors[iPoint])
+        func = TF1(uuid().hex,"[0]*(x-[1])",voltages[0],voltages[-1])
+        fitresult = graph.Fit(func,"QFMEN0S")
+        chi2 = fitresult.Chi2()
+        m = fitresult.Value(0)
+        x0 = fitresult.Value(1)
+        merr = fitresult.ParError(0)
+        x0err = fitresult.ParError(1)
+        ndf = len(counts) - 2
+        fsr = 2**12 / m + x0
+        return x0, x0err, m, merr, chi2/ndf, fsr
 
     def getADCData(self,voltages,nPackets):
         """
@@ -49,6 +81,7 @@ class MEASURE_LINEARITY(object):
 
         """
         data = {}
+        self.funcgen.stop()
         for voltage in voltages:
             self.funcgen.startDC(voltage)
             time.sleep(self.settlingTime)
