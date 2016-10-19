@@ -19,11 +19,10 @@ class MEASURE_LINEARITY(object):
         self.NASICS = config.NASICS
         self.femb = FEMB_UDP()
         self.funcgen = RigolDG4000("/dev/usbtmc0")
-        self.settlingTime = 0.5 # second
+        self.settlingTime = 0.1 # second
 
-    def plotADCData(self):
-        #data = self.getADCData(numpy.linspace(0.2,1.6,5),10)
-        data = self.getADCData(numpy.linspace(0.2,2.5,10),10)
+    def doLinearFit(self):
+        data = self.getADCDataDC(numpy.linspace(0.2,2.5,5),10)
         fig, ax = plt.subplots(figsize=(8,8))
         for iChip in range(self.NASICS):
             for iChan in range(16):
@@ -32,8 +31,11 @@ class MEASURE_LINEARITY(object):
                 errors = numpy.array(data[iChip][iChan]["err"])
 
                 x0, x0err, m, merr, chi2ondf, fsr = self.fitLineToData(voltages,averages,errors)
-                print("Chip: {} Chan: {:2} x0: {:8.2g} +/- {:8.2g} mV m: {:8.2g} +/- {:8.2g} Counts/mV, chi2/ndf: {:10.2g}, FSR: {:10.3g} V".format(iChip,iChan,x0*1000.,x0err*1000.,m/1000.,merr/1000.,chi2ondf, fsr))
-                lineplot = ax.plot(voltages,m*(voltages-x0),"b-",label="Fit")
+                if x0:
+                  print("Chip: {} Chan: {:2} x0: {:8.2g} +/- {:8.2g} mV m: {:8.2g} +/- {:8.2g} Counts/mV, chi2/ndf: {:10.2g}, FSR: {:10.3g} V".format(iChip,iChan,x0*1000.,x0err*1000.,m/1000.,merr/1000.,chi2ondf, fsr))
+                  lineplot = ax.plot(voltages,m*(voltages-x0),"b-",label="Fit")
+                else:
+                  print("Chip: {} Chan: {:2} fit failed".format(iChip,iChan))
                 dataplot = ax.errorbar(voltages,averages,fmt="ko",yerr=errors,label="Data")
                 ax.set_xlabel("Voltage [V]")
                 ax.set_ylabel("ADC Output")
@@ -58,16 +60,26 @@ class MEASURE_LINEARITY(object):
             graph.SetPointError(iPoint,0.,errors[iPoint])
         func = TF1(uuid().hex,"[0]*(x-[1])",voltages[0],voltages[-1])
         fitresult = graph.Fit(func,"QFMEN0S")
-        chi2 = fitresult.Chi2()
-        m = fitresult.Value(0)
-        x0 = fitresult.Value(1)
-        merr = fitresult.ParError(0)
-        x0err = fitresult.ParError(1)
-        ndf = len(counts) - 2
-        fsr = 2**12 / m + x0
-        return x0, x0err, m, merr, chi2/ndf, fsr
 
-    def getADCData(self,voltages,nPackets):
+        ndf = len(counts) - 2
+        chi2ondf = None
+        m = None
+        x0 = None
+        merr = None
+        x0err = None
+        fsr = None
+
+        valid = fitresult.IsValid()
+        if valid:
+            chi2ondf = fitresult.Chi2() / ndf
+            m = fitresult.Value(0)
+            x0 = fitresult.Value(1)
+            merr = fitresult.ParError(0)
+            x0err = fitresult.ParError(1)
+            fsr = 2**12 / m + x0
+        return x0, x0err, m, merr, chi2ondf, fsr
+
+    def getADCDataDC(self,voltages,nPackets):
         """
         Finds the average value and error on the average for 
         multiple voltages for all of the chips and channels.
@@ -105,7 +117,7 @@ class MEASURE_LINEARITY(object):
                 for voltage in voltages:                
                     avgs.append(data[voltage]["avg"][iChip][iChan])
                     errs.append(data[voltage]["err"][iChip][iChan])
-                d = { "vlt":voltages, "avg":avgs, "err": errs}
+                d = { "vlt":numpy.array(voltages), "avg":numpy.array(avgs), "err": numpy.array(errs)}
                 result[iChip].append(d)
         return result
 
@@ -174,4 +186,4 @@ def main():
     config = CONFIG(config_filename)
   
     measure_linearity = MEASURE_LINEARITY(config)
-    measure_linearity.plotADCData()
+    measure_linearity.doLinearFit()
