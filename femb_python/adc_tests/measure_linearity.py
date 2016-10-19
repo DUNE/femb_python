@@ -24,10 +24,54 @@ class MEASURE_LINEARITY(object):
         self.fitMinV = 0.5
         self.fitMaxV = 2.5
 
+    def analyzeLinearity(self,nSamples,fake=False):
+        codeHists, bitHists = self.doHistograms(nSamples,fake)
+        fig, ax = plt.subplots(figsize=(8,8))
+        for iChip in range(self.NASICS):
+            for iChan in range(16):
+                try:
+                    codeHist = codeHists[iChip][iChan]
+                    nGoodSamples = sum(codeHist[1:-1])
+                    countIdeal = nGoodSamples / (2**12 - 2)
+                    dnl = codeHist/countIdeal - 1.
+                    dnl[0] = 0.
+                    dnl[-1] = 0.
+                    inl = numpy.zeros(dnl.shape)
+                    for i in range(len(dnl)-1):
+                        inl[i] = dnl[1:i+1].sum()
+                    codeNumbers = numpy.arange(len(dnl))
+                    ax.plot(codeNumbers,dnl,"k-")
+                    ax.set_xlabel("ADC Code")
+                    ax.set_ylabel("DNL [LSB]")
+                    ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+                    ax.set_xticks([x*1024 for x in range(5)])
+                    filename = "ADC_DNL_Chip{}_Chan{}".format(iChip,iChan)
+                    fig.savefig(filename+".png")
+                    fig.savefig(filename+".pdf")
+                    ax.cla()
+                    ax.plot(codeNumbers,inl,"k-")
+                    ax.set_xlabel("ADC Code")
+                    ax.set_ylabel("INL [LSB]")
+                    ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+                    ax.set_xticks([x*1024 for x in range(5)])
+                    filename = "ADC_INL_Chip{}_Chan{}".format(iChip,iChan)
+                    fig.savefig(filename+".png")
+                    fig.savefig(filename+".pdf")
+                    ax.cla()
+                except IndexError as e:
+                    pass
+
     def doHistograms(self,nSamples,fake=False):
         """
         Creates histograms of data doing a linear ramp of 
         the full ADC range + 10% on each end.
+
+        Returns (codeHists, bitHists):
+            where each one is a list of dicts of histograms, 
+            and the histograms are just arrays of counts.
+
+            codeHists[iChip][iChan][iCode] = count
+            bitHists[iChip][iChan][iBit] = count
         """
 
         linearFitData = None
@@ -38,9 +82,11 @@ class MEASURE_LINEARITY(object):
             linearFitData = [eachChip for i in range(self.NASICS)]
 
         fig, ax = plt.subplots(figsize=(8,8))
-        result = []
+        codeHists = []
+        bitHists = []
         for iChip in range(self.NASICS):
-            result.append([])
+            codeHists.append({})
+            bitHists.append({})
             for iChan in range(16):
                 x0 = linearFitData[iChip][iChan]["x0"]
                 FSR = linearFitData[iChip][iChan]["FSR"]
@@ -52,7 +98,8 @@ class MEASURE_LINEARITY(object):
                     if xLow < 0.:
                         xLow = 0.
                     hist = self.makeRampHist(iChip,iChan,xLow,xHigh,nSamples,fake)
-                    ax.semilogy(range(len(hist)),hist,"ko")
+                    codeHists[iChip][iChan] = hist
+                    ax.plot(range(len(hist)),hist,"ko")
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("Entries / ADC Code")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
@@ -63,7 +110,8 @@ class MEASURE_LINEARITY(object):
                     ax.cla()
 
                     bitHist = self.makeBitHistogram(hist)
-                    ax.semilogy(range(len(bitHist)),bitHist,"ko")
+                    bitHists[iChip][iChan] = bitHist
+                    ax.plot(range(len(bitHist)),bitHist,"ko")
                     ax.set_xlabel("ADC Bit")
                     ax.set_ylabel("Entries / ADC Bit")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
@@ -74,6 +122,7 @@ class MEASURE_LINEARITY(object):
                     fig.savefig(filename+".pdf")
                     ax.cla()
         self.funcgen.stop()
+        return codeHists,bitHists
 
     def makeRampHist(self,iChip,iChan,xLow,xHigh,nSamples,fake=False):
         """
@@ -104,7 +153,8 @@ class MEASURE_LINEARITY(object):
             hist, bin_edges = numpy.histogram(samples,bins=binning)
             return hist
         else:
-            hist = numpy.random.poisson(nSamples/2**12,size=2**12)
+            #hist = numpy.random.poisson(nSamples/2**12,size=2**12)
+            hist = numpy.random.multinomial(nSamples,numpy.ones(2**12)/2.**12)
             return hist
 
     def doLinearFit(self,voltageList,nPackets):
@@ -340,4 +390,4 @@ def main():
     config = CONFIG(config_filename)
   
     measure_linearity = MEASURE_LINEARITY(config)
-    measure_linearity.doHistograms(1e5,fake=True)
+    measure_linearity.analyzeLinearity(1e5,fake=False)
