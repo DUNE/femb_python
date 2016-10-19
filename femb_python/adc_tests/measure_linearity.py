@@ -68,7 +68,7 @@ class MEASURE_LINEARITY(object):
             ax.cla()
             print("Chip: ",iChip)
             for code in codeNumbers[dnl > 1.5]:
-               print("code: {}, code % 6: {} code % 8: {} code % 12: {}, code % 16: {}".format(code,code % 6,code % 8,code % 12,code % 16))
+               print("code: {}, code % 6: {} code % 8: {} code % 12: {}, code % 16: {}, code % 64: {}".format(code,code % 6,code % 8,code % 12,code % 16, code % 64))
 
     def doHistograms(self,nSamples,fake=False):
         """
@@ -119,7 +119,7 @@ class MEASURE_LINEARITY(object):
                     ax.cla()
 
                     if iChan == 4:
-                        for modX in [6,8,12,16]:
+                        for modX in [6,8,12,16,64]:
                             self.plotModXHistogram(hist,modX,iChip,iChan)
 
                     bitHist = self.makeBitHistogram(hist)
