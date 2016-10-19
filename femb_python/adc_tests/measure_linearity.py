@@ -4,7 +4,7 @@ import time
 from uuid import uuid1 as uuid
 import numpy
 import matplotlib.pyplot as plt
-from ROOT import TGraphErrors, TF1
+import ROOT
 
 class MEASURE_LINEARITY(object):
     """
@@ -20,17 +20,107 @@ class MEASURE_LINEARITY(object):
         self.femb = FEMB_UDP()
         self.funcgen = RigolDG4000("/dev/usbtmc0")
         self.settlingTime = 0.1 # second
+        self.maxTries = 1000
 
-    def doLinearFit(self):
-        data = self.getADCDataDC(numpy.linspace(0.2,2.5,5),10)
+    def doHistograms(self,nSamples):
+        """
+        Creates histograms of data doing a linear ramp of 
+        the full ADC range + 10% on each end.
+        """
+
+        linearFitData = self.doLinearFit(numpy.linspace(0.2,2.5,5),10)
+
+        #canvas = ROOT.TCanvas()
+        #result = []
+        #for iChip in range(self.NASICS):
+        #    result.append([])
+        #    for iChan in range(16):
+        #        x0 = linearFitData[iChip][iChan]["x0"]
+        #        FSR = linearFitData[iChip][iChan]["FSR"]
+        #        if x0:
+        #            xLow = x0 - 0.1*FSR
+        #            xHigh = x0 + 1.1*FSR
+        #            if xHigh > 3.5: 
+        #                xHigh = 3.5
+        #            if xLow < 0.:
+        #                xLow = 0.
+        #            hist = self.makeRampHist(iChip,iChan,xLow,xHigh,nSamples)
+        #            hist.Draw()
+        #            canvas.SaveAs("ADC_Hist_Chip{}_Chan{}.png".format(iChip,iChan))
+        #            #canvas.SaveAs("ADC_Hist_Chip{}_Chan{}.pdf".format(iChip,iChan))
+        #self.funcgen.stop()
+
+    def makeRampHist(self,iChip,iChan,xLow,xHigh,nSamples):
+        """
+        Makes a histogram of linear ramp data between xLow and xHigh 
+        for iChip and iChan. The histogram will have at leas nSamples entries.
+        """
+        #print("makeRampHist: ",iChip,iChan,xLow,xHigh,nSamples)
+        hist = ROOT.TH1F(uuid().hex,
+                        "Chip: {} Channel: {}".format(iChip,iChan),
+                        2**12,-0.5,2**12-0.5
+                        )
+        hist.Sumw2()
+        hist.GetXaxis().SetTitle("ADC Code")
+        hist.GetYaxis().SetTitle("Entries / ADC Code")
+
+        self.funcgen.startRamp(734,xLow,xHigh)
+        self.config.selectChannel(iChip,iChan)
+        time.sleep(self.settlingTime)
+
+        for iTry in range(self.maxTries):
+            raw_data = self.femb.get_data(100)
+        
+            samples = []
+            for samp in raw_data:
+                chNum = ((samp >> 12 ) & 0xF)
+                if chNum != iChan:
+                    print("makeRampHist: chNum {} != iChan {}".format(chNum,iChan))
+                    continue
+                sampVal = (samp & 0xFFF)
+                hist.Fill(sampVal)
+            if len(samples) > nSamples:
+                break
+        return hist
+
+    def doLinearFit(self,voltageList,nPackets):
+        """
+        Performs a linear fit to the average ADC value for various voltages
+
+        voltageList: list of voltage values in V to check
+        nPackets: number of packets to average over for each voltage
+
+        returns 2D list of dicts:
+
+             result[iChip][iChan]["x0" or "x0err" or "m" or "merr", or "chi2/ndf" or 'FSR']
+
+             where x0 is the x intercept in and x0err is the x intercept error, both in volts.
+             m is the number of ADC counts per input V, and merr is its error in counts per V.
+             chi2/ndf is the quality of fit and FSR is the estimated full scale range in V--the difference 
+                between the value for ADC = 0 to the value of ADC=2^12
+
+             They will be set to None if the fit fails
+        """
+        data = self.getADCDataDC(voltageList,nPackets)
         fig, ax = plt.subplots(figsize=(8,8))
+
+        result = []
         for iChip in range(self.NASICS):
+            result.append([])
             for iChan in range(16):
                 voltages = numpy.array(data[iChip][iChan]["vlt"])
                 averages = numpy.array(data[iChip][iChan]["avg"])
                 errors = numpy.array(data[iChip][iChan]["err"])
 
                 x0, x0err, m, merr, chi2ondf, fsr = self.fitLineToData(voltages,averages,errors)
+                result[iChip].append({
+                    "x0": x0,
+                    "x0err": x0err,
+                    "m": m,
+                    "merr": merr,
+                    "chi2/ndf": chi2ondf,
+                    "FSR": fsr,
+                })
                 if x0:
                   print("Chip: {} Chan: {:2} x0: {:8.2g} +/- {:8.2g} mV m: {:8.2g} +/- {:8.2g} Counts/mV, chi2/ndf: {:10.2g}, FSR: {:10.3g} V".format(iChip,iChan,x0*1000.,x0err*1000.,m/1000.,merr/1000.,chi2ondf, fsr))
                   lineplot = ax.plot(voltages,m*(voltages-x0),"b-",label="Fit")
@@ -45,6 +135,7 @@ class MEASURE_LINEARITY(object):
                 fig.savefig(filename+".png")
                 fig.savefig(filename+".pdf")
                 ax.cla()
+        return result
 
     def fitLineToData(self,voltages,counts,errors):
         """
@@ -54,11 +145,11 @@ class MEASURE_LINEARITY(object):
         """
         assert(len(voltages)==len(counts))
         assert(len(errors)==len(counts))
-        graph = TGraphErrors()
+        graph = ROOT.TGraphErrors()
         for iPoint in range(len(voltages)):
             graph.SetPoint(iPoint,voltages[iPoint],counts[iPoint])
             graph.SetPointError(iPoint,0.,errors[iPoint])
-        func = TF1(uuid().hex,"[0]*(x-[1])",voltages[0],voltages[-1])
+        func = ROOT.TF1(uuid().hex,"[0]*(x-[1])",voltages[0],voltages[-1])
         fitresult = graph.Fit(func,"QFMEN0S")
 
         ndf = len(counts) - 2
@@ -164,14 +255,11 @@ class MEASURE_LINEARITY(object):
         avgerr = stddev/numpy.sqrt(len(samples))
         return avg, avgerr
         
-        
-        
-    
-
 def main():
     from ..configuration.argument_parser import ArgumentParser
     from ..configuration import CONFIG
     from ..configuration.config_file_finder import get_env_config_file, config_file_finder
+    ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Measures ADC Linearity")
     parser.addConfigFileArgs()
     parser.addNPacketsArgs(False,10)
@@ -186,4 +274,4 @@ def main():
     config = CONFIG(config_filename)
   
     measure_linearity = MEASURE_LINEARITY(config)
-    measure_linearity.doLinearFit()
+    measure_linearity.doHistograms(1e5)
