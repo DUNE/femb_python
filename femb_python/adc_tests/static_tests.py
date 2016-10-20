@@ -1,5 +1,6 @@
 from ..femb_udp import FEMB_UDP
 from ..test_instrument_interface import RigolDG4000
+from ..write_root_tree import WRITE_ROOT_TREE
 import time
 from uuid import uuid1 as uuid
 import numpy
@@ -23,6 +24,7 @@ class STATIC_TESTS(object):
         self.maxTries = 1000
         self.fitMinV = 0.5
         self.fitMaxV = 2.5
+        self.waveformRootFileName = None
 
     def analyzeLinearity(self,nSamples,fake=False):
         codeHists, bitHists = self.doHistograms(nSamples,fake)
@@ -143,6 +145,10 @@ class STATIC_TESTS(object):
         else:
             eachChip = [ {"x0":0.0001,"FSR":3.5} for j in range(16)]
             linearFitData = [eachChip for i in range(self.NASICS)]
+
+        if self.waveformRootFileName:
+            self.funcgen.startRamp(734,0.,3.5)
+            self.dumpWaveformRootFile(3,734,1.75,1.75)
 
         fig, ax = plt.subplots(figsize=(8,8))
         codeHists = []
@@ -357,6 +363,8 @@ class STATIC_TESTS(object):
             time.sleep(self.settlingTime)
             avgs, errs = self.getAverageForAllChannels(nPackets)
             data[voltage] = { "avg": avgs, "err": errs}
+            if self.waveformRootFileName:
+                self.dumpWaveformRootFile(1,0,voltage,0)
         self.funcgen.stop()
 
         ####data setup:
@@ -509,6 +517,19 @@ class STATIC_TESTS(object):
         ylow,yhigh = ax.get_ylim()
         ax2.set_ylim(ylow/2.**12*100,yhigh/2.**12*100)
         return ax2
+
+    def dumpWaveformRootFile(self,functype,freq,offsetV,amplitudeV):
+        filename = "{}_functype{}_freq{:.3f}_offset{:.3f}_amplitude{:.3f}.root".format(self.waveformRootFileName,functype,freq,offsetV,amplitudeV)
+        nPackets = 50
+        if functype > 1:
+            nPackets = 1000
+        wrt = WRITE_ROOT_TREE(self.config,filename,5)
+        wrt.funcType = functype
+        wrt.funcFreq = freq
+        wrt.funcOffset = offsetV
+        wrt.funcAmp = amplitudeV
+        wrt.record_data_run()
+
         
 def main():
     from ..configuration.argument_parser import ArgumentParser
@@ -517,6 +538,7 @@ def main():
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Measures ADC Linearity")
     parser.addConfigFileArgs()
+    parser.addDumpWaveformRootFileArgs()
     parser.addNPacketsArgs(False,10)
     #parser.add_argument("outfilename",help="Output root file name")
     args = parser.parse_args()
@@ -529,4 +551,6 @@ def main():
     config = CONFIG(config_filename)
   
     static_tests = STATIC_TESTS(config)
+    if args.dumpWaveformRootFile:
+        static_tests.waveformRootFileName = args.dumpWaveformRootFile
     static_tests.analyzeLinearity(1e5,fake=False)

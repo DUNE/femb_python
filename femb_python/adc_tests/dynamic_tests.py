@@ -26,9 +26,10 @@ class DYNAMIC_TESTS(object):
         self.iRun = 0
 
     def analyze(self,fake=False):
-        for freq in numpy.logspace(3,5.5,3):
-            for amplitude in numpy.logspace(-1,0.,3):
+        for freq in numpy.logspace(3,5.5,10):
+            for amplitude in [0.75,1.25,1.45]:
                 self.getSinWaveforms(freq,self.offsetV,amplitude)
+        self.funcgen.stop()
 
     def makePowerSpectrum(self,fake=False):
         data = None
