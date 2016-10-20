@@ -70,7 +70,7 @@ class STATIC_TESTS(object):
                     dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(codeHist,True)
                     codeNumbers = numpy.arange(len(dnl))
                     ax.plot(codeNumbers,dnl,"k-",label="All Codes")
-                    ax.plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
+                    ax.plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
                     manyaxesDNL[iChan].plot(codeNumbers,dnl,"k-",label="All Codes",lw=1)
                     manyaxesDNL[iChan].plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
                     ax.set_xlabel("ADC Code")
@@ -479,7 +479,7 @@ class STATIC_TESTS(object):
         Returns two arrays each 4096 long: (dnl,inl)
 
         If killStuckCodes=True, then the dnl for codes ending 
-        in 0b000000 or 0b111111 or 0b000001 is set to 0.
+        in 0b000000 or 0b111111 is set to 0.
         """
         nCounts = len(counts)
         nGoodSamples = sum(counts[1:-1])
@@ -490,7 +490,7 @@ class STATIC_TESTS(object):
         if killStuckCodes:
           for i in range(len(dnl)-1):
             lsb6 = i & 0b111111
-            if lsb6 == 0b111111 or lsb6 == 0 or lsb6 == 0b000001:
+            if lsb6 == 0b111111 or lsb6 == 0:
                 dnl[i] = 0.
         inl = numpy.zeros(dnl.shape)
         for i in range(len(dnl)-1):
