@@ -6,9 +6,9 @@ import numpy
 import matplotlib.pyplot as plt
 import ROOT
 
-class MEASURE_LINEARITY(object):
+class STATIC_TESTS(object):
     """
-    Measures ADC Linearity
+    Tests of ADC at for ~DC performance
     """
 
     def __init__(self,config):
@@ -461,5 +461,5 @@ def main():
       config_filename = get_env_config_file()
     config = CONFIG(config_filename)
   
-    measure_linearity = MEASURE_LINEARITY(config)
-    measure_linearity.analyzeLinearity(1e5,fake=False)
+    static_tests = STATIC_TESTS(config)
+    static_tests.analyzeLinearity(1e5,fake=False)

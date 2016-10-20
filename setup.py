@@ -126,7 +126,8 @@ setup(
             'femb_measureRMS=femb_python.helper_scripts.measureRms:main',
             'femb_config_adc=femb_python.helper_scripts.config_adc:main',
 
-            'femb_adc_measure_linearity=femb_python.adc_tests.measure_linearity:main',
+            'femb_adc_static_tests=femb_python.adc_tests.static_tests:main',
+            'femb_adc_dynamic_tests=femb_python.adc_tests.dynamic_tests:main',
         ],
         #'gui_scripts': [
         #    'femb_test=femb_python.gui:main',
