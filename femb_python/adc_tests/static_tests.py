@@ -42,7 +42,7 @@ class STATIC_TESTS(object):
                 manyaxesDNL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
                 manyaxesINL.append(figmanyINL.add_subplot(4,4,iChan+1))
                 manyaxesINL[iChan].set_xlim(-256,2**12+256)
-                #manyaxesINL[iChan].set_ylim(-10,30)
+                manyaxesINL[iChan].set_ylim(-200,100)
                 manyaxesINL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
                 #xticks = [x*1024 for x in range(5)]
                 xticks = [0,2048,4096]
@@ -76,6 +76,8 @@ class STATIC_TESTS(object):
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
                     ax.set_xticks([x*1024 for x in range(5)])
                     ax.legend(loc='best')
+                    #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
+                    #axFSR.set_label("DNL [% of FSR]")
                     filename = "ADC_DNL_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
                     fig.savefig(filename+".pdf")
@@ -87,13 +89,14 @@ class STATIC_TESTS(object):
                     ax.set_ylabel("INL [LSB]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
                     ax.set_xticks([x*1024 for x in range(5)])
+                    #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
+                    #axFSR.set_label("DNL [% of FSR]")
                     #ax.legend(loc='best')
                     filename = "ADC_INL_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
                     fig.savefig(filename+".pdf")
                     ax.cla()
-
-                except IndexError as e:
+                except KeyError as e:
                     pass
             filename = "ADC_DNL_Chip{}".format(iChip)
             figmanyDNL.savefig(filename+".png")
@@ -501,6 +504,11 @@ class STATIC_TESTS(object):
         fig.clf()
         return codeModXHist
 
+    def makePercentFSRAxisOnLSBAxis(self,ax):
+        ax2 = ax.twinx()
+        ylow,yhigh = ax.get_ylim()
+        ax2.set_ylim(ylow/2.**12*100,yhigh/2.**12*100)
+        return ax2
         
 def main():
     from ..configuration.argument_parser import ArgumentParser
