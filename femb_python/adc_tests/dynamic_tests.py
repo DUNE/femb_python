@@ -1,5 +1,6 @@
 from ..femb_udp import FEMB_UDP
 from ..test_instrument_interface import RigolDG4000
+from ..write_root_tree import WRITE_ROOT_TREE
 import time
 from uuid import uuid1 as uuid
 import numpy
@@ -21,7 +22,7 @@ class DYNAMIC_TESTS(object):
         self.settlingTime = 0.1
         self.signalLeakageWidthBins = 25
         self.offsetV = 1.5
-        self.doDumpWaveformRootFile = False
+        self.waveformRootFileName = None
         self.iRun = 0
 
     def analyze(self,fake=False):
@@ -81,6 +82,8 @@ class DYNAMIC_TESTS(object):
 
     def getSinWaveforms(self,freq,offsetV,amplitudeV,fake=False):
         self.funcgen.startSin(freq,amplitudeV,offsetV)
+        if self.waveformRootFileName:
+            self.dumpWaveformRootFile(freq,offsetV,amplitudeV)
 
         result = []
         for iChip in range(self.NASICS):
@@ -88,13 +91,18 @@ class DYNAMIC_TESTS(object):
             for iChan in range(16):
                 waveform = self.getWaveform(iChip,iChan,freq,offsetV,amplitudeV)
                 result[iChip].append(waveform)
-                if self.doDumpWaveformRootFile:
-                    self.dumpWaveformRootFile(iChip,iChan,freq,offsetV,amplitudeV,waveform)
         self.iRun += 1
         return result
 
-    def dumpWaveformRootFile(self,iChip,iChan,freq,offsetV,amplitudeV,samples):
-        pass
+    def dumpWaveformRootFile(self,freq,offsetV,amplitudeV):
+        filename = "{}_freq{:.3f}_offset{:.3f}_amplitude{:.3f}.root".format(self.waveformRootFileName,freq,offsetV,amplitudeV)
+        wrt = WRITE_ROOT_TREE(self.config,filename,10)
+        wrt.run = self.iRun
+        wrt.funcType = 2
+        wrt.funcFreq = freq
+        wrt.funcOffset = offsetV
+        wrt.funcAmp = amplitudeV
+        wrt.record_data_run()
 
     def getWaveform(self,iChip,iChan,freq,offsetV,amplitudeV,fake=False):
         """
@@ -139,5 +147,5 @@ def main():
   
     dynamic_tests = DYNAMIC_TESTS(config)
     if args.dumpWaveformRootFile:
-        dynamic_tests.doDumpWaveformRootFile = True
+        dynamic_tests.waveformRootFileName = args.dumpWaveformRootFile
     dynamic_tests.analyze()

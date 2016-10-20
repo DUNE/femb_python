@@ -15,20 +15,24 @@ class WRITE_ROOT_TREE:
 
         chan = array( 'I', [0])
         wf = ROOT.std.vector( int )()
+        packet = array( 'I', [0] )
         t.Branch( 'chan', chan, 'chan/i')
         t.Branch( 'wf', wf )
+        t.Branch( 'packet', packet, 'packet/i' )
 
         for ch in range(self.minchan,self.maxchan+1,1):
             chan[0] = int(ch)
             self.femb_config.selectChannel( chan[0]//16, chan[0] % 16)
             time.sleep(0.01)
             wf.clear()
-            data = self.femb.get_data(self.numpacketsrecord)
-            for samp in data:
-                chNum = ((samp >> 12 ) & 0xF)
-                sampVal = (samp & 0xFFF)
-                wf.push_back( sampVal )
-            t.Fill()
+            for iPacket in range(self.numpacketsrecord):
+                data = self.femb.get_data(1)
+                packet[0] = iPacket
+                for samp in data:
+                    chNum = ((samp >> 12 ) & 0xF)
+                    sampVal = (samp & 0xFFF)
+                    wf.push_back( sampVal )
+                t.Fill()
 
         #define metadata
         _date = array( 'L' , [self.date] )
@@ -44,6 +48,10 @@ class WRITE_ROOT_TREE:
         _gain = array( 'H', [self.gain] )
         _shape = array( 'H', [self.shape] )
         _base = array( 'H', [self.base] )
+        _funcType = array( 'B', [self.funcType] )
+        _funcAmp = array( 'f', [self.funcAmp] )
+        _funcOffset = array( 'f', [self.funcOffset] )
+        _funcFreq = array( 'f', [self.funcFreq] )
         metatree = ROOT.TTree( self.metaname, 'metadata' )
         metatree.Branch( 'date', _date, 'date/l')
         metatree.Branch( 'runidMSB', _runidMSB, 'runidMSB/l')
@@ -58,9 +66,12 @@ class WRITE_ROOT_TREE:
         metatree.Branch( 'gain',_gain, 'gain/s')
         metatree.Branch( 'shape',_shape, 'shape/s')
         metatree.Branch( 'base',_base, 'base/s')
+        metatree.Branch( 'funcType',_funcType, 'funcType/b')
+        metatree.Branch( 'funcAmp',_funcAmp, 'funcAmp/F')
+        metatree.Branch( 'funcOffset',_funcOffset, 'funcOffset/F')
+        metatree.Branch( 'funcFreq',_funcFreq, 'funcFreq/F')
         metatree.Fill()
 
-        #write tree to disk
         f.Write()
         f.Close()
 
@@ -88,6 +99,11 @@ class WRITE_ROOT_TREE:
         self.base = 0
         self.minchan = 0
         self.maxchan = 127
+        # func generator
+        self.funcType = 0 # 0 means not active, 1 constant, 2 sin, 3 ramp
+        self.funcFreq = 0.
+        self.funcOffset = 0.
+        self.funcAmp = 0.
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
         self.femb_config = femb_config
@@ -95,6 +111,7 @@ class WRITE_ROOT_TREE:
         nChannels = self.femb_config.NASICS*16
         if self.maxchan >= nChannels:
             self.maxchan = nChannels -1
+
 
 def main():
   from .configuration.argument_parser import ArgumentParser
