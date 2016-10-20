@@ -27,27 +27,39 @@ class STATIC_TESTS(object):
     def analyzeLinearity(self,nSamples,fake=False):
         codeHists, bitHists = self.doHistograms(nSamples,fake)
         fig, ax = plt.subplots(figsize=(8,8))
-        figmany = plt.figure(figsize=(8,8))
+        figmanyDNL = plt.figure(figsize=(8,8))
+        figmanyINL = plt.figure(figsize=(8,8))
         for iChip in range(self.NASICS):
             sumAllCodeHists = numpy.zeros(2**12)
-            figmany.clf()
-            manyaxes = []
+            figmanyDNL.clf()
+            figmanyINL.clf()
+            manyaxesDNL = []
+            manyaxesINL = []
             for iChan in range(16):
-                manyaxes.append(figmany.add_subplot(4,4,iChan+1))
-                manyaxes[iChan].set_xlim(-256,2**12+256)
-                manyaxes[iChan].set_ylim(-10,30)
-                manyaxes[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
+                manyaxesDNL.append(figmanyDNL.add_subplot(4,4,iChan+1))
+                manyaxesDNL[iChan].set_xlim(-256,2**12+256)
+                manyaxesDNL[iChan].set_ylim(-10,30)
+                manyaxesDNL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
+                manyaxesINL.append(figmanyINL.add_subplot(4,4,iChan+1))
+                manyaxesINL[iChan].set_xlim(-256,2**12+256)
+                #manyaxesINL[iChan].set_ylim(-10,30)
+                manyaxesINL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
                 #xticks = [x*1024 for x in range(5)]
                 xticks = [0,2048,4096]
-                manyaxes[iChan].set_xticks(xticks)
+                manyaxesDNL[iChan].set_xticks(xticks)
+                manyaxesINL[iChan].set_xticks(xticks)
                 if iChan % 4 != 0:
-                    manyaxes[iChan].set_yticklabels([])
+                    manyaxesDNL[iChan].set_yticklabels([])
+                    manyaxesINL[iChan].set_yticklabels([])
                 else:
-                    manyaxes[iChan].set_ylabel("DNL [LSB]")
+                    manyaxesDNL[iChan].set_ylabel("DNL [LSB]")
+                    manyaxesINL[iChan].set_ylabel("INL [LSB]")
                 if iChan // 4 != 3:
-                    manyaxes[iChan].set_xticklabels([])
+                    manyaxesDNL[iChan].set_xticklabels([])
+                    manyaxesINL[iChan].set_xticklabels([])
                 else:
-                    manyaxes[iChan].set_xlabel("ADC Code]")
+                    manyaxesDNL[iChan].set_xlabel("ADC Code")
+                    manyaxesINL[iChan].set_xlabel("ADC Code")
             for iChan in range(16):
                 try:
                     codeHist = codeHists[iChip][iChan]
@@ -57,8 +69,8 @@ class STATIC_TESTS(object):
                     codeNumbers = numpy.arange(len(dnl))
                     ax.plot(codeNumbers,dnl,"k-",label="All Codes")
                     ax.plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
-                    manyaxes[iChan].plot(codeNumbers,dnl,"k-",label="All Codes",lw=1)
-                    manyaxes[iChan].plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
+                    manyaxesDNL[iChan].plot(codeNumbers,dnl,"k-",label="All Codes",lw=1)
+                    manyaxesDNL[iChan].plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("DNL [LSB]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
@@ -69,6 +81,7 @@ class STATIC_TESTS(object):
                     fig.savefig(filename+".pdf")
                     ax.cla()
                     ax.plot(codeNumbers,inl,"k-",label="All Codes")
+                    manyaxesINL[iChan].plot(codeNumbers,inl,"k-",label="All Codes")
                     #ax.plot(codeNumbers,inlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("INL [LSB]")
@@ -83,8 +96,11 @@ class STATIC_TESTS(object):
                 except IndexError as e:
                     pass
             filename = "ADC_DNL_Chip{}".format(iChip)
-            figmany.savefig(filename+".png")
-            figmany.savefig(filename+".pdf")
+            figmanyDNL.savefig(filename+".png")
+            figmanyDNL.savefig(filename+".pdf")
+            filename = "ADC_INL_Chip{}".format(iChip)
+            figmanyINL.savefig(filename+".png")
+            figmanyINL.savefig(filename+".pdf")
 
             dnlAll, inlAll = self.makeLinearityHistograms(sumAllCodeHists)
             dnlAllKillStuckCodes, inlAllKillStuckCodes = self.makeLinearityHistograms(sumAllCodeHists,True)
