@@ -2,6 +2,7 @@ from ..femb_udp import FEMB_UDP
 from ..test_instrument_interface import RigolDG4000
 from ..write_root_tree import WRITE_ROOT_TREE
 import time
+import glob
 from uuid import uuid1 as uuid
 import numpy
 import matplotlib.pyplot as plt
@@ -141,7 +142,7 @@ class STATIC_TESTS(object):
         """
 
         linearFitData = None
-        if not fake:
+        if (not fake) and (not self.loadWaveformRootFileName):
             linearFitData = self.doLinearFit(numpy.linspace(0.0,3.5,15),10)
         else:
             eachChip = [ {"x0":0.0001,"FSR":3.5} for j in range(16)]
@@ -158,9 +159,14 @@ class STATIC_TESTS(object):
             codeHists.append({})
             bitHists.append({})
             for iChan in range(16):
-                x0 = linearFitData[iChip][iChan]["x0"]
-                FSR = linearFitData[iChip][iChan]["FSR"]
-                if x0:
+                x0 = None
+                FSR = None
+                try:
+                  x0 = linearFitData[iChip][iChan]["x0"]
+                  FSR = linearFitData[iChip][iChan]["FSR"]
+                except KeyError:
+                  pass
+                if x0 or self.loadWaveformRootFileName:
                     xLow = x0 - 0.1*FSR
                     xHigh = x0 + 1.1*FSR
                     if xHigh > 3.5: 
@@ -206,23 +212,26 @@ class STATIC_TESTS(object):
         #print("makeRampHist: ",iChip,iChan,xLow,xHigh,nSamples)
 
         if not fake:
-            self.funcgen.startRamp(734,xLow,xHigh)
-            self.config.selectChannel(iChip,iChan)
-            time.sleep(self.settlingTime)
-
             samples = []
-            for iTry in range(self.maxTries):
-                raw_data = self.femb.get_data(100)
-            
-                for samp in raw_data:
-                    chNum = ((samp >> 12 ) & 0xF)
-                    if chNum != iChan:
-                        print("makeRampHist: chNum {} != iChan {}".format(chNum,iChan))
-                        continue
-                    sampVal = (samp & 0xFFF)
-                    samples.append(sampVal)
-                if len(samples) > nSamples:
-                    break
+            if self.loadWaveformRootFileName:
+                samples = self.loadWaveforms(iChip,iChan)
+            else:
+                self.funcgen.startRamp(734,xLow,xHigh)
+                self.config.selectChannel(iChip,iChan)
+                time.sleep(self.settlingTime)
+
+                for iTry in range(self.maxTries):
+                    raw_data = self.femb.get_data(100)
+                
+                    for samp in raw_data:
+                        chNum = ((samp >> 12 ) & 0xF)
+                        if chNum != iChan:
+                            print("makeRampHist: chNum {} != iChan {}".format(chNum,iChan))
+                            continue
+                        sampVal = (samp & 0xFFF)
+                        samples.append(sampVal)
+                    if len(samples) > nSamples:
+                        break
             binning = [i-0.5 for i in range(2**12+1)]
             hist, bin_edges = numpy.histogram(samples,bins=binning)
             return hist
@@ -413,12 +422,12 @@ class STATIC_TESTS(object):
 
         Returns the average and its statistical error
         """
+        samples = []
         self.config.selectChannel(iChip,iChan)
         time.sleep(0.01)
 
         raw_data = self.femb.get_data(nPackets)
         
-        samples = []
         for samp in raw_data:
             chNum = ((samp >> 12 ) & 0xF)
             if chNum != iChan:
@@ -531,6 +540,48 @@ class STATIC_TESTS(object):
         wrt.funcAmp = amplitudeV
         wrt.record_data_run()
 
+    def loadWaveforms(self,iChip,iChan):
+        filenames = glob.glob(self.loadWaveformRootFileName+"*.root")
+        files = []
+        trees = []
+        metadataTrees = []
+        for fn in filenames:
+            f = ROOT.TFile(fn)
+            files.append(f)
+            trees.append(f.Get("femb_wfdata"))
+            metadataTrees.append(f.Get("metadata"))
+        metadatas = []
+        amplitudes = set()
+        frequencies = set()
+        for mdt in metadataTrees:
+            mdt.GetEntry(0)
+            md = {
+                'funcType': mdt.funcType,
+                'funcAmp': mdt.funcAmp,
+                'funcOffset': mdt.funcOffset,
+                'funcFreq': mdt.funcFreq,
+                }
+            metadatas.append(md)
+            if not mdt.funcAmp in amplitudes:
+                amplitudes.add(mdt.funcAmp)
+            if not mdt.funcFreq in frequencies:
+                frequencies.add(mdt.funcFreq)
+        
+        result = []
+        for iTree in range(len(metadatas)):
+          md = metadatas[iTree]
+          if md['funcType'] == 3:
+            print(filenames[iTree])
+            tree = trees[iTree]
+            for iEntry in range(tree.GetEntries()):
+                tree.GetEntry(iEntry)
+                thisChip = tree.chan//16
+                thisChannel = tree.chan % 16
+                if iChip == thisChip and iChan == thisChannel:
+                    result.extend(list(tree.wf))
+        if len(result) == 0:
+            raise Exception("File not found")
+        return result
         
 def main():
     from ..configuration.argument_parser import ArgumentParser
