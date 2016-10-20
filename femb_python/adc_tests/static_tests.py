@@ -27,48 +27,83 @@ class STATIC_TESTS(object):
     def analyzeLinearity(self,nSamples,fake=False):
         codeHists, bitHists = self.doHistograms(nSamples,fake)
         fig, ax = plt.subplots(figsize=(8,8))
+        figmany = plt.figure(figsize=(8,8))
         for iChip in range(self.NASICS):
             sumAllCodeHists = numpy.zeros(2**12)
+            figmany.clf()
+            manyaxes = []
+            for iChan in range(16):
+                manyaxes.append(figmany.add_subplot(4,4,iChan+1))
+                manyaxes[iChan].set_xlim(-256,2**12+256)
+                manyaxes[iChan].set_ylim(-10,30)
+                manyaxes[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
+                #xticks = [x*1024 for x in range(5)]
+                xticks = [0,2048,4096]
+                manyaxes[iChan].set_xticks(xticks)
+                if iChan % 4 != 0:
+                    manyaxes[iChan].set_yticklabels([])
+                else:
+                    manyaxes[iChan].set_ylabel("DNL [LSB]")
+                if iChan // 4 != 3:
+                    manyaxes[iChan].set_xticklabels([])
+                else:
+                    manyaxes[iChan].set_xlabel("ADC Code]")
             for iChan in range(16):
                 try:
                     codeHist = codeHists[iChip][iChan]
                     sumAllCodeHists += codeHist
                     dnl, inl = self.makeLinearityHistograms(codeHist)
+                    dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(codeHist,True)
                     codeNumbers = numpy.arange(len(dnl))
-                    ax.plot(codeNumbers,dnl,"k-")
+                    ax.plot(codeNumbers,dnl,"k-",label="All Codes")
+                    ax.plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
+                    manyaxes[iChan].plot(codeNumbers,dnl,"k-",label="All Codes",lw=1)
+                    manyaxes[iChan].plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("DNL [LSB]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
                     ax.set_xticks([x*1024 for x in range(5)])
+                    ax.legend(loc='best')
                     filename = "ADC_DNL_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
                     fig.savefig(filename+".pdf")
                     ax.cla()
-                    ax.plot(codeNumbers,inl,"k-")
+                    ax.plot(codeNumbers,inl,"k-",label="All Codes")
+                    #ax.plot(codeNumbers,inlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("INL [LSB]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
                     ax.set_xticks([x*1024 for x in range(5)])
+                    #ax.legend(loc='best')
                     filename = "ADC_INL_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
                     fig.savefig(filename+".pdf")
                     ax.cla()
+
                 except IndexError as e:
                     pass
+            filename = "ADC_DNL_Chip{}".format(iChip)
+            figmany.savefig(filename+".png")
+            figmany.savefig(filename+".pdf")
+
             dnlAll, inlAll = self.makeLinearityHistograms(sumAllCodeHists)
+            dnlAllKillStuckCodes, inlAllKillStuckCodes = self.makeLinearityHistograms(sumAllCodeHists,True)
             codeNumbers = numpy.arange(len(dnlAll))
-            ax.plot(codeNumbers,dnlAll,"k-")
+            ax.plot(codeNumbers,dnlAll,"k-",label="All Codes")
+            ax.plot(codeNumbers,dnlAllKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
             ax.set_xlabel("ADC Code")
             ax.set_ylabel("DNL [LSB]")
             ax.set_title("Using Histograms Summed Over Channels of Chip: {0}".format(iChip))
             ax.set_xticks([x*1024 for x in range(5)])
-            filename = "ADC_DNL_Sum"
+            ax.legend(loc='best')
+            filename = "ADC_DNL_Sum_Chip{}".format(iChip)
             fig.savefig(filename+".png")
             fig.savefig(filename+".pdf")
             ax.cla()
+
             print("Chip: ",iChip)
             for code in codeNumbers[dnl > 1.5]:
-               print("code: {}, code % 6: {} code % 8: {} code % 12: {}, code % 16: {}, code % 64: {}".format(code,code % 6,code % 8,code % 12,code % 16, code % 64))
+               print("code: {}, code % 6: {} code % 12: {} code % 64: {}, bits: {:#014b} ".format(code,code % 6,code % 12, code % 64,code))
 
     def doHistograms(self,nSamples,fake=False):
         """
@@ -408,13 +443,16 @@ class STATIC_TESTS(object):
             result[i] = numpy.sum(counts[goodElements])
         return result
 
-    def makeLinearityHistograms(self,counts):
+    def makeLinearityHistograms(self,counts,killStuckCodes=False):
         """
         Makes arrays of DNL and INL.
 
         counts is an array of counts 4096 long
 
         Returns two arrays each 4096 long: (dnl,inl)
+
+        If killStuckCodes=True, then the dnl for codes ending 
+        in 0b000000 or 0b111111 or 0b000001 is set to 0.
         """
         nCounts = len(counts)
         nGoodSamples = sum(counts[1:-1])
@@ -422,6 +460,11 @@ class STATIC_TESTS(object):
         dnl = counts/countIdeal - 1.
         dnl[0] = 0.
         dnl[-1] = 0.
+        if killStuckCodes:
+          for i in range(len(dnl)-1):
+            lsb6 = i & 0b111111
+            if lsb6 == 0b111111 or lsb6 == 0 or lsb6 == 0b000001:
+                dnl[i] = 0.
         inl = numpy.zeros(dnl.shape)
         for i in range(len(dnl)-1):
             inl[i] = dnl[1:i+1].sum()
