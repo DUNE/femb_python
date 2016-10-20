@@ -149,7 +149,7 @@ class STATIC_TESTS(object):
             linearFitData = [eachChip for i in range(self.NASICS)]
 
         if self.waveformRootFileName:
-            self.funcgen.startRamp(734,0.,3.5)
+            self.funcgen.startRamp(734,0.1,2.9)
             self.dumpWaveformRootFile(3,734,1.75,1.75)
 
         fig, ax = plt.subplots(figsize=(8,8))
@@ -532,8 +532,8 @@ class STATIC_TESTS(object):
         filename = "{}_functype{}_freq{:.3f}_offset{:.3f}_amplitude{:.3f}.root".format(self.waveformRootFileName,functype,freq,offsetV,amplitudeV)
         nPackets = 50
         if functype > 1:
-            nPackets = 1000
-        wrt = WRITE_ROOT_TREE(self.config,filename,5)
+            nPackets = 100
+        wrt = WRITE_ROOT_TREE(self.config,filename,nPackets)
         wrt.funcType = functype
         wrt.funcFreq = freq
         wrt.funcOffset = offsetV
@@ -571,7 +571,6 @@ class STATIC_TESTS(object):
         for iTree in range(len(metadatas)):
           md = metadatas[iTree]
           if md['funcType'] == 3:
-            print(filenames[iTree])
             tree = trees[iTree]
             for iEntry in range(tree.GetEntries()):
                 tree.GetEntry(iEntry)
