@@ -25,6 +25,7 @@ class STATIC_TESTS(object):
         self.fitMinV = 0.5
         self.fitMaxV = 2.5
         self.waveformRootFileName = None
+        self.loadWaveformRootFileName = None
 
     def analyzeLinearity(self,nSamples,fake=False):
         codeHists, bitHists = self.doHistograms(nSamples,fake)
@@ -539,6 +540,7 @@ def main():
     parser = ArgumentParser(description="Measures ADC Linearity")
     parser.addConfigFileArgs()
     parser.addDumpWaveformRootFileArgs()
+    parser.addLoadWaveformRootFileArgs()
     parser.addNPacketsArgs(False,10)
     #parser.add_argument("outfilename",help="Output root file name")
     args = parser.parse_args()
@@ -553,4 +555,6 @@ def main():
     static_tests = STATIC_TESTS(config)
     if args.dumpWaveformRootFile:
         static_tests.waveformRootFileName = args.dumpWaveformRootFile
+    if args.loadWaveformRootFile:
+        static_tests.loadWaveformRootFileName = args.loadWaveformRootFile
     static_tests.analyzeLinearity(1e5,fake=False)

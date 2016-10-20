@@ -2,9 +2,11 @@ from ..femb_udp import FEMB_UDP
 from ..test_instrument_interface import RigolDG4000
 from ..write_root_tree import WRITE_ROOT_TREE
 import time
+import glob
 from uuid import uuid1 as uuid
 import numpy
 import matplotlib.pyplot as plt
+import ROOT
 
 class DYNAMIC_TESTS(object):
     """
@@ -23,13 +25,19 @@ class DYNAMIC_TESTS(object):
         self.signalLeakageWidthBins = 25
         self.offsetV = 1.5
         self.waveformRootFileName = None
+        self.loadWaveformRootFileName = None
         self.iRun = 0
 
     def analyze(self,fake=False):
-        for freq in numpy.logspace(3,5.5,10):
-            for amplitude in [0.75,1.25,1.45]:
-                self.getSinWaveforms(freq,self.offsetV,amplitude)
-        self.funcgen.stop()
+        waveforms = {}
+        if self.loadWaveformRootFileName:
+            waveforms = self.loadWaveforms()
+        else:
+            for freq in numpy.logspace(3,5.5,2):
+                waveforms[freq] = {}
+                for amplitude in [0.75,1.25,1.45]:
+                    waveforms[freq][amplitude] = self.getSinWaveforms(freq,self.offsetV,amplitude)
+            self.funcgen.stop()
 
     def makePowerSpectrum(self,fake=False):
         data = None
@@ -128,6 +136,57 @@ class DYNAMIC_TESTS(object):
         else:
             raise NotImplementedError()
 
+    def loadWaveforms(self):
+        """
+        result[freq][amp][iChip][iChan][iSample]
+        """
+        filenames = glob.glob(self.loadWaveformRootFileName+"*.root")
+        files = []
+        trees = []
+        metadataTrees = []
+        for fn in filenames:
+            f = ROOT.TFile(fn)
+            files.append(f)
+            trees.append(f.Get("femb_wfdata"))
+            metadataTrees.append(f.Get("metadata"))
+        metadatas = []
+        amplitudes = set()
+        frequencies = set()
+        for mdt in metadataTrees:
+            mdt.GetEntry(0)
+            md = {
+                'funcType': mdt.funcType,
+                'funcAmp': mdt.funcAmp,
+                'funcOffset': mdt.funcOffset,
+                'funcFreq': mdt.funcFreq,
+                }
+            metadatas.append(md)
+            if not mdt.funcAmp in amplitudes:
+                amplitudes.add(mdt.funcAmp)
+            if not mdt.funcFreq in frequencies:
+                frequencies.add(mdt.funcFreq)
+        
+        result = {}
+        for freq in frequencies:
+            result[freq] = {}
+            for amp in amplitudes:
+              thesePoints = []
+              for iChip in range(self.config.NASICS):
+                thesePoints.append([])
+                for iChannel in range(16):
+                  thesePoints[iChip].append([])
+              for iTree in range(len(metadatas)):
+                md = metadatas[iTree]
+                if md['funcType'] == 2 and md['funcAmp'] == amp and md['funcFreq'] == freq:
+                  tree = trees[iTree]
+                  for iEntry in range(tree.GetEntries()):
+                      tree.GetEntry(iEntry)
+                      iChip = tree.chan//16
+                      iChannel = tree.chan % 16
+                      thesePoints[iChip][iChannel].extend(list(tree.wf))
+              result[freq][amp] = thesePoints
+        return result
+
 def main():
     from ..configuration.argument_parser import ArgumentParser
     from ..configuration import CONFIG
@@ -135,6 +194,7 @@ def main():
     parser = ArgumentParser(description="Dynamic (AC) tests of the ADC using FFT")
     parser.addConfigFileArgs()
     parser.addDumpWaveformRootFileArgs()
+    parser.addLoadWaveformRootFileArgs()
     parser.addNPacketsArgs(False,10)
     #parser.add_argument("outfilename",help="Output root file name")
     args = parser.parse_args()
@@ -149,4 +209,6 @@ def main():
     dynamic_tests = DYNAMIC_TESTS(config)
     if args.dumpWaveformRootFile:
         dynamic_tests.waveformRootFileName = args.dumpWaveformRootFile
+    if args.loadWaveformRootFile:
+        dynamic_tests.loadWaveformRootFileName = args.loadWaveformRootFile
     dynamic_tests.analyze()

@@ -47,6 +47,20 @@ class ArgumentParser(argparse.ArgumentParser):
                             help=helpString
                             )
 
+    def addLoadWaveformRootFileArgs(self,required=False,default=None):
+        """
+        Adds an argument to load a waveform to a root file
+        """
+        helpString = "Load a waveform to a root file."
+        if default:
+          helpString += " default={}".format(default)
+        if required:
+          helpString += " (required)"
+        self.add_argument('-l','--loadWaveformRootFile',required=required, default=default,
+                            help=helpString
+                            )
+
+
 
 def convert_int_literals(instring):
       if instring[:2] == "0x":
