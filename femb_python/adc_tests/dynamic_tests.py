@@ -25,16 +25,22 @@ class DYNAMIC_TESTS(object):
         if fake:
             N = 20124
             A = 1.
-            freq = 5
+            freq = 0.6
+            phase = 0.12562362376
+            freq /= 2. # b/c sample at 2MHz
             t = numpy.arange(N)
             Noise = 0.
             Noise += 1e-6*numpy.random.randn(N)
             #Noise += 1e-8*numpy.sin(2*numpy.pi*t/10.)
             #Noise += 1e-5*numpy.sin(2*numpy.pi*t/6.)
+            harmonics = 0.
+            harmonics += 1e-5*A*numpy.sin(2*numpy.pi*t*freq*2.+phase) + 0.
+            harmonics += 1e-7*A*numpy.sin(2*numpy.pi*t*freq*3.+phase) + 0.
             data = numpy.zeros(N)
             data += Noise
-            data += A*numpy.sin(2*numpy.pi*t/freq) + 0.
-            true_sinad = (numpy.mean((A*numpy.sin(2*numpy.pi*t/freq))**2))**0.5
+            data += harmonics
+            data += A*numpy.sin(2*numpy.pi*t*freq+phase) + 0.
+            true_sinad = (numpy.mean((A*numpy.sin(2*numpy.pi*t*freq))**2))**0.5
             true_sinad /= (numpy.mean(Noise**2))**0.5
             print("true SINAD: ",true_sinad,"=",10*numpy.log10(true_sinad),"dB")
         dataNoDC = data - numpy.mean(data)
@@ -87,6 +93,14 @@ class DYNAMIC_TESTS(object):
         cos = numpy.cos
         result = a0 - a1*cos(w) + a2*cos(2*w) - a3*cos(3*w) + a4*cos(4*w) - a5*cos(5*w) + a6*cos(6*w)
         return result
+
+    def getHarmonicBin(self,iCarrier,iHarmonic,nBins):
+        """
+        Gets the bin corresponding to the possibly aliased frequency 
+        for iHarmonic of the carrier freqency given by iCarrier for 
+        a nBins length real FFT
+        """
+        result = iHarmonic * iCarrier
         
 
 def main():
