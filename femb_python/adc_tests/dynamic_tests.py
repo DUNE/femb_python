@@ -18,14 +18,15 @@ class DYNAMIC_TESTS(object):
         self.NASICS = config.NASICS
         self.femb = FEMB_UDP()
         self.funcgen = RigolDG4000("/dev/usbtmc0")
-        self.signalLeakageWidthBins = 50
+        self.signalLeakageWidthBins = 20
+        self.nHarmonics = 5 # total harmonic distortion includes up to this harmonic (and S/N excludes them)
 
     def makeAmplitudeSpectrum(self,fake=False):
         data = None
         if fake:
             N = 20124
             A = 1.
-            freq = 0.6
+            freq = 0.235
             phase = 0.12562362376
             freq /= 2. # b/c sample at 2MHz
             t = numpy.arange(N)
@@ -34,8 +35,8 @@ class DYNAMIC_TESTS(object):
             #Noise += 1e-8*numpy.sin(2*numpy.pi*t/10.)
             #Noise += 1e-5*numpy.sin(2*numpy.pi*t/6.)
             harmonics = 0.
-            harmonics += 1e-5*A*numpy.sin(2*numpy.pi*t*freq*2.+phase) + 0.
-            harmonics += 1e-7*A*numpy.sin(2*numpy.pi*t*freq*3.+phase) + 0.
+            for iHarmonic in range(2,10):
+              harmonics += 1e-3*10**(-iHarmonic)*A*numpy.sin(2*numpy.pi*t*freq*iHarmonic+phase) + 0.
             data = numpy.zeros(N)
             data += Noise
             data += harmonics
@@ -61,6 +62,7 @@ class DYNAMIC_TESTS(object):
         enob = (sinadDB - 1.76) / (6.02)
         #enob = (sinad - 10*numpy.log10(1.5)) / (20*numpy.log10(2))
 
+        print("nBins: {}".format(len(fft)))
         print("Maximum: {} dB, {} MHz, {} element".format(fftAmplitudeRelativeDB[iMax],frequencies[iMax],iMax))
         print("SINAD: ",sinad," = ",sinadDB,"dB")
         print("ENOB: ",enob,"bits")
@@ -71,6 +73,21 @@ class DYNAMIC_TESTS(object):
         ax.set_xlabel("Frequency [MHz]")
         ax.set_ylabel("Amplitude [dB]")
         fig.savefig("fft.png")
+
+        thdDenom = 0.
+
+        for iHarmonic in range(2,self.nHarmonics+1):
+            iBin = self.getHarmonicBin(iMax,iHarmonic,len(fftAmplitudeRelativeDB))
+            #print("iHarmonic: {}, iBin: {}, freq: {} MHz, Amplitude: {} dB".format(iHarmonic,iBin,frequencies[iBin],fftAmplitudeRelativeDB[iBin]))
+            #ax.cla()
+            #ax.plot(fftAmplitudeRelativeDB,'b-')
+            #ax.axvline(iBin,c='r')
+            #ax.set_xlim(iBin-20,iBin+20)
+            #fig.savefig("fft_{}.png".format(iHarmonic))
+            thdDenom += fftAmplitude[iBin]
+        thd = fftAmplitude[iMax]/thdDenom
+        thdDB = 10*numpy.log10(thd)
+        print("THD: {} = {} dB".format(thd,thdDB))
 
     def getWindow(self,N):
         #"""
@@ -100,8 +117,11 @@ class DYNAMIC_TESTS(object):
         for iHarmonic of the carrier freqency given by iCarrier for 
         a nBins length real FFT
         """
-        result = iHarmonic * iCarrier
-        
+        result = iHarmonic * iCarrier + iHarmonic # not sure why + iHarmonic helps
+        result = result % (nBins*2)
+        if result >= nBins:
+            result = 2*nBins - result
+        return result
 
 def main():
     from ..configuration.argument_parser import ArgumentParser
