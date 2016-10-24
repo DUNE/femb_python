@@ -18,16 +18,19 @@ class DYNAMIC_TESTS(object):
         self.NASICS = config.NASICS
         self.femb = FEMB_UDP()
         self.funcgen = RigolDG4000("/dev/usbtmc0")
-        self.signalLeakageWidthBins = 25
+        self.signalLeakageWidthBins = 50
 
-    def makePowerSpectrum(self,fake=False):
+    def makeAmplitudeSpectrum(self,fake=False):
         data = None
         if fake:
-            N = 2124
-            A = 1e6
-            Noise = 5.*numpy.random.randn(N)
+            N = 20124
+            A = 1.
+            freq = 5
             t = numpy.arange(N)
-            freq = 5.
+            Noise = 0.
+            Noise += 1e-6*numpy.random.randn(N)
+            #Noise += 1e-8*numpy.sin(2*numpy.pi*t/10.)
+            #Noise += 1e-5*numpy.sin(2*numpy.pi*t/6.)
             data = numpy.zeros(N)
             data += Noise
             data += A*numpy.sin(2*numpy.pi*t/freq) + 0.
@@ -37,38 +40,53 @@ class DYNAMIC_TESTS(object):
         dataNoDC = data - numpy.mean(data)
         windowedData = self.getWindow(len(data))*dataNoDC
         fft = numpy.fft.rfft(windowedData)
-        fftPower = numpy.real(fft*numpy.conj(fft))
-        fftPowerRelative = fftPower/max(fftPower)
-        fftPowerRelativeDB = 10*numpy.log10(fftPowerRelative)
+        fftAmplitude = numpy.sqrt(numpy.real(fft*numpy.conj(fft)))
+        fftAmplitudeRelative = fftAmplitude/max(fftAmplitude)
+        fftAmplitudeRelativeDB = 10*numpy.log10(fftAmplitudeRelative)
         samplePeriod = 0.5 # microsecond -> freqs will be in MHz
         frequencies = numpy.fft.rfftfreq(len(data),samplePeriod)
 
         iFreqs = numpy.arange(len(frequencies))
-        iMax = numpy.argmax(fftPowerRelativeDB)
+        iMax = numpy.argmax(fftAmplitudeRelativeDB)
         goodElements = numpy.logical_or(iFreqs > iMax + self.signalLeakageWidthBins , iFreqs < iMax - self.signalLeakageWidthBins)
         goodElements = numpy.logical_and(iFreqs > self.signalLeakageWidthBins, goodElements) # leakage from DC, just in case any left
-        sinad = fftPower[iMax]/fftPower[goodElements].sum()
+        sinad = fftAmplitude[iMax]/fftAmplitude[goodElements].sum()
         sinadDB = 10*numpy.log10(sinad)
         enob = (sinadDB - 1.76) / (6.02)
         #enob = (sinad - 10*numpy.log10(1.5)) / (20*numpy.log10(2))
 
-        print("Maximum: {} dB, {} MHz, {} element".format(fftPowerRelativeDB[iMax],frequencies[iMax],iMax))
+        print("Maximum: {} dB, {} MHz, {} element".format(fftAmplitudeRelativeDB[iMax],frequencies[iMax],iMax))
         print("SINAD: ",sinad," = ",sinadDB,"dB")
         print("ENOB: ",enob,"bits")
         
         fig, ax = plt.subplots(figsize=(8,8))
-        ax.plot(frequencies,fftPowerRelativeDB,'b-')
+        ax.plot(frequencies,fftAmplitudeRelativeDB,'b-')
         ax.set_xlim(-0.025,1.025)
         ax.set_xlabel("Frequency [MHz]")
-        ax.set_ylabel("Power [dB]")
+        ax.set_ylabel("Amplitude [dB]")
         fig.savefig("fft.png")
 
     def getWindow(self,N):
+        #"""
+        #Hanning window
+        #"""
+        #t = numpy.arange(N)
+        #return 0.5 - 0.5 * numpy.cos(2*numpy.pi * t / N)
         """
-        Hanning window
+        7 term blackman-harris from 
+        http://zone.ni.com/reference/en-XX/help/372058H-01/rfsapropref/pnirfsa_spectrum.fftwindowtype/
         """
-        t = numpy.arange(N)
-        return 0.5 - 0.5 * numpy.cos(2*numpy.pi * t / N)
+        w = numpy.arange(N) * 2 * numpy.pi / N
+        a0 = 0.27105140069342
+        a1 = 0.43329793923448
+        a2 = 0.21812299954311
+        a3 = 0.06592544638803
+        a4 = 0.01081174209837
+        a5 = 0.00077658482522
+        a6 = 0.00001388721735
+        cos = numpy.cos
+        result = a0 - a1*cos(w) + a2*cos(2*w) - a3*cos(3*w) + a4*cos(4*w) - a5*cos(5*w) + a6*cos(6*w)
+        return result
         
 
 def main():
@@ -89,4 +107,4 @@ def main():
     config = CONFIG(config_filename)
   
     dynamic_tests = DYNAMIC_TESTS(config)
-    dynamic_tests.makePowerSpectrum(True)
+    dynamic_tests.makeAmplitudeSpectrum(True)
