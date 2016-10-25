@@ -18,4 +18,4 @@ pip install -e .
 
 Now the package should be setup in development mode. The developement directory is softlinked into your python path.
 
-The CONFIG_TYPE env var is used to choose a configuration. Give it a file name. It first searches in the current directory, and if it is not found looks in the standard files. These include 35t.ini, sbne.ini, and adctest.ini.
+The FEMB_CONFIG env var is used to choose a configuration. Give it a file name. It first searches in the current directory, and if it is not found looks in the standard files. These include 35t.ini, sbne.ini, and adctest.ini.

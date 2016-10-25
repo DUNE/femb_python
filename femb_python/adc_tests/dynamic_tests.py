@@ -40,8 +40,25 @@ class DYNAMIC_TESTS(object):
                 for amplitude in [0.75,1.25,1.45]:
                     waveforms[freq][amplitude] = self.getSinWaveforms(freq,self.offsetV,amplitude)
             self.funcgen.stop()
+        print(waveforms.keys())
+        frequencies = sorted(list(waveforms.keys()))
+        for iChip in range(self.NASICS):
+            for iChan in range(16):
+                print(iChip,iChan)
+                for freq in frequencies:
+                    amplitudes = sorted(list(waveforms[freq].keys()))
+                    for amp in amplitudes:
+                        waveform = waveforms[freq][amp][iChip][iChan]
+                        print("Chip: {}, Chan: {}, Freq: {} Hz, Amp: {} V".format(iChip,iChan,freq,amp))
+                        freqStr = ""
+                        freqExp = numpy.floor(numpy.log10(freq))
+                        freqCoef = freq/10**freqExp
+                        freqStr = "{:.0f}e{:.0f}".format(freqCoef,freqExp)
+                        outputSuffix = "chip{}_chan{}_freq{}Hz_amp{:.0f}mV".format(iChip,iChan,freqStr,amp*1000)
+                        maxAmpFreq, thd, snr, sinad, enob = self.getDynamicParameters(waveform,outputSuffix)
+                        print("  maxAmpFreq: {:.2e} THD: {:4.1f} SNR: {:4.1f} SINAD: {:4.1f} ENOB: {:4.2f}".format(maxAmpFreq,thd,snr,sinad,enob))
 
-    def getDynamicParameters(self,data,fake=False):
+    def getDynamicParameters(self,data,outputSuffix,fake=False):
         """
         Performs the fft on the input sample data and returns:
 
@@ -95,7 +112,8 @@ class DYNAMIC_TESTS(object):
         ax.set_xlim(-0.025,1.025)
         ax.set_xlabel("Frequency [MHz]")
         ax.set_ylabel("Amplitude [dB]")
-        fig.savefig("fft.png")
+        fig.savefig("fft_{}.png".format(outputSuffix))
+        plt.close()
 
         thdDenom = 0.
 
@@ -123,12 +141,12 @@ class DYNAMIC_TESTS(object):
         snr = fftAmplitude[iMax]/fftAmplitude[goodElements].sum()
         snrDB = 10*numpy.log10(snr)
 
-        print("nBins: {}".format(len(fft)))
-        print("Maximum: {} dB, {} MHz, {} element".format(fftAmplitudeRelativeDB[iMax],frequencies[iMax],iMax))
-        print("THD: {} = {} dB".format(thd,thdDB))
-        print("SNR: {} = {} dB".format(snr,snrDB))
-        print("SINAD: ",sinad," = ",sinadDB,"dB")
-        print("ENOB: ",enob,"bits")
+        #print("nBins: {}".format(len(fft)))
+        #print("Maximum: {} dB, {} MHz, {} element".format(fftAmplitudeRelativeDB[iMax],frequencies[iMax],iMax))
+        #print("THD: {} = {} dB".format(thd,thdDB))
+        #print("SNR: {} = {} dB".format(snr,snrDB))
+        #print("SINAD: ",sinad," = ",sinadDB,"dB")
+        #print("ENOB: ",enob,"bits")
 
         return frequencies[iMax], thdDB, snrDB, sinadDB, enob
 
@@ -228,6 +246,7 @@ class DYNAMIC_TESTS(object):
                       iChannel = tree.chan % 16
                       thesePoints[iChip][iChannel].extend(list(tree.wf))
               result[freq][amp] = thesePoints
+        return result
 
     def getWindow(self,N):
         #"""
@@ -287,5 +306,4 @@ def main():
         dynamic_tests.waveformRootFileName = args.dumpWaveformRootFile
     if args.loadWaveformRootFile:
         dynamic_tests.loadWaveformRootFileName = args.loadWaveformRootFile
-    #dynamic_tests.analyze()
-    dynamic_tests.getDynamicParameters(None,True)
+    dynamic_tests.analyze()
