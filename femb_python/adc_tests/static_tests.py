@@ -201,7 +201,8 @@ class STATIC_TESTS(object):
                     fig.savefig(filename+".png")
                     fig.savefig(filename+".pdf")
                     ax.cla()
-        self.funcgen.stop()
+        if (not fake) and (not self.loadWaveformRootFileName):
+            self.funcgen.stop()
         return codeHists,bitHists
 
     def makeRampHist(self,iChip,iChan,xLow,xHigh,nSamples,fake=False):
