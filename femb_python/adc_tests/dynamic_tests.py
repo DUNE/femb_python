@@ -29,6 +29,7 @@ class DYNAMIC_TESTS(object):
         self.waveformRootFileName = None
         self.loadWaveformRootFileName = None
         self.iRun = 0
+        self.nBits = 12
 
     def analyze(self,fake=False):
         waveforms = {}
@@ -90,7 +91,8 @@ class DYNAMIC_TESTS(object):
             true_sinad /= (numpy.mean(Noise**2))**0.5
             print("true SINAD: ",true_sinad,"=",10*numpy.log10(true_sinad),"dB")
         dataNoDC = data - numpy.mean(data)
-        windowedData = self.getWindow(len(data))*dataNoDC
+        windowedData = self.get7BlackmanHarrisWindow(len(data))*dataNoDC
+        #windowedData = self.getHanningWindow(len(data))*dataNoDC
         fft = numpy.fft.rfft(windowedData)
         fftAmplitude = numpy.sqrt(numpy.real(fft*numpy.conj(fft)))
         fftAmplitudeRelative = fftAmplitude/max(fftAmplitude)
@@ -192,6 +194,8 @@ class DYNAMIC_TESTS(object):
                     print("makeRampHist: chNum {} != iChan {}".format(chNum,iChan))
                     continue
                 sampVal = (samp & 0xFFF)
+                if self.nBits < 12:
+                    sampVal = sampVal >> (12 - self.nBits)
                 samples.append(sampVal)
             return numpy.array(samples)
         else:
@@ -244,16 +248,21 @@ class DYNAMIC_TESTS(object):
                       tree.GetEntry(iEntry)
                       iChip = tree.chan//16
                       iChannel = tree.chan % 16
-                      thesePoints[iChip][iChannel].extend(list(tree.wf))
+                      adccodes = list(tree.wf)
+                      if self.nBits < 12:
+                          adccodes = [i >> (12 - self.nBits) for i in adccodes]
+                      thesePoints[iChip][iChannel].extend(adccodes)
               result[freq][amp] = thesePoints
         return result
 
-    def getWindow(self,N):
-        #"""
-        #Hanning window
-        #"""
-        #t = numpy.arange(N)
-        #return 0.5 - 0.5 * numpy.cos(2*numpy.pi * t / N)
+    def getHanningWindow(self,N):
+        """
+        Hanning window
+        """
+        t = numpy.arange(N)
+        return 0.5 - 0.5 * numpy.cos(2*numpy.pi * t / N)
+
+    def get7BlackmanHarrisWindow(self,N):
         """
         7 term blackman-harris from 
         http://zone.ni.com/reference/en-XX/help/372058H-01/rfsapropref/pnirfsa_spectrum.fftwindowtype/
