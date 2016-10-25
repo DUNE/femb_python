@@ -27,6 +27,7 @@ class STATIC_TESTS(object):
         self.fitMaxV = 2.5
         self.waveformRootFileName = None
         self.loadWaveformRootFileName = None
+        self.nBits = 12
 
     def analyzeLinearity(self,nSamples,fake=False):
         codeHists, bitHists = self.doHistograms(nSamples,fake)
@@ -34,22 +35,22 @@ class STATIC_TESTS(object):
         figmanyDNL = plt.figure(figsize=(8,8))
         figmanyINL = plt.figure(figsize=(8,8))
         for iChip in range(self.NASICS):
-            sumAllCodeHists = numpy.zeros(2**12)
+            sumAllCodeHists = numpy.zeros(2**self.nBits)
             figmanyDNL.clf()
             figmanyINL.clf()
             manyaxesDNL = []
             manyaxesINL = []
             for iChan in range(16):
                 manyaxesDNL.append(figmanyDNL.add_subplot(4,4,iChan+1))
-                manyaxesDNL[iChan].set_xlim(-256,2**12+256)
+                manyaxesDNL[iChan].set_xlim(-256,2**self.nBits+256)
                 manyaxesDNL[iChan].set_ylim(-10,30)
                 manyaxesDNL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
                 manyaxesINL.append(figmanyINL.add_subplot(4,4,iChan+1))
-                manyaxesINL[iChan].set_xlim(-256,2**12+256)
+                manyaxesINL[iChan].set_xlim(-256,2**self.nBits+256)
                 manyaxesINL[iChan].set_ylim(-200,100)
                 manyaxesINL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
                 #xticks = [x*1024 for x in range(5)]
-                xticks = [0,2048,4096]
+                xticks = [0,0.5*2**self.nBits,2**self.nBits]
                 manyaxesDNL[iChan].set_xticks(xticks)
                 manyaxesINL[iChan].set_xticks(xticks)
                 if iChan % 4 != 0:
@@ -72,14 +73,16 @@ class STATIC_TESTS(object):
                     dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(codeHist,True)
                     codeNumbers = numpy.arange(len(dnl))
                     ax.plot(codeNumbers,dnl,"k-",label="All Codes")
-                    ax.plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
                     manyaxesDNL[iChan].plot(codeNumbers,dnl,"k-",label="All Codes",lw=1)
-                    manyaxesDNL[iChan].plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
+                    if self.nBits == 12:
+                      ax.plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
+                      manyaxesDNL[iChan].plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("DNL [LSB]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                    ax.set_xticks([x*1024 for x in range(5)])
-                    ax.legend(loc='best')
+                    ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
+                    if self.nBits == 12:
+                      ax.legend(loc='best')
                     #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
                     #axFSR.set_label("DNL [% of FSR]")
                     filename = "ADC_DNL_Chip{}_Chan{}".format(iChip,iChan)
@@ -92,7 +95,7 @@ class STATIC_TESTS(object):
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("INL [LSB]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                    ax.set_xticks([x*1024 for x in range(5)])
+                    ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
                     #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
                     #axFSR.set_label("DNL [% of FSR]")
                     #ax.legend(loc='best')
@@ -113,12 +116,14 @@ class STATIC_TESTS(object):
             dnlAllKillStuckCodes, inlAllKillStuckCodes = self.makeLinearityHistograms(sumAllCodeHists,True)
             codeNumbers = numpy.arange(len(dnlAll))
             ax.plot(codeNumbers,dnlAll,"k-",label="All Codes")
-            ax.plot(codeNumbers,dnlAllKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
+            if self.nBits == 12:
+              ax.plot(codeNumbers,dnlAllKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
             ax.set_xlabel("ADC Code")
             ax.set_ylabel("DNL [LSB]")
             ax.set_title("Using Histograms Summed Over Channels of Chip: {0}".format(iChip))
-            ax.set_xticks([x*1024 for x in range(5)])
-            ax.legend(loc='best')
+            ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
+            if self.nBits == 12:
+              ax.legend(loc='best')
             filename = "ADC_DNL_Sum_Chip{}".format(iChip)
             fig.savefig(filename+".png")
             fig.savefig(filename+".pdf")
@@ -179,7 +184,7 @@ class STATIC_TESTS(object):
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("Entries / ADC Code")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                    ax.set_xticks([x*1024 for x in range(5)])
+                    ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
                     filename = "ADC_Hist_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
                     fig.savefig(filename+".pdf")
@@ -195,8 +200,8 @@ class STATIC_TESTS(object):
                     ax.set_xlabel("ADC Bit")
                     ax.set_ylabel("Entries / ADC Bit")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                    ax.set_xlim(-1,12)
-                    ax.set_xticks(range(0,12))
+                    ax.set_xlim(-1,self.nBits)
+                    ax.set_xticks(range(0,self.nBits))
                     filename = "ADC_BitHist_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
                     fig.savefig(filename+".pdf")
@@ -230,15 +235,17 @@ class STATIC_TESTS(object):
                             print("makeRampHist: chNum {} != iChan {}".format(chNum,iChan))
                             continue
                         sampVal = (samp & 0xFFF)
+                        if self.nBits < 12:
+                            sampVal = sampVal >> (12 - self.nBits)
                         samples.append(sampVal)
                     if len(samples) > nSamples:
                         break
-            binning = [i-0.5 for i in range(2**12+1)]
+            binning = [i-0.5 for i in range(2**self.nBits+1)]
             hist, bin_edges = numpy.histogram(samples,bins=binning)
             return hist
         else:
             #hist = numpy.random.poisson(nSamples/2**12,size=2**12)
-            hist = numpy.random.multinomial(nSamples,numpy.ones(2**12)/2.**12)
+            hist = numpy.random.multinomial(nSamples,numpy.ones(2**self.nBits)/2.**self.nBits)
             return hist
 
     def doLinearFit(self,voltageList,nPackets):
@@ -271,7 +278,7 @@ class STATIC_TESTS(object):
             for iChan in range(16):
                 manyaxes.append(figmany.add_subplot(4,4,iChan+1))
                 manyaxes[iChan].set_xlim(0,3.5)
-                manyaxes[iChan].set_ylim(0,2**12)
+                manyaxes[iChan].set_ylim(0,2**self.nBits)
                 manyaxes[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
                 manyaxes[iChan].set_xticks([0,1,2,3])
                 yticks = [x*1024 for x in range(5)]
@@ -310,7 +317,7 @@ class STATIC_TESTS(object):
                 ax.set_xlabel("Voltage [V]")
                 ax.set_ylabel("ADC Output")
                 ax.set_xlim(0,3.5)
-                ax.set_ylim(0,2**12)
+                ax.set_ylim(0,2**self.nBits)
                 ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
                 ax.legend(loc='best')
                 filename = "ADC_Linearity_Chip{}_Chan{}".format(iChip,iChan)
@@ -351,7 +358,7 @@ class STATIC_TESTS(object):
             x0 = fitresult.Value(1)
             merr = fitresult.ParError(0)
             x0err = fitresult.ParError(1)
-            fsr = 2**12 / m + x0
+            fsr = 2**self.nBits / m + x0
         return x0, x0err, m, merr, chi2ondf, fsr
 
     def getADCDataDC(self,voltages,nPackets):
@@ -435,6 +442,8 @@ class STATIC_TESTS(object):
                 print("computeAverage: chNum {} != iChan {}".format(chNum,iChan))
                 continue
             sampVal = (samp & 0xFFF)
+            if self.nBits < 12:
+                sampVal = sampVal >> (12 - self.nBits)
             samples.append(sampVal)
         avg = numpy.mean(samples)
         stddev = numpy.std(samples,ddof=1)
@@ -452,7 +461,7 @@ class STATIC_TESTS(object):
 
         Returns an array of counts modNumber long
         """
-        assert(len(counts)==4096)
+        assert(len(counts)==2**self.nBits)
         result = numpy.zeros(modNumber)
         indexArray = numpy.arange(len(counts))
         for i in range(modNumber):
@@ -471,10 +480,10 @@ class STATIC_TESTS(object):
 
         Returns an array of counts 12 long
         """
-        assert(len(counts)==4096)
-        result = numpy.zeros(12)
+        assert(len(counts)==2**self.nBits)
+        result = numpy.zeros(self.nBits)
         indexArray = numpy.arange(len(counts))
-        for i in range(12):
+        for i in range(self.nBits):
             goodElements = ((indexArray >> i) & 0x1) > 0
             goodElements[0] = False
             goodElements[-1] = False
@@ -526,7 +535,7 @@ class STATIC_TESTS(object):
     def makePercentFSRAxisOnLSBAxis(self,ax):
         ax2 = ax.twinx()
         ylow,yhigh = ax.get_ylim()
-        ax2.set_ylim(ylow/2.**12*100,yhigh/2.**12*100)
+        ax2.set_ylim(ylow/2.**self.nBits*100,yhigh/2.**self.nBits*100)
         return ax2
 
     def dumpWaveformRootFile(self,functype,freq,offsetV,amplitudeV):
@@ -578,7 +587,11 @@ class STATIC_TESTS(object):
                 thisChip = tree.chan//16
                 thisChannel = tree.chan % 16
                 if iChip == thisChip and iChan == thisChannel:
-                    result.extend(list(tree.wf))
+                    adccode = tree.wf
+                    adccode = list(adccode)
+                    if self.nBits < 12:
+                        adccode = [i >> (12 - self.nBits) for i in adccode]
+                    result.extend(adccode)
         if len(result) == 0:
             raise Exception("File not found")
         return result
