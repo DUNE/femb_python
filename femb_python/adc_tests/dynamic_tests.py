@@ -22,7 +22,9 @@ class DYNAMIC_TESTS(object):
         self.femb = FEMB_UDP()
         self.funcgen = RigolDG4000("/dev/usbtmc0")
         self.settlingTime = 0.1
-        self.signalLeakageWidthBins = 25
+        self.signalLeakageWidthBins = 20
+        self.harmonicLeakageWidthBins = 20
+        self.nHarmonics = 5 # total harmonic distortion includes up to this harmonic (and S/N excludes them)
         self.offsetV = 1.5
         self.waveformRootFileName = None
         self.loadWaveformRootFileName = None
@@ -39,55 +41,96 @@ class DYNAMIC_TESTS(object):
                     waveforms[freq][amplitude] = self.getSinWaveforms(freq,self.offsetV,amplitude)
             self.funcgen.stop()
 
-    def makePowerSpectrum(self,fake=False):
-        data = None
+    def getDynamicParameters(self,data,fake=False):
+        """
+        Performs the fft on the input sample data and returns:
+
+            the frequency with maximum amplitude
+            total harmonic distortion (THD) of self.nHarmonics harmonics in DB w.r.t. max amplitude
+            signal to noise ratio (SNR) amplitude of everything but signal, DC, and harmonics
+            signal to noise and distortion ratio (SINAD) amplitude of everything but signal and DC
+            effective number of bits (ENOB) computed from SINAD and the formula for ideal noise in terms of bits
+        """
         if fake:
-            N = 2124
-            A = 1e6
-            Noise = 5.*numpy.random.randn(N)
+            N = 20124
+            A = 1.
+            freq = 0.235
+            phase = 0.12562362376
+            freq /= 2. # b/c sample at 2MHz
             t = numpy.arange(N)
-            freq = 5.
+            Noise = 0.
+            Noise += 1e-6*numpy.random.randn(N)
+            #Noise += 1e-8*numpy.sin(2*numpy.pi*t/10.)
+            #Noise += 1e-5*numpy.sin(2*numpy.pi*t/6.)
+            harmonics = 0.
+            for iHarmonic in range(2,10):
+              harmonics += 1e-3*10**(-iHarmonic)*A*numpy.sin(2*numpy.pi*t*freq*iHarmonic+phase) + 0.
             data = numpy.zeros(N)
             data += Noise
-            data += A*numpy.sin(2*numpy.pi*t/freq) + 0.
-            true_sinad = (numpy.mean((A*numpy.sin(2*numpy.pi*t/freq))**2))**0.5
+            data += harmonics
+            data += A*numpy.sin(2*numpy.pi*t*freq+phase) + 0.
+            true_sinad = (numpy.mean((A*numpy.sin(2*numpy.pi*t*freq))**2))**0.5
             true_sinad /= (numpy.mean(Noise**2))**0.5
             print("true SINAD: ",true_sinad,"=",10*numpy.log10(true_sinad),"dB")
         dataNoDC = data - numpy.mean(data)
         windowedData = self.getWindow(len(data))*dataNoDC
         fft = numpy.fft.rfft(windowedData)
-        fftPower = numpy.real(fft*numpy.conj(fft))
-        fftPowerRelative = fftPower/max(fftPower)
-        fftPowerRelativeDB = 10*numpy.log10(fftPowerRelative)
+        fftAmplitude = numpy.sqrt(numpy.real(fft*numpy.conj(fft)))
+        fftAmplitudeRelative = fftAmplitude/max(fftAmplitude)
+        fftAmplitudeRelativeDB = 10*numpy.log10(fftAmplitudeRelative)
         samplePeriod = 0.5 # microsecond -> freqs will be in MHz
         frequencies = numpy.fft.rfftfreq(len(data),samplePeriod)
 
         iFreqs = numpy.arange(len(frequencies))
-        iMax = numpy.argmax(fftPowerRelativeDB)
+        iMax = numpy.argmax(fftAmplitudeRelativeDB)
         goodElements = numpy.logical_or(iFreqs > iMax + self.signalLeakageWidthBins , iFreqs < iMax - self.signalLeakageWidthBins)
         goodElements = numpy.logical_and(iFreqs > self.signalLeakageWidthBins, goodElements) # leakage from DC, just in case any left
-        sinad = fftPower[iMax]/fftPower[goodElements].sum()
+        sinad = fftAmplitude[iMax]/fftAmplitude[goodElements].sum()
         sinadDB = 10*numpy.log10(sinad)
         enob = (sinadDB - 1.76) / (6.02)
         #enob = (sinad - 10*numpy.log10(1.5)) / (20*numpy.log10(2))
-
-        print("Maximum: {} dB, {} MHz, {} element".format(fftPowerRelativeDB[iMax],frequencies[iMax],iMax))
-        print("SINAD: ",sinad," = ",sinadDB,"dB")
-        print("ENOB: ",enob,"bits")
         
         fig, ax = plt.subplots(figsize=(8,8))
-        ax.plot(frequencies,fftPowerRelativeDB,'b-')
+        ax.plot(frequencies,fftAmplitudeRelativeDB,'b-')
         ax.set_xlim(-0.025,1.025)
         ax.set_xlabel("Frequency [MHz]")
-        ax.set_ylabel("Power [dB]")
+        ax.set_ylabel("Amplitude [dB]")
         fig.savefig("fft.png")
 
-    def getWindow(self,N):
-        """
-        Hanning window
-        """
-        t = numpy.arange(N)
-        return 0.5 - 0.5 * numpy.cos(2*numpy.pi * t / N)
+        thdDenom = 0.
+
+        for iHarmonic in range(2,self.nHarmonics+1):
+            iBin = self.getHarmonicBin(iMax,iHarmonic,len(fftAmplitudeRelativeDB))
+
+            thdDenom += fftAmplitude[iBin]
+
+            goodElements = numpy.logical_and(goodElements,
+                                        numpy.logical_or(
+                                                iFreqs < iBin - self.harmonicLeakageWidthBins,
+                                                iFreqs > iBin + self.harmonicLeakageWidthBins
+                                            )
+                                    )
+
+            #print("iHarmonic: {}, iBin: {}, freq: {} MHz, Amplitude: {} dB".format(iHarmonic,iBin,frequencies[iBin],fftAmplitudeRelativeDB[iBin]))
+            #ax.cla()
+            #ax.plot(fftAmplitudeRelativeDB,'b-')
+            #ax.axvline(iBin,c='r')
+            #ax.set_xlim(iBin-20,iBin+20)
+            #fig.savefig("fft_{}.png".format(iHarmonic))
+
+        thd = fftAmplitude[iMax]/thdDenom
+        thdDB = 10*numpy.log10(thd)
+        snr = fftAmplitude[iMax]/fftAmplitude[goodElements].sum()
+        snrDB = 10*numpy.log10(snr)
+
+        print("nBins: {}".format(len(fft)))
+        print("Maximum: {} dB, {} MHz, {} element".format(fftAmplitudeRelativeDB[iMax],frequencies[iMax],iMax))
+        print("THD: {} = {} dB".format(thd,thdDB))
+        print("SNR: {} = {} dB".format(snr,snrDB))
+        print("SINAD: ",sinad," = ",sinadDB,"dB")
+        print("ENOB: ",enob,"bits")
+
+        return frequencies[iMax], thdDB, snrDB, sinadDB, enob
 
     def getSinWaveforms(self,freq,offsetV,amplitudeV,fake=False):
         self.funcgen.startSin(freq,amplitudeV,offsetV)
@@ -185,6 +228,39 @@ class DYNAMIC_TESTS(object):
                       iChannel = tree.chan % 16
                       thesePoints[iChip][iChannel].extend(list(tree.wf))
               result[freq][amp] = thesePoints
+
+    def getWindow(self,N):
+        #"""
+        #Hanning window
+        #"""
+        #t = numpy.arange(N)
+        #return 0.5 - 0.5 * numpy.cos(2*numpy.pi * t / N)
+        """
+        7 term blackman-harris from 
+        http://zone.ni.com/reference/en-XX/help/372058H-01/rfsapropref/pnirfsa_spectrum.fftwindowtype/
+        """
+        w = numpy.arange(N) * 2 * numpy.pi / N
+        a0 = 0.27105140069342
+        a1 = 0.43329793923448
+        a2 = 0.21812299954311
+        a3 = 0.06592544638803
+        a4 = 0.01081174209837
+        a5 = 0.00077658482522
+        a6 = 0.00001388721735
+        cos = numpy.cos
+        result = a0 - a1*cos(w) + a2*cos(2*w) - a3*cos(3*w) + a4*cos(4*w) - a5*cos(5*w) + a6*cos(6*w)
+        return result
+
+    def getHarmonicBin(self,iCarrier,iHarmonic,nBins):
+        """
+        Gets the bin corresponding to the possibly aliased frequency 
+        for iHarmonic of the carrier freqency given by iCarrier for 
+        a nBins length real FFT
+        """
+        result = iHarmonic * iCarrier + iHarmonic # not sure why + iHarmonic helps
+        result = result % (nBins*2)
+        if result >= nBins:
+            result = 2*nBins - result
         return result
 
 def main():
@@ -211,4 +287,5 @@ def main():
         dynamic_tests.waveformRootFileName = args.dumpWaveformRootFile
     if args.loadWaveformRootFile:
         dynamic_tests.loadWaveformRootFileName = args.loadWaveformRootFile
-    dynamic_tests.analyze()
+    #dynamic_tests.analyze()
+    dynamic_tests.getDynamicParameters(None,True)
