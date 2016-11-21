@@ -128,6 +128,7 @@ setup(
 
             'femb_adc_static_tests=femb_python.adc_tests.static_tests:main',
             'femb_adc_dynamic_tests=femb_python.adc_tests.dynamic_tests:main',
+            'femb_show_trace_root=femb_python.helper_scripts.show_trace_root:main',
         ],
         #'gui_scripts': [
         #    'femb_test=femb_python.gui:main',
