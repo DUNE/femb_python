@@ -26,7 +26,7 @@ class WRITE_ROOT_TREE:
             time.sleep(0.01)
             wf.clear()
             for iPacket in range(self.numpacketsrecord):
-                data = self.femb.get_data(1)
+                data = self.femb.get_data(self.femb.MAX_NUM_PACKETS)
                 packet[0] = iPacket
                 for samp in data:
                     chNum = ((samp >> 12 ) & 0xF)
