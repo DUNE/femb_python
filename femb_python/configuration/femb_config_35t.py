@@ -1,7 +1,8 @@
 import sys 
 import string
 import time
-from femb_udp_cmdline import FEMB_UDP
+#from femb_udp_cmdline import FEMB_UDP
+from femb_python.femb_udp import FEMB_UDP
 
 class FEMB_CONFIG:
     def resetBoard(self):
