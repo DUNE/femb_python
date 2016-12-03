@@ -29,6 +29,8 @@ class Analyze {
         int processFileName(std::string inputFileName, std::string &baseFileName);
 	void doAnalysis();
 	void parseFile();
+	void parseRawData();
+	void parseAsicRawData(int asic);
 	void analyzeChannel(unsigned int chan, std::vector<short> *wf);
 
 	//Files
@@ -41,6 +43,7 @@ class Analyze {
 	//data objects
 	TCanvas* c0;
 	TGraph *gCh;
+	std::vector<unsigned short> asicPackets[8];
 	std::vector<short> wfIn[128];
 
 	//histograms
@@ -125,6 +128,7 @@ void Analyze::doAnalysis(){
 
         //parse the input file
     	parseFile();
+	parseRawData();
 
 	for( unsigned int ch = 0 ; ch < 128 ; ch++ ){
 		/*
@@ -190,8 +194,7 @@ void Analyze::parseFile(){
         packetHeader[4] = 0xba5e;
 
 	//loop throiugh buffer, scan for packet headers
-        int count = 0;
-	int pos = 0;
+	unsigned int pos = 0;
 	int asicNum = -1;
 	int prevAsicNum = -1;
 	std::vector<unsigned int> headerPos;
@@ -204,26 +207,144 @@ void Analyze::parseFile(){
 		    ntohs(buffer_ushort[pos-3]) ==  packetHeader[2] &&
 		    ntohs(buffer_ushort[pos-2]) ==  packetHeader[3] &&
 		    ntohs(buffer_ushort[pos-1]) ==  packetHeader[4] ){
-			asicNum = (int)dataWord;
-			if( asicNum != prevAsicNum )
-				std::cout << "ASIC # " << asicNum << std::endl;
-			prevAsicNum = asicNum;
 			headerPos.push_back(pos-5);
 		}
 	}
 
-	std::cout << headerPos.size() << std::endl;
-	//loop through each sub-packet
-	for(unsigned int headNum = 0 ; headNum < headerPos.size() ; headNum++){
-		std::cout << "NEW HEADER " << headNum << std::endl;
-		for(unsigned int pos = 0 ; pos < 6 ; pos++ ){
-			unsigned short dataWord = ntohs(buffer_ushort[pos]);
-			std::cout << std::hex << dataWord << std::endl;
-		}
-		std::cout << std::dec << std::endl;
+	if( headerPos.size() == 0 ){
+		std::cout << "No packet headers detected, returning" << std::endl;
+		return;
 	}
+        std::cout << "Number of packets " << headerPos.size() << std::endl;
+
+	//loop through each packet, collect ASIC packets
+	for(unsigned int headNum = 0 ; headNum < headerPos.size() ; headNum++){
+		//std::cout << "NEW HEADER " << headNum << "\t" << headerPos.at(headNum) << std::endl;
+	
+		unsigned int basePos = headerPos.at(headNum);
+		if( basePos >= sizeInUshort )
+			continue;
+
+		unsigned int endPos = sizeInUshort-1;
+		if( headNum < headerPos.size() - 1 )
+			endPos = headerPos.at(headNum+1) - 1;
+
+		if( endPos >= sizeInUshort )
+			continue;
+
+		unsigned int packetSize = endPos - basePos + 1;
+		if( packetSize < 6 )
+			continue;
+
+		//get ASIC number
+		unsigned short asicNum = (unsigned short ) ntohs(buffer_ushort[basePos + 5]);
+		//std::cout << "ASIC NUMBER " << asicNum << std::endl;
+		if(  asicNum > 7 )
+			continue;
+
+		//get UDP packet number
+		unsigned short packetNum = (unsigned short) ntohs(buffer_ushort[basePos + 7]);
+		//std::cout << "PACKET NUMBER " << packetNum << std::endl;
+
+		//store actual data in vector
+		for( unsigned int line = basePos + 14 ; line <= endPos ;line++){
+			unsigned short dataWord = (unsigned short) ntohs(buffer_ushort[line]);
+			asicPackets[asicNum].push_back(dataWord);
+			//std::cout << std::dec << line << "\t" << basePos << "\t" << endPos << "\t" << std::hex << dataWord << std::endl;
+		}
+	}//end loop over headers
 		
     	delete[] buffer_ushort;
+}
+
+void Analyze::parseRawData(){
+	//loop over ASIC data packets
+	for(int asic = 0 ; asic < 8 ; asic++ )
+		parseAsicRawData(asic);
+
+	return;
+}
+
+void Analyze::parseAsicRawData(int asic){
+	if( asicPackets[asic].size() == 0 )
+		return;
+
+	//find 0xface words
+	std::vector<unsigned int> facePos;
+	for( unsigned int line = 0 ; line < asicPackets[asic].size() ; line++){
+		//std::cout << asicPackets[asic].at(line) << std::endl;
+		if( asicPackets[asic].at(line) == 0xface )
+			facePos.push_back(line);
+	}
+
+	//require some minimum number of ASIC packets
+	if( facePos.size() < 3  )
+		return;
+
+	//double check correct packet spacing
+	if( facePos.at(1) - facePos.at(0) != 13 || facePos.at(2) - facePos.at(1) != 13 )
+		return;
+	unsigned int basePos = facePos.at(0);
+
+	//loop through ASIC packets, ignore clipped packets
+	unsigned int line = basePos;
+	while(line < asicPackets[asic].size() ){
+
+		//don't use clipped packets
+		if( line + 13 >= asicPackets[asic].size() )
+			break;
+
+		unsigned short dataWord = asicPackets[asic].at(line);
+		//std::cout << std::hex << dataWord << std::endl;
+		if( dataWord != 0xface ){
+			//std::cout << "Invalid ASIC packet header, breaking" << std::endl;
+			break; //should always find ASIC packet headers
+		}
+		//get data words in ASIC packets
+		//std::cout << "ASIC PACKET " << std::endl;
+		short wordArray[12];
+		for(int wordNum = 0 ; wordNum < 12 ; wordNum++){
+			unsigned int lineNum = line+1+wordNum;
+			if( lineNum >= asicPackets[asic].size() ) continue;
+			wordArray[wordNum] = asicPackets[asic].at(lineNum);
+			//std::cout << "\t" << std::dec << wordNum << "\t" << std::hex << wordArray[wordNum] << std::endl;
+		}
+
+		//update buffer position
+		line = line + 13;
+
+		//attempt to decode ASIC packet
+		short chSamp[16];
+		chSamp[0] = (wordArray[1] & 0xFFF0 ) >> 4;
+		chSamp[1] = ((wordArray[1] & 0x000F ) << 8) | ((wordArray[0] & 0xFF00 ) >> 8);
+		chSamp[2] = ((wordArray[0] & 0x00FF ) << 4) | ((wordArray[3] & 0xF000 ) >> 12);
+		chSamp[3] = ((wordArray[3] & 0x0FFF )) ;
+		chSamp[4] = ((wordArray[2] & 0xFFF0 ) >> 4) ;
+		chSamp[5] = ((wordArray[2] & 0x000F ) << 8) | ((wordArray[5] & 0xFF00 ) >> 8);
+		chSamp[6] = ((wordArray[5] & 0x00FF ) << 4) | ((wordArray[4] & 0xF000 ) >> 12);
+		//chSamp[6] = ((wordArray[5] & 0x000F ) << 8) | ((wordArray[4] & 0xF000 ) >> 8) | ((wordArray[5] & 0x00F0 ) >> 4);
+		chSamp[7] = ((wordArray[4] & 0x0FFF ) ) ;
+		//chSamp[7] = ((wordArray[4] & 0x0FF ) << 4) | ((wordArray[4] & 0xF00 ) >> 8);						
+		chSamp[8] = ((wordArray[11] & 0xFFF0 ) >> 4) ;
+		chSamp[9] = ((wordArray[11] & 0x000F ) << 8) | ((wordArray[10] & 0xFF00 ) >> 8) ;
+		chSamp[10] = ((wordArray[10] & 0x00FF ) << 4) | ((wordArray[9] & 0xF000 ) >> 12) ;
+		chSamp[11] = ((wordArray[9] & 0x0FFF ));
+		chSamp[12] = ((wordArray[8] & 0xFFF0 ) >> 4);
+		chSamp[13] = ((wordArray[8] & 0x000F ) << 8) | ((wordArray[7] & 0xFF00 ) >> 8) ;
+		chSamp[14] = ((wordArray[7] & 0x00FF ) << 4) | ((wordArray[6] & 0xF000 ) >> 12) ;
+		chSamp[15] = ((wordArray[6] & 0x0FFF ) );			
+
+		//std::cout << "PARSED SAMPLES " << std::endl;
+		for(int ch = 0 ; ch < 16 ; ch++){
+			//std::cout << asic << "\t" << ch << "\t" << std::hex << chSamp[ch] << "\t" << std::dec << chSamp[ch] << std::endl;
+			int chNum = 16*asic + ch;
+			if( chNum < 0 || chNum > 127 )
+				continue;
+			wfIn[chNum].push_back(chSamp[ch]);
+		}
+	}//end loop over asic packets
+
+	return;
 }
 
 void Analyze::analyzeChannel(unsigned int chan, std::vector<short> *wf){
@@ -337,7 +458,7 @@ void Analyze::analyzeChannel(unsigned int chan, std::vector<short> *wf){
 		c0->Update();
 		//char ct;
 		//std::cin >> ct;
-		usleep(1000);
+		usleep(100000);
 	}
 
 	delete hData;
@@ -368,54 +489,3 @@ int main(int argc, char *argv[]){
   //return 1;
   gSystem->Exit(0);
 }
-
-/*
-		if( asicNum < 0 || asicNum > 7 )
-			continue;
-
-		//check for tick header
-		short wordArray[12];
-		if( dataWord == 0xface ){
-			for(int word = 0 ; word < 12 ; word++){
-				int line = pos+1+word;
-				if( line >= sizeInUshort ) continue;
-				wordArray[word] = ntohs(buffer_ushort[line]);
-				std::cout << "\t" << std::hex << ntohs(buffer_ushort[line]) << std::endl;
-			}
-			//update buffer position
-		        pos = pos + 12;
-			
-			short chSamp[16];
-			chSamp[0] = (wordArray[1] & 0xFFF0 ) >> 4;
-			//chSamp[0] = ((wordArray[1] & 0xFF00 ) >> 8) | ((wordArray[1] & 0x00F0 ) << 4); //this makes no sense
-			chSamp[1] = ((wordArray[1] & 0x000F ) << 8) | ((wordArray[0] & 0xFF00 ) >> 8);
-			//chSamp[1] = ( (chSamp[1] & 0xF ) << 8 ) | ((chSamp[1] & 0xFF0) >> 4 );
-			//chSamp[1] = ((wordArray[1] & 0x000F ) << 4) | ((wordArray[0] & 0xF00 ) >> 12) | ((wordArray[0] & 0xF00 ) >> 0);
-			chSamp[2] = ((wordArray[0] & 0x00FF ) << 4) | ((wordArray[3] & 0xF000 ) >> 12);
-			chSamp[3] = ((wordArray[3] & 0x0FFF )) ;
-			chSamp[4] = ((wordArray[2] & 0xFFF0 ) >> 4) ;
-			chSamp[5] = ((wordArray[2] & 0x000F ) << 8) | ((wordArray[5] & 0xFF00 ) >> 8);
-			chSamp[6] = ((wordArray[5] & 0x00FF ) << 4) | ((wordArray[4] & 0xF000 ) >> 12);
-			chSamp[7] = ((wordArray[4] & 0x0FFF ) ) ;			
-			chSamp[8] = ((wordArray[11] & 0xFFF0 ) >> 4) ;
-			chSamp[9] = ((wordArray[11] & 0x000F ) << 8) | ((wordArray[10] & 0xFF00 ) >> 8) ;
-			chSamp[10] = ((wordArray[10] & 0x00FF ) << 4) | ((wordArray[9] & 0xF000 ) >> 12) ;
-			chSamp[11] = ((wordArray[9] & 0x0FFF ));
-			chSamp[12] = ((wordArray[8] & 0xFFF0 ) >> 4);
-			chSamp[13] = ((wordArray[8] & 0x000F ) << 8) | ((wordArray[7] & 0xFF00 ) >> 8) ;
-			chSamp[14] = ((wordArray[7] & 0x00FF ) << 4) | ((wordArray[6] & 0xF000 ) >> 12) ;
-			chSamp[15] = ((wordArray[6] & 0x0FFF ) );			
-
-			for(int ch = 0 ; ch < 16 ; ch++){
-				std::cout << asicNum << "\t" << ch << "\t" << std::hex << chSamp[ch] << "\t" << std::dec << chSamp[ch] << std::endl;
-				int chNum = 16*asicNum + ch;
-				if( chNum < 0 || chNum > 127 )
-					continue;
-				wfIn[chNum].push_back(chSamp[ch]);
-			}
-			char ct;
-			std::cin >> ct;
-		}//tick if statement
-		count++;
-	}//end loop over buffer
-*/
