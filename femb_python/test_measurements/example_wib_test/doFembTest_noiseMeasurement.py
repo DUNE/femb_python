@@ -76,16 +76,16 @@ class FEMB_TEST:
         self.femb_config.configFeAsic(0,0,0)
 
         #Set ADC test mode
-        self.femb_config.femb.write_reg_bits(3,31,1,0)
+        #self.femb_config.femb.write_reg_bits(3,31,1,0)
         #val = self.femb_config.femb.read_reg(3)
         #print( "Reg 3 " + str(hex(val) ) )
 
         #initialize output filelist
         self.filelist = open("filelist_doFembTest_noiseMeasurement_" + ".txt", "w")
         subrun = 0
-        for g in range(0,1,1):
-          for s in range(0,1,1):
-            for b in range(0,1,1):
+        for g in range(0,4,1):
+          for s in range(0,4,1):
+            for b in range(0,2,1):
                 #config FE ASICs
                 self.femb_config.configFeAsic(g,s,b)
                 #wait to make sure HS link is back on

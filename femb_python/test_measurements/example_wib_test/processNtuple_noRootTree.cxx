@@ -144,6 +144,13 @@ void Analyze::doAnalysis(){
 		analyzeChannel(ch, &wfIn[ch]);
 	}
 
+	c0->Clear();
+	hSampVsChan->Draw("COLZ");
+	c0->Update();
+	usleep(100000);
+	//char ct;
+	//std::cin >> ct;
+
     	gOut->Cd("");
   	hSampVsChan->Write();
 	pSampVsChan->Write();
@@ -314,17 +321,15 @@ void Analyze::parseAsicRawData(int asic){
 		line = line + 13;
 
 		//attempt to decode ASIC packet
-		short chSamp[16];
-		chSamp[0] = (wordArray[1] & 0xFFF0 ) >> 4;
-		chSamp[1] = ((wordArray[1] & 0x000F ) << 8) | ((wordArray[0] & 0xFF00 ) >> 8);
-		chSamp[2] = ((wordArray[0] & 0x00FF ) << 4) | ((wordArray[3] & 0xF000 ) >> 12);
-		chSamp[3] = ((wordArray[3] & 0x0FFF )) ;
-		chSamp[4] = ((wordArray[2] & 0xFFF0 ) >> 4) ;
-		chSamp[5] = ((wordArray[2] & 0x000F ) << 8) | ((wordArray[5] & 0xFF00 ) >> 8);
-		chSamp[6] = ((wordArray[5] & 0x00FF ) << 4) | ((wordArray[4] & 0xF000 ) >> 12);
-		//chSamp[6] = ((wordArray[5] & 0x000F ) << 8) | ((wordArray[4] & 0xF000 ) >> 8) | ((wordArray[5] & 0x00F0 ) >> 4);
-		chSamp[7] = ((wordArray[4] & 0x0FFF ) ) ;
-		//chSamp[7] = ((wordArray[4] & 0x0FF ) << 4) | ((wordArray[4] & 0xF00 ) >> 8);						
+		short chSamp[16] = {0};
+		chSamp[0] = ((wordArray[5] & 0xFFF0 ) >> 4);
+		chSamp[1] = ((wordArray[4] & 0xFF00 ) >> 8) | ((wordArray[5] & 0x000F ) << 8);
+		chSamp[2] = ((wordArray[4] & 0x00FF ) << 4) | ((wordArray[3] & 0xF000 ) >> 12);
+		chSamp[3] = ((wordArray[3] & 0x0FFF ) >> 0);
+		chSamp[4] = ((wordArray[2] & 0xFFF0 ) >> 4);
+		chSamp[5] = ((wordArray[2] & 0x000F ) << 8) | ((wordArray[1] & 0xFF00 ) >> 8);
+		chSamp[6] = ((wordArray[1] & 0x00FF ) << 4) | ((wordArray[0] & 0xF000 ) >> 12);
+		chSamp[7] = ((wordArray[0] & 0x0FFF ) >> 0);						
 		chSamp[8] = ((wordArray[11] & 0xFFF0 ) >> 4) ;
 		chSamp[9] = ((wordArray[11] & 0x000F ) << 8) | ((wordArray[10] & 0xFF00 ) >> 8) ;
 		chSamp[10] = ((wordArray[10] & 0x00FF ) << 4) | ((wordArray[9] & 0xF000 ) >> 12) ;
@@ -332,7 +337,11 @@ void Analyze::parseAsicRawData(int asic){
 		chSamp[12] = ((wordArray[8] & 0xFFF0 ) >> 4);
 		chSamp[13] = ((wordArray[8] & 0x000F ) << 8) | ((wordArray[7] & 0xFF00 ) >> 8) ;
 		chSamp[14] = ((wordArray[7] & 0x00FF ) << 4) | ((wordArray[6] & 0xF000 ) >> 12) ;
-		chSamp[15] = ((wordArray[6] & 0x0FFF ) );			
+		chSamp[15] = ((wordArray[6] & 0x0FFF ) );	
+
+		//chSamp[2] = (wordArray[1] & 0xFFF0 ) >> 4; // nearly ok
+		//chSamp[2] = ((wordArray[1] & 0x000F ) << 8) | ((wordArray[0] & 0xFF00 ) >> 8); //nearly ok	
+		//chSamp[2] = ((wordArray[0] & 0x00FF ) << 4) | ((wordArray[3] & 0xF000 ) >> 12);	
 
 		//std::cout << "PARSED SAMPLES " << std::endl;
 		for(int ch = 0 ; ch < 16 ; ch++){
@@ -342,6 +351,8 @@ void Analyze::parseAsicRawData(int asic){
 				continue;
 			wfIn[chNum].push_back(chSamp[ch]);
 		}
+		//char ct;
+		//std::cin >> ct;
 	}//end loop over asic packets
 
 	return;
@@ -380,14 +391,6 @@ void Analyze::analyzeChannel(unsigned int chan, std::vector<short> *wf){
 	//fill channel waveform hists
 	for( int s = 0 ; s < wf->size() ; s++ ){
 		short samp =  wf->at(s);
-		if( chan == 0 ) 
-			samp = (samp >> 4 );
-		if( chan == 1 ) 
-			samp = (samp >> 4 );
-		if( chan == 2 ) 
-			samp = (samp >> 4 );
-
-	
 		hSampVsChan->Fill( chan, samp);
 
 		//measure stuck code fraction
@@ -431,7 +434,7 @@ void Analyze::analyzeChannel(unsigned int chan, std::vector<short> *wf){
 	}
 
 	//draw waveform if wanted
-	if( 1 ){
+	if( 0 ){
 		gCh->Set(0);
 		for( int s = 0 ; s < wf->size() ; s++ )
 			gCh->SetPoint(gCh->GetN() , gCh->GetN() , wf->at(s) );
@@ -458,7 +461,7 @@ void Analyze::analyzeChannel(unsigned int chan, std::vector<short> *wf){
 		c0->Update();
 		//char ct;
 		//std::cin >> ct;
-		usleep(100000);
+		usleep(1000);
 	}
 
 	delete hData;

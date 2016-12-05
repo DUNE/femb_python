@@ -77,12 +77,7 @@ class FEMB_TEST:
         #wait to make sure HS link is back on
         sleep(0.5)
 
-        #Set ADC test mode
-        #self.femb_config.femb.write_reg_bits(3,31,1,0)
-        #val = self.femb_config.femb.read_reg(3)
-        #print( "Reg 3 " + str(hex(val) ) )
-
-        #config FE ASICs
+        #set output file
         filename = "data/output_simpleMeasurement.bin"
         print("Recording " + filename)
         self.filename = filename
@@ -107,7 +102,7 @@ class FEMB_TEST:
           self.femb_config.selectChannel(asic,0)
 
           #record the data
-          testData = self.femb_config.femb.get_data_packets(100)
+          testData = self.femb_config.femb.get_data_packets(10)
           if len(testData) == 0:
             continue
           for packet in testData:
@@ -122,7 +117,7 @@ class FEMB_TEST:
         #Close data file
         FILE.close()
 
-        self.femb_config.configFeAsic(0,0,0)
+        #self.femb_config.configFeAsic(0,0,0)
 
         self.status_record_data = 1
 
@@ -225,10 +220,41 @@ class FEMB_TEST:
         input_file.close()
         self.status_archive_results = 1
 
+    def check_test(self):
+      print("check test")
+
+      self.femb_config.femb.write_reg_bits( 16, 0,0x1,0) #test pulse enable
+      self.femb_config.femb.write_reg_bits( 5, 0,0x1F,0x0F) #test pulse amplitude
+      self.femb_config.femb.write_reg_bits( 5, 16,0xFFFF,0xFF) #test pulse frequency
+      self.femb_config.femb.write_reg_bits( 5, 8,0xFF,0x00) #test pulse delay
+
+      #test stuff
+      """
+      sts = 1 #test input
+      snc = 1 #baseline
+      sg = 3 #gain
+      st = 3 #shaping time
+      sdc = 0 #coupling
+      sdf = 0 #buffer amplifier
+      pulseCh = int(0)
+      self.femb_config.feasic_ch_list[pulseCh].set_fechn_reg(sts, snc, sg, st, sdc, sdf )
+      regNum = self.femb_config.feasic_ch_list[pulseCh].regNum
+      regPos = self.femb_config.feasic_ch_list[pulseCh].regPos
+      regVal = self.femb_config.feasic_ch_list[pulseCh].regval
+      self.femb_config.femb.write_reg_bits( regNum, regPos,0xFF,regVal)
+      self.femb_config.doFeAsicConfig()
+      """
+
+      #Set ADC test mode
+      #self.femb_config.femb.write_reg_bits(3,31,1,0)
+      #val = self.femb_config.femb.read_reg(3)
+      #print( "Reg 3 " + str(hex(val) ) )
+
 def main():
     femb_test = FEMB_TEST()
     femb_test.check_setup()
     #femb_test.status_check_setup = 1
+    femb_test.check_test()
     femb_test.record_data()
     #femb_test.status_record_data = 1
     #femb_test.do_analysis()

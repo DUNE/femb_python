@@ -36,29 +36,30 @@ class FEMB_UDP:
         sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.UDP_PORT_WREG ))
         sock_write.close()
         #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,data)
+        time.sleep(0.05)
 
     def write_reg_bits(self, reg , pos, mask, data ):
         regVal = int(reg)
         if (regVal < 0) or (regVal > self.MAX_REG_NUM):
-                #print "FEMB_UDP--> Error write_reg_bits: Invalid register number"
+                print( "FEMB_UDP--> Error write_reg_bits: Invalid register number")
                 return None
         posVal = int(pos)
         if (posVal < 0 ) or (posVal > 31):
-                #print "FEMB_UDP--> Error write_reg_bits: Invalid register position"
+                print( "FEMB_UDP--> Error write_reg_bits: Invalid register position")
                 return None
         maskVal = int(mask)
-        if (maskVal < 0 ) or (maskVal > 31):
-                #print "FEMB_UDP--> Error write_reg_bits: Invalid bit mask"
+        if (maskVal < 0 ) or (maskVal > 0xFFFFFFFF):
+                print( "FEMB_UDP--> Error write_reg_bits: Invalid bit mask")
                 return None
         dataVal = int(data)
         if (dataVal < 0) or (dataVal > self.MAX_REG_VAL):
-                #print "FEMB_UDP--> Error write_reg_bits: Invalid data value"
+                print( "FEMB_UDP--> Error write_reg_bits: Invalid data value")
                 return None
         if dataVal > maskVal :
-                #print "FEMB_UDP--> Error write_reg_bits: Write value does not fit within mask"
+                print( "FEMB_UDP--> Error write_reg_bits: Write value does not fit within mask")
                 return None
         if (maskVal << posVal) > self.MAX_REG_VAL:
-                #print "FEMB_UDP--> Error write_reg_bits: Write range exceeds register size"
+                print( "FEMB_UDP--> Error write_reg_bits: Write range exceeds register size")
                 return None
 
         #get initial register value
@@ -86,6 +87,7 @@ class FEMB_UDP:
         sock_write.setblocking(0)
         sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.UDP_PORT_WREG ))
         sock_write.close()
+        time.sleep(0.05)
 
     def read_reg(self, reg ):
         regVal = int(reg)
@@ -109,7 +111,7 @@ class FEMB_UDP:
         #try to receive response packet from board, store in hex
         data = []
         try:
-                data = sock_readresp.recv(1024)
+                data = sock_readresp.recv(self.MAX_PACKET_SIZE)
         except socket.timeout:
                 print("FEMB_UDP--> Error read_reg: No read packet received from board, quitting")
                 sock_readresp.close()
@@ -123,6 +125,7 @@ class FEMB_UDP:
                 return None
         dataHexVal = int(dataHex[4:12],16)
         #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,dataHexVal)
+        time.sleep(0.05)
         return dataHexVal
 
     def get_data_packets(self, num):
@@ -142,7 +145,7 @@ class FEMB_UDP:
         for packet in range(0,numVal,1):
                 data = None
                 try:
-                        data = sock_data.recv(1024)
+                        data = sock_data.recv(self.MAX_PACKET_SIZE)
                 except socket.timeout:
                         #print "FEMB_UDP--> Error get_data_packets: No data packet received from board, quitting"
                         sock_data.close()
@@ -195,3 +198,4 @@ class FEMB_UDP:
         self.MAX_REG_NUM = 666
         self.MAX_REG_VAL = 0xFFFFFFFF
         self.MAX_NUM_PACKETS = 1000
+        self.MAX_PACKET_SIZE = 1024
