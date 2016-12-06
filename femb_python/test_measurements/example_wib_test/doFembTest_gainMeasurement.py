@@ -18,7 +18,7 @@ class FEMB_TEST:
         self.femb_config = FEMB_CONFIG()
         from femb_python.write_data import WRITE_DATA
         self.write_data = WRITE_DATA()
-        #set appropriate packet size for WIB
+         #set appropriate packet size for WIB
         self.write_data.femb.MAX_PACKET_SIZE = 8000
 	
         #set status variables
@@ -29,7 +29,7 @@ class FEMB_TEST:
 
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
-        print("SIMPLE MEASUREMENT - CHECKING READOUT STATUS")
+        print("GAIN MEASUREMENT - CHECKING READOUT STATUS")
         self.status_check_setup = 0
         #check if readout is working
         testData = self.write_data.femb.get_data_packets(1)
@@ -53,13 +53,14 @@ class FEMB_TEST:
         #    print('processNtuple not found, run setup.sh')
         #    #sys.exit(0)
         #    return
-        #if os.path.isfile('./summaryAnalysis_doFembTest_simpleMeasurement') == False:    
-        #    print('summaryAnalysis_doFembTest_simpleMeasurement not found, run setup.sh')
+        #if os.path.isfile('./summaryAnalysis_doFembTest_noiseMeasurement') == False:    
+        #    print('summaryAnalysis_doFembTest_noiseMeasurement not found, run setup.sh')
         #    #sys.exit(0)
         #    return
         self.status_check_setup = 1
 
     def record_data(self):
+        #check state machine
         if self.status_check_setup == 0:
             print("Please run check_setup method before trying to take data")
             return
@@ -67,33 +68,78 @@ class FEMB_TEST:
             print("Data already recorded. Reset/restat GUI to begin a new measurement")
             return
         #MEASUREMENT SECTION
-        print("SIMPLE MEASUREMENT - RECORDING DATA")
+        print("GAIN MEASUREMENT - RECORDING DATA")
 
-        #initialize FEMB configuration to known state
-        #self.femb_config.configFeAsic(0,0,0)
-        #wait to make sure HS link is back on
+        #initialize FEMB configuration to some state
+        self.femb_config.configFeAsic(2,1,0)
         sleep(0.5)
 
+        #initialize pulser
+        self.femb_config.femb.write_reg_bits( 16, 0,0x1,1) #test pulse enable
+        self.femb_config.femb.write_reg_bits( 5, 0,0x1F,0x00) #test pulse amplitude
+        self.femb_config.femb.write_reg_bits( 5, 16,0xFFFF,0xFF) #test pulse frequency
+        self.femb_config.femb.write_reg_bits( 5, 8,0xFF,0x00) #test pulse delay
+
+        #enable test input every channel
+        sts = 1 #test input
+        snc = 1 #baseline
+        sg = 2 #gain
+        st = 1 #shaping time
+        sdc = 0 #coupling
+        sdf = 0 #buffer amplifier
+        for ch in range(0,128,1):
+            pulseCh = int(ch)
+            self.femb_config.feasic_ch_list[pulseCh].set_fechn_reg(sts, snc, sg, st, sdc, sdf )
+            regNum = self.femb_config.feasic_ch_list[pulseCh].regNum
+            regPos = self.femb_config.feasic_ch_list[pulseCh].regPos
+            regVal = self.femb_config.feasic_ch_list[pulseCh].regval
+            self.femb_config.femb.write_reg_bits( regNum, regPos,0xFF,regVal)
+        self.femb_config.doFeAsicConfig()
+
         #set output file
-        self.write_data.filename = "data/output_simpleMeasurement.bin"
+        self.write_data.filename = "data/output_gainMeasurement.bin"
         print("Recording " + self.write_data.filename )
         self.write_data.numpacketsrecord = 100
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
 
-        #setup output file and record data
+        #setup output file
         self.write_data.open_file()
+
+        #loop over FE ASIC configurations
         subrun = 0
-        asicCh = 0
-        for asic in range(0,8,1):
-          self.femb_config.selectChannel(asic,0)
-          self.write_data.record_data(subrun, asic, asicCh)
+        asicCh = 0 #not used in WIB readout
+        for p in range(0,32,1):
+            #wait to make sure HS link is back on
+            sleep(0.5)
+
+            pVal = int(p)
+            self.femb_config.femb.write_reg_bits( 5, 0,0x1F,pVal) #test pulse amplitude
+
+            #loop over ASICs
+            for asic in range(0,8,1):
+                self.femb_config.selectChannel(asic,asicCh)
+                #record the data
+                self.write_data.record_data(subrun, asic, asicCh)
+
+            #update subrun number, important
+            subrun = subrun + 1
+
+        #close data file
         self.write_data.close_file()
+        
+        #reset FE ASICs
+        self.femb_config.configFeAsic(0,0,0)
+        sleep(0.5)
 
-        #resetc configuration
-        #self.femb_config.configFeAsic(0,0,0)
+        #turn off pulser
+        self.femb_config.femb.write_reg_bits( 16, 0,0x1,0) #test pulse enable
+        self.femb_config.femb.write_reg_bits( 5, 0,0x1F,0x00) #test pulse amplitude
+        self.femb_config.femb.write_reg_bits( 5, 16,0xFFFF,0xFF) #test pulse frequency
+        self.femb_config.femb.write_reg_bits( 5, 8,0xFF,0x00) #test pulse delay
 
+        #update state
         self.status_record_data = 1
 
     def do_analysis(self):
@@ -104,13 +150,13 @@ class FEMB_TEST:
             print("Analysis already complete")
             return
         #ANALYSIS SECTION
-        print("SIMPLE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
+        print("GAIN MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #process data
-        #self.newlist = "filelist_processData_doFembTest_simpleMeasurement_" + str(self.femb_rootdata.date) + ".txt"
-        self.newlist = "filelist_processData_doFembTest_simpleMeasurement_" + ".txt"
+        #self.newlist = "filelist_processData_doFembTest_noiseMeasurement_" + str(self.femb_rootdata.date) + ".txt"
+        self.newlist = "filelist_processData_doFembTest_noiseMeasurement_" + ".txt"
         #input_file = open(self.filelist.name, 'r')
-        input_file = open("filelist_doFembTest_simpleMeasurement_.txt", 'r')
+        input_file = open("filelist_doFembTest_noiseMeasurement_.txt", 'r')
         output_file = open( self.newlist, "w")
         for line in input_file:
             filename = str(line[:-1])
@@ -132,7 +178,7 @@ class FEMB_TEST:
         input_file.close()
         output_file.close()
         #run summary program
-        #call(["./summaryAnalysis_doFembTest_simpleMeasurement", self.newlist ])
+        #call(["./summaryAnalysis_doFembTest_noiseMeasurement", self.newlist ])
         #self.status_do_analysis = 1
 
     def archive_results(self):
@@ -143,10 +189,10 @@ class FEMB_TEST:
             print("Results already archived")
             return
         #ARCHIVE SECTION
-        print("SIMPLE MEASUREMENT - STORE RESULTS IN DATABASE")
-        constantfiles = glob.glob('output_fembTest_simpleMeasurement_constants_' + '*.txt')
+        print("GAIN MEASUREMENT - STORE RESULTS IN DATABASE")
+        constantfiles = glob.glob('output_fembTest_noiseMeasurement_constants_' + '*.txt')
         if len(constantfiles) == 0:
-            print("Could not find SIMPLE MEASUREMENT constants")
+            print("Could not find GAIN MEASUREMENT constants")
             #sys.exit(0)
             return
         constantfilename = max(constantfiles, key=os.path.getctime)
@@ -158,7 +204,7 @@ class FEMB_TEST:
         from sqlalchemy.orm import sessionmaker
         from setup_database import Base, noise_test, noise_test_ch_result
 
-        engine = create_engine('sqlite:///database_simpleMeasurement.db')
+        engine = create_engine('sqlite:///database_noiseMeasurement.db')
         Base.metadata.bind = engine
         DBSession = sessionmaker(bind=engine)
         session = DBSession()
@@ -195,41 +241,10 @@ class FEMB_TEST:
         input_file.close()
         self.status_archive_results = 1
 
-    def check_test(self):
-      print("check test")
-      self.femb_config.femb.write_reg_bits( 16, 0,0x1,0) #test pulse enable
-      self.femb_config.femb.write_reg_bits( 5, 0,0x1F,0x0F) #test pulse amplitude
-      self.femb_config.femb.write_reg_bits( 5, 16,0xFFFF,0xFF) #test pulse frequency
-      self.femb_config.femb.write_reg_bits( 5, 8,0xFF,0x00) #test pulse delay
-
-      self.femb_config.configFeAsic(0,0,0)
-      """
-      #test stuff
-      sts = 1 #test input
-      snc = 1 #baseline
-      sg = 3 #gain
-      st = 3 #shaping time
-      sdc = 0 #coupling
-      sdf = 0 #buffer amplifier
-      pulseCh = int(0)
-      self.femb_config.feasic_ch_list[pulseCh].set_fechn_reg(sts, snc, sg, st, sdc, sdf )
-      regNum = self.femb_config.feasic_ch_list[pulseCh].regNum
-      regPos = self.femb_config.feasic_ch_list[pulseCh].regPos
-      regVal = self.femb_config.feasic_ch_list[pulseCh].regval
-      self.femb_config.femb.write_reg_bits( regNum, regPos,0xFF,regVal)
-      self.femb_config.doFeAsicConfig()
-      """
-
-      #Set ADC test mode
-      #self.femb_config.femb.write_reg_bits(3,31,1,0)
-      #val = self.femb_config.femb.read_reg(3)
-      #print( "Reg 3 " + str(hex(val) ) )
-
 def main():
     femb_test = FEMB_TEST()
     femb_test.check_setup()
     #femb_test.status_check_setup = 1
-    femb_test.check_test()
     femb_test.record_data()
     #femb_test.status_record_data = 1
     #femb_test.do_analysis()

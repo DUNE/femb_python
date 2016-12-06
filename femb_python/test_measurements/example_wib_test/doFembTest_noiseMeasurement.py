@@ -16,9 +16,10 @@ class FEMB_TEST:
         #import femb_udp modules from femb_udp package
         from femb_python.configuration.femb_config_wib_sbnd import FEMB_CONFIG
         self.femb_config = FEMB_CONFIG()
-
-        #set appropriate packet size for WIB
-        self.femb_config.femb.MAX_PACKET_SIZE = 8000
+        from femb_python.write_data import WRITE_DATA
+        self.write_data = WRITE_DATA()
+         #set appropriate packet size for WIB
+        self.write_data.femb.MAX_PACKET_SIZE = 8000
 	
         #set status variables
         self.status_check_setup = 0
@@ -31,7 +32,7 @@ class FEMB_TEST:
         print("NOISE MEASUREMENT - CHECKING READOUT STATUS")
         self.status_check_setup = 0
         #check if readout is working
-        testData = self.femb_config.femb.get_data_packets(1)
+        testData = self.write_data.femb.get_data_packets(1)
         if testData == None:
             print("Error running doFembTest - FEMB is not streaming data.")
             print(" Turn on and initialize FEMB UDP readout.")
@@ -59,6 +60,7 @@ class FEMB_TEST:
         self.status_check_setup = 1
 
     def record_data(self):
+        #check state machine
         if self.status_check_setup == 0:
             print("Please run check_setup method before trying to take data")
             return
@@ -68,21 +70,24 @@ class FEMB_TEST:
         #MEASUREMENT SECTION
         print("NOISE MEASUREMENT - RECORDING DATA")
 
-        #initialize readout channel range
-        self.minchan = 0
-        self.maxchan = 127
-
         #initialize FEMB configuration to known state
         self.femb_config.configFeAsic(0,0,0)
+        sleep(0.5)
 
-        #Set ADC test mode
-        #self.femb_config.femb.write_reg_bits(3,31,1,0)
-        #val = self.femb_config.femb.read_reg(3)
-        #print( "Reg 3 " + str(hex(val) ) )
+        #set output file
+        self.write_data.filename = "data/output_noiseMeasurement.bin"
+        print("Recording " + self.write_data.filename )
+        self.write_data.numpacketsrecord = 100
+        self.write_data.run = 0
+        self.write_data.runtype = 0
+        self.write_data.runversion = 0
 
-        #initialize output filelist
-        self.filelist = open("filelist_doFembTest_noiseMeasurement_" + ".txt", "w")
+        #setup output file
+        self.write_data.open_file()
+
+        #loop over FE ASIC configurations
         subrun = 0
+        asicCh = 0 #not used in WIB readout
         for g in range(0,4,1):
           for s in range(0,4,1):
             for b in range(0,2,1):
@@ -90,51 +95,23 @@ class FEMB_TEST:
                 self.femb_config.configFeAsic(g,s,b)
                 #wait to make sure HS link is back on
                 sleep(0.5)
-                filename = "data/output_doFembTest" + "_subrun_"  + str(subrun)  + "_g_" + str(g) + "_s_" + str(s) + "_b_" + str(b) + ".bin"
-                print("Recording " + filename)
-                print("Subrun " + str(subrun) + " Gain " + str(g) + " Shape " + str(s) + " Base " + str(b) )
-                self.filename = filename
-                self.numpacketsrecord = 100
-                self.run = 0
-                self.subrun = subrun
-                self.runtype = 1
-                self.runversion = 0
-                self.par1 = 0
-                self.par2 = 0
-                self.par3 = 0
-                self.gain = g
-                self.shape = s
-                self.base = b
-
-                #setup output file
-                FILE = open(str(filename),"wb") 
 
                 #loop over ASICs
-                #self.femb_config.selectChannel(0,1)
                 for asic in range(0,8,1):
-                    self.femb_config.selectChannel(asic,0)
-
+                    self.femb_config.selectChannel(asic,asicCh)
                     #record the data
-                    testData = self.femb_config.femb.get_data_packets(100)
-                    if len(testData) == 0:
-                        continue
-                    for packet in testData:
-                        #write a header
-                        FILE.write(b'\x00\x00')
-                        FILE.write(b'\xDE\xAD')
-                        FILE.write(b'\xBE\xEF')
-                        FILE.write(b'\x00\x00')
-                        FILE.write(b'\xBA\x5E')
-                        FILE.write(struct.pack('!H', int(asic) ))
-                        FILE.write(packet)
-                FILE.close()
+                    self.write_data.record_data(subrun, asic, asicCh)
 
-                self.filelist.write(filename + "\n")
+                #update subrun number, important
                 subrun = subrun + 1
-        self.filelist.close()
 
+        #close data file
+        self.write_data.close_file()
+        
+        #reset FE ASICs
         self.femb_config.configFeAsic(0,0,0)
 
+        #update state
         self.status_record_data = 1
 
     def do_analysis(self):
