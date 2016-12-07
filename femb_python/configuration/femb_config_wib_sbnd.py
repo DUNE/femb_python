@@ -37,7 +37,7 @@ class FEASIC_CH_CONFIG:
         acdcVal = int(sdc)
         if (acdcVal < 0 ) or (acdcVal > 1):
                 return
-        bufVal = int(sbf)
+        bufVal = int(sdf)
         if (bufVal < 0 ) or (bufVal > 1):
                 return
 
@@ -70,10 +70,7 @@ class FEMB_CONFIG:
         self.femb.write_reg_bits(self.REG_SEL_ASIC , self.REG_SEL_ASIC_LSB, 0xF, asicVal )
 
         #set UDP ports back to normal
-        self.femb.UDP_PORT_WREG = 32016
-        self.femb.UDP_PORT_RREG = 32017
-        self.femb.UDP_PORT_RREGRESP = 32018
-
+        self.selectFemb(self.fembNum)
     
     def configFeAsic(self,gain,shape,base):
         gainVal = int(gain)
@@ -173,6 +170,41 @@ class FEMB_CONFIG:
     def syncADC(self):
         print("Sync")
 
+    def selectFemb(self, fembIn):
+        fembVal = int( fembIn)
+        if (fembVal < 0) or (fembVal > 3 ):
+            return
+        
+        self.fembNum = fembVal
+
+        #set data streaming for requested FEMB
+        #set UDP ports to WIB
+        self.femb.UDP_PORT_WREG = 32000
+        self.femb.UDP_PORT_RREG = 32001
+        self.femb.UDP_PORT_RREGRESP = 32002
+        self.femb.write_reg_bits(7 , 16, 0x3, self.fembNum )
+
+        #set read/write ports
+        if fembVal == 0:
+            self.femb.UDP_PORT_WREG = 32016
+            self.femb.UDP_PORT_RREG = 32017
+            self.femb.UDP_PORT_RREGRESP = 32018
+
+        if fembVal == 1:
+            self.femb.UDP_PORT_WREG = 32032
+            self.femb.UDP_PORT_RREG = 32033
+            self.femb.UDP_PORT_RREGRESP = 32034
+
+        if fembVal == 2:
+            self.femb.UDP_PORT_WREG = 32048
+            self.femb.UDP_PORT_RREG = 32049
+            self.femb.UDP_PORT_RREGRESP = 32050
+
+        if fembVal == 3:
+            self.femb.UDP_PORT_WREG = 32064
+            self.femb.UDP_PORT_RREG = 32065
+            self.femb.UDP_PORT_RREGRESP = 32066
+
     #__INIT__#
     def __init__(self):
         #declare board specific registers
@@ -189,6 +221,8 @@ class FEMB_CONFIG:
         self.REG_ADCSPI_BASE = 512
         self.REG_FESPI_RDBACK_BASE = 632
         self.REG_ADCSPI_RDBACK_BASE = 552
+
+        self.fembNum = 0
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()

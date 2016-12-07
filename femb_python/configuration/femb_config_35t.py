@@ -151,6 +151,13 @@ class FEMB_CONFIG:
         self.femb.write_reg( 17, 0x1) # controls HS link, 0 for on, 1 for off
         self.femb.write_reg( 17, 0x0) # controls HS link, 0 for on, 1 for off        
 
+        #Write FE ASIC SPI
+        print("Program FE ASIC SPI")
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
+        time.sleep(0.1)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
+        time.sleep(0.1)
+
         #Write ADC ASIC SPI
         print("Program ADC ASIC SPI")
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
@@ -158,12 +165,15 @@ class FEMB_CONFIG:
         #self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         #time.sleep(0.1)
 
-        #Write FE ASIC SPI
-        print("Program FE ASIC SPI")
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
-        time.sleep(0.1)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
-        time.sleep(0.1)
+        #35t ONLY, check if sync is ok, try redoing ADC reprogramming if not
+        for test in range(0, 5, 1):
+            regVal = self.femb.read_reg( 6)
+            isSync = ( (regVal & 0xFFFF0000) >> 16 )
+            if isSync == 0:
+                print("Synced ADCs")
+                break
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+            time.sleep(0.1)
 
         """
         print("Check ADC ASIC SPI")
@@ -221,6 +231,11 @@ class FEMB_CONFIG:
         word2 = (chReg << 8) + (chReg << 24)
         word3 = chReg + (chReg << 16)
 
+        #turn off HS data before register writes
+        self.femb.write_reg_bits(9 , 0, 0x1, 0 )
+        print("HS link turned off")
+        time.sleep(1)
+
         print("Config FE ASIC SPI")
         for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+34,1):
                 self.femb.write_reg( regNum, word1)
@@ -240,6 +255,11 @@ class FEMB_CONFIG:
         #for regNum in range(self.REG_FESPI_RDBACK_BASE,self.REG_FESPI_RDBACK_BASE+34,1):
         #        val = self.femb.read_reg( regNum)
         #        print hex(val)
+
+        #turn HS link back on
+        print("HS link turned back on")
+        time.sleep(1)
+        self.femb.write_reg_bits(9 , 0, 0x1, 1 )
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
         pulserEnable = int(pulserEnable)
