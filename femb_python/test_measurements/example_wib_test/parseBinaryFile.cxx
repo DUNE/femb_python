@@ -478,8 +478,8 @@ void Analyze::analyzeChannel(unsigned int chan, std::vector<unsigned short> *wf)
 		return;
 	
 	//compute FFT - use TGraph to interpolate between missing samples
-	int numFftBins = wf->size();
-	//int numFftBins = 500;
+	//int numFftBins = wf->size();
+	int numFftBins = 500;
 	if( numFftBins > wf->size() )
 		numFftBins = wf->size();
 	TH1F *hData = new TH1F("hData","",numFftBins,0,numFftBins);
