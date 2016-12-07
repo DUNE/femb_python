@@ -22,8 +22,31 @@ class FEASIC_CH_CONFIG:
 
     #sts=test input, snc = baseline, sg = gain, st = shaping time, sdc = coupling, sbf = buffer amplifier
     def set_fechn_reg(self, sts=0, snc=0, sg=0, st=0, sdc=0, sdf=0 ):
-        self.regval = ((sts&0x01)<<7) + ((snc&0x01)<<6) + ((sg&0x03)<<4) +\
-                  ((st&0x03)<<2)  + ((sdc&0x01)<<1) + ((sdf&0x01)<<0)
+        testVal = int(sts)
+        if (testVal < 0 ) or (testVal > 1):
+                return
+        baseVal = int(snc)
+        if (baseVal < 0 ) or (baseVal > 1):
+                return
+        gainVal = int(sg)
+        if (gainVal < 0 ) or (gainVal > 3):
+                return
+        shapeVal = int(st)
+        if (shapeVal < 0 ) or (shapeVal > 3):
+                return
+        acdcVal = int(sdc)
+        if (acdcVal < 0 ) or (acdcVal > 1):
+                return
+        bufVal = int(sbf)
+        if (bufVal < 0 ) or (bufVal > 1):
+                return
+
+        gainArray = [0,2,1,3]
+        shapeArray = [2,0,3,1] #I don't know why
+        baseVal = 1 - baseVal #want 0 = 200mV, 1 = 900mV
+
+        self.regval = ((testVal & 0x01)<<7) + ((baseVal & 0x01)<<6) + ((gainArray[gainVal] & 0x03)<<4) +\
+                  ((shapeArray[shapeVal] & 0x03)<<2)  + ((acdcVal & 0x01)<<1) + ((bufVal & 0x01)<<0)
 
 class FEMB_CONFIG:
     def resetBoard(self):

@@ -4,6 +4,51 @@ import time
 #from femb_udp_cmdline import FEMB_UDP
 from femb_python.femb_udp import FEMB_UDP
 
+class FEASIC_CH_CONFIG:
+    def __init__(self, num, regNum, regPos):
+        numVal = int(num)
+        regNumVal = int(regNum)
+        regPosVal = int(regPos)
+        
+        self.chan_num = numVal
+        self.STS = 0
+        self.NC = 0
+        self.SG = 0
+        self.ST = 0
+        self.SDC = 0
+        self.SBF = 0
+        self.regNum = regNumVal
+        self.regPos = regPosVal
+        self.regval = 0
+
+    #sts=test input, snc = baseline, sg = gain, st = shaping time, sdc = coupling, sbf = buffer amplifier
+    def set_fechn_reg(self, sts=0, snc=0, sg=0, st=0, sdc=0, sdf=0 ):
+        testVal = int(sts)
+        if (testVal < 0 ) or (testVal > 1):
+                return
+        baseVal = int(snc)
+        if (baseVal < 0 ) or (baseVal > 1):
+                return
+        gainVal = int(sg)
+        if (gainVal < 0 ) or (gainVal > 3):
+                return
+        shapeVal = int(st)
+        if (shapeVal < 0 ) or (shapeVal > 3):
+                return
+        acdcVal = int(sdc)
+        if (acdcVal < 0 ) or (acdcVal > 1):
+                return
+        bufVal = int(sbf)
+        if (bufVal < 0 ) or (bufVal > 1):
+                return
+
+        gainArray = [0,2,1,3]
+        shapeArray = [2,0,3,1] #I don't know why
+        baseVal = 1 - baseVal #want 0 = 200mV, 1 = 900mV
+
+        self.regval = ((testVal & 0x01)<<7) + ((baseVal & 0x01)<<6) + ((gainArray[gainVal] & 0x03)<<4) +\
+                  ((shapeArray[shapeVal] & 0x03)<<2)  + ((acdcVal & 0x01)<<1) + ((bufVal & 0x01)<<0)
+
 class FEMB_CONFIG:
     def resetBoard(self):
         #Reset system
@@ -55,7 +100,7 @@ class FEMB_CONFIG:
         #Set number events per header
         self.femb.write_reg( 8, 0x0)
 
-          #FE ASIC SPI registers
+        #FE ASIC SPI registers
         print("Config FE ASIC SPI")
         for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+34,1):
                 self.femb.write_reg( regNum, 0xC4C4C4C4)
@@ -304,3 +349,21 @@ class FEMB_CONFIG:
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
+
+        #initialiuze ASIC ch objects, specify SPI register number (firmware specific!!!)
+        self.feasic_ch_list = []
+        for ch in range(0,128,1):
+          chVal = int(ch)
+          if (chVal < 0 ) or (chVal > 127 ):
+            continue
+
+          #seriously messy mapping between ch # and register bits
+          regGrp = int( ( chVal % 64 ) / 16 )
+          regGrpLine =  7 - int( ( chVal % 16 ) / 2 )
+          regGrpBase = [27,18,9,0]
+
+          regNum = self.REG_FESPI_BASE + regGrpBase[ regGrp ] + regGrpLine
+          regPos = (1 - chVal % 2 )*8 + int(chVal / 64 )*16
+
+          feasic_ch = FEASIC_CH_CONFIG(ch, regNum, regPos)
+          self.feasic_ch_list.append(feasic_ch)
