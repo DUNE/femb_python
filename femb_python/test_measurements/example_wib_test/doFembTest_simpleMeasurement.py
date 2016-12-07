@@ -40,11 +40,12 @@ class FEMB_TEST:
 
         #check if register interface is working
         print("Checking register interface")
-        regVal = self.write_data.femb.read_reg(6)
+        regVal = self.femb_config.femb.read_reg(5)
         if (regVal == None) or (regVal == -1):
             print("Error running doFembTest - FEMB register interface is not working.")
             print(" Turn on or debug FEMB UDP readout.")       
             return
+        print("Read register 5, value = " + str( hex( regVal ) ) )
 
         #initialize FEMB to known state
         print("Initializing board")
@@ -154,11 +155,15 @@ class FEMB_TEST:
         self.status_archive_results = 1
 
 def main():
-    femb_test = FEMB_TEST()
-    femb_test.check_setup()
-    femb_test.record_data()
-    femb_test.do_analysis()
-    #femb_test.archive_results()
+
+    #loop over all 4 WIB FEMBs
+    for femb in range(0,4,1):
+        femb_test = FEMB_TEST()
+        femb_test.femb_config.selectFemb(femb)
+        femb_test.check_setup()
+        femb_test.record_data()
+        femb_test.do_analysis()
+        #femb_test.archive_results()
 
 if __name__ == '__main__':
     main()
