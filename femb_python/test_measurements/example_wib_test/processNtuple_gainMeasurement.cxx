@@ -29,10 +29,13 @@ class Analyze {
 	Analyze(std::string inputFileName);
         int processFileName(std::string inputFileName, std::string &baseFileName);
 	void doAnalysis();
-	void analyzeChannel();
-	void findPulses();
-	void analyzePulse(int startSampleNum);
-	void measurePulseHeights();
+	void organizeData();
+	void analyzeSubrun(unsigned int subrun);
+	void analyzeChannel(unsigned int chan, const std::vector<unsigned short> &wf);
+	void drawWf(unsigned int chan, const std::vector<unsigned short> &wf);
+	void findPulses(const std::vector<unsigned short> &wf);
+	void analyzePulse(unsigned int subrun, unsigned int chan,  int startSampleNum, const std::vector<unsigned short> &wf);
+	void measurePulseHeights(unsigned int subrun, unsigned int chan);
 	void measureGain();
 
 	//Files
@@ -41,38 +44,48 @@ class Analyze {
 
 	//ROI tr_rawdata variables
 	TTree *tr_rawdata;
-	unsigned short subrun, chan;
-	std::vector<unsigned short> *wf = 0;
+	unsigned short subrunIn, chanIn;
+	std::vector<unsigned short> *wfIn = 0;
 
 	//Constants
 	const int numChan = 128;// 35t
-	int preRange = 20;
-	int postRange = 20;
 	const float SAMP_PERIOD = 0.5; //us
-	const int numSubrun = 32;
+	const int numSubrun = 64;
+	const int numConfig = 1;
+	const int numSignalSize = 64;
+	const int preRange = 20;
+	const int postRange = 20;
 
 	//data objects
 	TCanvas* c0;
 	TGraph *gCh;
+        std::vector<unsigned short> wfAll[64][128];
+
+	//histograms
+	TH2F *hSampVsChan;
+	TProfile *pSampVsChan;
+	TH2F *hMeanVsChan;
+	TProfile *pMeanVsChan;
+	TH2F *hRmsVsChan;
+	TProfile *pRmsVsChan;
+	TProfile *pFracStuckVsChan;
+	TProfile2D *pFFTVsChan;
 
 	//Pulse height measurement	
 	std::vector<int> pulseStart;
 	TH1F *hPulseHeights;
 
-	//RMS measurement
-	double chanRms;
-
 	//Gain Measurement
 	TGraph *gPulseVsSignal[128];
+	TH2F *hPulseVsSignal[128];
 	double signalSizes[64] = {0.606,0.625,0.644,0.663,0.682,0.701,0.720,0.739,0.758,0.777,0.796,0.815,0.834,
 		0.853,0.872,0.891,0.909,0.928,0.947,0.966,0.985,1.004,1.023,1.042,1.061,1.080,1.099,1.118,1.137,
 		1.156,1.175,1.194,1.213,1.232,1.251,1.269,1.288,1.307,1.326,1.345,1.364,1.383,1.402,1.421,1.440,
 		1.459,1.478, 1.497,1.516,1.535,1.554,1.573,1.592,1.611,1.629,1.648,1.667,1.686,1.705,1.724,1.743,
 		1.762,1.781,1.800};
 
-	TH1F *hRmsVsChan = new TH1F("hRmsVsChan","",128,0-0.5,128-0.5);
-	TH1F *hGainVsChan = new TH1F("hGainVsChan","",128,0-0.5,128-0.5);
-	TH1F *hEncVsChan = new TH1F("hEncVsChan","",128,0-0.5,128-0.5);
+	TH1F *hGainVsChan;
+	TH1F *hEncVsChan;
 };
 
 Analyze::Analyze(std::string inputFileName){
@@ -100,16 +113,16 @@ Analyze::Analyze(std::string inputFileName){
 		std::cout << "Error opening input file tree" << std::endl;
 		gSystem->Exit(0);
   	}
-	tr_rawdata->SetBranchAddress("subrun", &subrun);
-	tr_rawdata->SetBranchAddress("chan", &chan);
-  	tr_rawdata->SetBranchAddress("wf", &wf);
+	tr_rawdata->SetBranchAddress("subrun", &subrunIn);
+	tr_rawdata->SetBranchAddress("chan", &chanIn);
+  	tr_rawdata->SetBranchAddress("wf", &wfIn);
 
 	//make output file
   	std::string outputFileName;
 	if( processFileName( inputFileName, outputFileName ) )
-		outputFileName = "output_processNtuple_" + outputFileName;
+		outputFileName = "output_processNtuple_gainMeasurement_" + outputFileName;
 	else
-		outputFileName = "output_processNtuple.root";
+		outputFileName = "output_processNtuple_gainMeasurement.root";
 
   	gOut = new TFile(outputFileName.c_str() , "RECREATE");
 
@@ -119,11 +132,29 @@ Analyze::Analyze(std::string inputFileName){
 	//initialize graphs
 	gCh = new TGraph();
 
+  	//output histograms, data objects
+  	hSampVsChan = new TH2F("hSampVsChan","",numChan,0-0.5,numChan-0.5,4096,-0.5,4096-0.5);
+ 	pSampVsChan = new TProfile("pSampVsChan","",numChan,0-0.5,numChan-0.5);
+  	hMeanVsChan = new TH2F("hMeanVsChan","",numChan,0-0.5,numChan-0.5,4096,-0.5,4096-0.5);
+	pMeanVsChan = new TProfile("pMeanVsChan","",numChan,0-0.5,numChan-0.5);
+  	hRmsVsChan = new TH2F("hRmsVsChan","",numChan,0-0.5,numChan-0.5,300,0,300.);
+  	pRmsVsChan = new TProfile("pRmsVsChan","",numChan,0-0.5,numChan-0.5);
+	pFracStuckVsChan = new TProfile("pFracStuckVsChan","",numChan,0-0.5,numChan-0.5);
+	pFFTVsChan = new TProfile2D("pFFTVsChan","",numChan,0-0.5,numChan-0.5,100,0,1);
+
 	//gain measurement objects
 	hPulseHeights = new TH1F("hPulseHeights","",4100,0-0.5,4100-0.5);
 	for(int ch = 0 ; ch < numChan ; ch++ ){
 		gPulseVsSignal[ch] = new TGraph();
+
+		char name[200];
+		memset(name,0,sizeof(char)*100 );
+        	sprintf(name,"hPulseVsSignal_ch_%i",ch);
+		hPulseVsSignal[ch] = new TH2F(name,"",numSubrun, 0-0.5,numSubrun,400,0,4000);
 	}
+
+	hGainVsChan = new TH1F("hGainVsChan","",numChan,0-0.5,numChan-0.5);
+	hEncVsChan = new TH1F("hEncVsChan","",numChan,0-0.5,numChan-0.5);
 }
 
 int Analyze::processFileName(std::string inputFileName, std::string &baseFileName){
@@ -147,52 +178,44 @@ int Analyze::processFileName(std::string inputFileName, std::string &baseFileNam
         //replace / with _
         std::replace( inputFileName.begin(), inputFileName.end(), '/', '_'); // replace all 'x' to 'y'
         std::replace( inputFileName.begin(), inputFileName.end(), '-', '_'); // replace all 'x' to 'y'
-
 	baseFileName = inputFileName;
 	
 	return 1;
 }
 
 void Analyze::doAnalysis(){
-  	//loop over tr_rawdata entries
-  	Long64_t nEntries(tr_rawdata->GetEntries());
+	//organize tree data by subrun
+	std::cout << "Organizing data by subrun" << std::endl;
+	organizeData();
 
-	tr_rawdata->GetEntry(0);
-	//loop over pulse waveform
-	for(Long64_t entry(0); entry<nEntries; ++entry) { 
-		tr_rawdata->GetEntry(entry);
+	//analyze each subrun individually
+	for(unsigned int sr = 0 ; sr < numSubrun ; sr++){
+		std::cout << "Analyzing subrun " << sr << std::endl;
+		analyzeSubrun(sr);
+	}
 
-		//make sure channels and subruns are ok
-		if( chan < 0 || chan >= numChan ) continue;
-		if( subrun < 0 || subrun >= numSubrun ) continue;
-
-		//analyze current entry - 1 channel
-    		analyzeChannel();
-
-		if( subrun == 0 )
-			hRmsVsChan->SetBinContent(chan+1, chanRms);
-
-		//find pulses in current channel
-		findPulses();
-
-		//analyze channel pulses, measure heights
-		hPulseHeights->Reset();
-		for( unsigned int p = 0 ; p < pulseStart.size() ; p++ )
-			analyzePulse( pulseStart.at(p) ) ;
-		measurePulseHeights();
-  	}//entries
-
+	//do summary analyses
+	std::cout << "Doing summary analysis" << std::endl;
 	measureGain();
 
+  	//output histograms, data objects
  	gOut->Cd("");
+  	hSampVsChan->Write();
+	pSampVsChan->Write();
+  	hMeanVsChan->Write();
+	pMeanVsChan->Write();
+
+	hRmsVsChan->GetXaxis()->SetTitle("Channel #");
+	hRmsVsChan->GetYaxis()->SetTitle("Pedestal RMS (ADC counts)");
+  	hRmsVsChan->Write();
+
+  	pRmsVsChan->Write();
+	pFracStuckVsChan->Write();
+	pFFTVsChan->Write();
 
 	hGainVsChan->GetXaxis()->SetTitle("Channel #");
 	hGainVsChan->GetYaxis()->SetTitle("Gain (e- / ADC count)");
 	hGainVsChan->Write();
-
-	hRmsVsChan->GetXaxis()->SetTitle("Channel #");
-	hRmsVsChan->GetYaxis()->SetTitle("Pedestal RMS (ADC counts)");
-	hRmsVsChan->Write();
 
 	hEncVsChan->GetXaxis()->SetTitle("Channel #");
 	hEncVsChan->GetYaxis()->SetTitle("ENC (e-)");
@@ -204,21 +227,86 @@ void Analyze::doAnalysis(){
 		gPulseVsSignal[ch]->GetYaxis()->SetTitle("Measured Pulse Height (ADC counts)");
 		gPulseVsSignal[ch]->Write(title.c_str());
 	}
-	
+
+	//write subrun specific objects
   	gOut->Close();
 }
 
-void Analyze::analyzeChannel(){
+void Analyze::organizeData(){
+	//loop over tr_rawdata entries
+  	Long64_t nEntries(tr_rawdata->GetEntries());
+	tr_rawdata->GetEntry(0);
+	//loop over input waveforms, group waveforms by subrun
+	for(Long64_t entry(0); entry<nEntries; ++entry) { 
+		tr_rawdata->GetEntry(entry);
 
-	 //skip known bad channels here
+		//make sure channels and subrun values are ok
+		if( subrunIn < 0 || subrunIn >= numSubrun ) continue;
+		if( chanIn < 0 || chanIn >= numChan ) continue;
+		
+		for( unsigned int s = 0 ; s < wfIn->size() ; s++ )
+			wfAll[subrunIn][chanIn].push_back( wfIn->at(s) );
+  	}//entries
+}
+
+void Analyze::analyzeSubrun(unsigned int subrun){
+
+	//reset plots
+
+	//loop over channels, update subrun specific plots
+	for(unsigned int ch = 0 ; ch < numChan ; ch++){
+		if( subrun == 0 )		
+			analyzeChannel(ch,wfAll[subrun][ch]);
+
+		//find pulses
+		findPulses(wfAll[subrun][ch]);
+
+		//skip very noisy channels
+		if( pulseStart.size() > 200 )
+			continue;
+
+		//analyze channel pulses, measure heights
+		hPulseHeights->Reset();
+		for( unsigned int p = 0 ; p < pulseStart.size() ; p++ )
+			analyzePulse( subrun, ch, pulseStart.at(p) , wfAll[subrun][ch] ) ;
+
+		//drawWf(ch,wfAll[subrun][ch]);
+		measurePulseHeights(subrun, ch);
+	}
+
+	//put result in subrun specific object
+}
+
+
+//draw waveform if wanted
+void Analyze::drawWf(unsigned int chan, const std::vector<unsigned short> &wf){
+	gCh->Set(0);
+	for( int s = 0 ; s < wf.size() ; s++ )
+		gCh->SetPoint(gCh->GetN() , gCh->GetN() , wf.at(s) );
+	std::cout << "Channel " << chan << std::endl;
+	
+	c0->Clear();
+	std::string title = "Channel " + to_string( chan );
+	gCh->SetTitle( title.c_str() );
+	gCh->GetXaxis()->SetTitle("Sample Number");
+	gCh->GetYaxis()->SetTitle("Sample Value (ADC counts)");
+	gCh->Draw("ALP");
+	c0->Update();
+	//char ct;
+	//std::cin >> ct;
+	usleep(1000);
+}
+
+void Analyze::analyzeChannel(unsigned int chan, const std::vector<unsigned short> &wf){
+	if( wf.size() == 0 )
+		return;
 
 	//calculate mean
 	double mean = 0;
 	int count = 0;
-	for( int s = 0 ; s < wf->size() ; s++ ){
-		if(  wf->at(s) < 10 ) continue;
-		if( (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		double value = wf->at(s);
+	for( int s = 0 ; s < wf.size() ; s++ ){
+		if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
+		double value = wf.at(s);
 		mean += value;
 		count++;
 	}
@@ -228,29 +316,44 @@ void Analyze::analyzeChannel(){
 	//calculate rms
 	double rms = 0;
 	count = 0;
-	for( int s = 0 ; s < wf->size() ; s++ ){
-		if(  wf->at(s) < 10 ) continue;
-		if( (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		double value = wf->at(s);
+	for( int s = 0 ; s < wf.size() ; s++ ){
+		if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
+		double value = wf.at(s);
 		rms += (value-mean)*(value-mean);
 		count++;
 	}	
 	if( count > 1 )
 		rms = TMath::Sqrt( rms / (double)( count - 1 ) );
+	
+	//fill channel waveform hists
+	for( int s = 0 ; s < wf.size() ; s++ ){
+		unsigned short samp =  wf.at(s);
+		hSampVsChan->Fill( chan, samp);
+
+		//measure stuck code fraction
+		if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F )
+			pFracStuckVsChan->Fill(chan, 1);
+		else
+			pFracStuckVsChan->Fill(chan, 0);
+	}
+
+	hMeanVsChan->Fill( chan, mean );
+	pMeanVsChan->Fill( chan, mean );
+	hRmsVsChan->Fill(chan, rms);
+	pRmsVsChan->Fill(chan, rms);
 
 	//load hits into TGraph, skip stuck codes
 	gCh->Set(0);
-	for( int s = 0 ; s < wf->size() ; s++ ){
-		if(  wf->at(s) < 10 ) continue;
-		if( (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		gCh->SetPoint(gCh->GetN() , s , wf->at(s) );
+	for( int s = 0 ; s < wf.size() ; s++ ){
+		if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
+		gCh->SetPoint(gCh->GetN() , s , wf.at(s) );
 	}
-	
+
 	//compute FFT - use TGraph to interpolate between missing samples
-	//int numFftBins = wf->size();
+	//int numFftBins = wf.size();
 	int numFftBins = 500;
-	if( numFftBins > wf->size() )
-		numFftBins = wf->size();
+	if( numFftBins > wf.size() )
+		numFftBins = wf.size();
 	TH1F *hData = new TH1F("hData","",numFftBins,0,numFftBins);
 	for( int s = 0 ; s < numFftBins ; s++ ){
 		double adc = gCh->Eval(s);
@@ -261,52 +364,23 @@ void Analyze::analyzeChannel(){
     	hData->FFT(hFftData,"MAG");
     	for(int i = 1 ; i < hFftData->GetNbinsX() ; i++ ){
 		double freq = 2.* i / (double) hFftData->GetNbinsX() ;
-	}	
-
-	//selection here
-	chanRms = rms;
-
-	//draw waveform if wanted
-	if( 0 ){
-		gCh->Set(0);
-		for( int s = 0 ; s < wf->size() ; s++ )
-			gCh->SetPoint(gCh->GetN() , gCh->GetN() , wf->at(s) );
-		std::cout << "Channel " << chan << std::endl;
-		c0->Clear();
-		std::string title = "Subrun " + to_string( subrun ) + " Channel " + to_string( chan );
-		gCh->SetTitle( title.c_str() );
-		gCh->GetXaxis()->SetTitle("Sample Number");
-		gCh->GetYaxis()->SetTitle("Sample Value (ADC counts)");
-		//gCh->GetXaxis()->SetRangeUser(0,128);
-		//gCh->GetXaxis()->SetRangeUser(0,num);
-		//gCh->GetYaxis()->SetRangeUser(500,1000);
-		gCh->Draw("ALP");
-		/*
-		c0->Divide(2);
-		c0->cd(1);
-		hData->Draw();
-		c0->cd(2);
-		hFftData->SetBinContent(1,0);
-		hFftData->GetXaxis()->SetRangeUser(0, hFftData->GetNbinsX()/2. );
-		hFftData->Draw();
-		*/
-		c0->Update();
-		char ct;
-		std::cin >> ct;
-		usleep(1000);
+		pFFTVsChan->Fill( chan, freq,  hFftData->GetBinContent(i+1) );
 	}
 
 	delete hData;
 	delete hFftData;
 }
 
-void Analyze::findPulses(){
+void Analyze::findPulses(const std::vector<unsigned short> &wf){
+	if( wf.size() == 0 )
+		return;
+
 	//calculate mean
 	double mean = 0;
 	int count = 0;
-	for( int s = 0 ; s < wf->size() ; s++ ){
-		if(  (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		double value = wf->at(s);
+	for( int s = 0 ; s < wf.size() ; s++ ){
+		if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
+		double value = wf.at(s);
 		mean += value;
 		count++;
 	}
@@ -316,14 +390,17 @@ void Analyze::findPulses(){
 	//calculate rms
 	double rms = 0;
 	count = 0;
-	for( int s = 0 ; s < wf->size() ; s++ ){
-		if(  (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		double value = wf->at(s);
+	for( int s = 0 ; s < wf.size() ; s++ ){
+		if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
+		double value = wf.at(s);
 		rms += (value-mean)*(value-mean);
 		count++;
 	}	
 	if( count > 1 )
 		rms = TMath::Sqrt( rms / (double)( count - 1 ) );
+
+	if( count == 0 )
+		return;
 
 	//calculate RMS from histogram
 
@@ -333,11 +410,11 @@ void Analyze::findPulses(){
 		threshold = 50.;
 	int numPulse = 0;
 	pulseStart.clear();
-	for( int s = 0 + preRange ; s < wf->size() - postRange - 1 ; s++ ){
-		if(  (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		if(  (wf->at(s+1) & 0x3F ) == 0x0 || (wf->at(s+1) & 0x3F ) == 0x3F ) continue;
-		double value =  wf->at(s);
-		double valueNext = wf->at(s+1);
+	for( int s = 0 + preRange ; s < wf.size() - postRange - 1 ; s++ ){
+		if(  (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
+		if(  (wf.at(s+1) & 0x3F ) == 0x0 || (wf.at(s+1) & 0x3F ) == 0x3F ) continue;
+		double value =  wf.at(s);
+		double valueNext = wf.at(s+1);
 		if(1 && valueNext > mean + threshold && value < mean + threshold ){
 			//have pulse, find local maxima
 			numPulse++;
@@ -345,29 +422,11 @@ void Analyze::findPulses(){
 			pulseStart.push_back(start );
 		}
 	}
-
-	//draw waveform if wanted
-	if( 0 ){
-		gCh->Set(0);
-		for( int s = 0 ; s < wf->size() ; s++ )
-			gCh->SetPoint(gCh->GetN() , gCh->GetN() , wf->at(s) );
-		std::cout << "Channel " << chan << std::endl;
-		c0->Clear();
-		std::string title = "Subrun " + to_string( subrun ) + " Channel " + to_string( chan );
-		gCh->SetTitle( title.c_str() );
-		gCh->GetXaxis()->SetTitle("Sample Number");
-		gCh->GetYaxis()->SetTitle("Sample Value (ADC counts)");
-		gCh->Draw("ALP");
-		c0->Update();
-		//char ct;
-		//std::cin >> ct;
-		usleep(100000);
-	}
 }
 
-void Analyze::analyzePulse(int startSampleNum){
+void Analyze::analyzePulse(unsigned int subrun, unsigned int chan, int startSampleNum, const std::vector<unsigned short> &wf){
 	//require pulse is not beside waveform edge
-	if( startSampleNum <= preRange || startSampleNum >= wf->size()  - postRange )
+	if( startSampleNum <= preRange || startSampleNum >= wf.size()  - postRange )
 		return;
 
 	//calculate baseline estimate in range preceeding pulse
@@ -375,9 +434,9 @@ void Analyze::analyzePulse(int startSampleNum){
 	int count = 0;
 	for(int s = startSampleNum-20 ; s < startSampleNum - 10 ; s++){
 		if( s < 0 ) continue;
-		if( s >= wf->size() ) continue;
-		if( (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		double value = wf->at(s);
+		if( s >= wf.size() ) continue;
+		if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
+		double value = wf.at(s);
 		mean += value;
 		count++;
 	}
@@ -391,9 +450,9 @@ void Analyze::analyzePulse(int startSampleNum){
 	count = 0;
 	for(int s = startSampleNum-20 ; s < startSampleNum - 10 ; s++){
 		if( s < 0 ) continue;
-		if( s >= wf->size() ) continue;
-		if( (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		double value = wf->at(s);
+		if( s >= wf.size() ) continue;
+		if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
+		double value = wf.at(s);
 		rms += (value - mean)*(value - mean);
 		count++;
 	}
@@ -408,9 +467,9 @@ void Analyze::analyzePulse(int startSampleNum){
 	int maxSamp = -1;
 	for(int s = startSampleNum-preRange ; s < startSampleNum + postRange ; s++){
 		if( s < 0 ) continue;
-		if( s >= wf->size() ) continue;
-		if( (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		double value = wf->at(s);
+		if( s >= wf.size() ) continue;
+		//if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
+		double value = wf.at(s);
 
 		if( s < startSampleNum - 5 ) continue;
 		if( s > startSampleNum + 10 ) continue;
@@ -425,9 +484,9 @@ void Analyze::analyzePulse(int startSampleNum){
 	gCh->Set(0);
 	for(int s = startSampleNum-preRange ; s < startSampleNum + postRange ; s++){
 		if( s < 0 ) continue;
-		if( s >= wf->size() ) continue;
-		if( (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		gCh->SetPoint(gCh->GetN() , s*SAMP_PERIOD , wf->at(s) );
+		if( s >= wf.size() ) continue;
+		//if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
+		gCh->SetPoint(gCh->GetN() , s*SAMP_PERIOD , wf.at(s) );
 	}
 
 	//integrate over expected pulse range, note use of averaged waveform pulse time
@@ -444,11 +503,13 @@ void Analyze::analyzePulse(int startSampleNum){
 	//update histograms
 	double pulseHeight = maxSampVal - mean;
 	hPulseHeights->Fill(pulseHeight);
+	hPulseVsSignal[chan]->Fill(subrun, pulseHeight);
 
 	//draw waveform if needed
 	if(0){
 		std::cout << mean << "\t" << maxSampVal << "\t" << pulseHeight << std::endl;
-		std::string title = "Subrun " + to_string( subrun ) + " Channel " + to_string( chan ) + " Height " + to_string( int(pulseHeight) );
+		//std::string title = "Subrun " + to_string( subrun ) + " Channel " + to_string( chan ) + " Height " + to_string( int(pulseHeight) );
+		std::string title = " Height " + to_string( int(pulseHeight) );
 		gCh->SetTitle( title.c_str() );
 
 		gCh->GetXaxis()->SetTitle("Sample Number");
@@ -465,9 +526,16 @@ void Analyze::analyzePulse(int startSampleNum){
 	}
 }
 
-void Analyze::measurePulseHeights(){
 
-	if( hPulseHeights->GetEntries() < 5 )
+void Analyze::measurePulseHeights(unsigned int subrun, unsigned int chan){
+
+	if( hPulseHeights->GetEntries() < 10 )
+		return;
+
+	if( subrun >= numSubrun )
+		return;
+	
+	if( chan >= numChan )
 		return;
 
 	//get average pulse height, update plots
@@ -515,16 +583,17 @@ void Analyze::measureGain(){
 			gain_ePerAdc = 1./ gain_AdcPerE;
 		hGainVsChan->SetBinContent(ch+1, gain_ePerAdc);
 
-		double enc = hRmsVsChan->GetBinContent(ch+1)*gain_ePerAdc;
+		double enc = pRmsVsChan->GetBinContent(ch+1)*gain_ePerAdc;
 		hEncVsChan->SetBinContent(ch+1, enc);
 	
 		if(0){
 			std::cout << gain_ePerAdc << std::endl;
+			std::cout<< enc << std::endl;
 			c0->Clear();
 			gPulseVsSignal[ch]->Draw("ALP");
 			c0->Update();
-			//char ct;
-			//std::cin >> ct;
+			char ct;
+			std::cin >> ct;
 		}
 
 		delete f1;

@@ -39,17 +39,17 @@ class Analyze {
 	TFile *gOut;
 
 	//Constants
-        const int maxNumAsic = 8;// 35t
-	const int maxNumChan = 128;// 35t
-        const int maxNumSubrun = 256; //want to get rid of this
+        const unsigned int maxNumAsic = 8;// 35t
+	const unsigned int maxNumChan = 128;// 35t
+        const unsigned int maxNumSubrun = 1024; //want to get rid of this
 
 	unsigned int maxSubrunParsed = 0;
 
 	//data objects
 	TCanvas* c0;
 	TGraph *gCh;
-	std::vector<unsigned short> asicPackets[256][8]; //subrun, asics
-	std::vector<unsigned short> wfIn[256][128]; //subrun, ch
+	std::vector<unsigned short> asicPackets[1024][8]; //subrun, asics
+	std::vector<unsigned short> wfIn[1024][128]; //subrun, ch
 
 	//histograms
 	TH2F *hSampVsChan;
