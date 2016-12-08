@@ -86,6 +86,8 @@ class Analyze {
 
 	TH1F *hGainVsChan;
 	TH1F *hEncVsChan;
+	TH1F *hGain;
+	TH1F *hEnc;
 };
 
 Analyze::Analyze(std::string inputFileName){
@@ -152,6 +154,9 @@ Analyze::Analyze(std::string inputFileName){
         	sprintf(name,"hPulseVsSignal_ch_%i",ch);
 		hPulseVsSignal[ch] = new TH2F(name,"",numSubrun, 0-0.5,numSubrun,400,0,4000);
 	}
+
+	hGain = new TH1F("hGain","",500,0,5000);
+	hEnc = new TH1F("hEnc","",200,0,2000);
 
 	hGainVsChan = new TH1F("hGainVsChan","",numChan,0-0.5,numChan-0.5);
 	hEncVsChan = new TH1F("hEncVsChan","",numChan,0-0.5,numChan-0.5);
@@ -220,6 +225,14 @@ void Analyze::doAnalysis(){
 	hEncVsChan->GetXaxis()->SetTitle("Channel #");
 	hEncVsChan->GetYaxis()->SetTitle("ENC (e-)");
 	hEncVsChan->Write();
+
+	hGain->GetXaxis()->SetTitle("Gain (e- / ADC count)");
+	hGain->GetYaxis()->SetTitle("# of Channels");
+	hGain->Write();
+
+	hEnc->GetXaxis()->SetTitle("ENC (e-)");
+	hEnc->GetYaxis()->SetTitle("# of Channels");
+	hEnc->Write();
 
 	for(int ch = 0 ; ch < numChan ; ch++ ){
 		std::string title = "gPulseHeightVsSignal_Ch_" + to_string( ch );
@@ -351,7 +364,7 @@ void Analyze::analyzeChannel(unsigned int chan, const std::vector<unsigned short
 
 	//compute FFT - use TGraph to interpolate between missing samples
 	//int numFftBins = wf.size();
-	int numFftBins = 500;
+	int numFftBins = 5000;
 	if( numFftBins > wf.size() )
 		numFftBins = wf.size();
 	TH1F *hData = new TH1F("hData","",numFftBins,0,numFftBins);
@@ -585,6 +598,9 @@ void Analyze::measureGain(){
 
 		double enc = pRmsVsChan->GetBinContent(ch+1)*gain_ePerAdc;
 		hEncVsChan->SetBinContent(ch+1, enc);
+
+		hGain->Fill(gain_ePerAdc);
+		hEnc->Fill(enc);
 	
 		if(0){
 			std::cout << gain_ePerAdc << std::endl;
