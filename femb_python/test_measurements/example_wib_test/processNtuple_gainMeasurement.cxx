@@ -18,6 +18,8 @@ using namespace std;
 #include "TGraph.h"
 #include "TProfile2D.h"
 #include "TF1.h"
+#include "TLegend.h"
+#include "TImage.h"
 
 using namespace std;
 
@@ -37,6 +39,7 @@ class Analyze {
 	void analyzePulse(unsigned int subrun, unsigned int chan,  int startSampleNum, const std::vector<unsigned short> &wf);
 	void measurePulseHeights(unsigned int subrun, unsigned int chan);
 	void measureGain();
+        void outputResults();
 
 	//Files
 	TFile* inputFile;
@@ -120,11 +123,9 @@ Analyze::Analyze(std::string inputFileName){
   	tr_rawdata->SetBranchAddress("wf", &wfIn);
 
 	//make output file
-  	std::string outputFileName;
-	if( processFileName( inputFileName, outputFileName ) )
-		outputFileName = "output_processNtuple_gainMeasurement_" + outputFileName;
-	else
-		outputFileName = "output_processNtuple_gainMeasurement.root";
+  	std::string outputFileName = "output_processNtuple_gainMeasurement.root";
+	//if( processFileName( inputFileName, outputFileName ) )
+	//	outputFileName = "output_processNtuple_gainMeasurement_" + outputFileName;
 
   	gOut = new TFile(outputFileName.c_str() , "RECREATE");
 
@@ -203,8 +204,64 @@ void Analyze::doAnalysis(){
 	std::cout << "Doing summary analysis" << std::endl;
 	measureGain();
 
+	outputResults();
+}
+
+void Analyze::outputResults(){
+
+	pMeanVsChan->SetStats(kFALSE);
+	pMeanVsChan->GetXaxis()->SetTitle("FEMB Channel #");
+	pMeanVsChan->GetYaxis()->SetTitle("Pedestal Mean (ADC counts)");
+
+	pFFTVsChan->SetStats(kFALSE);
+	pFFTVsChan->GetXaxis()->SetTitle("FEMB Channel #");
+	pFFTVsChan->GetYaxis()->SetTitle("Frequency (MHz)");
+
+	hGainVsChan->SetStats(kFALSE);
+	hGainVsChan->GetXaxis()->SetTitle("FEMB Channel #");
+	hGainVsChan->GetYaxis()->SetTitle("Gain (e- / ADC count)");
+
+	hEncVsChan->SetStats(kFALSE);
+	hEncVsChan->GetXaxis()->SetTitle("FEMB Channel #");
+	hEncVsChan->GetYaxis()->SetTitle("ENC (e-)");
+
+	hGain->SetStats(kFALSE);
+	hGain->GetXaxis()->SetTitle("Gain (e- / ADC count)");
+	hGain->GetYaxis()->SetTitle("# of Channels");
+
+	hEnc->SetStats(kFALSE);
+	hEnc->GetXaxis()->SetTitle("ENC (e-)");
+	hEnc->GetYaxis()->SetTitle("# of Channels");
+
+	//make summary plot
+	c0->Clear();
+	c0->Divide(2,2);
+	
+	c0->cd(1);
+	pMeanVsChan->Draw();
+	
+	c0->cd(2);
+	pFFTVsChan->Draw("COLZ");
+	
+	c0->cd(3);
+	hGainVsChan->Draw();
+
+	c0->cd(4);
+	hEncVsChan->Draw();
+
+	c0->Update();
+
+	//save summary plots
+	TImage *img = TImage::Create();
+	img->FromPad(c0);
+  	std::stringstream imgstream;
+	imgstream << "summaryPlot_gainMeasurement.png";
+	std::string imgstring( imgstream.str() );
+  	img->WriteImage(imgstring.c_str());
+
   	//output histograms, data objects
  	gOut->Cd("");
+	c0->Write("c0_SummaryPlot");
   	hSampVsChan->Write();
 	pSampVsChan->Write();
   	hMeanVsChan->Write();
