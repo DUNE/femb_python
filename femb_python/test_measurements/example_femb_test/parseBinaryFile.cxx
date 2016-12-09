@@ -32,7 +32,7 @@ class Analyze {
 	void parseFile();
 	void parseRawData();
 	void parseAsicRawData(unsigned short subrun, unsigned short asic, unsigned short asicCh);
-	void analyzeChannel(unsigned int chan, std::vector<unsigned short> *wf);
+	void drawWf(unsigned int subrun, unsigned int chan);
 
 	//Files
 	ifstream infile;
@@ -53,14 +53,6 @@ class Analyze {
 	std::vector<unsigned short> wfIn[256][128]; //subrun, ch
 
 	//histograms
-	TH2F *hSampVsChan;
-	TProfile *pSampVsChan;
-	TH2F *hMeanVsChan;
-	TProfile *pMeanVsChan;
-	TH2F *hRmsVsChan;
-	TProfile *pRmsVsChan;
-	TProfile *pFracStuckVsChan;
-	TProfile2D *pFFTVsChan;
 
 	//output tree and variable
 	unsigned short fSubrun, fChan;
@@ -98,17 +90,8 @@ Analyze::Analyze(std::string inputFileName){
 	gCh = new TGraph();
 
   	//output histograms, data objects
-  	hSampVsChan = new TH2F("hSampVsChan","",maxNumChan,0-0.5,maxNumChan-0.5,4096,-0.5,4096-0.5);
- 	pSampVsChan = new TProfile("pSampVsChan","",maxNumChan,0-0.5,maxNumChan-0.5);
-  	hMeanVsChan = new TH2F("hMeanVsChan","",maxNumChan,0-0.5,maxNumChan-0.5,4096,-0.5,4096-0.5);
-	pMeanVsChan = new TProfile("pMeanVsChan","",maxNumChan,0-0.5,maxNumChan-0.5);
-  	hRmsVsChan = new TH2F("hRmsVsChan","",maxNumChan,0-0.5,maxNumChan-0.5,300,0,300.);
-  	pRmsVsChan = new TProfile("pRmsVsChan","",maxNumChan,0-0.5,maxNumChan-0.5);
-	pFracStuckVsChan = new TProfile("pFracStuckVsChan","",maxNumChan,0-0.5,maxNumChan-0.5);
-	pFFTVsChan = new TProfile2D("pFFTVsChan","",maxNumChan,0-0.5,maxNumChan-0.5,100,0,1);
 
 	//output tree
-	
 	tTree = new TTree("femb_wfdata","femb_wfdata");
 	tTree->Branch("subrun", &fSubrun, "subrun/s");
   	tTree->Branch("chan", &fChan, "chan/s");
@@ -150,21 +133,8 @@ void Analyze::doAnalysis(){
 
 	//for(int subrun = 0 ; subrun < maxNumSubrun ; subrun++ ){
 	for(unsigned int subrun = 0 ; subrun <= maxSubrunParsed ; subrun++ ){
-		std::cout << "Analsyzing data from subrun " << subrun << std::endl;
+		std::cout << "Analyzing data from subrun " << subrun << std::endl;
 		for( unsigned int ch = 0 ; ch <maxNumChan ; ch++ ){
-			/*
-			gCh->Set(0);
-			for( int s = 0 ; s < wfIn[subrun][ch].size() ; s++ )
-				gCh->SetPoint(gCh->GetN() , s , wfIn[subrun][ch].at(s) );
-			c0->Clear();
-			gCh->Draw("ALP");
-			c0->Update();
-			char ct;
-			std::cin >> ct;
-			*/
-			if( subrun == 0 )
-				analyzeChannel(ch, &wfIn[subrun][ch]);
-			
 			//fill tree
 			fSubrun = subrun;
 			fChan = ch;
@@ -173,24 +143,7 @@ void Analyze::doAnalysis(){
 		}
 	}
 
-	if(0){
-		c0->Clear();
-		hSampVsChan->Draw("COLZ");
-		c0->Update();
-		usleep(100000);
-		//char ct;
-		//std::cin >> ct;
-	}
-
     	gOut->Cd("");
-  	hSampVsChan->Write();
-	pSampVsChan->Write();
-  	hMeanVsChan->Write();
-	pMeanVsChan->Write();
-  	hRmsVsChan->Write();
-  	pRmsVsChan->Write();
-	pFracStuckVsChan->Write();
-	pFFTVsChan->Write();
 	tTree->Write();
   	gOut->Close();
 }
@@ -369,123 +322,18 @@ void Analyze::parseAsicRawData(unsigned short subrun, unsigned short asic, unsig
 	return;
 }
 
-void Analyze::analyzeChannel(unsigned int chan, std::vector<unsigned short> *wf){
-
-	 //skip known bad channels here
-
-	//calculate mean
-	double mean = 0;
-	int count = 0;
-	for( int s = 0 ; s < wf->size() ; s++ ){
-		if(  wf->at(s) < 10 ) continue;
-		if( (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		double value = wf->at(s);
-		mean += value;
-		count++;
-	}
-	if( count > 0 )
-		mean = mean / (double) count;
-
-	//calculate rms
-	double rms = 0;
-	count = 0;
-	for( int s = 0 ; s < wf->size() ; s++ ){
-		if(  wf->at(s) < 10 ) continue;
-		if( (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		double value = wf->at(s);
-		rms += (value-mean)*(value-mean);
-		count++;
-	}	
-	if( count > 1 )
-		rms = TMath::Sqrt( rms / (double)( count - 1 ) );
-
-	//fill channel waveform hists
-	for( int s = 0 ; s < wf->size() ; s++ ){
-		short samp =  wf->at(s);
-		hSampVsChan->Fill( chan, samp);
-
-		//measure stuck code fraction
-		if( (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F )
-			pFracStuckVsChan->Fill(chan, 1);
-		else
-			pFracStuckVsChan->Fill(chan, 0);
-	}
-
-	hMeanVsChan->Fill( chan, mean );
-	pMeanVsChan->Fill( chan, mean );
-	hRmsVsChan->Fill(chan, rms);
-	pRmsVsChan->Fill(chan, rms);
-
-	//load hits into TGraph, skip stuck codes
+void Analyze::drawWf(unsigned int subrun, unsigned int chan){
 	gCh->Set(0);
-	for( int s = 0 ; s < wf->size() ; s++ ){
-		if(  wf->at(s) < 10 ) continue;
-		if( (wf->at(s) & 0x3F ) == 0x0 || (wf->at(s) & 0x3F ) == 0x3F ) continue;
-		gCh->SetPoint(gCh->GetN() , s , wf->at(s) );
-	}
-	if( gCh->GetN() == 0 )
-		return;
-	
-	//compute FFT - use TGraph to interpolate between missing samples
-	//int numFftBins = wf->size();
-	int numFftBins = 500;
-	if( numFftBins > wf->size() )
-		numFftBins = wf->size();
-	TH1F *hData = new TH1F("hData","",numFftBins,0,numFftBins);
-	for( int s = 0 ; s < numFftBins ; s++ ){
-		double adc = gCh->Eval(s);
-		hData->SetBinContent(s+1,adc);
-	}
+	for( int s = 0 ; s < wfIn[subrun][chan].size() ; s++ )
+		gCh->SetPoint(gCh->GetN() , s , wfIn[subrun][chan].at(s) );
+	c0->Clear();
+	gCh->Draw("ALP");
+	c0->Update();
+	usleep(100000);
+	//char ct;
+	//std::cin >> ct;
 
-	TH1F *hFftData = new TH1F("hFftData","",numFftBins,0,numFftBins);
-    	hData->FFT(hFftData,"MAG");
-    	for(int i = 1 ; i < hFftData->GetNbinsX() ; i++ ){
-		double freq = 2.* i / (double) hFftData->GetNbinsX() ;
-		pFFTVsChan->Fill( chan, freq,  hFftData->GetBinContent(i+1) );
-	}
-
-	//draw waveform if wanted
-	if( 0 ){
-		gCh->Set(0);
-		for( int s = 0 ; s < wf->size() ; s++ )
-			gCh->SetPoint(gCh->GetN() , gCh->GetN() , wf->at(s) );
-		std::cout << "Channel " << chan << std::endl;
-		c0->Clear();
-		
-		std::string title = "Channel " + to_string( chan );
-		gCh->SetTitle( title.c_str() );
-		gCh->GetXaxis()->SetTitle("Sample Number");
-		gCh->GetYaxis()->SetTitle("Sample Value (ADC counts)");
-		//gCh->GetXaxis()->SetRangeUser(0,128);
-		//gCh->GetXaxis()->SetRangeUser(0,num);
-		//gCh->GetYaxis()->SetRangeUser(500,1000);
-		gCh->Draw("ALP");
-		c0->Update();
-
-		//char ct;
-		//std::cin >> ct;
-		usleep(1000);
-	}
-
-	//draw waveform + FFT if desired
-	if(0){
-		
-		c0->Divide(2);
-		c0->cd(1);
-		hData->Draw();
-		c0->cd(2);
-		hFftData->SetBinContent(1,0);
-		hFftData->GetXaxis()->SetRangeUser(0, hFftData->GetNbinsX()/2. );
-		hFftData->Draw();
-		c0->Update();
-
-		//char ct;
-		//std::cin >> ct;
-		usleep(1000);
-	}
-
-	delete hData;
-	delete hFftData;
+	return;
 }
 
 void parseBinaryFile(std::string inputFileName) {
