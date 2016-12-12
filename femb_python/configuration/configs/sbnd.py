@@ -15,7 +15,7 @@ import sys
 import string
 import time
 import struct
-from femb_udp_cmdline import FEMB_UDP
+from ..femb_udp import FEMB_UDP
 from adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
 from fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
 
