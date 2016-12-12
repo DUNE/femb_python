@@ -82,6 +82,8 @@ setup(
     install_requires=[
         'numpy>=1.7.1',
         'matplotlib>=1.2.1',
+	'future>=0.15.2',
+	'configparser>=3.5.0',
     ],
 
     # List additional groups of dependencies here (e.g. development

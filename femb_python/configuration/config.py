@@ -1,6 +1,17 @@
 """
 Main Configuration module.
 """
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import int
+from builtins import hex
+from builtins import range
+from builtins import str
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import sys
 import os.path
 import time
@@ -8,7 +19,7 @@ from .config_file_parser import CONFIG_FILE
 from .asic_reg_packing import ASIC_REG_PACKING
 from ..femb_udp import FEMB_UDP
 
-class CONFIG:
+class CONFIG(object):
     """
     Main configuration class. Rangles other classes that configure the ADC ASIC and FE ASIC.
     """

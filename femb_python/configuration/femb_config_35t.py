@@ -1,9 +1,20 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import int
+from builtins import range
+from builtins import hex
+from builtins import str
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import sys 
 import string
 import time
 from femb_udp_cmdline import FEMB_UDP
 
-class FEMB_CONFIG:
+class FEMB_CONFIG(object):
     def resetBoard(self):
         #Reset system
         self.femb.write_reg( self.REG_RESET, 1)

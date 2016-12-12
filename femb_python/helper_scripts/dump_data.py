@@ -1,3 +1,11 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import str
+from builtins import hex
+from future import standard_library
+standard_library.install_aliases()
 from ..femb_udp import FEMB_UDP
 from ..configuration.argument_parser import ArgumentParser
 

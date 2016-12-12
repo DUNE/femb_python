@@ -1,6 +1,14 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import time
 
-class BOARD_CONFIG:
+class BOARD_CONFIG(object):
     def reset(self):
         #Reset system
         self.femb.write_reg( self.REG_RESET, 1)

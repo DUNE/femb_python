@@ -1,6 +1,15 @@
 """
 This is the UDB interface to the femb
 """
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import range
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import struct
 import sys 
 import string
@@ -9,7 +18,7 @@ import time
 from socket import AF_INET, SOCK_DGRAM
 import binascii
 
-class FEMB_UDP:
+class FEMB_UDP(object):
     """
     This is the UDB interface to the femb
     """

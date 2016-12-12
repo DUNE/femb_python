@@ -1,3 +1,12 @@
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from builtins import range
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import string
 import ROOT
 #from ROOT import TFile, TTree
@@ -7,7 +16,7 @@ import uuid
 import datetime
 import time
 
-class WRITE_ROOT_TREE:
+class WRITE_ROOT_TREE(object):
 
     def record_data_run(self):
         f = ROOT.TFile( self.filename, 'recreate' )
