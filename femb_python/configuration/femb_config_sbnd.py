@@ -1,5 +1,16 @@
 #!/usr/bin/env python33
 
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import int
+from builtins import range
+from builtins import hex
+from builtins import str
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import sys 
 import string
 import time
@@ -8,7 +19,7 @@ from femb_udp_cmdline import FEMB_UDP
 from adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
 from fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
 
-class FEMB_CONFIG:
+class FEMB_CONFIG(object):
 
     def resetBoard(self):
         #Reset system
@@ -24,7 +35,7 @@ class FEMB_CONFIG:
         self.femb.write_reg_i2c ( self.REG_ASIC_RESET, 1)
 
     def initBoard(self):
-        print "FEMB_CONFIG--> Reset FEMB"
+        print("FEMB_CONFIG--> Reset FEMB")
         #set up default registers
         
         #Reset ADC ASICs
@@ -61,11 +72,11 @@ class FEMB_CONFIG:
 
         #Set number events per header -- no use
         #self.femb.write_reg_i2c ( 8, 0x0)
-        print "FEMB_CONFIG--> Reset FEMB is DONE"
+        print("FEMB_CONFIG--> Reset FEMB is DONE")
 
     def configAdcAsic(self,Adcasic_regs):
         #ADC ASIC SPI registers
-        print "FEMB_CONFIG--> Config ADC ASIC SPI"
+        print("FEMB_CONFIG--> Config ADC ASIC SPI")
         for k in range(10):
             i = 0
             for regNum in range(self.REG_ADCSPI_BASE,self.REG_ADCSPI_BASE+len(Adcasic_regs),1):
@@ -77,7 +88,7 @@ class FEMB_CONFIG:
             #self.femb.write_reg_i2c ( 17, 0x0) # controls HS link, 0 for on, 1 for off        
 
             #Write ADC ASIC SPI
-            print "FEMB_CONFIG--> Program ADC ASIC SPI"
+            print("FEMB_CONFIG--> Program ADC ASIC SPI")
             self.femb.write_reg_i2c ( self.REG_ASIC_SPIPROG, 1)
             time.sleep(0.1)
             self.femb.write_reg_i2c ( self.REG_ASIC_SPIPROG, 1)
@@ -86,7 +97,7 @@ class FEMB_CONFIG:
             self.femb.write_reg_i2c ( 18, 0x0)
             time.sleep(0.1)
 
-            print "FEMB_CONFIG--> Check ADC ASIC SPI"
+            print("FEMB_CONFIG--> Check ADC ASIC SPI")
             adcasic_rb_regs = []
             for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+len(Adcasic_regs),1):
                 val = self.femb.read_reg_i2c ( regNum ) 
@@ -97,7 +108,7 @@ class FEMB_CONFIG:
                     sys.exit("femb_config : Wrong readback. ADC SPI failed")
                     return
             else: 
-                print "FEMB_CONFIG--> ADC ASIC SPI is OK"
+                print("FEMB_CONFIG--> ADC ASIC SPI is OK")
                 break
         #enable streaming
         #self.femb.write_reg_i2c ( 9, 0x8)
@@ -105,8 +116,8 @@ class FEMB_CONFIG:
 
 
     def configFeAsic(self,feasic_regs):
-        print "FEMB_CONFIG--> Config FE ASIC SPI"
-        print len(feasic_regs)
+        print("FEMB_CONFIG--> Config FE ASIC SPI")
+        print(len(feasic_regs))
 
         for k in range(10):
             i = 0
@@ -114,11 +125,11 @@ class FEMB_CONFIG:
                 self.femb.write_reg_i2c ( regNum, feasic_regs[i])
                 i = i + 1
             #Write FE ASIC SPI
-            print "FEMB_CONFIG--> Program FE ASIC SPI"
+            print("FEMB_CONFIG--> Program FE ASIC SPI")
             self.femb.write_reg_i2c ( self.REG_ASIC_SPIPROG, 2)
             self.femb.write_reg_i2c ( self.REG_ASIC_SPIPROG, 2)
 
-            print "FEMB_CONFIG--> Check FE ASIC SPI"
+            print("FEMB_CONFIG--> Check FE ASIC SPI")
             feasic_rb_regs = []
             for regNum in range(self.REG_FESPI_RDBACK_BASE,self.REG_FESPI_RDBACK_BASE+len(feasic_regs),1):
                 val = self.femb.read_reg_i2c ( regNum ) 
@@ -129,24 +140,24 @@ class FEMB_CONFIG:
                     sys.exit("femb_config_femb : Wrong readback. FE SPI failed")
                     return
             else: 
-                print "FEMB_CONFIG--> FE ASIC SPI is OK"
+                print("FEMB_CONFIG--> FE ASIC SPI is OK")
                 break
 
     def selectChannel(self,asic,chan, allchn ):
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal > 7 ) :
-                print "FEMB_CONFIG--> femb_config_femb : selectChan - invalid ASIC number"
+                print("FEMB_CONFIG--> femb_config_femb : selectChan - invalid ASIC number")
                 return
         chVal = int(chan)
         if (chVal < 0 ) or (chVal > 15 ) :
-                print "FEMB_CONFIG--> femb_config_femb : selectChan - invalid channel number"
+                print("FEMB_CONFIG--> femb_config_femb : selectChan - invalid channel number")
                 return
         allchnVal = int(allchn)
         if (allchnVal != 0 ) and ( allchnVal != 1 ) :
-                print "FEMB_CONFIG--> femb_config_femb : selectChan - invalid HS mode"
+                print("FEMB_CONFIG--> femb_config_femb : selectChan - invalid HS mode")
                 return
 
-        print "FEMB_CONFIG--> Selecting ASIC " + str(asicVal) + ", channel " + str(chVal)
+        print("FEMB_CONFIG--> Selecting ASIC " + str(asicVal) + ", channel " + str(chVal))
 
         self.femb.write_reg_i2c ( self.REG_HS, allchnVal)
         self.femb.write_reg_i2c ( self.REG_HS, allchnVal)
@@ -156,31 +167,31 @@ class FEMB_CONFIG:
 
     def syncADC(self):
         #turn on ADC test mode
-        print "FEMB_CONFIG--> Start sync ADC"
+        print("FEMB_CONFIG--> Start sync ADC")
         reg3 = self.femb.read_reg_i2c (3)
         newReg3 = ( reg3 | 0x80000000 )
 
         self.femb.write_reg_i2c ( 3, newReg3 ) #31 - enable ADC test pattern
         for a in range(0,8,1):
-                print "FEMB_CONFIG--> Test ADC " + str(a)
+                print("FEMB_CONFIG--> Test ADC " + str(a))
                 unsync = self.testUnsync(a)
                 if unsync != 0:
-                        print "FEMB_CONFIG--> ADC not synced, try to fix"
+                        print("FEMB_CONFIG--> ADC not synced, try to fix")
                         self.fixUnsync(a)
         self.REG_LATCHLOC1_4_data = self.femb.read_reg_i2c ( self.REG_LATCHLOC1_4 ) 
         self.REG_LATCHLOC5_8_data = self.femb.read_reg_i2c ( self.REG_LATCHLOC5_8 )
         self.REG_CLKPHASE_data    = self.femb.read_reg_i2c ( self.REG_CLKPHASE )
-        print "FEMB_CONFIG--> Latch latency " + str(hex(self.REG_LATCHLOC1_4_data)) \
+        print("FEMB_CONFIG--> Latch latency " + str(hex(self.REG_LATCHLOC1_4_data)) \
                         + str(hex(self.REG_LATCHLOC5_8_data )) + \
-                        "\tPhase " + str(hex(self.REG_CLKPHASE_data))
+                        "\tPhase " + str(hex(self.REG_CLKPHASE_data)))
         self.femb.write_reg_i2c ( 3, (reg3&0x7fffffff) )
         self.femb.write_reg_i2c ( 3, (reg3&0x7fffffff) )
-        print "FEMB_CONFIG--> End sync ADC"
+        print("FEMB_CONFIG--> End sync ADC")
 
     def testUnsync(self, adc):
         adcNum = int(adc)
         if (adcNum < 0 ) or (adcNum > 7 ):
-                print "FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number"
+                print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
                 return
         
         #loop through channels, check test pattern against data
@@ -207,7 +218,7 @@ class FEMB_CONFIG:
     def fixUnsync(self, adc):
         adcNum = int(adc)
         if (adcNum < 0 ) or (adcNum > 7 ):
-                print "FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number"
+                print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
                 return
 
         initLATCH1_4 = self.femb.read_reg_i2c ( self.REG_LATCHLOC1_4 )
@@ -237,10 +248,10 @@ class FEMB_CONFIG:
                         #test link
                         unsync = self.testUnsync(adcNum)
                         if unsync == 0 :
-                                print "FEMB_CONFIG--> ADC synchronized"
+                                print("FEMB_CONFIG--> ADC synchronized")
                                 return
         #if program reaches here, sync has failed
-        print "FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc)
+        print("FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc))
 
     def get_rawdata_chipXchnX(self, chip=0, chn=0):
         i = 0
@@ -253,7 +264,7 @@ class FEMB_CONFIG:
             if( len(data) > 2 ):
                 if ( (data0[0] >> 12 ) == chn ):
                     if ( i > 1):
-                        print "FEMB_CONFIG--> get_rawdata_chipXchnX--> cycle%d to get right data"%i
+                        print("FEMB_CONFIG--> get_rawdata_chipXchnX--> cycle%d to get right data"%i)
                     break
         return data
 
@@ -267,7 +278,7 @@ class FEMB_CONFIG:
                 data0 =struct.unpack_from(">1H",data[0:2])
                 if ( (data0[0] >> 12 ) == chn ):
                     if ( i > 1):
-                        print "FEMB_CONFIG--> get_rawdata_chipXchnX--> cycle%d to get right data"%i
+                        print("FEMB_CONFIG--> get_rawdata_chipXchnX--> cycle%d to get right data"%i)
                     break
         return data
 
