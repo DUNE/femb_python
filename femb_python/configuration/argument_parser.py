@@ -6,7 +6,6 @@ from builtins import int
 from future import standard_library
 standard_library.install_aliases()
 import argparse
-from .config_file_finder import get_standard_configuration_dir, get_standard_configurations
 
 class ArgumentParser(argparse.ArgumentParser):
     """
@@ -19,14 +18,6 @@ class ArgumentParser(argparse.ArgumentParser):
         except:
             kargs['epilog'] = epilogStr
         argparse.ArgumentParser.__init__(self,*args,**kargs)
-
-    def addConfigFileArgs(self,required=False):
-        """
-        Adds an argument to get a config filename from the command line.
-        """
-        self.add_argument('-c','--config',required=required,
-                            help="Configuration file name. Can be a path or one of the standard configurations, {}, in {}".format(get_standard_configurations(), get_standard_configuration_dir())
-                            )
 
     def addNPacketsArgs(self,required=False,default=None):
         """

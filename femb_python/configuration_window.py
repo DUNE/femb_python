@@ -13,7 +13,7 @@ from future import standard_library
 standard_library.install_aliases()
 from time import sleep
 from gi.repository import Gtk
-from .configuration import CONFIG, get_env_config_file
+from .configuration import CONFIG
 from . import trace_fft_window
 
 import numpy as np
@@ -30,7 +30,7 @@ class CONFIGURATION_WINDOW(Gtk.Window):
         Gtk.Window.__init__(self, title="FEMB Test-stand Configuration")
 
         #define configuration object
-        self.femb_config = CONFIG(get_env_config_file())
+        self.femb_config = CONFIG()
 
         #do any checks here for system state
 

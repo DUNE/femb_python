@@ -15,11 +15,10 @@ import time
 import math
 
 from ..femb_udp import FEMB_UDP
-from ..configuration import CONFIG, get_env_config_file
+from ..configuration import CONFIG
 
 def main():
-    config_file = get_env_config_file()
-    femb_config = CONFIG(config_file)
+    femb_config = CONFIG()
     noiseMeasurements = []
     for ch in range(0,128,1):
         chan = int(ch)
