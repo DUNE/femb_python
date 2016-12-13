@@ -14,12 +14,16 @@ def main():
       sys.exit(0)
   
   femb = FEMB_UDP()
-  regVal = int( sys.argv[1] )
+  regVal = int(sys.argv[1])
   if (regVal < 0) or (regVal > femb.MAX_REG_NUM):
       print( 'Invalid register number')
       sys.exit(0)
   
-  dataVal = int( sys.argv[2] )
+  dataVal = sys.argv[2]
+  try:
+    dataVal = int(dataVal)
+  except:
+    dataVal = int(dataVal,16)
   if (dataVal < 0) or (dataVal > 0xFFFFFFFF):
       print( 'Invalid register value')
       sys.exit(0)
