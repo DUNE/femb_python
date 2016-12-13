@@ -33,7 +33,7 @@ class CONFIGURATION_MODULE_LOADER(object):
       """
       if not self.varname in os.environ:
           print("Error: Environment variable '{}' not found. Standard options are: \n{}".format(self.varname,self.get_standard_configurations()))
-	  sys.exit(1)
+          sys.exit(1)
       config_name = os.environ[self.varname]
       print("Using configuration environment var {}={}".format(self.varname,config_name))
       module = self.config_file_finder(config_name)
@@ -41,7 +41,7 @@ class CONFIGURATION_MODULE_LOADER(object):
         return module.FEMB_CONFIG
       except AttributeError:
           print("Error: Config module '{}' doesn't contain the class FEMB_CONFIG".format(config_name))
-	  sys.exit(1)
+          sys.exit(1)
   
   def config_file_finder(self,requestedModuleName):
       """
@@ -53,12 +53,12 @@ class CONFIGURATION_MODULE_LOADER(object):
 #          module = importlib.import_module(moduleStr,"femb_python.configuration.configs")
 #      except ImportError as e:
 #          print("Error: Couldn't find config module '{}' that was listed in environment var {}. Standard options are: \n{}".format(requestedModuleName,self.varname,self.get_standard_configurations()))
-#	  raise e
-#	  sys.exit(1)
+#         raise e
+#         sys.exit(1)
 #      except KeyError as e:
 #          print("Error: Couldn't find config module '{}' that was listed in environment var {}. Standard options are: \n{}".format(requestedModuleName,self.varname,self.get_standard_configurations()))
 #          raise e
-#	  sys.exit(1)
+#         sys.exit(1)
       return module
   
   def get_standard_configurations(self):

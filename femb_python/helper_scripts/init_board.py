@@ -8,4 +8,5 @@ from ..configuration import CONFIG
 
 def main():
     femb_config = CONFIG()
+    femb_config.resetBoard()
     femb_config.initBoard()
