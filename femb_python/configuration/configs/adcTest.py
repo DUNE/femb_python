@@ -47,9 +47,9 @@ class FEMB_CONFIG(object):
         #self.femb.write_reg( 3, 0x81230000) # test pattern on
 
         #Set ADC latch_loc
-        self.femb.write_reg( self.REG_LATCHLOC, 0x66666666)
+        self.femb.write_reg( self.REG_LATCHLOC, 0x66666667)
         #Set ADC clock phase
-        self.femb.write_reg( self.REG_CLKPHASE, 0x55)
+        self.femb.write_reg( self.REG_CLKPHASE, 0xfffc0054)
 
         #internal test pulser control
         self.femb.write_reg( 5, 0x00000000)
@@ -146,16 +146,19 @@ class FEMB_CONFIG(object):
         reg3 = self.femb.read_reg(3)
         newReg3 = ( reg3 | 0x80000000 )
         self.femb.write_reg( 3, newReg3 ) #31 - enable ADC test pattern
+        alreadySynced = True
         for a in range(0,self.NASICS,1):
                 print("Test ADC " + str(a))
                 unsync = self.testUnsync(a)
                 if unsync != 0:
+                        alreadySynced = False
                         print("ADC not synced, try to fix")
                         self.fixUnsync(a)
         LATCH = self.femb.read_reg( self.REG_LATCHLOC )
         PHASE = self.femb.read_reg( self.REG_CLKPHASE )
         print("Latch latency " + str(hex(LATCH)) + "\tPhase " + str(hex(PHASE)))
         print("End sync ADC")
+        return not alreadySynced, LATCH, PHASE
 
     def testUnsync(self, adc):
         adcNum = int(adc)
