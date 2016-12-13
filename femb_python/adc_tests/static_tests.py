@@ -94,7 +94,7 @@ class STATIC_TESTS(object):
                     #axFSR.set_label("DNL [% of FSR]")
                     filename = "ADC_DNL_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
-                    fig.savefig(filename+".pdf")
+                    #fig.savefig(filename+".pdf")
                     ax.cla()
                     ax.plot(codeNumbers,inl,"k-",label="All Codes")
                     manyaxesINL[iChan].plot(codeNumbers,inl,"k-",label="All Codes")
@@ -108,16 +108,16 @@ class STATIC_TESTS(object):
                     #ax.legend(loc='best')
                     filename = "ADC_INL_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
-                    fig.savefig(filename+".pdf")
+                    #fig.savefig(filename+".pdf")
                     ax.cla()
                 except KeyError as e:
                     pass
             filename = "ADC_DNL_Chip{}".format(iChip)
             figmanyDNL.savefig(filename+".png")
-            figmanyDNL.savefig(filename+".pdf")
+            #figmanyDNL.savefig(filename+".pdf")
             filename = "ADC_INL_Chip{}".format(iChip)
             figmanyINL.savefig(filename+".png")
-            figmanyINL.savefig(filename+".pdf")
+            #figmanyINL.savefig(filename+".pdf")
 
             dnlAll, inlAll = self.makeLinearityHistograms(sumAllCodeHists)
             dnlAllKillStuckCodes, inlAllKillStuckCodes = self.makeLinearityHistograms(sumAllCodeHists,True)
@@ -133,7 +133,7 @@ class STATIC_TESTS(object):
               ax.legend(loc='best')
             filename = "ADC_DNL_Sum_Chip{}".format(iChip)
             fig.savefig(filename+".png")
-            fig.savefig(filename+".pdf")
+            #fig.savefig(filename+".pdf")
             ax.cla()
 
             print("Chip: ",iChip)
@@ -194,7 +194,7 @@ class STATIC_TESTS(object):
                     ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
                     filename = "ADC_Hist_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
-                    fig.savefig(filename+".pdf")
+                    #fig.savefig(filename+".pdf")
                     ax.cla()
 
                     if iChan == 4:
@@ -211,7 +211,7 @@ class STATIC_TESTS(object):
                     ax.set_xticks(range(0,self.nBits))
                     filename = "ADC_BitHist_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
-                    fig.savefig(filename+".pdf")
+                    #fig.savefig(filename+".pdf")
                     ax.cla()
         if (not fake) and (not self.loadWaveformRootFileName):
             self.funcgen.stop()
@@ -329,10 +329,10 @@ class STATIC_TESTS(object):
                 ax.legend(loc='best')
                 filename = "ADC_Linearity_Chip{}_Chan{}".format(iChip,iChan)
                 fig.savefig(filename+".png")
-                fig.savefig(filename+".pdf")
+                #fig.savefig(filename+".pdf")
                 ax.cla()
             figmany.savefig("ADC_Linearity_Chip{}.png".format(iChip))
-            figmany.savefig("ADC_Linearity_Chip{}.pdf".format(iChip))
+            #figmany.savefig("ADC_Linearity_Chip{}.pdf".format(iChip))
         return result
 
     def fitLineToData(self,voltages,counts,errors):
@@ -535,7 +535,7 @@ class STATIC_TESTS(object):
         ax.set_xticks(range(0,modNumber))
         filename = "ADC_CodeMod{}Hist_Chip{}_Chan{}".format(modNumber,iChip,iChan)
         fig.savefig(filename+".png")
-        fig.savefig(filename+".pdf")
+        #fig.savefig(filename+".pdf")
         fig.clf()
         return codeModXHist
 

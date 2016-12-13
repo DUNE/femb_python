@@ -7,9 +7,9 @@ Core functions for DUNE/SBND cold electronics UDP readout (python version)
 It's a pain to compile ROOT with support for python3, so by default we use
 python 2.
 
-Make sure python-setuptools, python-pip, python-virtualenv, python-numpy, and
-python-matplotlib are installed on your machine. You also need to setup some
-version of ROOT and pyROOT.
+Make sure python-setuptools, python-pip, python-virtualenv, python-numpy,
+python-matplotlib, and python-gi-cairo are installed on your machine. You also
+need to setup some version of ROOT and pyROOT.
 
 Then, for development, create a virtualenv with:
 
