@@ -24,24 +24,21 @@ class WRITE_ROOT_TREE(object):
 
         chan = array( 'I', [0])
         wf = ROOT.std.vector( int )()
-        packet = array( 'I', [0] )
         t.Branch( 'chan', chan, 'chan/i')
         t.Branch( 'wf', wf )
-        t.Branch( 'packet', packet, 'packet/i' )
 
         for ch in range(self.minchan,self.maxchan+1,1):
             chan[0] = int(ch)
             self.femb_config.selectChannel( chan[0]//16, chan[0] % 16)
             time.sleep(0.01)
             wf.clear()
-            for iPacket in range(self.numpacketsrecord):
-                data = self.femb.get_data(self.femb.MAX_NUM_PACKETS)
-                packet[0] = iPacket
-                for samp in data:
-                    chNum = ((samp >> 12 ) & 0xF)
-                    sampVal = (samp & 0xFFF)
-                    wf.push_back( sampVal )
-                t.Fill()
+            npackets = min(self.femb.MAX_NUM_PACKETS,self.numpacketsrecord)
+            data = self.femb.get_data(npackets)
+            for samp in data:
+                chNum = ((samp >> 12 ) & 0xF)
+                sampVal = (samp & 0xFFF)
+                wf.push_back( sampVal )
+            t.Fill()
 
         #define metadata
         _date = array( 'L' , [self.date] )
@@ -125,19 +122,12 @@ class WRITE_ROOT_TREE(object):
 def main():
   from .configuration.argument_parser import ArgumentParser
   from .configuration import CONFIG
-  from .configuration.config_file_finder import get_env_config_file, config_file_finder
   parser = ArgumentParser(description="Dumps data to a root tree named 'femb_wfdata'")
-  parser.addConfigFileArgs()
   parser.addNPacketsArgs(False,10)
   parser.add_argument("outfilename",help="Output root file name")
   args = parser.parse_args()
 
-  config_filename = args.config
-  if config_filename:
-    config_filename = config_file_finder(config_filename)
-  else:
-    config_filename = get_env_config_file()
-  config = CONFIG(config_filename)
+  config = CONFIG()
 
   wrt = WRITE_ROOT_TREE(config,args.outfilename,args.nPackets)
   wrt.record_data_run()

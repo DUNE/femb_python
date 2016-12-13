@@ -606,22 +606,15 @@ class STATIC_TESTS(object):
 def main():
     from ..configuration.argument_parser import ArgumentParser
     from ..configuration import CONFIG
-    from ..configuration.config_file_finder import get_env_config_file, config_file_finder
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Measures ADC Linearity")
-    parser.addConfigFileArgs()
     parser.addDumpWaveformRootFileArgs()
     parser.addLoadWaveformRootFileArgs()
     parser.addNPacketsArgs(False,10)
     #parser.add_argument("outfilename",help="Output root file name")
     args = parser.parse_args()
   
-    config_filename = args.config
-    if config_filename:
-      config_filename = config_file_finder(config_filename)
-    else:
-      config_filename = get_env_config_file()
-    config = CONFIG(config_filename)
+    config = CONFIG()
   
     static_tests = STATIC_TESTS(config)
     if args.dumpWaveformRootFile:
