@@ -124,12 +124,12 @@ class FEMB_CONFIG(object):
 
     def selectChannel(self,asic,chan):
         asicVal = int(asic)
-        if (asicVal < 0 ) or (asicVal > 7 ) :
-                print( "femb_config_femb : selectChan - invalid ASIC number")
+        if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
+                print( "femb_config_femb : selectChan - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
                 return
         chVal = int(chan)
         if (chVal < 0 ) or (chVal > 15 ) :
-                print("femb_config_femb : selectChan - invalid channel number")
+                print("femb_config_femb : selectChan - invalid channel number, only 0 to 15 allowed")
                 return
 
         #print( "Selecting ASIC " + str(asicVal) + ", channel " + str(chVal))
@@ -146,7 +146,7 @@ class FEMB_CONFIG(object):
         reg3 = self.femb.read_reg(3)
         newReg3 = ( reg3 | 0x80000000 )
         self.femb.write_reg( 3, newReg3 ) #31 - enable ADC test pattern
-        for a in range(0,8,1):
+        for a in range(0,self.NASICS,1):
                 print("Test ADC " + str(a))
                 unsync = self.testUnsync(a)
                 if unsync != 0:
@@ -159,7 +159,7 @@ class FEMB_CONFIG(object):
 
     def testUnsync(self, adc):
         adcNum = int(adc)
-        if (adcNum < 0 ) or (adcNum > 7 ):
+        if (adcNum < 0 ) or (adcNum >= self.NASICS ):
                 print("femb_config_femb : testLink - invalid asic number")
                 return
         
@@ -185,7 +185,7 @@ class FEMB_CONFIG(object):
 
     def fixUnsync(self, adc):
         adcNum = int(adc)
-        if (adcNum < 0 ) or (adcNum > 7 ):
+        if (adcNum < 0 ) or (adcNum >= self.NASICS ):
                 print("femb_config_femb : testLink - invalid asic number")
                 return
 
