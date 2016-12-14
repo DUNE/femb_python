@@ -69,7 +69,7 @@ class RigolDG4000(object):
         offset offset in V
         """
         if offset - amp < VMIN or offset + amp > VMAX:
-            raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
+            raise Exception("Voltage swings outside of {} to {} V, may damage things, amp={} offset={}".format(VMIN,VMAX,amp,offset))
         commands = [
             self.sourceString+":FUNCtion SINusoid",
             self.sourceString+":FREQuency {:f}".format(freq),
@@ -105,9 +105,9 @@ class RigolDG4000(object):
         maxV maximum voltage in V
         """
         if minV < VMIN or minV > VMAX:
-            raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
+            raise Exception("Voltage swings outside of {} to {} V, may damage things, minV={}, maxV={}".format(VMIN,VMAX,minV,maxV))
         if maxV < VMIN or maxV > VMAX:
-            raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
+            raise Exception("Voltage swings outside of {} to {} V, may damage things, minV={}, maxV={}".format(VMIN,VMAX,minV,maxV))
         if minV >= maxV:
             raise Exception("Ramp minVoltage {} >= maxVoltage {}".format(minV,maxV))
         commands = [

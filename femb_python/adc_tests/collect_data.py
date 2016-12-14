@@ -73,14 +73,26 @@ class COLLECT_DATA(object):
                         xHigh = 3.5
                     if xLow < 0.:
                         xLow = 0.
-                    #hist = self.makeRampHist(iChip,iChan,xLow,xHigh,nSamples,fake)
+                    ## Ramp
                     freq = 734
                     self.funcgen.startRamp(freq,xLow,xHigh)
                     self.config.selectChannel(iChip,iChan)
                     time.sleep(self.settlingTime)
                     offsetV = (xLow + xHigh)*0.5
                     amplitudeV = (xLow - xHigh)*0.5
-                    self.dumpWaveformRootFile(self.fileprefix,3,freq,offsetV,amplitudeV)
+                    thisfileprefix = self.fileprefix + "_chip{}_chan{}".format(iChip,iChan)
+                    self.dumpWaveformRootFile(thisfileprefix,3,freq,offsetV,amplitudeV)
+                    ## Sin
+                    for freq in numpy.logspace(3.,6.,6): #1kHz to 1MHz
+                      offsetV = x0 + 0.5*FSR
+                      amplitudeV = FSR*0.5
+                      self.funcgen.startSin(freq,amplitudeV,offsetV)
+                      self.dumpWaveformRootFile(thisfileprefix,2,freq,offsetV,amplitudeV,self.femb.MAX_NUM_PACKETS)
+        for freq in numpy.logspace(3.,6.,6): #1kHz to 1MHz
+          for amplitudeV in [0.25,0.75,1.25]:
+            offsetV = 1.5
+            self.funcgen.startSin(freq,amplitudeV,offsetV)
+            self.dumpWaveformRootFile(self.fileprefix,2,freq,offsetV,amplitudeV)
         self.funcgen.stop()
         return codeHists,bitHists
 
@@ -285,9 +297,10 @@ class COLLECT_DATA(object):
         avgerr = stddev/numpy.sqrt(len(samples))
         return avg, avgerr
 
-    def dumpWaveformRootFile(self,fileprefix,functype,freq,offsetV,amplitudeV):
+    def dumpWaveformRootFile(self,fileprefix,functype,freq,offsetV,amplitudeV,nPackets=None):
         filename = "{}_functype{}_freq{:.3f}_offset{:.3f}_amplitude{:.3f}.root".format(fileprefix,functype,freq,offsetV,amplitudeV)
-        nPackets = self.nPackets
+        if not nPackets:
+          nPackets = self.nPackets
         if functype > 1:
             nPackets = 100
         wrt = WRITE_ROOT_TREE(self.config,filename,nPackets)
@@ -302,7 +315,7 @@ def main():
     from ..configuration import CONFIG
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Collects data for ADC tests")
-    parser.addNPacketsArgs(False,50)
+    parser.addNPacketsArgs(False,100)
     #parser.add_argument("outfilename",help="Output root file name")
     args = parser.parse_args()
   

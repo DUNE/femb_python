@@ -43,7 +43,7 @@ class DYNAMIC_TESTS(object):
         if self.loadWaveformRootFileName:
             waveforms = self.loadWaveforms()
         else:
-            for freq in numpy.logspace(3,5.5,2):
+            for freq in numpy.logspace(3,6.0,6):
                 waveforms[freq] = {}
                 for amplitude in [0.75,1.25,1.45]:
                     waveforms[freq][amplitude] = self.getSinWaveforms(freq,self.offsetV,amplitude)
@@ -193,7 +193,7 @@ class DYNAMIC_TESTS(object):
 
         if not fake:
             samples = []
-            raw_data = self.femb.get_data(1)
+            raw_data = self.femb.get_data(self.femb.MAX_NUM_PACKETS)
             
             for samp in raw_data:
                 chNum = ((samp >> 12 ) & 0xF)
