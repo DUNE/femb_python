@@ -119,6 +119,7 @@ setup(
             'femb_gui=femb_python.configuration_window:main',
             'femb_show_trace_fft=femb_python.trace_fft_window:main',
             'femb_dump_data_root=femb_python.write_root_tree:main',
+            'femb_show_trace_root=femb_python.helper_scripts.show_trace_root:main',
 
             'femb_init_board=femb_python.helper_scripts.init_board:main',
             'femb_read_reg=femb_python.helper_scripts.read_reg:main',
@@ -131,7 +132,7 @@ setup(
 
             'femb_adc_static_tests=femb_python.adc_tests.static_tests:main',
             'femb_adc_dynamic_tests=femb_python.adc_tests.dynamic_tests:main',
-            'femb_show_trace_root=femb_python.helper_scripts.show_trace_root:main',
+            'femb_adc_collect_data=femb_python.adc_tests.collect_data:main',
         ],
         #'gui_scripts': [
         #    'femb_test=femb_python.gui:main',
