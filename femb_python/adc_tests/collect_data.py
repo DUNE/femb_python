@@ -57,6 +57,7 @@ class COLLECT_DATA(object):
         fig, ax = plt.subplots(figsize=(8,8))
         codeHists = []
         bitHists = []
+        freqList =numpy.concatenate((numpy.logspace(3.01,5.95,4),numpy.linspace(1.000123e4,9.515125e5,4)[1:]))
         for iChip in range(self.NASICS):
             for iChan in range(16):
                 x0 = None
@@ -83,12 +84,12 @@ class COLLECT_DATA(object):
                     thisfileprefix = self.fileprefix + "_chip{}_chan{}".format(iChip,iChan)
                     self.dumpWaveformRootFile(thisfileprefix,3,freq,offsetV,amplitudeV)
                     ## Sin
-                    for freq in numpy.logspace(3.,6.,6): #1kHz to 1MHz
+                    for freq in freqList:
                       offsetV = x0 + 0.5*FSR
                       amplitudeV = FSR*0.5
                       self.funcgen.startSin(freq,amplitudeV,offsetV)
                       self.dumpWaveformRootFile(thisfileprefix,2,freq,offsetV,amplitudeV,self.femb.MAX_NUM_PACKETS)
-        for freq in numpy.logspace(3.,6.,6): #1kHz to 1MHz
+        for freq in freqList:
           for amplitudeV in [0.25,0.75,1.25]:
             offsetV = 1.5
             self.funcgen.startSin(freq,amplitudeV,offsetV)

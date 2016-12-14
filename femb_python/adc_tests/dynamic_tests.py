@@ -26,28 +26,13 @@ class DYNAMIC_TESTS(object):
         """
         self.config = config
         self.NASICS = config.NASICS
-        self.femb = FEMB_UDP()
-        self.funcgen = RigolDG4000("/dev/usbtmc0")
-        self.settlingTime = 0.1
         self.signalLeakageWidthBins = 20
         self.harmonicLeakageWidthBins = 20
         self.nHarmonics = 5 # total harmonic distortion includes up to this harmonic (and S/N excludes them)
-        self.offsetV = 1.5
-        self.waveformRootFileName = None
-        self.loadWaveformRootFileName = None
-        self.iRun = 0
         self.nBits = 12
 
-    def analyze(self,fake=False):
-        waveforms = {}
-        if self.loadWaveformRootFileName:
-            waveforms = self.loadWaveforms()
-        else:
-            for freq in numpy.logspace(3,6.0,6):
-                waveforms[freq] = {}
-                for amplitude in [0.75,1.25,1.45]:
-                    waveforms[freq][amplitude] = self.getSinWaveforms(freq,self.offsetV,amplitude)
-            self.funcgen.stop()
+    def analyze(self,fileprefix):
+        waveforms = self.loadWaveforms(fileprefix)
         print(waveforms.keys())
         frequencies = sorted(list(waveforms.keys()))
         for iChip in range(self.NASICS):
@@ -126,8 +111,10 @@ class DYNAMIC_TESTS(object):
 
         thdDenom = 0.
 
+        print(fft.shape,fftAmplitude.shape,fftAmplitudeRelative.shape,fftAmplitudeRelativeDB.shape,len(fftAmplitudeRelativeDB))
         for iHarmonic in range(2,self.nHarmonics+1):
             iBin = self.getHarmonicBin(iMax,iHarmonic,len(fftAmplitudeRelativeDB))
+            print(iBin)
 
             thdDenom += fftAmplitude[iBin]
 
@@ -208,11 +195,11 @@ class DYNAMIC_TESTS(object):
         else:
             raise NotImplementedError()
 
-    def loadWaveforms(self):
+    def loadWaveforms(self,fileprefix):
         """
         result[freq][amp][iChip][iChan][iSample]
         """
-        filenames = glob.glob(self.loadWaveformRootFileName+"*.root")
+        filenames = glob.glob(fileprefix+"_functype2_"+"*.root")
         files = []
         trees = []
         metadataTrees = []
@@ -296,14 +283,15 @@ class DYNAMIC_TESTS(object):
         result = result % (nBins*2)
         if result >= nBins:
             result = 2*nBins - result
+        if result == nBins:
+            result = 0
         return result
 
 def main():
     from ..configuration.argument_parser import ArgumentParser
     from ..configuration import CONFIG
     parser = ArgumentParser(description="Dynamic (AC) tests of the ADC using FFT")
-    parser.addDumpWaveformRootFileArgs()
-    parser.addLoadWaveformRootFileArgs()
+    parser.addLoadWaveformRootFileArgs(True)
     parser.addNPacketsArgs(False,10)
     #parser.add_argument("outfilename",help="Output root file name")
     args = parser.parse_args()
@@ -311,8 +299,4 @@ def main():
     config = CONFIG()
   
     dynamic_tests = DYNAMIC_TESTS(config)
-    if args.dumpWaveformRootFile:
-        dynamic_tests.waveformRootFileName = args.dumpWaveformRootFile
-    if args.loadWaveformRootFile:
-        dynamic_tests.loadWaveformRootFileName = args.loadWaveformRootFile
-    dynamic_tests.analyze()
+    dynamic_tests.analyze(args.loadWaveformRootFile)

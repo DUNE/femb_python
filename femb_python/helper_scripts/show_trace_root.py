@@ -56,7 +56,7 @@ def main():
       fig, axs = plt.subplots(4,4)
       print(axs)
       for iChan in waveforms[iChip]:
-        ax = axs[iChan % 4][iChan // 4]
+        ax = axs[iChan // 4][iChan % 4]
         waveform = waveforms[iChip][iChan]
         ax.plot(waveform)
         ax.set_title("Chip: {} Channel: {}".format(iChip,iChan))
