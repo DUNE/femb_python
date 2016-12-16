@@ -53,6 +53,78 @@ class FEMB_CONFIG:
         print("Reset")
     def initBoard(self):
         print("Init")
+        
+        #WIB initialization
+
+        #set UDP ports to WIB registers
+        self.femb.UDP_PORT_WREG = 32000
+        self.femb.UDP_PORT_RREG = 32001
+        self.femb.UDP_PORT_RREGRESP = 32002
+
+        #register 2, LED
+        self.femb.write_reg_bits(2 , 0, 0xFF, 0 )
+
+        #clock select (firmware version dependent)
+        self.femb.write_reg_bits(4 , 2, 0x3, 2 )
+
+        #FEMB0 power enable
+        self.femb.write_reg_bits(8 , 0, 0x1, 1 ) #3.6V
+        self.femb.write_reg_bits(8 , 1, 0x1, 1 ) #2.8V
+        self.femb.write_reg_bits(8 , 2, 0x1, 1 ) #2.5V
+        self.femb.write_reg_bits(8 , 3, 0x1, 1 ) #1.5V
+        self.femb.write_reg_bits(8 , 16, 0x1, 1 ) #BIAS enable
+
+        #FEMB0 initialization
+        self.selectFemb(0)
+
+        #phase control
+        self.femb.write_reg_bits(6 , 0, 0xFF, 0xAF )
+
+        self.femb.write_reg_bits(9 , 0, 0x1, 1 ) #Enable streaming
+        self.femb.write_reg_bits(9 , 3, 0x1, 1 ) #Enable ADC data
+
+        #Set FE ASIC SPI configuration registers
+        self.configFeAsic(0,0,0)
+
+        #Set ADC SPI configuration registers
+        self.femb.write_reg_bits(512, 0, 0xFFFFFFFF, 0xc0c0c0c)
+        self.femb.write_reg_bits(513, 0, 0xFFFFFFFF, 0xc0c0c0c)
+        self.femb.write_reg_bits(514, 0, 0xFFFFFFFF, 0xc0c0c0c)
+        self.femb.write_reg_bits(515, 0, 0xFFFFFFFF, 0xc0c0c0c)
+        self.femb.write_reg_bits(516, 0, 0xFFFFFFFF, 0xc0c0c0c)
+        self.femb.write_reg_bits(517, 0, 0xFFFFFFFF, 0xc0c0c0c)
+        self.femb.write_reg_bits(518, 0, 0xFFFFFFFF, 0xc0c0c0c)
+        self.femb.write_reg_bits(519, 0, 0xFFFFFFFF, 0xc0c0c0c)
+        self.femb.write_reg_bits(520, 0, 0xFFFFFFFF, 0x19351935)
+        self.femb.write_reg_bits(521, 0, 0xFFFFFFFF, 0x18181818)
+        self.femb.write_reg_bits(522, 0, 0xFFFFFFFF, 0x18181818)
+        self.femb.write_reg_bits(523, 0, 0xFFFFFFFF, 0x18181818)
+        self.femb.write_reg_bits(524, 0, 0xFFFFFFFF, 0x18181818)
+        self.femb.write_reg_bits(525, 0, 0xFFFFFFFF, 0x18181818)
+        self.femb.write_reg_bits(526, 0, 0xFFFFFFFF, 0x18181818)
+        self.femb.write_reg_bits(527, 0, 0xFFFFFFFF, 0x18181818)
+        self.femb.write_reg_bits(528, 0, 0xFFFFFFFF, 0x6a186a18)
+        self.femb.write_reg_bits(529, 0, 0xFFFFFFFF, 0x30323032)
+        self.femb.write_reg_bits(530, 0, 0xFFFFFFFF, 0x30303030)
+        self.femb.write_reg_bits(531, 0, 0xFFFFFFFF, 0x30303030)
+        self.femb.write_reg_bits(532, 0, 0xFFFFFFFF, 0x30303030)
+        self.femb.write_reg_bits(533, 0, 0xFFFFFFFF, 0x30303030)
+        self.femb.write_reg_bits(534, 0, 0xFFFFFFFF, 0x30303030)
+        self.femb.write_reg_bits(535, 0, 0xFFFFFFFF, 0x30303030)
+        self.femb.write_reg_bits(536, 0, 0xFFFFFFFF, 0x30303030)
+        self.femb.write_reg_bits(537, 0, 0xFFFFFFFF, 0x64d464d4)
+        self.femb.write_reg_bits(538, 0, 0xFFFFFFFF, 0x60606060)
+        self.femb.write_reg_bits(539, 0, 0xFFFFFFFF, 0x60606060)
+        self.femb.write_reg_bits(540, 0, 0xFFFFFFFF, 0x60606060)
+        self.femb.write_reg_bits(541, 0, 0xFFFFFFFF, 0x60606060)
+        self.femb.write_reg_bits(542, 0, 0xFFFFFFFF, 0x60606060)
+        self.femb.write_reg_bits(543, 0, 0xFFFFFFFF, 0x60606060)
+        self.femb.write_reg_bits(544, 0, 0xFFFFFFFF, 0x60606060)
+        self.femb.write_reg_bits(545, 0, 0xFFFFFFFF, 0xa860a860)
+        self.femb.write_reg_bits(546, 0, 0xFFFFFFFF, 0x90009)
+
+        self.doFeAsicConfig()
+        self.doAdcAsicConfig()
 
     def selectChannel(self,asic,chan):
         print("Select channel")
