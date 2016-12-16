@@ -286,7 +286,7 @@ class FEMB_CONFIG:
 
         for reg in range(0,256,1):
             regVal = self.read_reg_SI5338(reg)
-            print( "reg " + str(reg) "\tval " + str(regVal) )
+            print( "reg " + str(reg) + "\tval " + str(hex(int(regVal))) )
 
         self.selectFemb(0)
 
@@ -306,7 +306,7 @@ class FEMB_CONFIG:
         self.femb.write_reg( 10, 2)
         self.femb.write_reg( 10, 0)
 
-        regVal = self.femb.read_reg( addrVal )
+        regVal = self.femb.read_reg(14)
         return regVal
 
     def write_reg_SI5338(self,addr,val):
