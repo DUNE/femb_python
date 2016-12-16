@@ -284,13 +284,44 @@ class FEMB_CONFIG:
         self.femb.UDP_PORT_RREGRESP = 32002
        
 
- 
-
+        for reg in range(0,256,1):
+            regVal = self.read_reg_SI5338(reg)
+            print( "reg " + str(reg) "\tval " + str(regVal) )
 
         self.selectFemb(0)
 
     def read_reg_SI5338(self,addr):
-        
+        addrVal = int(addr)
+        if (addrVal < 0 ) or (addrVal > 255):
+            return
+        self.femb.write_reg( 11, 0)
+        self.femb.write_reg( 12, addrVal)
+        self.femb.write_reg( 15, 0xE0)
+
+        self.femb.write_reg( 10, 1)
+        self.femb.write_reg( 10, 0)
+
+        self.femb.write_reg( 11, 1)
+
+        self.femb.write_reg( 10, 2)
+        self.femb.write_reg( 10, 0)
+
+        regVal = self.femb.read_reg( addrVal )
+        return regVal
+
+    def write_reg_SI5338(self,addr,val):
+        addrVal = int(addr)
+        if (addrVal < 0 ) or (addrVal > 255):
+            return
+        regVal = int(val)
+        if (regVal < 0 ) or (regVal > 255):
+            return
+        self.femb.write_reg( 11, 1)
+        self.femb.write_reg( 12, addrVal)
+        self.femb.write_reg( 13, regVal)
+
+        self.femb.write_reg( 10, 1)
+        self.femb.write_reg( 10, 0)
 
     #__INIT__#
     def __init__(self):
