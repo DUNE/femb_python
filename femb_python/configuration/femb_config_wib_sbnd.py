@@ -277,6 +277,21 @@ class FEMB_CONFIG:
             self.femb.UDP_PORT_RREG = 32065
             self.femb.UDP_PORT_RREGRESP = 32066
 
+    def initSI5338(self):
+        #set UDP ports to WIB
+        self.femb.UDP_PORT_WREG = 32000
+        self.femb.UDP_PORT_RREG = 32001
+        self.femb.UDP_PORT_RREGRESP = 32002
+       
+
+ 
+
+
+        self.selectFemb(0)
+
+    def read_reg_SI5338(self,addr):
+        
+
     #__INIT__#
     def __init__(self):
         #declare board specific registers
