@@ -346,6 +346,9 @@ class FEMB_CONFIG:
             val = int(femb_python.configuration.femb_config_wib_sbnd_si5338_data.data[3*wordNum+1])
             mask = int(femb_python.configuration.femb_config_wib_sbnd_si5338_data.data[3*wordNum+2])
 
+            if wordNum % 10 == 0:
+                print( "Writing SI5338 register # " + str(wordNum) + " out of 349") 
+
             if mask == 0:
                 continue
 
@@ -357,8 +360,6 @@ class FEMB_CONFIG:
                 writeVal = clear_curr_val | clear_new_val
             self.write_reg_SI5338(addr,writeVal)
             #print(str(addr) + "\t" + str(writeVal)) 
-            if wordNum % 10 == 0:
-                print( "Writing SI5338 register # " + str(wordNum) + " out of 349")
 
         #validate input clock status
 	#i2c_reg_rd(i2c_bus_base_addr, si5338_i2c_addr, 218);
