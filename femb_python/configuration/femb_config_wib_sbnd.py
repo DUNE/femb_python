@@ -65,7 +65,7 @@ class FEMB_CONFIG:
         self.femb.write_reg_bits(2 , 0, 0xFF, 0 )
 
         #clock select (firmware version dependent)
-        self.femb.write_reg_bits(4 , 2, 0x3, 2 )
+        #self.femb.write_reg_bits(4 , 2, 0x3, 2 )
 
         #FEMB0 power enable
         self.femb.write_reg_bits(8 , 0, 0x1, 1 ) #3.6V
@@ -301,18 +301,71 @@ class FEMB_CONFIG:
             if mask == 0:
                 continue
 
-            if mask == 0xFF:
-                self.write_reg_SI5338(addr,val)
-            else:
+            writeVal = val
+            if mask != 0xFF:
                 curr_val = self.read_reg_SI5338(addr)
                 clear_curr_val = curr_val & (~mask)
                 clear_new_val = val & mask
-                combined_val = clear_curr_val | clear_new_val
-                self.write_reg_SI5338(addr,combined_val)
+                writeVal = clear_curr_val | clear_new_val
+            self.write_reg_SI5338(addr,writeVal)
+            print(str(addr) + "\t" + str(writeVal)) 
 
-        for reg in range(0,256,1):
-            regVal = self.read_reg_SI5338(reg)
-            print( "reg " + str(reg) + "\tval " + str(hex(int(regVal))) )
+        #validate input clock status
+	#i2c_reg_rd(i2c_bus_base_addr, si5338_i2c_addr, 218);
+        clkStatus = (self.read_reg_SI5338(218) & 0x04)
+        count = 0
+        while count < 100:
+            clkStatus = (self.read_reg_SI5338(218) & 0x04)
+            if clkStatus != 0x04:
+                break
+            count = count + 1
+        if clkStatus == 0x04:
+            print( "Did not finish clock initialization")
+            return
+
+        #configure pll
+        pllWord = int(femb_python.configuration.femb_config_wib_sbnd_si5338_data.data[3*49+1])
+        self.write_reg_SI5338(49,(0x7F & pllWord)) 
+        
+        #reset the chip
+        self.write_reg_SI5338(246,0x02)
+
+        time.sleep(0.1)
+
+        #restart lol
+        self.write_reg_SI5338(241,0x65)
+
+        #validate pll
+        pllStatus = self.read_reg_SI5338(218)
+        count = 0
+        while count < 100:
+            pllStatus = self.read_reg_SI5338(218)
+            if pllStatus == 0 :
+                break
+            count = count + 1
+        if pllStatus != 0:
+            print("Did not finish clock initialization")
+            return
+
+        #copy FCAL values to active registers 
+        fcalVal = self.read_reg_SI5338(235)
+        self.write_reg_SI5338(45,fcalVal)
+ 
+        fcalVal = self.read_reg_SI5338(236)
+        self.write_reg_SI5338(46,fcalVal)
+
+        fcalVal = self.read_reg_SI5338(237)
+        fcalVal = ( 0x14 | ( fcalVal & 0x3) )
+        self.write_reg_SI5338(47,fcalVal)
+
+        #set pll to use FCAL values
+        #i2c_reg_wr(i2c_bus_base_addr, si5338_i2c_addr, 49, 0x80|SI5338Reg[49*3+1]);
+        setPllWord = ( 0x80 | pllWord )
+        self.write_reg_SI5338(49, setPllWord )
+
+        #enable outputs
+        self.write_reg_SI5338(230,0x00)
+        print("Done initalizing Si5338 clock")
 
     def read_reg_SI5338(self,addr):
         addrVal = int(addr)
