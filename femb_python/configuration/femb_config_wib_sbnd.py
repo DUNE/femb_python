@@ -283,12 +283,36 @@ class FEMB_CONFIG:
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
        
+        #disable all outputs
+        #i2c_reg_wr(i2c_bus_base_addr, si5338_i2c_addr, 230, 0x10);
+        self.write_reg_SI5338(230,0x10)
+
+        #pause lol
+	#i2c_reg_wr(i2c_bus_base_addr, si5338_i2c_addr, 241, 0xE5);
+        self.write_reg_SI5338(241,0xE5)
+
+        import femb_python.configuration.femb_config_wib_sbnd_si5338_data
+        for word in range(0,349,1):
+            wordNum = int(word)
+            addr = int(femb_python.configuration.femb_config_wib_sbnd_si5338_data.data[3*wordNum+0])
+            val = int(femb_python.configuration.femb_config_wib_sbnd_si5338_data.data[3*wordNum+1])
+            mask = int(femb_python.configuration.femb_config_wib_sbnd_si5338_data.data[3*wordNum+2])
+
+            if mask == 0:
+                continue
+
+            if mask == 0xFF:
+                self.write_reg_SI5338(addr,val)
+            else:
+                curr_val = self.read_reg_SI5338(addr)
+                clear_curr_val = curr_val & (~mask)
+                clear_new_val = val & mask
+                combined_val = clear_curr_val | clear_new_val
+                self.write_reg_SI5338(addr,combined_val)
 
         for reg in range(0,256,1):
             regVal = self.read_reg_SI5338(reg)
             print( "reg " + str(reg) + "\tval " + str(hex(int(regVal))) )
-
-        self.selectFemb(0)
 
     def read_reg_SI5338(self,addr):
         addrVal = int(addr)
