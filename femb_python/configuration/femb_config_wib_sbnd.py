@@ -49,11 +49,17 @@ class FEASIC_CH_CONFIG:
                   ((shapeArray[shapeVal] & 0x03)<<2)  + ((acdcVal & 0x01)<<1) + ((bufVal & 0x01)<<0)
 
 class FEMB_CONFIG:
+
     def resetBoard(self):
         print("Reset")
+
     def initBoard(self):
-        print("Init")
+        self.initWib()
+        for femb in range(0,4,1):
+            self.initFemb(femb)
         
+    def initWib(self):
+
         #WIB initialization
 
         #set UDP ports to WIB registers
@@ -67,19 +73,36 @@ class FEMB_CONFIG:
         #clock select (firmware version dependent)
         #self.femb.write_reg_bits(4 , 2, 0x3, 2 )
 
-        #FEMB0 power enable
-        self.femb.write_reg_bits(8 , 0, 0x1, 1 ) #3.6V
-        self.femb.write_reg_bits(8 , 1, 0x1, 1 ) #2.8V
-        self.femb.write_reg_bits(8 , 2, 0x1, 1 ) #2.5V
-        self.femb.write_reg_bits(8 , 3, 0x1, 1 ) #1.5V
-        self.femb.write_reg_bits(8 , 16, 0x1, 1 ) #BIAS enable
+        #initialize clock
+        self.initSI5338()
 
-        #FEMB0 initialization
-        self.selectFemb(0)
+        #return register interface to FEMB
+        self.selectFemb(self.fembNum)
+
+    def initFemb(self,femb):
+        fembVal = int(femb)
+        if (fembVal < 0) or (fembVal > 3 ):
+            return
+
+        #check if FEMB register interface is working
+        self.selectFemb(fembVal)
+        print("Checking register interface")
+        regVal = self.write_data.femb.read_reg(6)
+        if (regVal == None) or (regVal == -1):
+            print("Error - FEMB register interface is not working.")
+            print(" Will not initialize FEMB.")       
+            return
+
+        #FEMB power enable on WIB
+        self.powerOnFemb(fembVal)
+
+        #Make sure register interface is for correct FEMB
+        self.selectFemb(fembVal)
 
         #phase control
         self.femb.write_reg_bits(6 , 0, 0xFF, 0xAF )
 
+        #enable streaming
         self.femb.write_reg_bits(9 , 0, 0x1, 1 ) #Enable streaming
         self.femb.write_reg_bits(9 , 3, 0x1, 1 ) #Enable ADC data
 
@@ -123,8 +146,32 @@ class FEMB_CONFIG:
         self.femb.write_reg_bits(545, 0, 0xFFFFFFFF, 0xa860a860)
         self.femb.write_reg_bits(546, 0, 0xFFFFFFFF, 0x90009)
 
+        #do the actual SPI programming
         self.doFeAsicConfig()
         self.doAdcAsicConfig()
+
+    #FEMB power enable on WIB
+    def powerOnFemb(self,femb):
+        fembVal = int(femb)
+        if (fembVal < 0) or (fembVal > 3 ):
+            return
+
+        #set UDP ports to WIB registers
+        self.femb.UDP_PORT_WREG = 32000
+        self.femb.UDP_PORT_RREG = 32001
+        self.femb.UDP_PORT_RREGRESP = 32002
+
+        regBase = int( fembVal * 4)
+
+        #FEMB power enable
+        self.femb.write_reg_bits(8 , regBase + 0, 0x1, 1 ) #3.6V
+        self.femb.write_reg_bits(8 , regBase + 1, 0x1, 1 ) #2.8V
+        self.femb.write_reg_bits(8 , regBase + 2, 0x1, 1 ) #2.5V
+        self.femb.write_reg_bits(8 , regBase + 3, 0x1, 1 ) #1.5V
+        self.femb.write_reg_bits(8 , 16 + fembVal, 0x1, 1 ) #BIAS enable
+
+        #return register interface to FEMB
+        self.selectFemb(self.fembNum)
 
     def selectChannel(self,asic,chan):
         print("Select channel")
@@ -239,6 +286,7 @@ class FEMB_CONFIG:
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
         print("Set Pulser")
+
     def syncADC(self):
         print("Sync")
 
@@ -308,7 +356,9 @@ class FEMB_CONFIG:
                 clear_new_val = val & mask
                 writeVal = clear_curr_val | clear_new_val
             self.write_reg_SI5338(addr,writeVal)
-            print(str(addr) + "\t" + str(writeVal)) 
+            #print(str(addr) + "\t" + str(writeVal)) 
+            if wordNum % 10 == 0:
+                print( "Writing SI5338 register # " + str(wordNum) + " out of 349")
 
         #validate input clock status
 	#i2c_reg_rd(i2c_bus_base_addr, si5338_i2c_addr, 218);
