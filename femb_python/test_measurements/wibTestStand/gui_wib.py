@@ -6,7 +6,7 @@ from time import sleep
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
-import trace_fft_window
+import trace_fft_window_wib
 from femb_python.configuration.femb_config_wib_sbnd import FEMB_CONFIG
 
 import numpy as np
@@ -95,18 +95,6 @@ class CONFIGURATION_WINDOW(Gtk.Window):
         self.writereg_entry.set_text("Enter Register Value")
         writereg_box.pack_start(self.writereg_entry,True, True, 0)
 
-        #add select femb button + associated field to command column
-        selectfemb_box = Gtk.HBox(True,0)
-        vbox_cmd.pack_start(selectfemb_box, False, False, 0)
-
-        selectfemb_button = Gtk.Button.new_with_label("Select FEMB")
-        selectfemb_button.connect("clicked", self.call_selectFemb)
-        selectfemb_box.pack_start(selectfemb_button, True, True, 0)
-
-        self.selectfemb_entry = Gtk.Entry()
-        self.selectfemb_entry.set_text("Enter FEMB Number 0-3")
-        selectfemb_box.pack_start(self.selectfemb_entry,True, True, 0)
-
         #add reset plot button to command column
         reset_plot_button = Gtk.Button.new_with_label("Show/Reset Plots")
         reset_plot_button.connect("clicked", self.reset_plot)
@@ -135,13 +123,37 @@ class CONFIGURATION_WINDOW(Gtk.Window):
         init_box = Gtk.HBox(True,0)
         vbox_config.pack_start(init_box, False, False, 0)
 
-        init_button = Gtk.Button.new_with_label("Initialize")
+        init_button = Gtk.Button.new_with_label("Initialize Everything")
         init_button.connect("clicked", self.call_initialize)
         init_box.pack_start(init_button, True, True, 0)
 
-        init_entry = Gtk.Entry()
-        init_entry.set_text("Initialization Status")
-        init_box.pack_start(init_entry, True, True, 0)
+        #add initializate WIB button
+        initwib_box = Gtk.HBox(True,0)
+        vbox_config.pack_start(initwib_box, False, False, 0)
+
+        initwib_button = Gtk.Button.new_with_label("Initialize WIB")
+        initwib_button.connect("clicked", self.call_initialize_wib)
+        initwib_box.pack_start(initwib_button, True, True, 0)
+
+        #add select femb button + associated field to command column
+        selectfemb_box = Gtk.HBox(True,0)
+        vbox_config.pack_start(selectfemb_box, False, False, 0)
+
+        selectfemb_button = Gtk.Button.new_with_label("Select FEMB")
+        selectfemb_button.connect("clicked", self.call_selectFemb)
+        selectfemb_box.pack_start(selectfemb_button, True, True, 0)
+
+        self.selectfemb_entry = Gtk.Entry()
+        self.selectfemb_entry.set_text("0")
+        selectfemb_box.pack_start(self.selectfemb_entry,True, True, 0)
+
+        #add initializate FEMB button
+        initfemb_box = Gtk.HBox(True,0)
+        vbox_config.pack_start(initfemb_box, False, False, 0)
+
+        initfemb_button = Gtk.Button.new_with_label("Initialize Selected FEMB")
+        initfemb_button.connect("clicked", self.call_initialize_femb)
+        initfemb_box.pack_start(initfemb_button, True, True, 0)
 
         #add select channel button + associated field to configuration column
         selectChannel_box = Gtk.HBox(True,0)
@@ -268,6 +280,14 @@ class CONFIGURATION_WINDOW(Gtk.Window):
         #print "call_initialize"
         self.femb_config.initBoard()
 
+    def call_initialize_wib(self, button):
+        #print "call_initialize"
+        self.femb_config.initWib()
+
+    def call_initialize_femb(self, button):
+        #print "call_initialize"
+        self.femb_config.initFemb(self.femb_config.fembNum)
+
     def call_selectChannel(self, button):
         #print str(self.selectChannel_entry.get_text())
         chVal = int(self.selectChannel_entry.get_text())
@@ -297,13 +317,13 @@ class CONFIGURATION_WINDOW(Gtk.Window):
           if self.plot_window.get_property("visible"):
             self.plot_window.reset()
           else:
-            self.plot_window = trace_fft_window.TRACE_FFT_WINDOW()
+            self.plot_window = trace_fft_window_wib.TRACE_FFT_WINDOW_WIB()
         except AttributeError:
-            self.plot_window = trace_fft_window.TRACE_FFT_WINDOW()
+            self.plot_window = trace_fft_window_wib.TRACE_FFT_WINDOW_WIB()
 
 def main():
     app = CONFIGURATION_WINDOW()
-    app.reset_plot(None)
+    #app.reset_plot(None)
     app.connect("delete-event", Gtk.main_quit)
     app.connect("destroy", Gtk.main_quit)
     Gtk.main()

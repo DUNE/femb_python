@@ -11,7 +11,7 @@ from matplotlib import animation
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
 from femb_python.femb_udp import FEMB_UDP
 
-class TRACE_FFT_WINDOW(Gtk.Window):
+class TRACE_FFT_WINDOW_WIB(Gtk.Window):
   """
   This window displays a live ADC redout and its FFT
   """
@@ -71,7 +71,8 @@ class TRACE_FFT_WINDOW(Gtk.Window):
     """
     Yfft_total = []
     first = 1
-    data = self.femb.get_data(10)
+    #data = self.femb.get_data(10)
+    data = self.femb.get_data_packets(10)
     if data == None:
         #time.sleep(1.)
         return None, None, None, None
@@ -82,6 +83,9 @@ class TRACE_FFT_WINDOW(Gtk.Window):
     ypoint = []
     num = 0
     
+    print( data )
+
+    return
     for samp in data:
         chNum = ((samp >> 12 ) & 0xF)
         sampVal = (samp & 0xFFF)
