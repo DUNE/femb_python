@@ -54,6 +54,7 @@ You shouldn't need to redo anything unless you change setup.py or the C++
 files. In that case, from this directory, just run:
 
 ./setup.sh
+
 pip install -e .
 
 ## Adding new commands
