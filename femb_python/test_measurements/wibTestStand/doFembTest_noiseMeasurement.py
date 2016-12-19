@@ -49,7 +49,8 @@ class FEMB_TEST:
 
         #initialize FEMB to known state
         print("Initializing board")
-        self.femb_config.initBoard()
+        #self.femb_config.initBoard()
+        self.femb_config.initFemb(self.femb_config.fembNum)
 
         #check if data streaming is working
         print("Checking data streaming")
@@ -171,6 +172,13 @@ class FEMB_TEST:
         self.status_archive_results = 1
 
 def main():
+
+    femb_test = FEMB_TEST()
+    femb_test.femb_config.selectFemb(0)
+    femb_test.check_setup()
+    femb_test.record_data()
+
+    """
     #loop over all 4 WIB FEMBs
     for femb in range(0,4,1):
         femb_test = FEMB_TEST()
@@ -179,6 +187,6 @@ def main():
         femb_test.record_data()
         femb_test.do_analysis()
         #femb_test.archive_results()
-
+    """ 
 if __name__ == '__main__':
     main()

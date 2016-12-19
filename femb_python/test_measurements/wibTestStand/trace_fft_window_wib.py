@@ -2,6 +2,8 @@
 This module contains a class that displays a live ADC readout and its FFT.
 Configuration and channel selection are handled elsewhere.
 """
+import gi
+gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 import time
@@ -59,6 +61,8 @@ class TRACE_FFT_WINDOW_WIB(Gtk.Window):
     self.ax2.set_xlabel("Frequency [MHz]")
     self.ax2.set_ylabel("|Y(freq)|")
     t, adc, frq, ampl = self.getTraceAndFFT()
+    if t == None:
+        return None
     self.plot1 = self.ax1.plot(t,adc)
     self.plot2 = self.ax2.plot(frq, ampl,'r')
     self.canvas.draw()
@@ -72,7 +76,7 @@ class TRACE_FFT_WINDOW_WIB(Gtk.Window):
     Yfft_total = []
     first = 1
     #data = self.femb.get_data(10)
-    data = self.femb.get_data_packets(10)
+    data = self.femb.get_data_packets(1)
     if data == None:
         #time.sleep(1.)
         return None, None, None, None
@@ -82,10 +86,12 @@ class TRACE_FFT_WINDOW_WIB(Gtk.Window):
     xpoint = []
     ypoint = []
     num = 0
-    
-    print( data )
+   
+    print("HERE") 
+    for samp in data:
+        print(samp)
 
-    return
+    return None, None, None, None
     for samp in data:
         chNum = ((samp >> 12 ) & 0xF)
         sampVal = (samp & 0xFFF)
@@ -138,7 +144,7 @@ class TRACE_FFT_WINDOW_WIB(Gtk.Window):
     return xarr, yarr, frq, Yfft_norm
     
 def main():
-    window = TRACE_FFT_WINDOW()
+    window = TRACE_FFT_WINDOW_WIB()
     window.connect("delete-event", Gtk.main_quit)
     window.connect("destroy", Gtk.main_quit)
     Gtk.main()

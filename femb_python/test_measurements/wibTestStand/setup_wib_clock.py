@@ -11,7 +11,7 @@ def main():
 
     from femb_python.configuration.femb_config_wib_sbnd import FEMB_CONFIG
     femb_config = FEMB_CONFIG()
-    femb_config.initSI5338()
+    femb_config.initWib()
 
 if __name__ == '__main__':
     main()

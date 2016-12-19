@@ -323,7 +323,7 @@ class CONFIGURATION_WINDOW(Gtk.Window):
 
 def main():
     app = CONFIGURATION_WINDOW()
-    #app.reset_plot(None)
+    app.reset_plot(None)
     app.connect("delete-event", Gtk.main_quit)
     app.connect("destroy", Gtk.main_quit)
     Gtk.main()
