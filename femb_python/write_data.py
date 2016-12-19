@@ -1,3 +1,13 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import open
+from builtins import int
+from builtins import str
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import string
 from array import array
 from .femb_udp import FEMB_UDP
@@ -6,7 +16,7 @@ import datetime
 import time
 import struct
 
-class WRITE_DATA:
+class WRITE_DATA(object):
 
     def __init__(self):
         self.femb = FEMB_UDP()

@@ -1,9 +1,20 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import range
+from builtins import int
+from builtins import hex
+from builtins import str
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import sys 
 import string
 import time
 from femb_python.femb_udp import FEMB_UDP
 
-class FEASIC_CH_CONFIG:
+class FEASIC_CH_CONFIG(object):
     def __init__(self, num, regNum, regPos):
         numVal = int(num)
         regNumVal = int(regNum)
@@ -48,7 +59,7 @@ class FEASIC_CH_CONFIG:
         self.regval = ((testVal & 0x01)<<7) + ((baseVal & 0x01)<<6) + ((gainArray[gainVal] & 0x03)<<4) +\
                   ((shapeArray[shapeVal] & 0x03)<<2)  + ((acdcVal & 0x01)<<1) + ((bufVal & 0x01)<<0)
 
-class FEMB_CONFIG:
+class FEMB_CONFIG(object):
 
     def resetBoard(self):
         print("Reset")
