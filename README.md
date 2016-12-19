@@ -56,3 +56,32 @@ files. In that case, from this directory, just run:
 ./setup.sh
 pip install -e .
 
+## Adding new commands
+
+To add your new script, e.g. `femb_python/test_measurements/rocket/ship.py`,
+with main function `main` as a command line command `femb_rocket_ship`, add a
+line to  `setup.py` in the list `console_scripts` that looks like this:
+
+"femb_rocket_ship=femb_python.test_measurements.rocket.ship:main",
+
+## Calling compiled C++ executables from python
+
+Use the class in femb_python/configuration/cppfilerunner.py
+
+```python
+from .configuration.cppfilerunner import CPP_FILE_RUNNER
+
+cppfr = CPP_FILE_RUNNER()
+
+cppfr.call('test_measurements/example_femb_test/parseBinaryFile',["outfilename"])
+
+```
+
+The first argument to call is the path to the binary file from the femb_python
+directory, the second argument is a list of arguments to the called executable
+command.
+
+There is an example in:
+
+femb_python/test_measurements/example_femb_test/doFembTest_simpleMeasurement.py
+
