@@ -99,6 +99,13 @@ class FEMB_CONFIG:
         #Make sure register interface is for correct FEMB
         self.selectFemb(fembVal)
 
+        #turn off pulser
+        self.femb.write_reg_bits( 16, 0,0x1,0) #test pulse enable
+        self.femb.write_reg_bits( 16, 8,0x1,0) #test pulse enable
+        self.femb.write_reg_bits( 5, 0,0x1F,0x00) #test pulse amplitude
+        self.femb.write_reg_bits( 5, 16,0xFFFF,0x100) #test pulse frequency
+        self.femb.write_reg_bits( 5, 8,0xFF,0x00) #test pulse delay
+
         #phase control
         self.femb.write_reg_bits(6 , 0, 0xFF, 0xAF )
 
@@ -212,8 +219,8 @@ class FEMB_CONFIG:
                 chReg = chReg + 0x40
 
         #enable test capacitor here
-        #chReg = chReg + 0x80 #enabled
-        chReg = chReg + 0x0 #disabled
+        chReg = chReg + 0x80 #enabled
+        #chReg = chReg + 0x0 #disabled
 
         #need better organization of SPI, just store in words for now
         word1 = chReg + (chReg << 8) + (chReg << 16) + (chReg << 24)
