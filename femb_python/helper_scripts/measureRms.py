@@ -1,19 +1,29 @@
 #!/usr/bin/python3.4
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import range
+from builtins import int
+from builtins import round
+from builtins import str
+from future import standard_library
+standard_library.install_aliases()
 import sys 
 import string
 import time
 import math
 
 from ..femb_udp import FEMB_UDP
-from ..configuration import CONFIG, get_env_config_file
+from ..configuration import CONFIG
 
 def main():
-    config_file = get_env_config_file()
-    femb_config = CONFIG(config_file)
+    femb_config = CONFIG()
     noiseMeasurements = []
-    for ch in range(0,128,1):
+    for asic in range(0,femb_config.NASICS,1):
+      for ch in range(0,16,1):
         chan = int(ch)
-        femb_config.selectChannel( chan/16, chan % 16)
+        femb_config.selectChannel( asic, ch)
         time.sleep(0.05)
         data = femb_config.femb.get_data(1)
         meanAndRms = calcMeanAndRms(data)
@@ -25,7 +35,7 @@ def main():
         #print "Ch " + str(ch) + "\tRMS " + str(rms)
         noiseMeasurements.append(rms)
     
-    for asic in range(0,8,1):
+    for asic in range(0,femb_config.NASICS,1):
         line = "ASIC " + str(asic)
         baseCh = int(asic)*16
         for ch in range(baseCh,baseCh + 16,1):

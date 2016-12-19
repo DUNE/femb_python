@@ -82,6 +82,8 @@ setup(
     install_requires=[
         'numpy>=1.7.1',
         'matplotlib>=1.2.1',
+	'future>=0.15.2',
+	'configparser>=3.5.0',
     ],
 
     # List additional groups of dependencies here (e.g. development
@@ -117,6 +119,7 @@ setup(
             'femb_gui=femb_python.configuration_window:main',
             'femb_show_trace_fft=femb_python.trace_fft_window:main',
             'femb_dump_data_root=femb_python.write_root_tree:main',
+            'femb_show_trace_root=femb_python.helper_scripts.show_trace_root:main',
 
             'femb_init_board=femb_python.helper_scripts.init_board:main',
             'femb_read_reg=femb_python.helper_scripts.read_reg:main',
@@ -124,10 +127,12 @@ setup(
             'femb_dump_data=femb_python.helper_scripts.dump_data:main',
             'femb_select_channel=femb_python.helper_scripts.select_channel:main',
             'femb_measureRMS=femb_python.helper_scripts.measureRms:main',
+            'femb_sync_adc=femb_python.helper_scripts.sync_adc:main',
             'femb_config_adc=femb_python.helper_scripts.config_adc:main',
 
             'femb_adc_static_tests=femb_python.adc_tests.static_tests:main',
             'femb_adc_dynamic_tests=femb_python.adc_tests.dynamic_tests:main',
+            'femb_adc_collect_data=femb_python.adc_tests.collect_data:main',
         ],
         #'gui_scripts': [
         #    'femb_test=femb_python.gui:main',

@@ -1,8 +1,18 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import int
+from builtins import range
+from builtins import hex
+from builtins import str
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import sys 
 import string
 import time
-#from femb_udp_cmdline import FEMB_UDP
-from femb_python.femb_udp import FEMB_UDP
+from ..femb_udp import FEMB_UDP
 
 class FEASIC_CH_CONFIG:
     def __init__(self, num, regNum, regPos):
@@ -49,7 +59,7 @@ class FEASIC_CH_CONFIG:
         self.regval = ((testVal & 0x01)<<7) + ((baseVal & 0x01)<<6) + ((gainArray[gainVal] & 0x03)<<4) +\
                   ((shapeArray[shapeVal] & 0x03)<<2)  + ((acdcVal & 0x01)<<1) + ((bufVal & 0x01)<<0)
 
-class FEMB_CONFIG:
+class FEMB_CONFIG(object):
     def resetBoard(self):
         #Reset system
         self.femb.write_reg( self.REG_RESET, 1)
@@ -366,6 +376,7 @@ class FEMB_CONFIG:
         self.REG_LATCHLOC = 4
         self.REG_CLKPHASE = 6
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
+        self.NASICS = 8
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()

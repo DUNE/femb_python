@@ -1,8 +1,17 @@
 """
 Interface to Rigol DG4000 Function Generator
 """
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
 
+from builtins import open
+from future import standard_library
+standard_library.install_aliases()
 import time
+import os
+import sys
 
 VMIN=0.
 VMAX=3.5
@@ -12,12 +21,26 @@ class RigolDG4000(object):
     Interface to Rigol DG4000 Function Generator
     """
 
-    def __init__(self,filename,sourceNumber=1):
+    def __init__(self,filename,sourceNumber=None):
         """
         filename is the file descriptor for the usbtmc object like /dev/usbtmc0
-        sourceNumber is either 1 or 2
+        sourceNumber is either 1, 2, or None. if None, get from envvar FUNCGENSOURCENUM
         """
+
         self.filename = filename
+        if sourceNumber != 1 and sourceNumber != 2:
+          try:
+            sourceNumber = int(os.environ["FUNCGENSOURCENUM"])
+          except KeyError:
+            print("Error in Rigol Function Generator Setup: Environment variable FUNCGENSOURCENUM not found. Should be either 1 or 2")
+            sys.exit(1)
+          except ValueError:
+            print("Error in Rigol Function Generator Setup: Environment variable FUNCGENSOURCENUM='{}'. Should be either 1 or 2".format(os.environ["FUNCGENSOURCENUM"]))
+            sys.exit(1)
+          if sourceNumber != 1 and sourceNumber != 2:
+            print("Error in Rigol Function Generator Setup: Environment variable FUNCGENSOURCENUM='{}'. Should be either 1 or 2".format(sourceNumber))
+            sys.exit(1)
+        print("Using Rigol Channel {}".format(sourceNumber))
         self.sourceNumber = sourceNumber
         self.sourceString = ":SOURce{}".format(sourceNumber)
         self.outputString = ":OUTPut{}".format(sourceNumber)
@@ -46,7 +69,7 @@ class RigolDG4000(object):
         offset offset in V
         """
         if offset - amp < VMIN or offset + amp > VMAX:
-            raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
+            raise Exception("Voltage swings outside of {} to {} V, may damage things, amp={} offset={}".format(VMIN,VMAX,amp,offset))
         commands = [
             self.sourceString+":FUNCtion SINusoid",
             self.sourceString+":FREQuency {:f}".format(freq),
@@ -82,9 +105,9 @@ class RigolDG4000(object):
         maxV maximum voltage in V
         """
         if minV < VMIN or minV > VMAX:
-            raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
+            raise Exception("Voltage swings outside of {} to {} V, may damage things, minV={}, maxV={}".format(VMIN,VMAX,minV,maxV))
         if maxV < VMIN or maxV > VMAX:
-            raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
+            raise Exception("Voltage swings outside of {} to {} V, may damage things, minV={}, maxV={}".format(VMIN,VMAX,minV,maxV))
         if minV >= maxV:
             raise Exception("Ramp minVoltage {} >= maxVoltage {}".format(minV,maxV))
         commands = [

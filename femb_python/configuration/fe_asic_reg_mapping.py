@@ -1,8 +1,16 @@
 #!/usr/bin/env python33
 
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import range
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import string
 
-class FE_ASIC_REG_MAPPING:
+class FE_ASIC_REG_MAPPING(object):
 
 ####sec_chn_reg only sets a channel register, the other registers remains as before
     def set_fechn_reg(self, chip=0, chn=0, sts=0, snc=0, sg=0, st=0, sdc=0, sdf=0 ):
@@ -38,7 +46,7 @@ class FE_ASIC_REG_MAPPING:
 
             regs_bool5_8[pos:pos+8] = chn_reg_bool
         else:
-            print "FE Chip Number exceeds the maximum value"
+            print("FE Chip Number exceeds the maximum value")
 
         length = len(regs_bool1_4)/16
 
@@ -92,7 +100,7 @@ class FE_ASIC_REG_MAPPING:
                 pos = (7-chip)*136 + 128
                 regs_bool5_8[pos:pos+8] = global_reg_bool[0:8]
         else:
-            print "Chip Number exceeds the maximum value"
+            print("Chip Number exceeds the maximum value")
 
         length = len(regs_bool1_4)/16
 
@@ -119,31 +127,6 @@ class FE_ASIC_REG_MAPPING:
                        slk0 = 0, stb = 0, s16=0, slk1=0, swdac=0, dac=0):
         for chip in range(8):
             self.set_fechip( chip, sts, snc, sg, st, sdc, sdf, slk0, stb, s16, slk1, swdac, dac)
-
-    def __str__(self):
-        """
-        If you print a FE_ASIC_REG_MAPPING object, this will be called
-        """
-        nPerRow = 4
-        outString = ""
-        for iReg in range(len(self.REGS)):
-            if iReg % nPerRow == 0:
-                outString += "\n"
-            outString += "{:#010x} ".format(self.REGS[iReg])
-        return outString
-
-    def printBinary(self,register=-1):
-        """
-        Prints out registers in binary
-        """
-        outString = ""
-        if register >= 0:
-            outString += "{:#034b}\n".format(self.REGS[register])
-        else:
-          for iReg in range(len(self.REGS)):
-            outString += "{:#034b}\n".format(self.REGS[iReg])
-        print(outString)
-
 
     #__INIT__#
     def __init__(self):
@@ -173,25 +156,11 @@ class FE_ASIC_REG_MAPPING:
                          0x00000000, 0x00000000, 
                     ]
 
-if __name__ == "__main__":
-    a = FE_ASIC_REG_MAPPING()
-    print("FE Default Config:")
-    print(a)
-
-    a.REGS = [0 for reg in a.REGS]
-    a.set_fechn_reg(chip=7, chn=14, sts=1, snc=0, sg=0b0, st=0b0, sdc=0, sdf=0 )
-    print("Set chip 7 channel 14 only sts=1:")
-    print(a)
-    a.printBinary(0)
-
-    a.REGS = [0 for reg in a.REGS]
-    a.set_fechn_reg(chip=7, chn=15, sts=0, snc=0, sg=0b0, st=0b0, sdc=0, sdf=1 )
-    print("Set chip 7 channel 15 only sdf=1:")
-    print(a)
-    a.printBinary(0)
-
-    a.REGS = [0 for reg in a.REGS]
-    a.set_fechip_global(3, slk0 = 1, stb = 0b11, s16=1, slk1=1, swdac=0, dac=0)
-    print("Set chip 3 all globals:")
-    print(a)
-    a.printBinary(8)
+#a = FE_ASIC_REG_MAPPING()
+#print a.REGS
+#a.set_fe_sbnd_board(sts=1, slk0=1 )
+##a.set_fe_sbnd_board(dac=0x3f)
+##a.set_fechip (chip=4, sts=1, snc=0, sg=0 )
+##a.set_fechip_global (chip=0, swdac=1, dac=20)
+#for i in a.REGS:
+#    print hex(i)

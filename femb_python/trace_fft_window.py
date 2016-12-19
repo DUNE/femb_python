@@ -2,6 +2,12 @@
 This module contains a class that displays a live ADC readout and its FFT.
 Configuration and channel selection are handled elsewhere.
 """
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
+standard_library.install_aliases()
 from gi.repository import Gtk
 
 import time

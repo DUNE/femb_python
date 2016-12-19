@@ -1,6 +1,15 @@
+from __future__ import print_function
+from __future__ import division
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import range
+from future import standard_library
+standard_library.install_aliases()
 from ..femb_udp import FEMB_UDP
 from ..test_instrument_interface import RigolDG4000
+from ..write_root_tree import WRITE_ROOT_TREE
 import time
+import glob
 from uuid import uuid1 as uuid
 import numpy
 import matplotlib.pyplot as plt
@@ -17,35 +26,30 @@ class STATIC_TESTS(object):
         """
         self.config = config
         self.NASICS = config.NASICS
-        self.femb = FEMB_UDP()
-        self.funcgen = RigolDG4000("/dev/usbtmc0")
-        self.settlingTime = 0.1 # second
-        self.maxTries = 1000
-        self.fitMinV = 0.5
-        self.fitMaxV = 2.5
+        self.nBits = 12
 
-    def analyzeLinearity(self,nSamples,fake=False):
-        codeHists, bitHists = self.doHistograms(nSamples,fake)
+    def analyzeLinearity(self,fileprefix):
+        codeHists, bitHists = self.doHistograms(fileprefix)
         fig, ax = plt.subplots(figsize=(8,8))
         figmanyDNL = plt.figure(figsize=(8,8))
         figmanyINL = plt.figure(figsize=(8,8))
         for iChip in range(self.NASICS):
-            sumAllCodeHists = numpy.zeros(2**12)
+            sumAllCodeHists = numpy.zeros(2**self.nBits)
             figmanyDNL.clf()
             figmanyINL.clf()
             manyaxesDNL = []
             manyaxesINL = []
             for iChan in range(16):
                 manyaxesDNL.append(figmanyDNL.add_subplot(4,4,iChan+1))
-                manyaxesDNL[iChan].set_xlim(-256,2**12+256)
+                manyaxesDNL[iChan].set_xlim(-256,2**self.nBits+256)
                 manyaxesDNL[iChan].set_ylim(-10,30)
                 manyaxesDNL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
                 manyaxesINL.append(figmanyINL.add_subplot(4,4,iChan+1))
-                manyaxesINL[iChan].set_xlim(-256,2**12+256)
+                manyaxesINL[iChan].set_xlim(-256,2**self.nBits+256)
                 manyaxesINL[iChan].set_ylim(-200,100)
                 manyaxesINL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
                 #xticks = [x*1024 for x in range(5)]
-                xticks = [0,2048,4096]
+                xticks = [0,0.5*2**self.nBits,2**self.nBits]
                 manyaxesDNL[iChan].set_xticks(xticks)
                 manyaxesINL[iChan].set_xticks(xticks)
                 if iChan % 4 != 0:
@@ -68,19 +72,21 @@ class STATIC_TESTS(object):
                     dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(codeHist,True)
                     codeNumbers = numpy.arange(len(dnl))
                     ax.plot(codeNumbers,dnl,"k-",label="All Codes")
-                    ax.plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
                     manyaxesDNL[iChan].plot(codeNumbers,dnl,"k-",label="All Codes",lw=1)
-                    manyaxesDNL[iChan].plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
+                    if self.nBits == 12:
+                      ax.plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
+                      manyaxesDNL[iChan].plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("DNL [LSB]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                    ax.set_xticks([x*1024 for x in range(5)])
-                    ax.legend(loc='best')
+                    ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
+                    if self.nBits == 12:
+                      ax.legend(loc='best')
                     #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
                     #axFSR.set_label("DNL [% of FSR]")
                     filename = "ADC_DNL_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
-                    fig.savefig(filename+".pdf")
+                    #fig.savefig(filename+".pdf")
                     ax.cla()
                     ax.plot(codeNumbers,inl,"k-",label="All Codes")
                     manyaxesINL[iChan].plot(codeNumbers,inl,"k-",label="All Codes")
@@ -88,43 +94,45 @@ class STATIC_TESTS(object):
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("INL [LSB]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                    ax.set_xticks([x*1024 for x in range(5)])
+                    ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
                     #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
                     #axFSR.set_label("DNL [% of FSR]")
                     #ax.legend(loc='best')
                     filename = "ADC_INL_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
-                    fig.savefig(filename+".pdf")
+                    #fig.savefig(filename+".pdf")
                     ax.cla()
                 except KeyError as e:
                     pass
             filename = "ADC_DNL_Chip{}".format(iChip)
             figmanyDNL.savefig(filename+".png")
-            figmanyDNL.savefig(filename+".pdf")
+            #figmanyDNL.savefig(filename+".pdf")
             filename = "ADC_INL_Chip{}".format(iChip)
             figmanyINL.savefig(filename+".png")
-            figmanyINL.savefig(filename+".pdf")
+            #figmanyINL.savefig(filename+".pdf")
 
             dnlAll, inlAll = self.makeLinearityHistograms(sumAllCodeHists)
             dnlAllKillStuckCodes, inlAllKillStuckCodes = self.makeLinearityHistograms(sumAllCodeHists,True)
             codeNumbers = numpy.arange(len(dnlAll))
             ax.plot(codeNumbers,dnlAll,"k-",label="All Codes")
-            ax.plot(codeNumbers,dnlAllKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
+            if self.nBits == 12:
+              ax.plot(codeNumbers,dnlAllKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
             ax.set_xlabel("ADC Code")
             ax.set_ylabel("DNL [LSB]")
             ax.set_title("Using Histograms Summed Over Channels of Chip: {0}".format(iChip))
-            ax.set_xticks([x*1024 for x in range(5)])
-            ax.legend(loc='best')
+            ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
+            if self.nBits == 12:
+              ax.legend(loc='best')
             filename = "ADC_DNL_Sum_Chip{}".format(iChip)
             fig.savefig(filename+".png")
-            fig.savefig(filename+".pdf")
+            #fig.savefig(filename+".pdf")
             ax.cla()
 
             print("Chip: ",iChip)
             for code in codeNumbers[dnl > 1.5]:
                print("code: {}, code % 6: {} code % 12: {} code % 64: {}, bits: {:#014b} ".format(code,code % 6,code % 12, code % 64,code))
 
-    def doHistograms(self,nSamples,fake=False):
+    def doHistograms(self,fileprefix):
         """
         Creates histograms of data doing a linear ramp of 
         the full ADC range + 10% on each end.
@@ -137,13 +145,6 @@ class STATIC_TESTS(object):
             bitHists[iChip][iChan][iBit] = count
         """
 
-        linearFitData = None
-        if not fake:
-            linearFitData = self.doLinearFit(numpy.linspace(0.0,3.5,15),10)
-        else:
-            eachChip = [ {"x0":0.0001,"FSR":3.5} for j in range(16)]
-            linearFitData = [eachChip for i in range(self.NASICS)]
-
         fig, ax = plt.subplots(figsize=(8,8))
         codeHists = []
         bitHists = []
@@ -151,276 +152,47 @@ class STATIC_TESTS(object):
             codeHists.append({})
             bitHists.append({})
             for iChan in range(16):
-                x0 = linearFitData[iChip][iChan]["x0"]
-                FSR = linearFitData[iChip][iChan]["FSR"]
-                if x0:
-                    xLow = x0 - 0.1*FSR
-                    xHigh = x0 + 1.1*FSR
-                    if xHigh > 3.5: 
-                        xHigh = 3.5
-                    if xLow < 0.:
-                        xLow = 0.
-                    hist = self.makeRampHist(iChip,iChan,xLow,xHigh,nSamples,fake)
-                    codeHists[iChip][iChan] = hist
-                    ax.plot(range(len(hist)),hist,"ko")
-                    ax.set_xlabel("ADC Code")
-                    ax.set_ylabel("Entries / ADC Code")
-                    ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                    ax.set_xticks([x*1024 for x in range(5)])
-                    filename = "ADC_Hist_Chip{}_Chan{}".format(iChip,iChan)
-                    fig.savefig(filename+".png")
-                    fig.savefig(filename+".pdf")
-                    ax.cla()
+               hist = self.makeRampHist(iChip,iChan,fileprefix)
+               codeHists[iChip][iChan] = hist
+               ax.plot(range(len(hist)),hist,"ko")
+               ax.set_xlabel("ADC Code")
+               ax.set_ylabel("Entries / ADC Code")
+               ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+               ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
+               filename = "ADC_Hist_Chip{}_Chan{}".format(iChip,iChan)
+               fig.savefig(filename+".png")
+               #fig.savefig(filename+".pdf")
+               ax.cla()
 
-                    if iChan == 4:
-                        for modX in [6,8,12,16,64]:
-                            self.plotModXHistogram(hist,modX,iChip,iChan)
+               if iChan == 4:
+                   for modX in [6,8,12,16,64]:
+                       self.plotModXHistogram(hist,modX,iChip,iChan)
 
-                    bitHist = self.makeBitHistogram(hist)
-                    bitHists[iChip][iChan] = bitHist
-                    ax.plot(range(len(bitHist)),bitHist,"ko")
-                    ax.set_xlabel("ADC Bit")
-                    ax.set_ylabel("Entries / ADC Bit")
-                    ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                    ax.set_xlim(-1,12)
-                    ax.set_xticks(range(0,12))
-                    filename = "ADC_BitHist_Chip{}_Chan{}".format(iChip,iChan)
-                    fig.savefig(filename+".png")
-                    fig.savefig(filename+".pdf")
-                    ax.cla()
-        self.funcgen.stop()
+               bitHist = self.makeBitHistogram(hist)
+               bitHists[iChip][iChan] = bitHist
+               ax.plot(range(len(bitHist)),bitHist,"ko")
+               ax.set_xlabel("ADC Bit")
+               ax.set_ylabel("Entries / ADC Bit")
+               ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+               ax.set_xlim(-1,self.nBits)
+               ax.set_xticks(range(0,self.nBits))
+               filename = "ADC_BitHist_Chip{}_Chan{}".format(iChip,iChan)
+               fig.savefig(filename+".png")
+               #fig.savefig(filename+".pdf")
+               ax.cla()
         return codeHists,bitHists
 
-    def makeRampHist(self,iChip,iChan,xLow,xHigh,nSamples,fake=False):
+    def makeRampHist(self,iChip,iChan,fileprefix):
         """
         Makes a histogram of linear ramp data between xLow and xHigh 
         for iChip and iChan. The histogram will have at leas nSamples entries.
         """
         #print("makeRampHist: ",iChip,iChan,xLow,xHigh,nSamples)
 
-        if not fake:
-            self.funcgen.startRamp(734,xLow,xHigh)
-            self.config.selectChannel(iChip,iChan)
-            time.sleep(self.settlingTime)
-
-            samples = []
-            for iTry in range(self.maxTries):
-                raw_data = self.femb.get_data(100)
-            
-                for samp in raw_data:
-                    chNum = ((samp >> 12 ) & 0xF)
-                    if chNum != iChan:
-                        print("makeRampHist: chNum {} != iChan {}".format(chNum,iChan))
-                        continue
-                    sampVal = (samp & 0xFFF)
-                    samples.append(sampVal)
-                if len(samples) > nSamples:
-                    break
-            binning = [i-0.5 for i in range(2**12+1)]
-            hist, bin_edges = numpy.histogram(samples,bins=binning)
-            return hist
-        else:
-            #hist = numpy.random.poisson(nSamples/2**12,size=2**12)
-            hist = numpy.random.multinomial(nSamples,numpy.ones(2**12)/2.**12)
-            return hist
-
-    def doLinearFit(self,voltageList,nPackets):
-        """
-        Performs a linear fit to the average ADC value for various voltages
-
-        voltageList: list of voltage values in V to check
-        nPackets: number of packets to average over for each voltage
-
-        returns 2D list of dicts:
-
-             result[iChip][iChan]["x0" or "x0err" or "m" or "merr", or "chi2/ndf" or 'FSR']
-
-             where x0 is the x intercept in and x0err is the x intercept error, both in volts.
-             m is the number of ADC counts per input V, and merr is its error in counts per V.
-             chi2/ndf is the quality of fit and FSR is the estimated full scale range in V--the difference 
-                between the value for ADC = 0 to the value of ADC=2^12
-
-             They will be set to None if the fit fails
-        """
-        data = self.getADCDataDC(voltageList,nPackets)
-        fig, ax = plt.subplots(figsize=(8,8))
-        figmany = plt.figure(figsize=(8,8))
-
-        result = []
-        for iChip in range(self.NASICS):
-            result.append([])
-            figmany.clf()
-            manyaxes = []
-            for iChan in range(16):
-                manyaxes.append(figmany.add_subplot(4,4,iChan+1))
-                manyaxes[iChan].set_xlim(0,3.5)
-                manyaxes[iChan].set_ylim(0,2**12)
-                manyaxes[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
-                manyaxes[iChan].set_xticks([0,1,2,3])
-                yticks = [x*1024 for x in range(5)]
-                manyaxes[iChan].set_yticks(yticks)
-                if iChan % 4 != 0:
-                    manyaxes[iChan].set_yticklabels([])
-                else:
-                    manyaxes[iChan].set_ylabel("ADC Counts")
-                if iChan // 4 != 3:
-                    manyaxes[iChan].set_xticklabels([])
-                else:
-                    manyaxes[iChan].set_xlabel("Voltage [V]")
-            for iChan in range(16):
-                voltages = numpy.array(data[iChip][iChan]["vlt"])
-                averages = numpy.array(data[iChip][iChan]["avg"])
-                errors = numpy.array(data[iChip][iChan]["err"])
-
-                x0, x0err, m, merr, chi2ondf, fsr = self.fitLineToData(voltages,averages,errors)
-                result[iChip].append({
-                    "x0": x0,
-                    "x0err": x0err,
-                    "m": m,
-                    "merr": merr,
-                    "chi2/ndf": chi2ondf,
-                    "FSR": fsr,
-                })
-                if x0:
-                  print("Chip: {} Chan: {:2} x0: {:8.2g} +/- {:8.2g} mV m: {:8.2g} +/- {:8.2g} Counts/mV, chi2/ndf: {:10.2g}, FSR: {:10.3g} V".format(iChip,iChan,x0*1000.,x0err*1000.,m/1000.,merr/1000.,chi2ondf, fsr))
-                  lineVoltages = numpy.array([self.fitMinV,self.fitMaxV])
-                  ax.plot(lineVoltages,m*(lineVoltages-x0),"b-",label="Fit")
-                  manyaxes[iChan].plot(lineVoltages,m*(lineVoltages-x0),"b-",label="Fit")
-                else:
-                  print("Chip: {} Chan: {:2} fit failed".format(iChip,iChan))
-                ax.errorbar(voltages,averages,fmt="ko",yerr=errors,xerr=0.,label="Data")
-                manyaxes[iChan].plot(voltages,averages,"ko",label="Data",markersize=3)
-                ax.set_xlabel("Voltage [V]")
-                ax.set_ylabel("ADC Output")
-                ax.set_xlim(0,3.5)
-                ax.set_ylim(0,2**12)
-                ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                ax.legend(loc='best')
-                filename = "ADC_Linearity_Chip{}_Chan{}".format(iChip,iChan)
-                fig.savefig(filename+".png")
-                fig.savefig(filename+".pdf")
-                ax.cla()
-            figmany.savefig("ADC_Linearity_Chip{}.png".format(iChip))
-            figmany.savefig("ADC_Linearity_Chip{}.pdf".format(iChip))
-        return result
-
-    def fitLineToData(self,voltages,counts,errors):
-        """
-        Performs a least squares fit of y = counts +/- errors, x = voltages
-
-        returns x-intercept [V], x-intercept error [V], slope [Counts/V], slope error [Counts/V], chi2/ndf, estimated full scale range [V]
-        """
-        assert(len(voltages)==len(counts))
-        assert(len(errors)==len(counts))
-        graph = ROOT.TGraphErrors()
-        for iPoint in range(len(voltages)):
-            graph.SetPoint(iPoint,voltages[iPoint],counts[iPoint])
-            graph.SetPointError(iPoint,0.,errors[iPoint])
-        func = ROOT.TF1(uuid().hex,"[0]*(x-[1])",self.fitMinV,self.fitMaxV)
-        fitresult = graph.Fit(func,"QFMEN0S","",self.fitMinV,self.fitMaxV)
-
-        ndf = len(counts) - 2
-        chi2ondf = None
-        m = None
-        x0 = None
-        merr = None
-        x0err = None
-        fsr = None
-
-        valid = fitresult.IsValid()
-        if valid:
-            chi2ondf = fitresult.Chi2() / ndf
-            m = fitresult.Value(0)
-            x0 = fitresult.Value(1)
-            merr = fitresult.ParError(0)
-            x0err = fitresult.ParError(1)
-            fsr = 2**12 / m + x0
-        return x0, x0err, m, merr, chi2ondf, fsr
-
-    def getADCDataDC(self,voltages,nPackets):
-        """
-        Finds the average value and error on the average for 
-        multiple voltages for all of the chips and channels.
-
-        voltages is a list of voltage values to get data for.
-        averages over nPackets worth of data
-
-        Returns a 2D list of dictinoaries of lists: 
-
-             result[iChip][iChan]["avg" or "err" or "vlt"][iSample]
-
-        """
-        data = {}
-        self.funcgen.stop()
-        for voltage in voltages:
-            self.funcgen.startDC(voltage)
-            time.sleep(self.settlingTime)
-            avgs, errs = self.getAverageForAllChannels(nPackets)
-            data[voltage] = { "avg": avgs, "err": errs}
-        self.funcgen.stop()
-
-        ####data setup:
-        #### data[voltage]["avg" or "err"][iChip][iChan]
-
-        # now put the data inside out in a more useful way
-        voltages = list(data.keys())
-        voltages.sort()
-
-        result = []
-        for iChip in range(self.NASICS):
-            result.append([])
-            for iChan in range(16):
-                avgs = []
-                errs = []
-                for voltage in voltages:                
-                    avgs.append(data[voltage]["avg"][iChip][iChan])
-                    errs.append(data[voltage]["err"][iChip][iChan])
-                d = { "vlt":numpy.array(voltages), "avg":numpy.array(avgs), "err": numpy.array(errs)}
-                result[iChip].append(d)
-        return result
-
-    def getAverageForAllChannels(self,nPackets):
-        """
-        Returns 2D arrays for all of the chips and channels
-        of the average and error on the average.
-
-        averages over nPackets worth of data
-        """
-        averages = []
-        errors = []
-        for iChip in range(self.NASICS):
-            averages.append([])
-            errors.append([])
-            for iChan in range(16):
-                avg, err = self.getAverage(iChip,iChan,nPackets)
-                averages[iChip].append(avg)
-                errors[iChip].append(err)
-        return averages, errors
-    
-    def getAverage(self,iChip,iChan,nPackets):
-        """
-        Find iChip iChan average for nPackets worth of data
-        for whatever signal is going into the ADC now.
-
-        Returns the average and its statistical error
-        """
-        self.config.selectChannel(iChip,iChan)
-        time.sleep(0.01)
-
-        raw_data = self.femb.get_data(nPackets)
-        
-        samples = []
-        for samp in raw_data:
-            chNum = ((samp >> 12 ) & 0xF)
-            if chNum != iChan:
-                print("computeAverage: chNum {} != iChan {}".format(chNum,iChan))
-                continue
-            sampVal = (samp & 0xFFF)
-            samples.append(sampVal)
-        avg = numpy.mean(samples)
-        stddev = numpy.std(samples,ddof=1)
-        avgerr = stddev/numpy.sqrt(len(samples))
-        return avg, avgerr
+        samples = self.loadWaveforms(iChip,iChan,fileprefix)
+        binning = [i-0.5 for i in range(2**self.nBits+1)]
+        hist, bin_edges = numpy.histogram(samples,bins=binning)
+        return hist
 
     def makeCodeModXHistogram(self,counts,modNumber):
         """
@@ -433,7 +205,7 @@ class STATIC_TESTS(object):
 
         Returns an array of counts modNumber long
         """
-        assert(len(counts)==4096)
+        assert(len(counts)==2**self.nBits)
         result = numpy.zeros(modNumber)
         indexArray = numpy.arange(len(counts))
         for i in range(modNumber):
@@ -452,10 +224,10 @@ class STATIC_TESTS(object):
 
         Returns an array of counts 12 long
         """
-        assert(len(counts)==4096)
-        result = numpy.zeros(12)
+        assert(len(counts)==2**self.nBits)
+        result = numpy.zeros(self.nBits)
         indexArray = numpy.arange(len(counts))
-        for i in range(12):
+        for i in range(self.nBits):
             goodElements = ((indexArray >> i) & 0x1) > 0
             goodElements[0] = False
             goodElements[-1] = False
@@ -471,7 +243,7 @@ class STATIC_TESTS(object):
         Returns two arrays each 4096 long: (dnl,inl)
 
         If killStuckCodes=True, then the dnl for codes ending 
-        in 0b000000 or 0b111111 or 0b000001 is set to 0.
+        in 0b000000 or 0b111111 is set to 0.
         """
         nCounts = len(counts)
         nGoodSamples = sum(counts[1:-1])
@@ -482,7 +254,7 @@ class STATIC_TESTS(object):
         if killStuckCodes:
           for i in range(len(dnl)-1):
             lsb6 = i & 0b111111
-            if lsb6 == 0b111111 or lsb6 == 0 or lsb6 == 0b000001:
+            if lsb6 == 0b111111 or lsb6 == 0:
                 dnl[i] = 0.
         inl = numpy.zeros(dnl.shape)
         for i in range(len(dnl)-1):
@@ -500,33 +272,77 @@ class STATIC_TESTS(object):
         ax.set_xticks(range(0,modNumber))
         filename = "ADC_CodeMod{}Hist_Chip{}_Chan{}".format(modNumber,iChip,iChan)
         fig.savefig(filename+".png")
-        fig.savefig(filename+".pdf")
+        #fig.savefig(filename+".pdf")
         fig.clf()
         return codeModXHist
 
     def makePercentFSRAxisOnLSBAxis(self,ax):
         ax2 = ax.twinx()
         ylow,yhigh = ax.get_ylim()
-        ax2.set_ylim(ylow/2.**12*100,yhigh/2.**12*100)
+        ax2.set_ylim(ylow/2.**self.nBits*100,yhigh/2.**self.nBits*100)
         return ax2
+
+    def loadWaveforms(self,iChip,iChan,fileprefix):
+        filenames = glob.glob(fileprefix+"_chip{}_chan{}_functype3_*.root".format(iChip,iChan))
+        print(filenames)
+        assert(len(filenames)==1)
+        files = []
+        trees = []
+        metadataTrees = []
+        for fn in filenames:
+            f = ROOT.TFile(fn)
+            files.append(f)
+            trees.append(f.Get("femb_wfdata"))
+            metadataTrees.append(f.Get("metadata"))
+        metadatas = []
+        amplitudes = set()
+        frequencies = set()
+        for mdt in metadataTrees:
+            mdt.GetEntry(0)
+            md = {
+                'funcType': mdt.funcType,
+                'funcAmp': mdt.funcAmp,
+                'funcOffset': mdt.funcOffset,
+                'funcFreq': mdt.funcFreq,
+                }
+            metadatas.append(md)
+            if not mdt.funcAmp in amplitudes:
+                amplitudes.add(mdt.funcAmp)
+            if not mdt.funcFreq in frequencies:
+                frequencies.add(mdt.funcFreq)
+        
+        result = []
+        for iTree in range(len(metadatas)):
+          md = metadatas[iTree]
+          if md['funcType'] == 3:
+            tree = trees[iTree]
+            for iEntry in range(tree.GetEntries()):
+                tree.GetEntry(iEntry)
+                thisChip = tree.chan//16
+                thisChannel = tree.chan % 16
+                if iChip == thisChip and iChan == thisChannel:
+                    adccode = tree.wf
+                    adccode = list(adccode)
+                    if self.nBits < 12:
+                        adccode = [i >> (12 - self.nBits) for i in adccode]
+                    result.extend(adccode)
+        if len(result) == 0:
+            raise Exception("File not found")
+        return result
         
 def main():
     from ..configuration.argument_parser import ArgumentParser
     from ..configuration import CONFIG
-    from ..configuration.config_file_finder import get_env_config_file, config_file_finder
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Measures ADC Linearity")
-    parser.addConfigFileArgs()
+    parser.addLoadWaveformRootFileArgs(True)
     parser.addNPacketsArgs(False,10)
     #parser.add_argument("outfilename",help="Output root file name")
     args = parser.parse_args()
   
-    config_filename = args.config
-    if config_filename:
-      config_filename = config_file_finder(config_filename)
-    else:
-      config_filename = get_env_config_file()
-    config = CONFIG(config_filename)
+    config = CONFIG()
   
     static_tests = STATIC_TESTS(config)
-    static_tests.analyzeLinearity(1e5,fake=False)
+    if args.loadWaveformRootFile:
+        static_tests.loadWaveformRootFileName = args.loadWaveformRootFile
+    static_tests.analyzeLinearity(args.loadWaveformRootFile)

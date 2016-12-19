@@ -1,5 +1,11 @@
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from builtins import int
+from future import standard_library
+standard_library.install_aliases()
 import argparse
-from .config_file_finder import get_standard_configuration_dir, get_standard_configurations
 
 class ArgumentParser(argparse.ArgumentParser):
     """
@@ -13,14 +19,6 @@ class ArgumentParser(argparse.ArgumentParser):
             kargs['epilog'] = epilogStr
         argparse.ArgumentParser.__init__(self,*args,**kargs)
 
-    def addConfigFileArgs(self,required=False):
-        """
-        Adds an argument to get a config filename from the command line.
-        """
-        self.add_argument('-c','--config',required=required,
-                            help="Configuration file name. Can be a path or one of the standard configurations, {}, in {}".format(get_standard_configurations(), get_standard_configuration_dir())
-                            )
-
     def addNPacketsArgs(self,required=False,default=None):
         """
         Adds an argument to get a config filename from the command line.
@@ -33,6 +31,34 @@ class ArgumentParser(argparse.ArgumentParser):
         self.add_argument('-n','--nPackets',required=required, default=default,type=int,
                             help=helpString
                             )
+
+    def addDumpWaveformRootFileArgs(self,required=False,default=None):
+        """
+        Adds an argument to dump a waveform to a root file
+        """
+        helpString = "Dump a waveform to a root file."
+        if default:
+          helpString += " default={}".format(default)
+        if required:
+          helpString += " (required)"
+        self.add_argument('-d','--dumpWaveformRootFile',required=required, default=default,
+                            help=helpString
+                            )
+
+    def addLoadWaveformRootFileArgs(self,required=False,default=None):
+        """
+        Adds an argument to load a waveform to a root file
+        """
+        helpString = "Load a waveform to a root file."
+        if default:
+          helpString += " default={}".format(default)
+        if required:
+          helpString += " (required)"
+        self.add_argument('-l','--loadWaveformRootFile',required=required, default=default,
+                            help=helpString
+                            )
+
+
 
 def convert_int_literals(instring):
       if instring[:2] == "0x":

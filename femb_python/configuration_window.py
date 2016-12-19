@@ -2,9 +2,18 @@
 Module containes an example GUI. The main window configures the FEMB 
 while trace_fft_window provides a second window with live trace and FFT.
 """
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import absolute_import
+from builtins import int
+from builtins import str
+from builtins import hex
+from future import standard_library
+standard_library.install_aliases()
 from time import sleep
 from gi.repository import Gtk
-from .configuration import CONFIG, get_env_config_file
+from .configuration import CONFIG
 from . import trace_fft_window
 
 import numpy as np
@@ -21,7 +30,7 @@ class CONFIGURATION_WINDOW(Gtk.Window):
         Gtk.Window.__init__(self, title="FEMB Test-stand Configuration")
 
         #define configuration object
-        self.femb_config = CONFIG(get_env_config_file())
+        self.femb_config = CONFIG()
 
         #do any checks here for system state
 
