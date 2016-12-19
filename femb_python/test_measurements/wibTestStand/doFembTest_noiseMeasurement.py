@@ -19,6 +19,7 @@ import struct
 
 from ...configuration import CONFIG
 from ...write_data import WRITE_DATA
+from ...configuration.cppfilerunner import CPP_FILE_RUNNER
 
 #specify location of femb_udp package
 
@@ -37,6 +38,8 @@ class FEMB_TEST(object):
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
+
+        self.cppfr = CPP_FILE_RUNNER()
 
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
@@ -82,7 +85,7 @@ class FEMB_TEST(object):
         print("Received data packet " + str(len(testData[0])) + " bytes long")
 
         #check for analysis executables
-        if os.path.isfile('./parseBinaryFile') == False:    
+        if not self.cppfr.exists('test_measurements/wibTestStand/parseBinaryFile'):    
             print('parseBinaryFile not found, run setup.sh')
             #sys.exit(0)
             return
@@ -154,17 +157,17 @@ class FEMB_TEST(object):
         print("NOISE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
-        call(["./parseBinaryFile", str( self.write_data.filedir ) + str( self.write_data.filename ) ])
+        self.cppfr.call('test_measurements/wibTestStand/parseBinaryFile',[str( self.write_data.filedir ) + str( self.write_data.filename )])
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", str(newName), str( self.write_data.filedir ) ])
-        call(["./processNtuple_noiseMeasurement",  str( self.write_data.filedir ) + str(newName) ])
+        self.cppfr.call('test_measurements/wibTestStand/processNtuple_noiseMeasurement',[str( self.write_data.filedir ) + str( newName )])
 
         #run summary program
         newName = "output_processNtuple_noiseMeasurement_" + "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", str(newName), str( self.write_data.filedir ) ])
-        call(["./summaryAnalysis_noiseMeasurement",  str( self.write_data.filedir ) + str(newName) ])
+        self.cppfr.call('test_measurements/wibTestStand/summaryAnalysis_noiseMeasurement',[str( self.write_data.filedir ) + str( newName )])
 
         print("NOISE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
