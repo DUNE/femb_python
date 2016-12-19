@@ -17,7 +17,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib import animation
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvas
-from ...femb_python.femb_udp import FEMB_UDP
+from femb_python.femb_udp import FEMB_UDP
 
 class TRACE_FFT_WINDOW_WIB(Gtk.Window):
   """
