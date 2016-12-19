@@ -2,6 +2,13 @@
 
 Core functions for DUNE/SBND cold electronics UDP readout (python version)
 
+## Do this first!
+
+You must manually compile the root C++ files into executables before setting up
+the python packages. Just run:
+
+./setup.sh
+
 ## Python 2
 
 It's a pain to compile ROOT with support for python3, so by default we use
@@ -19,7 +26,8 @@ activate the virtualenv:
 
 source myvirtualenv/bin/activate
 
-then, from this directory run:
+Make sure you have compiled the C++ files with `./setup.sh`, then, from this
+directory run:
 
 pip install -e .
 
@@ -39,3 +47,12 @@ version.
 Create the virtualenv like:
 
 virtualenv -p /usr/bin/env/python3 --system-site-packages mypython3virtualenv
+
+## Rebuilding
+
+You shouldn't need to redo anything unless you change setup.py or the C++
+files. In that case, from this directory, just run:
+
+./setup.sh
+pip install -e .
+
