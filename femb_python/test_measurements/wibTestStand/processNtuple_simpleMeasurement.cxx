@@ -18,6 +18,7 @@ using namespace std;
 #include "TGraph.h"
 #include "TProfile2D.h"
 #include "TF1.h"
+#include "TImage.h"
 
 using namespace std;
 
@@ -93,11 +94,9 @@ Analyze::Analyze(std::string inputFileName){
   	tr_rawdata->SetBranchAddress("wf", &wfIn);
 
 	//make output file
-  	std::string outputFileName;
-	if( processFileName( inputFileName, outputFileName ) )
-		outputFileName = "output_processNtuple_simpleMeasurement_" + outputFileName;
-	else
-		outputFileName = "output_processNtuple_simpleMeasurement.root";
+  	std::string outputFileName = "output_processNtuple_simpleMeasurement.root";
+	//if( processFileName( inputFileName, outputFileName ) )
+	//	outputFileName = "output_processNtuple_simpleMeasurement_" + outputFileName;
 
   	gOut = new TFile(outputFileName.c_str() , "RECREATE");
 
@@ -158,8 +157,28 @@ void Analyze::doAnalysis(){
 	//do summary analyses
 	std::cout << "Doing summary analysis" << std::endl;
 
+        c0->Clear();
+        c0->Divide(2,2);
+        c0->cd(1);
+ 	hSampVsChan->Draw("COLZ");
+        c0->cd(2);
+ 	pMeanVsChan->Draw();
+        c0->cd(3);
+ 	pRmsVsChan->Draw();
+        c0->cd(4);
+ 	pFFTVsChan->Draw("COLZ");
+	c0->Update();
+
+	TImage *img = TImage::Create();
+	img->FromPad(c0);
+  	std::stringstream imgstream;
+	imgstream << "summaryPlot_simpleMeasurement.png";
+	std::string imgstring( imgstream.str() );
+  	img->WriteImage(imgstring.c_str());
+
   	//output histograms, data objects
  	gOut->Cd("");
+	c0->Write("summaryPlot");
   	hSampVsChan->Write();
 	pSampVsChan->Write();
   	hMeanVsChan->Write();

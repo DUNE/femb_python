@@ -90,14 +90,14 @@ class FEMB_TEST:
         print("SIMPLE MEASUREMENT - RECORDING DATA")
 
         #initialize FEMB configuration to known state
-        self.femb_config.configFeAsic(0,0,0)
+        #self.femb_config.configFeAsic(0,0,0)
 
         #wait to make sure HS link is back on
         sleep(0.5)
 
         #set output file
         self.write_data.filedir = "data/"
-        self.write_data.filename = "output_simpleMeasurement_" + str(self.write_data.date) + ".bin"
+        self.write_data.filename = "rawdata_simpleMeasurement_" + str(self.write_data.date) + ".bin"
         print("Recording " + self.write_data.filename )
         self.write_data.numpacketsrecord = 100
         self.write_data.run = 0
@@ -114,7 +114,7 @@ class FEMB_TEST:
         self.write_data.close_file()
 
         #reset configuration to known state
-        self.femb_config.configFeAsic(0,0,0)
+        #self.femb_config.configFeAsic(0,0,0)
 
         print("SIMPLE MEASUREMENT - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1
@@ -134,10 +134,18 @@ class FEMB_TEST:
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
-        call(["mv", str(newName), str( self.write_data.filedir ) ])
+        call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
         call(["./processNtuple_simpleMeasurement",  str( self.write_data.filedir ) + str(newName) ])
 
         #move result to data directory
+        newName = "output_processNtuple_simpleMeasurement_" + self.write_data.filename + ".root"
+        call(["mv", "output_processNtuple_simpleMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
+        newName = "summaryPlot_" + self.write_data.filename + ".root"
+        call(["mv", "summaryPlot_simpleMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
+
+        #summary plot
+        print("SIMPLE MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
+        call(["display",str( self.write_data.filedir ) + str(newName) ])
 
         print("SIMPLE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
@@ -161,6 +169,7 @@ def main():
     femb_test.femb_config.selectFemb(0)
     femb_test.check_setup()
     femb_test.record_data()
+    femb_test.do_analysis()
     
     """
     #loop over all 4 WIB FEMBs
