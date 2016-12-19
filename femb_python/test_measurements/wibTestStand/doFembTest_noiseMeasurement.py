@@ -97,7 +97,7 @@ class FEMB_TEST:
 
         #set output file
         self.write_data.filedir = "data/"
-        self.write_data.filename = "output_noiseMeasurement_" + str(self.write_data.date) + ".bin"
+        self.write_data.filename = "rawdata_noiseMeasurement_" + str(self.write_data.date) + ".bin"
         print("Recording " + self.write_data.filename )
         self.write_data.numpacketsrecord = 10
         self.write_data.run = 0
@@ -147,13 +147,21 @@ class FEMB_TEST:
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
-        call(["mv", str(newName), str( self.write_data.filedir ) ])
+        call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
         call(["./processNtuple_noiseMeasurement",  str( self.write_data.filedir ) + str(newName) ])
 
+        #move result to data directory
+        newName = "output_processNtuple_noiseMeasurement_" + self.write_data.filename + ".root"
+        call(["mv", "output_processNtuple_noiseMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
+
         #run summary program
-        newName = "output_processNtuple_noiseMeasurement_" + "output_parseBinaryFile_" + self.write_data.filename + ".root"
-        call(["mv", str(newName), str( self.write_data.filedir ) ])
         call(["./summaryAnalysis_noiseMeasurement",  str( self.write_data.filedir ) + str(newName) ])
+        newName = "summaryPlot_" + self.write_data.filename + ".root"
+        call(["mv", "summaryPlot_noiseMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
+
+        #summary plot
+        print("NOISE MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
+        call(["display",str( self.write_data.filedir ) + str(newName) ])
 
         print("NOISE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
@@ -177,6 +185,7 @@ def main():
     femb_test.femb_config.selectFemb(0)
     femb_test.check_setup()
     femb_test.record_data()
+    femb_test.do_analysis()
 
     """
     #loop over all 4 WIB FEMBs

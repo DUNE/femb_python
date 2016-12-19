@@ -82,8 +82,8 @@ Analyze::Analyze(std::string fileName){
 
 	//make output file
   	outputFileName = "output_summaryAnalysis_noiseMeasurement.root";
-	if( processFileName( inputFileName, outputFileName ) )
-		outputFileName = "output_summaryAnalysis_noiseMeasurement_" + outputFileName + ".root";
+	//if( processFileName( inputFileName, outputFileName ) )
+	//	outputFileName = "output_summaryAnalysis_noiseMeasurement_" + outputFileName + ".root";
   	gOut = new TFile(outputFileName.c_str() , "RECREATE");
 
   	//initialize canvas
@@ -318,8 +318,7 @@ void Analyze::outputResults(){
 	TImage *img = TImage::Create();
 	img->FromPad(c0);
   	std::stringstream imgstream;
-	imgstream << "output_fembTest_noiseMeasurement_summaryPlot_RmsVsCh_" << outputFileName << ".png";
-	//imgstream << "output_fembTest_noiseMeasurement_summaryPlot_RmsVsCh" << ".png";
+	imgstream << "summaryPlot_noiseMeasurement.png";
 	std::string imgstring( imgstream.str() );
   	img->WriteImage(imgstring.c_str());
 
@@ -334,6 +333,7 @@ void Analyze::outputResults(){
   	gOut->Close();
 
 	//write measurements to file
+	/*
 	ofstream outfile;
 	std::stringstream outstream;
 	//outstream << "output_fembTest_noiseMeasurement_constants_" << std::dec << metadata_date << std::hex << metadata_runidMSB << metadata_runidLSB << ".txt";
@@ -347,6 +347,7 @@ void Analyze::outputResults(){
 		outfile << g << "\t" << s << "\t" << b << "\t" << c << "\t" << rmsMeasurement[g][s][b][c] << std::endl;
 	}
   	outfile.close();
+	*/
 }
 
 void summaryAnalysis_doFembTest_noiseMeasurement(std::string inputFileName) {

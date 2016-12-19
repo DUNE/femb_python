@@ -96,11 +96,9 @@ Analyze::Analyze(std::string inputFileName){
   	tr_rawdata->SetBranchAddress("wf", &wfIn);
 
 	//make output file
-  	std::string outputFileName;
-	if( processFileName( inputFileName, outputFileName ) )
-		outputFileName = "output_processNtuple_noiseMeasurement_" + outputFileName;
-	else
-		outputFileName = "output_processNtuple_noiseMeasurement.root";
+  	std::string outputFileName = "output_processNtuple_noiseMeasurement.root";
+	//if( processFileName( inputFileName, outputFileName ) )
+	//	outputFileName = "output_processNtuple_noiseMeasurement_" + outputFileName;
 
   	gOut = new TFile(outputFileName.c_str() , "RECREATE");
 
@@ -168,6 +166,8 @@ void Analyze::doAnalysis(){
 
 	//do summary analyses
 	std::cout << "Doing summary analysis" << std::endl;
+
+	//save summary plots
 
   	//output histograms, data objects
  	gOut->Cd("");
