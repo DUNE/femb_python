@@ -156,7 +156,7 @@ class FEMB_TEST:
 
         #run summary program
         call(["./summaryAnalysis_noiseMeasurement",  str( self.write_data.filedir ) + str(newName) ])
-        newName = "summaryPlot_" + self.write_data.filename + ".root"
+        newName = "summaryPlot_" + self.write_data.filename + ".png"
         call(["mv", "summaryPlot_noiseMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
 
         #summary plot

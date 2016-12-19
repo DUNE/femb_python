@@ -140,7 +140,7 @@ class FEMB_TEST:
         #move result to data directory
         newName = "output_processNtuple_simpleMeasurement_" + self.write_data.filename + ".root"
         call(["mv", "output_processNtuple_simpleMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
-        newName = "summaryPlot_" + self.write_data.filename + ".root"
+        newName = "summaryPlot_" + self.write_data.filename + ".png"
         call(["mv", "summaryPlot_simpleMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
 
         #summary plot

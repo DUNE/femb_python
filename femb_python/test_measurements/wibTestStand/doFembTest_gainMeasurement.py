@@ -104,7 +104,7 @@ class FEMB_TEST:
         #initialize pulser
         self.femb_config.femb.write_reg_bits( 16, 0,0x1,1) #test pulse enable
         self.femb_config.femb.write_reg_bits( 16, 8,0x1,1) #test pulse enable
-        #self.femb_config.femb.write_reg_bits( 18, 0,0x1,1) #test pulse enable
+        self.femb_config.femb.write_reg_bits( 18, 0,0x1,0) #test pulse enable
         self.femb_config.femb.write_reg_bits( 5, 0,0x1F,0x0) #test pulse amplitude
         self.femb_config.femb.write_reg_bits( 5, 16,0xFFFF,0x100) #test pulse frequency
         self.femb_config.femb.write_reg_bits( 5, 8,0xFF,0x00) #test pulse delay
@@ -194,7 +194,9 @@ class FEMB_TEST:
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
         call(["./processNtuple_gainMeasurement",  str( self.write_data.filedir ) + str(newName) ])
-        newName = "summaryPlot_" + self.write_data.filename + ".root"
+        newName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".root"
+        call(["mv", "output_processNtuple_gainMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
+        newName = "summaryPlot_" + self.write_data.filename + ".png"
         call(["mv", "summaryPlot_gainMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
 
         #summary plot
@@ -220,7 +222,7 @@ class FEMB_TEST:
 def main():
     #loop over all 4 WIB FEMBs
     for femb in range(0,1,1):
-      for g in range(0,4,1):
+      for g in range(2,3,1):
         for s in range(0,4,1):
           for b in range(0,1,1):
             femb_test = FEMB_TEST()
