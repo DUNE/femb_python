@@ -25,9 +25,9 @@ class FEMB_TEST(object):
     def __init__(self):
 
         #import femb_udp modules from femb_udp package
-        from femb_python.configuration.femb_config_35t import FEMB_CONFIG
-        self.femb_config = FEMB_CONFIG()
-        from femb_python.write_data import WRITE_DATA
+        from ...configuration import CONFIG
+        self.femb_config = CONFIG()
+        from ...write_data import WRITE_DATA
         self.write_data = WRITE_DATA()
         #set appropriate packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000

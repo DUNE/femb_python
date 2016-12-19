@@ -18,6 +18,9 @@ import ntpath
 import glob
 import struct
 
+from ...configuration import CONFIG
+from ...write_data import WRITE_DATA
+
 #specify location of femb_udp package
 
 class FEMB_TEST(object):
@@ -25,9 +28,7 @@ class FEMB_TEST(object):
     def __init__(self):
 
         #import femb_udp modules from femb_udp package
-        from femb_python.configuration.femb_config_wib_sbnd import FEMB_CONFIG
-        self.femb_config = FEMB_CONFIG()
-        from femb_python.write_data import WRITE_DATA
+        self.femb_config = CONFIG()
         self.write_data = WRITE_DATA()
         #set appropriate packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000

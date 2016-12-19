@@ -16,7 +16,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 import trace_fft_window_wib
-from femb_python.configuration.femb_config_wib_sbnd import FEMB_CONFIG
+from ...configuration import CONFIG
 
 import numpy as np
 from matplotlib import pyplot
@@ -32,7 +32,7 @@ class CONFIGURATION_WINDOW(Gtk.Window):
         Gtk.Window.__init__(self, title="WIB+FEMB Test-stand Configuration")
 
         #define configuration object
-        self.femb_config = FEMB_CONFIG() 
+        self.femb_config = CONFIG() 
 
         #do any checks here for system state
 
