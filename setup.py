@@ -138,6 +138,8 @@ setup(
             'femb_wib_measure_gain=femb_python.test_measurements.wibTestStand.doFembTest_gainMeasurement:main',
             'femb_wib_measure_noise=femb_python.test_measurements.wibTestStand.doFembTest_noiseMeasurement:main',
             'femb_wib_measure_simple=femb_python.test_measurements.wibTestStand.doFembTest_simpleMeasurement:main',
+            'femb_example_simple=femb_python.test_measurements.example_femb_test.doFembTest_simpleMeasurement:main',
+
         ],
         #'gui_scripts': [
         #    'femb_test=femb_python.gui:main',

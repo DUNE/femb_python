@@ -18,6 +18,10 @@ import ntpath
 import glob
 import struct
 
+from ...configuration import CONFIG
+from ...write_data import WRITE_DATA
+from ...configuration.cppfilerunner import CPP_FILE_RUNNER
+
 #specify location of femb_udp package
 
 class FEMB_TEST(object):
@@ -25,9 +29,7 @@ class FEMB_TEST(object):
     def __init__(self):
 
         #import femb_udp modules from femb_udp package
-        from ...configuration import CONFIG
         self.femb_config = CONFIG()
-        from ...write_data import WRITE_DATA
         self.write_data = WRITE_DATA()
         #set appropriate packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000
@@ -37,6 +39,7 @@ class FEMB_TEST(object):
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
+        self.cppfr = CPP_FILE_RUNNER()
 
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
@@ -80,7 +83,7 @@ class FEMB_TEST(object):
         print("Received data packet " + str(len(testData[0])) + " bytes long")
 
         #check for analysis executables
-        if os.path.isfile('./parseBinaryFile') == False:    
+        if not self.cppfr.exists('test_measurements/example_femb_test/parseBinaryFile'):    
             print('parseBinaryFile not found, run setup.sh')
             #sys.exit(0)
             return
@@ -138,10 +141,10 @@ class FEMB_TEST(object):
         print("SIMPLE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #process data
-        call(["./parseBinaryFile", str( self.write_data.filename ) ])
+        self.cppfr.call('test_measurements/example_femb_test/parseBinaryFile',[str( self.write_data.filename )])
 
         #run summary program
-        #call(["./summaryAnalysis_doFembTest_simpleMeasurement", self.newlist ])
+        #self.cppfr.call('test_measurements/example_femb_test/summaryAnalysis_doFembTest_simpleMeasurement',self.newlist])
 
         print("SIMPLE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA")
         self.status_do_analysis = 1
