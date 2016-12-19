@@ -5,9 +5,9 @@ from __future__ import absolute_import
 from builtins import range
 from future import standard_library
 standard_library.install_aliases()
-from ..femb_udp import FEMB_UDP
-from ..test_instrument_interface import RigolDG4000
-from ..write_root_tree import WRITE_ROOT_TREE
+from ...femb_udp import FEMB_UDP
+from ...test_instrument_interface import RigolDG4000
+from ...write_root_tree import WRITE_ROOT_TREE
 import time
 import datetime
 import glob
@@ -312,8 +312,8 @@ class COLLECT_DATA(object):
         wrt.record_data_run()
 
 def main():
-    from ..configuration.argument_parser import ArgumentParser
-    from ..configuration import CONFIG
+    from ...configuration.argument_parser import ArgumentParser
+    from ...configuration import CONFIG
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Collects data for ADC tests")
     parser.addNPacketsArgs(False,100)

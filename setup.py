@@ -137,9 +137,9 @@ setup(
             'femb_sync_adc=femb_python.helper_scripts.sync_adc:main',
             'femb_config_adc=femb_python.helper_scripts.config_adc:main',
 
-            'femb_adc_static_tests=femb_python.adc_tests.static_tests:main',
-            'femb_adc_dynamic_tests=femb_python.adc_tests.dynamic_tests:main',
-            'femb_adc_collect_data=femb_python.adc_tests.collect_data:main',
+            'femb_adc_static_tests=femb_python.test_measurements.adc_test_stand.static_tests:main',
+            'femb_adc_dynamic_tests=femb_python.test_measurements.adc_test_stand.dynamic_tests:main',
+            'femb_adc_collect_data=femb_python.test_measurements.adc_test_stand.collect_data:main',
         ],
         #'gui_scripts': [
         #    'femb_test=femb_python.gui:main',
