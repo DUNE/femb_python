@@ -68,14 +68,14 @@ class STATIC_TESTS(object):
                 try:
                     codeHist = codeHists[iChip][iChan]
                     sumAllCodeHists += codeHist
-                    dnl, inl = self.makeLinearityHistograms(codeHist)
-                    dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(codeHist,True)
-                    codeNumbers = numpy.arange(len(dnl))
-                    ax.plot(codeNumbers,dnl,"k-",label="All Codes")
-                    manyaxesDNL[iChan].plot(codeNumbers,dnl,"k-",label="All Codes",lw=1)
+                    indices, choppedCodeHist = self.chopOffUnfilledBins(codeHist)
+                    dnl, inl = self.makeLinearityHistograms(indices,choppedCodeHist)
+                    dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(indices,choppedCodeHist,True)
+                    ax.plot(indices,dnl,"k-",label="All Codes")
+                    manyaxesDNL[iChan].plot(indices,dnl,"k-",label="All Codes",lw=1)
                     if self.nBits == 12:
-                      ax.plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
-                      manyaxesDNL[iChan].plot(codeNumbers,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
+                      ax.plot(indices,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
+                      manyaxesDNL[iChan].plot(indices,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("DNL [LSB]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
@@ -88,9 +88,9 @@ class STATIC_TESTS(object):
                     fig.savefig(filename+".png")
                     #fig.savefig(filename+".pdf")
                     ax.cla()
-                    ax.plot(codeNumbers,inl,"k-",label="All Codes")
-                    manyaxesINL[iChan].plot(codeNumbers,inl,"k-",label="All Codes")
-                    #ax.plot(codeNumbers,inlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
+                    ax.plot(indices,inl,"k-",label="All Codes")
+                    manyaxesINL[iChan].plot(indices,inl,"k-",label="All Codes")
+                    #ax.plot(indices,inlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("INL [LSB]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
@@ -111,12 +111,12 @@ class STATIC_TESTS(object):
             figmanyINL.savefig(filename+".png")
             #figmanyINL.savefig(filename+".pdf")
 
-            dnlAll, inlAll = self.makeLinearityHistograms(sumAllCodeHists)
-            dnlAllKillStuckCodes, inlAllKillStuckCodes = self.makeLinearityHistograms(sumAllCodeHists,True)
-            codeNumbers = numpy.arange(len(dnlAll))
-            ax.plot(codeNumbers,dnlAll,"k-",label="All Codes")
+            indicesAll, choppedSumAllCodeHists = self.chopOffUnfilledBins(sumAllCodeHists)
+            dnlAll, inlAll = self.makeLinearityHistograms(indicesAll,choppedSumAllCodeHists)
+            dnlAllKillStuckCodes, inlAllKillStuckCodes = self.makeLinearityHistograms(indicesAll,choppedSumAllCodeHists,True)
+            ax.plot(indicesAll,dnlAll,"k-",label="All Codes")
             if self.nBits == 12:
-              ax.plot(codeNumbers,dnlAllKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
+              ax.plot(indicesAll,dnlAllKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
             ax.set_xlabel("ADC Code")
             ax.set_ylabel("DNL [LSB]")
             ax.set_title("Using Histograms Summed Over Channels of Chip: {0}".format(iChip))
@@ -129,7 +129,7 @@ class STATIC_TESTS(object):
             ax.cla()
 
             print("Chip: ",iChip)
-            for code in codeNumbers[dnl > 1.5]:
+            for code in indicesAll[dnl > 1.5]:
                print("code: {}, code % 6: {} code % 12: {} code % 64: {}, bits: {:#014b} ".format(code,code % 6,code % 12, code % 64,code))
 
     def doHistograms(self,fileprefix):
@@ -234,7 +234,31 @@ class STATIC_TESTS(object):
             result[i] = numpy.sum(counts[goodElements])
         return result
 
-    def makeLinearityHistograms(self,counts,killStuckCodes=False):
+    def chopOffUnfilledBins(self,counts):
+        """
+        Chops the empty bins of the start and end of the histogram counts
+
+        counts is an array of counts
+
+        Returns an array of indices and an array of the corresponding counts
+        """
+        iStart = 0
+        nCounts = len(counts)
+        for i in range(nCounts-1):
+          if counts[i] > 0. and counts[i+1] > 0.:
+            iStart = i
+            break
+        iEnd = nCounts - 1
+        for i in reversed(range(1,nCounts)):
+          if counts[i] > 0. and counts[i-1] > 0.:
+            iEnd = i
+            break
+        indices = numpy.arange(iStart,iEnd+1)
+        outcounts = counts[iStart:iEnd+1]
+        assert(len(indices)==len(outcounts))
+        return indices, outcounts
+
+    def makeLinearityHistograms(self,indices,counts,killStuckCodes=False):
         """
         Makes arrays of DNL and INL.
 
@@ -245,15 +269,15 @@ class STATIC_TESTS(object):
         If killStuckCodes=True, then the dnl for codes ending 
         in 0b000000 or 0b111111 is set to 0.
         """
-        nCounts = len(counts)
+        nIndices = len(indices)
         nGoodSamples = sum(counts[1:-1])
-        countIdeal = nGoodSamples / (nCounts - 2)
+        countIdeal = nGoodSamples / (nIndices - 2)
         dnl = counts/countIdeal - 1.
         dnl[0] = 0.
         dnl[-1] = 0.
         if killStuckCodes:
-          for i in range(len(dnl)-1):
-            lsb6 = i & 0b111111
+          for i,index in enumerate(indices):
+            lsb6 = index & 0b111111
             if lsb6 == 0b111111 or lsb6 == 0:
                 dnl[i] = 0.
         inl = numpy.zeros(dnl.shape)
