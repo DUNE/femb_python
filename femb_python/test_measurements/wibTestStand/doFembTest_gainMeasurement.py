@@ -222,7 +222,7 @@ class FEMB_TEST:
 def main():
     #loop over all 4 WIB FEMBs
     for femb in range(0,1,1):
-      for g in range(2,3,1):
+      for g in range(0,4,1):
         for s in range(0,4,1):
           for b in range(0,1,1):
             femb_test = FEMB_TEST()
