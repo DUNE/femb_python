@@ -225,17 +225,18 @@ void Analyze::outputResults(){
 	hEncVsChan->GetXaxis()->SetTitle("FEMB Channel #");
 	hEncVsChan->GetYaxis()->SetTitle("ENC (e-)");
 
-	hGain->SetStats(kFALSE);
+	//hGain->SetStats(kFALSE);
+        hGain->GetXaxis()->SetRangeUser(0,1000);
 	hGain->GetXaxis()->SetTitle("Gain (e- / ADC count)");
 	hGain->GetYaxis()->SetTitle("# of Channels");
 
-	hEnc->SetStats(kFALSE);
+	//hEnc->SetStats(kFALSE);
 	hEnc->GetXaxis()->SetTitle("ENC (e-)");
 	hEnc->GetYaxis()->SetTitle("# of Channels");
 
 	//make summary plot
 	c0->Clear();
-	c0->Divide(2,2);
+	c0->Divide(2,3);
 	
 	c0->cd(1);
 	pMeanVsChan->Draw();
@@ -248,6 +249,14 @@ void Analyze::outputResults(){
 
 	c0->cd(4);
 	hEncVsChan->Draw();
+
+        c0->cd(5);
+	hGain->Draw();
+	  
+	c0->cd(6);
+	hEnc->Draw();
+
+	
 
 	c0->Update();
 
