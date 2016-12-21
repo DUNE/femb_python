@@ -31,6 +31,7 @@ class STATIC_TESTS(object):
     def analyzeLinearity(self,fileprefix):
         codeHists, bitHists = self.doHistograms(fileprefix)
         fig, ax = plt.subplots(figsize=(8,8))
+        axRight = ax.twinx()
         figmanyDNL = plt.figure(figsize=(8,8))
         figmanyINL = plt.figure(figsize=(8,8))
         for iChip in range(self.NASICS):
@@ -46,7 +47,7 @@ class STATIC_TESTS(object):
                 manyaxesDNL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
                 manyaxesINL.append(figmanyINL.add_subplot(4,4,iChan+1))
                 manyaxesINL[iChan].set_xlim(-256,2**self.nBits+256)
-                manyaxesINL[iChan].set_ylim(-200,100)
+                manyaxesINL[iChan].set_ylim(-100,100)
                 manyaxesINL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
                 #xticks = [x*1024 for x in range(5)]
                 xticks = [0,0.5*2**self.nBits,2**self.nBits]
@@ -77,24 +78,35 @@ class STATIC_TESTS(object):
                       ax.plot(indices,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
                       manyaxesDNL[iChan].plot(indices,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
                     ax.set_xlabel("ADC Code")
-                    ax.set_ylabel("DNL [LSB]")
+                    ax.set_ylabel("DNL [Least Significant Bits]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
                     ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
                     if self.nBits == 12:
                       ax.legend(loc='best')
+                    xmin, xmax, ymin, ymax = ax.axis()
+                    ymin *= 2**(-self.nBits)*100.
+                    ymax *= 2**(-self.nBits)*100.
+                    axRight.set_ylim(ymin,ymax)
+                    axRight.set_ylabel("DNL [% of Full Scale]")
                     #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
                     #axFSR.set_label("DNL [% of FSR]")
                     filename = "ADC_DNL_Chip{}_Chan{}".format(iChip,iChan)
                     fig.savefig(filename+".png")
                     #fig.savefig(filename+".pdf")
                     ax.cla()
+                    axRight.cla()
                     ax.plot(indices,inl,"k-",label="All Codes")
                     manyaxesINL[iChan].plot(indices,inl,"k-",label="All Codes")
                     #ax.plot(indices,inlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
                     ax.set_xlabel("ADC Code")
-                    ax.set_ylabel("INL [LSB]")
+                    ax.set_ylabel("INL [Least Significant Bits]")
                     ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
                     ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
+                    xmin, xmax, ymin, ymax = ax.axis()
+                    ymin *= 2**(-self.nBits)*100.
+                    ymax *= 2**(-self.nBits)*100.
+                    axRight.set_ylim(ymin,ymax)
+                    axRight.set_ylabel("INL [% of Full Scale]")
                     #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
                     #axFSR.set_label("DNL [% of FSR]")
                     #ax.legend(loc='best')
@@ -102,6 +114,7 @@ class STATIC_TESTS(object):
                     fig.savefig(filename+".png")
                     #fig.savefig(filename+".pdf")
                     ax.cla()
+                    axRight.cla()
                 except KeyError as e:
                     pass
             filename = "ADC_DNL_Chip{}".format(iChip)
@@ -308,7 +321,6 @@ class STATIC_TESTS(object):
 
     def loadWaveforms(self,iChip,iChan,fileprefix):
         filenames = glob.glob(fileprefix+"_chip{}_chan{}_functype3_*.root".format(iChip,iChan))
-        print(filenames)
         assert(len(filenames)==1)
         files = []
         trees = []
