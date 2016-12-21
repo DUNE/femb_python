@@ -334,8 +334,10 @@ void Analyze::analyzeSubrun(unsigned int subrun){
 
 	//loop over channels, update subrun specific plots
 	for(unsigned int ch = 0 ; ch < numChan ; ch++){
-		if( subrun == 0 )		
+		if( subrun == 0 ){
 			analyzeChannel(ch,wfAll[subrun][ch]);
+			continue;
+		}
 
 		//find pulses
 		findPulses(wfAll[subrun][ch]);
@@ -649,9 +651,12 @@ void Analyze::measureGain(){
 		if( gPulseVsSignal[ch]->GetN() < 3 ) continue;
 
 		//gPulseVsSignal[ch]->GetXaxis()->SetRangeUser(700*1000.,1400*1000.);
-		gPulseVsSignal[ch]->GetXaxis()->SetRangeUser(0*1000.,700*1000.);
+		gPulseVsSignal[ch]->GetXaxis()->SetRangeUser(-50*1000.,700*1000.);
 
-		TF1 *f1 = new TF1("f1","pol1",0*1000.,700*1000.);
+		//insist pulse height = 0 for signal = 0
+		gPulseVsSignal[ch]->SetPoint(gPulseVsSignal[ch]->GetN(),0,0);
+
+		TF1 *f1 = new TF1("f1","pol1",-50*1000.,700*1000.);
 		f1->SetParameter(0,0);
 		f1->SetParameter(1,2/1000.);
 		gPulseVsSignal[ch]->Fit("f1","QR");
