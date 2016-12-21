@@ -259,6 +259,9 @@ class FEMB_CONFIG:
         print("Check FE ASIC SPI")
         for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+35,1):
             val = self.femb.read_reg( regNum)
+            if (val == None) or (val == -1):
+                print("Error - FEMB register interface is not working.")
+                continue
             print( str(hex(val)) )
 
         #Write FE ASIC SPI
@@ -271,12 +274,18 @@ class FEMB_CONFIG:
         print("Check FE ASIC SPI Readback")
         for regNum in range(self.REG_FESPI_RDBACK_BASE,self.REG_FESPI_RDBACK_BASE+35,1):
             val = self.femb.read_reg( regNum)
+            if (val == None) or (val == -1):
+                print("Error - FEMB register interface is not working.")
+                continue
             print( str(hex(val)) )
 
     def doAdcAsicConfig(self):
         print("Check ADC ASIC SPI")
         for regNum in range(self.REG_ADCSPI_BASE,self.REG_ADCSPI_BASE+35,1):
             val = self.femb.read_reg( regNum)
+            if (val == None) or (val == -1):
+                print("Error - FEMB register interface is not working.")
+                continue
             print( str(hex(val)) )
 
         #Write ADC ASIC SPI
@@ -289,6 +298,9 @@ class FEMB_CONFIG:
         print("Check ADC ASIC SPI Readback")
         for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+35,1):
             val = self.femb.read_reg( regNum)
+            if (val == None) or (val == -1):
+                print("Error - FEMB register interface is not working.")
+                continue
             print( str(hex(val)) )
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
