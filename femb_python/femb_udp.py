@@ -17,14 +17,14 @@ class FEMB_UDP:
     def write_reg(self, reg , data ):
         try:
             regVal = int(reg)
-        except ValueError:
+        except TypeError:
             return None
         if (regVal < 0) or (regVal > self.MAX_REG_NUM):
             #print "FEMB_UDP--> Error write_reg: Invalid register number"
             return None
         try:
             dataVal = int(data)
-        except ValueError:
+        except TypeError:
             return None
         if (dataVal < 0) or (dataVal > self.MAX_REG_VAL):
             #print "FEMB_UDP--> Error write_reg: Invalid data value"
@@ -47,7 +47,7 @@ class FEMB_UDP:
     def write_reg_bits(self, reg , pos, mask, data ):
         try:
             regVal = int(reg)
-        except ValueError:
+        except TypeError:
             return None
         if (regVal < 0) or (regVal > self.MAX_REG_NUM):
             print( "FEMB_UDP--> Error write_reg_bits: Invalid register number")
@@ -55,7 +55,7 @@ class FEMB_UDP:
 
         try:
             posVal = int(pos)
-        except ValueError:
+        except TypeError:
             return None
         if (posVal < 0 ) or (posVal > 31):
             print( "FEMB_UDP--> Error write_reg_bits: Invalid register position")
@@ -63,7 +63,7 @@ class FEMB_UDP:
 
         try:
             maskVal = int(mask)
-        except ValueError:
+        except TypeError:
             return None
         if (maskVal < 0 ) or (maskVal > 0xFFFFFFFF):
             print( "FEMB_UDP--> Error write_reg_bits: Invalid bit mask")
@@ -71,7 +71,7 @@ class FEMB_UDP:
 
         try:
             dataVal = int(data)
-        except ValueError:
+        except TypeError:
             return None
         if (dataVal < 0) or (dataVal > self.MAX_REG_VAL):
             print( "FEMB_UDP--> Error write_reg_bits: Invalid data value")
@@ -87,7 +87,7 @@ class FEMB_UDP:
         initReg = self.read_reg( regVal )
         try:
             initRegVal = int(initReg)
-        except ValueError:
+        except TypeError:
             return None
         if (initRegVal < 0) or (initRegVal > self.MAX_REG_VAL):
             #print "FEMB_UDP--> Error write_reg_bits: Invalid initial register value"
@@ -116,7 +116,7 @@ class FEMB_UDP:
     def read_reg(self, reg ):
         try:
             regVal = int(reg)
-        except ValueError:
+        except TypeError:
             return None
         if (regVal < 0) or (regVal > self.MAX_REG_NUM):
             #print "FEMB_UDP--> Error read_reg: Invalid register number"
@@ -149,7 +149,7 @@ class FEMB_UDP:
         #extract register value from response packet
         try:
             packetRegVal = int(dataHex[0:4],16)
-        except ValueError:
+        except TypeError:
             return None
         if packetRegVal != regVal :
             print("FEMB_UDP--> Error read_reg: Invalid response packet")
@@ -157,7 +157,7 @@ class FEMB_UDP:
 
         try:
             dataHexVal = int(dataHex[4:12],16)
-        except ValueError:
+        except TypeError:
             return None
         
         #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,dataHexVal)
@@ -167,7 +167,7 @@ class FEMB_UDP:
     def get_data_packets(self, num):
         try:
             numVal = int(num)
-        except ValueError:
+        except TypeError:
             return None
         if (numVal < 0) or (numVal > self.MAX_NUM_PACKETS):
             #print "FEMB_UDP--> Error record_hs_data: Invalid number of data packets requested"
@@ -217,7 +217,7 @@ class FEMB_UDP:
     def get_data(self, num):
         try:
             numVal = int(num)
-        except ValueError:
+        except TypeError:
             return None
         if (numVal < 0) or (numVal > self.MAX_NUM_PACKETS):
             #print "FEMB_UDP--> Error record_hs_data: Invalid number of data packets requested"
