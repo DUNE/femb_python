@@ -88,7 +88,7 @@ class FEMB_CONFIG:
         #Set ADC latch_loc
         self.femb.write_reg( self.REG_LATCHLOC,0x77777677 )
         #Set ADC clock phase
-        self.femb.write_reg( self.REG_CLKPHASE, 0X1f)
+        self.femb.write_reg( self.REG_CLKPHASE, 0x1e)
 
         #internal test pulser control
         self.femb.write_reg( 5, 0x02000001)
@@ -160,10 +160,12 @@ class FEMB_CONFIG:
 
         #Write ADC ASIC SPI
         print("Program ADC ASIC SPI")
+        self.femb.write_reg( self.REG_ASIC_RESET, 1)
+        time.sleep(0.1)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         time.sleep(0.1)
-        #self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        #time.sleep(0.1)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+        time.sleep(0.1)
 
         #35t ONLY, check if sync is ok, try redoing ADC reprogramming if not
         for test in range(0, 5, 1):
@@ -172,8 +174,12 @@ class FEMB_CONFIG:
             if isSync == 0:
                 print("Synced ADCs")
                 break
+            self.femb.write_reg( self.REG_ASIC_RESET, 1)
+            time.sleep(0.1)
             self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
             time.sleep(0.1)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+            time.sleep(0.1)            
 
         """
         print("Check ADC ASIC SPI")
@@ -270,6 +276,7 @@ class FEMB_CONFIG:
                 return
         pulseHeightVal = int(pulseHeight)
         self.femb.write_reg_bits( 5 , 0, 0x1F, pulseHeightVal )
+        #self.femb.write_reg_bits( 16, 8,0x1,0)
         self.femb.write_reg_bits( 13 , 1, 0x1, pulserEnableVal )
 
     def syncADC(self):
@@ -300,9 +307,13 @@ class FEMB_CONFIG:
         for ch in range(0,16,1):
                 self.selectChannel(adcNum,ch)
                 time.sleep(0.1)                
-                for test in range(0,1000,1):
-                        data = self.femb.get_data()
+                for test in range(0,10,1):
+                        data = self.femb.get_data(1)
+                        if data == None:
+                                continue
                         for samp in data:
+                                if samp == None:
+                                        continue
                                 chNum = ((samp >> 12 ) & 0xF)
                                 sampVal = (samp & 0xFFF)
                                 if sampVal != self.ADC_TESTPATTERN[ch]        :

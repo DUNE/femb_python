@@ -29,7 +29,7 @@ class FEMB_TEST:
 
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
-        print("SIMPLE MEASUREMENT - CHECKING READOUT STATUS")
+        print("NOISE MEASUREMENT - CHECKING READOUT STATUS")
         self.status_check_setup = 0
 
         #check local directory structure, available space
@@ -38,22 +38,19 @@ class FEMB_TEST:
             print(" Please check that femb_python package directory structure is intact.")
             return
 
-        #for test in range(0,10,1):
-        #    self.femb_config.syncADC() 
-        #return
-
         #check if register interface is working
         print("Checking register interface")
-        regVal = self.femb_config.femb.read_reg(6)
+        regVal = self.write_data.femb.read_reg(5)
         if (regVal == None) or (regVal == -1):
             print("Error running doFembTest - FEMB register interface is not working.")
             print(" Turn on or debug FEMB UDP readout.")       
             return
-        print("Read register 6, value = " + str( hex( regVal ) ) )
+        print("Read register 5, value = " + str( hex( regVal ) ) )
 
         #initialize FEMB to known state
         print("Initializing board")
         self.femb_config.initBoard()
+        #self.femb_config.initFemb(self.femb_config.fembNum)
 
         #check if data streaming is working
         print("Checking data streaming")
@@ -79,7 +76,7 @@ class FEMB_TEST:
             #sys.exit(0)
             return
 
-        print("SIMPLE MEASUREMENT - READOUT STATUS OK" + "\n")
+        print("NOISE MEASUREMENT - READOUT STATUS OK" + "\n")
         self.status_check_setup = 1
 
     def record_data(self):
@@ -90,20 +87,19 @@ class FEMB_TEST:
             print("Data already recorded. Reset/restat GUI to begin a new measurement")
             return
         #MEASUREMENT SECTION
-        print("SIMPLE MEASUREMENT - RECORDING DATA")
+        print("NOISE MEASUREMENT - RECORDING DATA")
 
         #initialize FEMB configuration to known state
-        self.femb_config.configFeAsic(2,1,0)
-        #self.femb_config.setInternalPulser(1,0x0)
+        self.femb_config.configFeAsic(0,0,0)
 
         #wait to make sure HS link is back on
         sleep(0.5)
 
         #set output file
         self.write_data.filedir = "data/"
-        self.write_data.filename = "rawdata_simpleMeasurement_" + str(self.write_data.date) + ".bin"
+        self.write_data.filename = "rawdata_noiseMeasurement_" + str(self.write_data.date) + ".bin"
         print("Recording " + self.write_data.filename )
-        self.write_data.numpacketsrecord = 100
+        self.write_data.numpacketsrecord = 10
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -112,16 +108,29 @@ class FEMB_TEST:
         self.write_data.open_file()
         subrun = 0
         asicCh = 0
-        for asic in range(0,8,1):
-          for asicCh in range(0,16,1):
-            self.femb_config.selectChannel(asic,asicCh)
-            self.write_data.record_data(subrun, asic, asicCh)
+        #loop over configurations, each configuration is it's own subrun
+        for g in range(0,4,1):
+          for s in range(0,4,1):
+            for b in range(0,2,1):
+                #config FE ASICs
+                print("FE ASIC Settings: Gain " + str(g) + ", Shaping Time " + str(s) + ", Baseline " + str(b) )
+                self.femb_config.configFeAsic(g,s,b)
+                sleep(0.5)
+
+                #loop over channels
+                for asic in range(0,8,1):
+                  for asicCh in range(0,16,1): 
+                    self.femb_config.selectChannel(asic,asicCh)
+                    self.write_data.record_data(subrun, asic, asicCh)
+
+                #increment subrun, important
+                subrun = subrun + 1
         self.write_data.close_file()
 
         #reset configuration to known state
-        #self.femb_config.configFeAsic(0,0,0)
+        self.femb_config.configFeAsic(0,0,0)
 
-        print("SIMPLE MEASUREMENT - DONE RECORDING DATA" + "\n")
+        print("NOISE MEASUREMENT - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1
 
     def do_analysis(self):
@@ -132,7 +141,7 @@ class FEMB_TEST:
             print("Analysis already complete")
             return
         #ANALYSIS SECTION
-        print("SIMPLE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
+        print("NOISE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
         call(["./parseBinaryFile", str( self.write_data.filedir ) + str( self.write_data.filename ) ])
@@ -140,19 +149,22 @@ class FEMB_TEST:
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
-        call(["./processNtuple_simpleMeasurement",  str( self.write_data.filedir ) + str(newName) ])
+        call(["./processNtuple_noiseMeasurement",  str( self.write_data.filedir ) + str(newName) ])
 
         #move result to data directory
-        newName = "output_processNtuple_simpleMeasurement_" + self.write_data.filename + ".root"
-        call(["mv", "output_processNtuple_simpleMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
+        newName = "output_processNtuple_noiseMeasurement_" + self.write_data.filename + ".root"
+        call(["mv", "output_processNtuple_noiseMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
+
+        #run summary program
+        call(["./summaryAnalysis_noiseMeasurement",  str( self.write_data.filedir ) + str(newName) ])
         newName = "summaryPlot_" + self.write_data.filename + ".png"
-        call(["mv", "summaryPlot_simpleMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
+        call(["mv", "summaryPlot_noiseMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
 
         #summary plot
-        print("SIMPLE MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
+        print("NOISE MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
         call(["display",str( self.write_data.filedir ) + str(newName) ])
 
-        print("SIMPLE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
+        print("NOISE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
 
     def archive_results(self):
@@ -163,17 +175,28 @@ class FEMB_TEST:
             print("Results already archived")
             return
         #ARCHIVE SECTION
-        print("SIMPLE MEASUREMENT - STORE RESULTS IN DATABASE")
+        print("NOISE MEASUREMENT - STORE RESULTS IN DATABASE")
         #placeholder
-        print("SIMPLE MEASUREMENT - DONE STORING RESULTS IN DATABASE" + "\n")
+        print("NOISE MEASUREMENT - DONE STORING RESULTS IN DATABASE" + "\n")
         self.status_archive_results = 1
 
 def main():
 
     femb_test = FEMB_TEST()
+    #femb_test.femb_config.selectFemb(0)
     femb_test.check_setup()
     femb_test.record_data()
     femb_test.do_analysis()
 
+    """
+    #loop over all 4 WIB FEMBs
+    for femb in range(0,4,1):
+        femb_test = FEMB_TEST()
+        #femb_test.femb_config.selectFemb(femb)
+        femb_test.check_setup()
+        femb_test.record_data()
+        femb_test.do_analysis()
+        #femb_test.archive_results()
+    """ 
 if __name__ == '__main__':
     main()
