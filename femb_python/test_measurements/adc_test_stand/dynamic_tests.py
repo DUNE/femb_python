@@ -33,11 +33,11 @@ class DYNAMIC_TESTS(object):
 
     def analyze(self,fileprefix):
         waveforms = self.loadWaveforms(fileprefix)
-        print(waveforms.keys())
         frequencies = sorted(list(waveforms.keys()))
         for iChip in range(self.NASICS):
-            for iChan in range(16):
-                print(iChip,iChan)
+            #for iChan in range(16):
+            for iChan in range(1):
+                #print(iChip,iChan)
                 for freq in frequencies:
                     amplitudes = sorted(list(waveforms[freq].keys()))
                     for amp in amplitudes:
@@ -49,17 +49,21 @@ class DYNAMIC_TESTS(object):
                         freqStr = "{:.0f}e{:.0f}".format(freqCoef,freqExp)
                         outputSuffix = "chip{}_chan{}_freq{}Hz_amp{:.0f}mV".format(iChip,iChan,freqStr,amp*1000)
                         maxAmpFreq, thd, snr, sinad, enob = self.getDynamicParameters(waveform,outputSuffix)
-                        print("  maxAmpFreq: {:.2e} THD: {:4.1f} SNR: {:4.1f} SINAD: {:4.1f} ENOB: {:4.2f}".format(maxAmpFreq,thd,snr,sinad,enob))
+                        deltaFreqRel = (maxAmpFreq*1e6 - freq)/freq
+                        if abs(deltaFreqRel) > 1e-2:
+                            print("Warning: Chip: {} Channel: {} Frequency: {:.2g} Hz Amplitude: {:.2f} V FFT peak doesn't match input frequency, skipping. fft freq - input freq relative error: {:.2%}".format(iChip,iChan,freq,amp,deltaFreqRel))
+                            continue
+                        print("  THD: {:4.1f} SNR: {:4.1f} SINAD: {:4.1f} ENOB: {:4.2f}".format(thd,snr,sinad,enob))
 
     def getDynamicParameters(self,data,outputSuffix,fake=False):
         """
         Performs the fft on the input sample data and returns:
 
-            the frequency with maximum amplitude
-            total harmonic distortion (THD) of self.nHarmonics harmonics in DB w.r.t. max amplitude
-            signal to noise ratio (SNR) amplitude of everything but signal, DC, and harmonics
-            signal to noise and distortion ratio (SINAD) amplitude of everything but signal and DC
-            effective number of bits (ENOB) computed from SINAD and the formula for ideal noise in terms of bits
+            the frequency with maximum amplitude (MHz)
+            total harmonic distortion (THD) of self.nHarmonics harmonics in DB w.r.t. max amplitude in dBc
+            signal to noise ratio (SNR) amplitude of everything but signal, DC, and harmonics in dBc
+            signal to noise and distortion ratio (SINAD) amplitude of everything but signal and DC in dBc
+            effective number of bits (ENOB) computed from SINAD and the formula for ideal noise in terms of bits in dBc
         """
         if fake:
             N = 20124
@@ -86,35 +90,38 @@ class DYNAMIC_TESTS(object):
         windowedData = self.get7BlackmanHarrisWindow(len(data))*dataNoDC
         #windowedData = self.getHanningWindow(len(data))*dataNoDC
         fft = numpy.fft.rfft(windowedData)
-        fftAmplitude = numpy.sqrt(numpy.real(fft*numpy.conj(fft)))
+        print("fft len: ",len(fft))
+        fftPower = numpy.real(fft*numpy.conj(fft))
+        fftPowerRelative = fftPower/max(fftPower)
+        fftPowerRelativeDB = 10*numpy.log10(fftPowerRelative)
+        fftAmplitude = numpy.sqrt(fftPower)
         fftAmplitudeRelative = fftAmplitude/max(fftAmplitude)
-        fftAmplitudeRelativeDB = 10*numpy.log10(fftAmplitudeRelative)
         samplePeriod = 0.5 # microsecond -> freqs will be in MHz
         frequencies = numpy.fft.rfftfreq(len(data),samplePeriod)
 
         iFreqs = numpy.arange(len(frequencies))
-        iMax = numpy.argmax(fftAmplitudeRelativeDB)
+        iMax = numpy.argmax(fftPowerRelativeDB)
         goodElements = numpy.logical_or(iFreqs > iMax + self.signalLeakageWidthBins , iFreqs < iMax - self.signalLeakageWidthBins)
         goodElements = numpy.logical_and(iFreqs > self.signalLeakageWidthBins, goodElements) # leakage from DC, just in case any left
         sinad = fftAmplitude[iMax]/fftAmplitude[goodElements].sum()
-        sinadDB = 10*numpy.log10(sinad)
+        sinadDB = 20*numpy.log10(sinad)
         enob = (sinadDB - 1.76) / (6.02)
         #enob = (sinad - 10*numpy.log10(1.5)) / (20*numpy.log10(2))
         
         fig, ax = plt.subplots(figsize=(8,8))
-        ax.plot(frequencies,fftAmplitudeRelativeDB,'b-')
+        ax.plot(frequencies,fftPowerRelativeDB,'b-')
         ax.set_xlim(-0.025,1.025)
         ax.set_xlabel("Frequency [MHz]")
-        ax.set_ylabel("Amplitude [dB]")
+        ax.set_ylabel("Power [dB]")
         fig.savefig("fft_{}.png".format(outputSuffix))
         plt.close()
 
         thdDenom = 0.
 
-        print(fft.shape,fftAmplitude.shape,fftAmplitudeRelative.shape,fftAmplitudeRelativeDB.shape,len(fftAmplitudeRelativeDB))
+        #print(fft.shape,fftAmplitude.shape,fftAmplitudeRelative.shape,fftAmplitudeRelativeDB.shape,len(fftAmplitudeRelativeDB))
         for iHarmonic in range(2,self.nHarmonics+1):
-            iBin = self.getHarmonicBin(iMax,iHarmonic,len(fftAmplitudeRelativeDB))
-            print(iBin)
+            iBin = self.getHarmonicBin(iMax,iHarmonic,len(fftPowerRelativeDB))
+            #print(iBin)
 
             thdDenom += fftAmplitude[iBin]
 
@@ -133,9 +140,9 @@ class DYNAMIC_TESTS(object):
             #fig.savefig("fft_{}.png".format(iHarmonic))
 
         thd = fftAmplitude[iMax]/thdDenom
-        thdDB = 10*numpy.log10(thd)
+        thdDB = 20*numpy.log10(thd)
         snr = fftAmplitude[iMax]/fftAmplitude[goodElements].sum()
-        snrDB = 10*numpy.log10(snr)
+        snrDB = 20*numpy.log10(snr)
 
         #print("nBins: {}".format(len(fft)))
         #print("Maximum: {} dB, {} MHz, {} element".format(fftAmplitudeRelativeDB[iMax],frequencies[iMax],iMax))
