@@ -141,9 +141,9 @@ class STATIC_TESTS(object):
             #fig.savefig(filename+".pdf")
             ax.cla()
 
-            print("Chip: ",iChip)
-            for code in indicesAll[dnl > 1.5]:
-               print("code: {}, code % 6: {} code % 12: {} code % 64: {}, bits: {:#014b} ".format(code,code % 6,code % 12, code % 64,code))
+            #print("Chip: ",iChip)
+            #for code in indicesAll[dnl > 1.5]:
+            #   print("code: {}, code % 6: {} code % 12: {} code % 64: {}, bits: {:#014b} ".format(code,code % 6,code % 12, code % 64,code))
 
     def doHistograms(self,fileprefix):
         """
@@ -167,32 +167,32 @@ class STATIC_TESTS(object):
             for iChan in range(16):
                hist = self.makeRampHist(iChip,iChan,fileprefix)
                codeHists[iChip][iChan] = hist
-               ax.plot(range(len(hist)),hist,"ko")
-               ax.set_xlabel("ADC Code")
-               ax.set_ylabel("Entries / ADC Code")
-               ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-               ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
-               filename = "ADC_Hist_Chip{}_Chan{}".format(iChip,iChan)
-               fig.savefig(filename+".png")
-               #fig.savefig(filename+".pdf")
-               ax.cla()
+               #ax.plot(range(len(hist)),hist,"ko")
+               #ax.set_xlabel("ADC Code")
+               #ax.set_ylabel("Entries / ADC Code")
+               #ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+               #ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
+               #filename = "ADC_Hist_Chip{}_Chan{}".format(iChip,iChan)
+               #fig.savefig(filename+".png")
+               ##fig.savefig(filename+".pdf")
+               #ax.cla()
 
-               if iChan == 4:
-                   for modX in [6,8,12,16,64]:
-                       self.plotModXHistogram(hist,modX,iChip,iChan)
+               #if iChan == 4:
+               #    for modX in [6,8,12,16,64]:
+               #        self.plotModXHistogram(hist,modX,iChip,iChan)
 
                bitHist = self.makeBitHistogram(hist)
                bitHists[iChip][iChan] = bitHist
-               ax.plot(range(len(bitHist)),bitHist,"ko")
-               ax.set_xlabel("ADC Bit")
-               ax.set_ylabel("Entries / ADC Bit")
-               ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-               ax.set_xlim(-1,self.nBits)
-               ax.set_xticks(range(0,self.nBits))
-               filename = "ADC_BitHist_Chip{}_Chan{}".format(iChip,iChan)
-               fig.savefig(filename+".png")
-               #fig.savefig(filename+".pdf")
-               ax.cla()
+               #ax.plot(range(len(bitHist)),bitHist,"ko")
+               #ax.set_xlabel("ADC Bit")
+               #ax.set_ylabel("Entries / ADC Bit")
+               #ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+               #ax.set_xlim(-1,self.nBits)
+               #ax.set_xticks(range(0,self.nBits))
+               #filename = "ADC_BitHist_Chip{}_Chan{}".format(iChip,iChan)
+               #fig.savefig(filename+".png")
+               ##fig.savefig(filename+".pdf")
+               #ax.cla()
         return codeHists,bitHists
 
     def makeRampHist(self,iChip,iChan,fileprefix):
