@@ -23,32 +23,32 @@ class FEMB_CONFIG(object):
 
     def resetBoard(self):
         #Reset system
-        self.femb.write_reg_i2c ( self.REG_RESET, 1)
+        self.femb.write_reg ( self.REG_RESET, 1)
 
         #Reset registers
-        self.femb.write_reg_i2c ( self.REG_RESET, 2)
+        self.femb.write_reg ( self.REG_RESET, 2)
 
         #Time stamp reset
-        #femb.write_reg_i2c ( 0, 4)
+        #femb.write_reg ( 0, 4)
         
         #Reset ADC ASICs
-        self.femb.write_reg_i2c ( self.REG_ASIC_RESET, 1)
+        self.femb.write_reg ( self.REG_ASIC_RESET, 1)
 
     def initBoard(self):
         print("FEMB_CONFIG--> Reset FEMB")
         #set up default registers
         
         #Reset ADC ASICs
-        self.femb.write_reg_i2c( self.REG_ASIC_RESET, 1)
+        self.femb.write_reg( self.REG_ASIC_RESET, 1)
 
         #Set ADC test pattern register
-        self.femb.write_reg_i2c ( 3, 0x01170000) #31 - enable ADC test pattern, 
+        self.femb.write_reg ( 3, 0x01170000) #31 - enable ADC test pattern, 
 
         #Set ADC latch_loc
-        self.femb.write_reg_i2c ( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data )
-        self.femb.write_reg_i2c ( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data )
+        self.femb.write_reg ( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data )
+        self.femb.write_reg ( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data )
         #Set ADC clock phase
-        self.femb.write_reg_i2c ( self.REG_CLKPHASE, self.REG_CLKPHASE_data)
+        self.femb.write_reg ( self.REG_CLKPHASE, self.REG_CLKPHASE_data)
 
         #internal test pulser control
         freq = 500
@@ -57,21 +57,21 @@ class FEMB_CONFIG(object):
         int_dac = 0 # or 0xA1
         dac_meas = int_dac  # or 60
         reg_5_value = ((freq<<16)&0xFFFF0000) + ((dly<<8)&0xFF00) + ( (dac_meas|ampl)& 0xFF )
-        self.femb.write_reg_i2c ( 5, reg_5_value)
-        self.femb.write_reg_i2c (16, 0x0)
+        self.femb.write_reg ( 5, reg_5_value)
+        self.femb.write_reg (16, 0x0)
 
-        self.femb.write_reg_i2c ( 13, 0x0) #enable
+        self.femb.write_reg ( 13, 0x0) #enable
 
         #Set test and readout mode register
-        self.femb.write_reg_i2c ( 7, 0x0000) #11-8 = channel select, 3-0 = ASIC select
-        self.femb.write_reg_i2c ( 17, 1) #11-8 = channel select, 3-0 = ASIC select
+        self.femb.write_reg ( 7, 0x0000) #11-8 = channel select, 3-0 = ASIC select
+        self.femb.write_reg ( 17, 1) #11-8 = channel select, 3-0 = ASIC select
 
         #set default value to FEMB ADCs and FEs
         self.configAdcAsic(self.adc_reg.REGS)
         self.configFeAsic(self.fe_reg.REGS)
 
         #Set number events per header -- no use
-        #self.femb.write_reg_i2c ( 8, 0x0)
+        #self.femb.write_reg ( 8, 0x0)
         print("FEMB_CONFIG--> Reset FEMB is DONE")
 
     def enablePulseMode(self,srcflag):
@@ -100,11 +100,11 @@ class FEMB_CONFIG(object):
             int_dac = 0 # or 0xA1
             dac_meas = int_dac  # or 60
             reg_5_value = ((freq<<16)&0xFFFF0000) + ((dly<<8)&0xFF00) + ( (dac_meas|ampl)& 0xFF )
-            self.femb.write_reg_i2c ( 5, reg_5_value)
+            self.femb.write_reg ( 5, reg_5_value)
 
             # set to pulser mode (0x01) and enable FPGA DAC (0x01xx)
-            self.femb.write_reg_i2c(16, 0x0101)
-            print(self.femb.read_reg_i2c(16))
+            self.femb.write_reg(16, 0x0101)
+            print(self.femb.read_reg(16))
 
         elif (srcflag=="0"):
             print("Enabling external pulse (still testing may not work)")
@@ -120,8 +120,8 @@ class FEMB_CONFIG(object):
             self.configFeAsic(self.fe_reg.REGS)
 
             # set to pulser mode (0x01) and enable external input (0x00xx)
-            self.femb.write_reg_i2c(16, 0x0001)
-            print(self.femb.read_reg_i2c(16))
+            self.femb.write_reg(16, 0x0001)
+            print(self.femb.read_reg(16))
 
         elif (srcflag=="99"):
             print("Disabling pulser (still testing may not work)")
@@ -137,8 +137,8 @@ class FEMB_CONFIG(object):
             self.configFeAsic(self.fe_reg.REGS)
 
             # disable pulser mode
-            self.femb.write_reg_i2c(16, 0x0)
-            print(self.femb.read_reg_i2c(16))
+            self.femb.write_reg(16, 0x0)
+            print(self.femb.read_reg(16))
 
         else:
             print("Source flag must be 0 (ext), 1 (dac), or 99 (disable)")
@@ -149,27 +149,27 @@ class FEMB_CONFIG(object):
         for k in range(10):
             i = 0
             for regNum in range(self.REG_ADCSPI_BASE,self.REG_ADCSPI_BASE+len(Adcasic_regs),1):
-                    self.femb.write_reg_i2c ( regNum, Adcasic_regs[i])
+                    self.femb.write_reg ( regNum, Adcasic_regs[i])
                     i = i + 1
 
             #ADC ASIC sync
-            #self.femb.write_reg_i2c ( 17, 0x1) # controls HS link, 0 for on, 1 for off
-            #self.femb.write_reg_i2c ( 17, 0x0) # controls HS link, 0 for on, 1 for off        
+            #self.femb.write_reg ( 17, 0x1) # controls HS link, 0 for on, 1 for off
+            #self.femb.write_reg ( 17, 0x0) # controls HS link, 0 for on, 1 for off        
 
             #Write ADC ASIC SPI
             print("FEMB_CONFIG--> Program ADC ASIC SPI")
-            self.femb.write_reg_i2c ( self.REG_ASIC_SPIPROG, 1)
+            self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
             time.sleep(0.1)
-            self.femb.write_reg_i2c ( self.REG_ASIC_SPIPROG, 1)
+            self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
             time.sleep(0.1)
 
-            self.femb.write_reg_i2c ( 18, 0x0)
+            self.femb.write_reg ( 18, 0x0)
             time.sleep(0.1)
 
             print("FEMB_CONFIG--> Check ADC ASIC SPI")
             adcasic_rb_regs = []
             for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+len(Adcasic_regs),1):
-                val = self.femb.read_reg_i2c ( regNum ) 
+                val = self.femb.read_reg ( regNum ) 
                 adcasic_rb_regs.append( val )
 
             if (adcasic_rb_regs !=Adcasic_regs  ) :
@@ -180,7 +180,7 @@ class FEMB_CONFIG(object):
                 print("FEMB_CONFIG--> ADC ASIC SPI is OK")
                 break
         #enable streaming
-        #self.femb.write_reg_i2c ( 9, 0x8)
+        #self.femb.write_reg ( 9, 0x8)
         #LBNE_ADC_MODE
 
 
@@ -191,17 +191,17 @@ class FEMB_CONFIG(object):
         for k in range(10):
             i = 0
             for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+len(feasic_regs),1):
-                self.femb.write_reg_i2c ( regNum, feasic_regs[i])
+                self.femb.write_reg ( regNum, feasic_regs[i])
                 i = i + 1
             #Write FE ASIC SPI
             print("FEMB_CONFIG--> Program FE ASIC SPI")
-            self.femb.write_reg_i2c ( self.REG_ASIC_SPIPROG, 2)
-            self.femb.write_reg_i2c ( self.REG_ASIC_SPIPROG, 2)
+            self.femb.write_reg ( self.REG_ASIC_SPIPROG, 2)
+            self.femb.write_reg ( self.REG_ASIC_SPIPROG, 2)
 
             print("FEMB_CONFIG--> Check FE ASIC SPI")
             feasic_rb_regs = []
             for regNum in range(self.REG_FESPI_RDBACK_BASE,self.REG_FESPI_RDBACK_BASE+len(feasic_regs),1):
-                val = self.femb.read_reg_i2c ( regNum ) 
+                val = self.femb.read_reg ( regNum ) 
                 feasic_rb_regs.append( val )
 
             if (feasic_rb_regs !=feasic_regs  ) :
@@ -212,49 +212,49 @@ class FEMB_CONFIG(object):
                 print("FEMB_CONFIG--> FE ASIC SPI is OK")
                 break
 
-    def selectChannel(self,asic,chan, allchn ):
+    def selectChannel(self,asic,chan, hsmode= 1 ):
         asicVal = int(asic)
-        if (asicVal < 0 ) or (asicVal > 7 ) :
-                print("FEMB_CONFIG--> femb_config_femb : selectChan - invalid ASIC number")
+        if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
+                print( "femb_config_femb : selectChan - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
                 return
         chVal = int(chan)
         if (chVal < 0 ) or (chVal > 15 ) :
-                print("FEMB_CONFIG--> femb_config_femb : selectChan - invalid channel number")
+                print("femb_config_femb : selectChan - invalid channel number, only 0 to 15 allowed")
                 return
-        allchnVal = int(allchn)
-        if (allchnVal != 0 ) and ( allchnVal != 1 ) :
+        hsmodeVal = int(hsmode)
+        if (hsmodeVal != 0 ) and ( hsmodeVal != 1 ) :
                 print("FEMB_CONFIG--> femb_config_femb : selectChan - invalid HS mode")
                 return
 
         print("FEMB_CONFIG--> Selecting ASIC " + str(asicVal) + ", channel " + str(chVal))
 
-        self.femb.write_reg_i2c ( self.REG_HS, allchnVal)
-        self.femb.write_reg_i2c ( self.REG_HS, allchnVal)
+        self.femb.write_reg ( self.REG_HS, hsmodeVal)
+        self.femb.write_reg ( self.REG_HS, hsmodeVal)
         regVal = (chVal << 8 ) + asicVal
-        self.femb.write_reg_i2c ( self.REG_SEL_CH, regVal)
-        self.femb.write_reg_i2c ( self.REG_SEL_CH, regVal)
+        self.femb.write_reg ( self.REG_SEL_CH, regVal)
+        self.femb.write_reg ( self.REG_SEL_CH, regVal)
 
     def syncADC(self):
         #turn on ADC test mode
         print("FEMB_CONFIG--> Start sync ADC")
-        reg3 = self.femb.read_reg_i2c (3)
+        reg3 = self.femb.read_reg (3)
         newReg3 = ( reg3 | 0x80000000 )
 
-        self.femb.write_reg_i2c ( 3, newReg3 ) #31 - enable ADC test pattern
+        self.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
         for a in range(0,8,1):
                 print("FEMB_CONFIG--> Test ADC " + str(a))
                 unsync = self.testUnsync(a)
                 if unsync != 0:
                         print("FEMB_CONFIG--> ADC not synced, try to fix")
                         self.fixUnsync(a)
-        self.REG_LATCHLOC1_4_data = self.femb.read_reg_i2c ( self.REG_LATCHLOC1_4 ) 
-        self.REG_LATCHLOC5_8_data = self.femb.read_reg_i2c ( self.REG_LATCHLOC5_8 )
-        self.REG_CLKPHASE_data    = self.femb.read_reg_i2c ( self.REG_CLKPHASE )
+        self.REG_LATCHLOC1_4_data = self.femb.read_reg ( self.REG_LATCHLOC1_4 ) 
+        self.REG_LATCHLOC5_8_data = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
+        self.REG_CLKPHASE_data    = self.femb.read_reg ( self.REG_CLKPHASE )
         print("FEMB_CONFIG--> Latch latency " + str(hex(self.REG_LATCHLOC1_4_data)) \
                         + str(hex(self.REG_LATCHLOC5_8_data )) + \
                         "\tPhase " + str(hex(self.REG_CLKPHASE_data)))
-        self.femb.write_reg_i2c ( 3, (reg3&0x7fffffff) )
-        self.femb.write_reg_i2c ( 3, (reg3&0x7fffffff) )
+        self.femb.write_reg ( 3, (reg3&0x7fffffff) )
+        self.femb.write_reg ( 3, (reg3&0x7fffffff) )
         print("FEMB_CONFIG--> End sync ADC")
 
     def testUnsync(self, adc):
@@ -290,29 +290,29 @@ class FEMB_CONFIG(object):
                 print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
                 return
 
-        initLATCH1_4 = self.femb.read_reg_i2c ( self.REG_LATCHLOC1_4 )
-        initLATCH5_8 = self.femb.read_reg_i2c ( self.REG_LATCHLOC5_8 )
-        initPHASE = self.femb.read_reg_i2c ( self.REG_CLKPHASE )
+        initLATCH1_4 = self.femb.read_reg ( self.REG_LATCHLOC1_4 )
+        initLATCH5_8 = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
+        initPHASE = self.femb.read_reg ( self.REG_CLKPHASE )
 
         #loop through sync parameters
         for phase in range(0,2,1):
                 clkMask = (0x1 << adcNum)
                 testPhase = ( (initPHASE & ~(clkMask)) | (phase << adcNum) ) 
-                self.femb.write_reg_i2c ( self.REG_CLKPHASE, testPhase )
+                self.femb.write_reg ( self.REG_CLKPHASE, testPhase )
                 for shift in range(0,16,1):
                         shiftMask = (0x3F << 8*adcNum)
                         if ( adcNum < 4 ):
                             testShift = ( (initLATCH1_4 & ~(shiftMask)) | (shift << 8*adcNum) )
-                            self.femb.write_reg_i2c ( self.REG_LATCHLOC1_4, testShift )
+                            self.femb.write_reg ( self.REG_LATCHLOC1_4, testShift )
                         else:
                             testShift = ( (initLATCH5_8 & ~(shiftMask)) | (shift << 8*adcNum) )
-                            self.femb.write_reg_i2c ( self.REG_LATCHLOC5_8, testShift )
+                            self.femb.write_reg ( self.REG_LATCHLOC5_8, testShift )
                         #reset ADC ASIC
-                        self.femb.write_reg_i2c ( self.REG_ASIC_RESET, 1)
+                        self.femb.write_reg ( self.REG_ASIC_RESET, 1)
                         time.sleep(0.01)
-                        self.femb.write_reg_i2c ( self.REG_ASIC_SPIPROG, 1)
+                        self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
                         time.sleep(0.01)
-                        self.femb.write_reg_i2c ( self.REG_ASIC_SPIPROG, 1)
+                        self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
                         time.sleep(0.01)
                         #test link
                         unsync = self.testUnsync(adcNum)
