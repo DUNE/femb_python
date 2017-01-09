@@ -12,7 +12,7 @@ from builtins import object
 import sys 
 import string
 import time
-from ..femb_udp import FEMB_UDP
+from femb_python.femb_udp import FEMB_UDP
 
 class FEASIC_CH_CONFIG(object):
     def __init__(self, num, regNum, regPos):
