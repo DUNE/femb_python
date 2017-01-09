@@ -90,15 +90,15 @@ class DYNAMIC_TESTS(object):
                 for iKey, key in enumerate(['thds','snrs','sinads']):
                     fig, ax = plt.subplots(figsize=(8,8))
                     for amp in amplitudes:
-                        freqs = chanstats[amp]['freqs']
-                        ax.plot(freqs,chanstats[amp][key],label="{:.2f} V".format(amp))
+                        freqs = numpy.array(chanstats[amp]['freqs'])
+                        ax.plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
                     ax.set_xlabel("Frequency [MHz]")
                     ax.set_ylabel("{} [dB]".format(key[:-1].upper()))
                     ax.legend()
                     fig.savefig("{}_chip{}_chan{}.png".format(key,iChip,iChan))
                     plt.close()
 
-    def getDynamicParameters(self,data,outputSuffix,fake=False):
+    def getDynamicParameters(self,data,outputSuffix,fake=True):
         """
         Performs the fft on the input sample data and returns:
 
@@ -110,13 +110,16 @@ class DYNAMIC_TESTS(object):
         """
         if fake:
             N = 20124
+            N = 2048
             A = 1.
-            freq = 0.235
-            phase = 0.12562362376
+            freq = 5e-1
+            #freq = 100.
+            #phase = 0.12562362376
+            phase = 0.
             freq /= 2. # b/c sample at 2MHz
             t = numpy.arange(N)
             Noise = 0.
-            Noise += 1e-6*numpy.random.randn(N)
+            Noise += 1e-2*numpy.random.randn(N)
             #Noise += 1e-8*numpy.sin(2*numpy.pi*t/10.)
             #Noise += 1e-5*numpy.sin(2*numpy.pi*t/6.)
             harmonics = 0.
@@ -124,19 +127,24 @@ class DYNAMIC_TESTS(object):
               harmonics += 1e-3*10**(-iHarmonic)*A*numpy.sin(2*numpy.pi*t*freq*iHarmonic+phase) + 0.
             data = numpy.zeros(N)
             data += Noise
-            data += harmonics
+            #data += harmonics
             data += A*numpy.sin(2*numpy.pi*t*freq+phase) + 0.
             true_sinad = (numpy.mean((A*numpy.sin(2*numpy.pi*t*freq))**2))**0.5
             true_sinad /= (numpy.mean(Noise**2))**0.5
             print("true SINAD: ",true_sinad,"=",10*numpy.log10(true_sinad),"dB")
-        dataNoDC = data - numpy.mean(data)
-        windowedData = self.get7BlackmanHarrisWindow(len(data))*dataNoDC
+        print("power of data: {}".format((data**2).sum()))
+        #dataNoDC = data - numpy.mean(data)
+        dataNoDC = data
+        #print("dataNoDC RMS: {}".format(numpy.std(dataNoDC)))
+        windowedData = dataNoDC
+        #windowedData = self.get7BlackmanHarrisWindow(len(data))*dataNoDC
         #windowedData = self.getHanningWindow(len(data))*dataNoDC
         fft = numpy.fft.rfft(windowedData)
-        print("fft len: {}, fft processing gain: {:.2g} = {:.2f} dB".format(len(fft),len(fft)/2.,10*numpy.log10(len(fft)/2.)))
+        #print("fft len: {}, fft processing gain: {:.2g} = {:.2f} dB".format(len(fft),len(fft)/2.,10*numpy.log10(len(fft)/2.)))
         fftPower = numpy.real(fft*numpy.conj(fft))
+        fftPower *= 2 / len(data)
         fftPowerRelative = fftPower/max(fftPower)
-        print("fftPowerRelative-Mean: {:.2g} = {:.2f} dB".format(numpy.mean(fftPowerRelative),10*numpy.log10(numpy.mean(fftPowerRelative))))
+        #print("fftPowerRelative-Mean: {:.2g} = {:.2f} dB".format(numpy.mean(fftPowerRelative),10*numpy.log10(numpy.mean(fftPowerRelative))))
         fftPowerRelativeDB = 10*numpy.log10(fftPowerRelative)
         fftAmplitude = numpy.sqrt(fftPower)
         fftAmplitudeRelative = fftAmplitude/max(fftAmplitude)
@@ -145,9 +153,19 @@ class DYNAMIC_TESTS(object):
 
         iFreqs = numpy.arange(len(frequencies))
         iMax = numpy.argmax(fftPowerRelativeDB)
+        print("Power of FFT: {}".format(fftPower.sum()))
+        print("Power of FFT/N: {}".format(fftPower.sum()/len(data)))
+        print("Power Max: {} ".format(fftPower[iMax]))
+        print("Power Max/N: {} ".format(fftPower[iMax]/len(data)))
+        print("amp fft sum: {} ".format(fftAmplitude.sum()))
+        print("amp fft sum/sqrtN: {} ".format(fftAmplitude.sum()/len(data)**0.5))
+        print("amp Max: {} ".format(fftAmplitude[iMax]))
+        print("amp Max/sqrtN: {} ".format(fftAmplitude[iMax]/len(data)**0.5))
         goodElements = numpy.logical_or(iFreqs > iMax + self.signalLeakageWidthBins , iFreqs < iMax - self.signalLeakageWidthBins)
         goodElements = numpy.logical_and(iFreqs > self.signalLeakageWidthBins, goodElements) # leakage from DC, just in case any left
         sinad = fftAmplitude[iMax]/fftAmplitude[goodElements].sum()
+        print("nad: {} amplitude, {} power".format(fftAmplitude[goodElements].sum(),fftPower[goodElements].sum()))
+        print("sinad: {} amp frac, {} power frac".format(sinad,fftPower[iMax]/fftPower[goodElements].sum()))
         sinadDB = 20*numpy.log10(sinad)
         enob = (sinadDB - 1.76) / (6.02)
         #enob = (sinad - 10*numpy.log10(1.5)) / (20*numpy.log10(2))
@@ -185,9 +203,13 @@ class DYNAMIC_TESTS(object):
             #ax.set_xlim(iBin-20,iBin+20)
             #fig.savefig("fft_{}.png".format(iHarmonic))
 
+        #print("thdDenom: {} amplitude".format(thdDenom))
         thd = fftAmplitude[iMax]/thdDenom
+        #print("thd: {} frac".format(thd))
         thdDB = 20*numpy.log10(thd)
         snr = fftAmplitude[iMax]/fftAmplitude[goodElements].sum()
+        #print("noise: {} amplitude".format(fftAmplitude[goodElements].sum()))
+        #print("snr: {} frac".format(snr))
         snrDB = 20*numpy.log10(snr)
 
         #print("nBins: {}".format(len(fft)))
