@@ -90,9 +90,10 @@ class DYNAMIC_TESTS(object):
         windowedData = self.get7BlackmanHarrisWindow(len(data))*dataNoDC
         #windowedData = self.getHanningWindow(len(data))*dataNoDC
         fft = numpy.fft.rfft(windowedData)
-        print("fft len: ",len(fft))
+        print("fft len: {}, fft processing gain: {:.2g} = {:.2f} dB".format(len(fft),len(fft)/2.,10*numpy.log10(len(fft)/2.)))
         fftPower = numpy.real(fft*numpy.conj(fft))
         fftPowerRelative = fftPower/max(fftPower)
+        print("fftPowerRelative-Mean: {:.2g} = {:.2f} dB".format(numpy.mean(fftPowerRelative),10*numpy.log10(numpy.mean(fftPowerRelative))))
         fftPowerRelativeDB = 10*numpy.log10(fftPowerRelative)
         fftAmplitude = numpy.sqrt(fftPower)
         fftAmplitudeRelative = fftAmplitude/max(fftAmplitude)
