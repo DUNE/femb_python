@@ -34,13 +34,28 @@ class DYNAMIC_TESTS(object):
     def analyze(self,fileprefix):
         waveforms = self.loadWaveforms(fileprefix)
         frequencies = sorted(list(waveforms.keys()))
+        amplitudes = []
+        for freq in frequencies:
+            for amp in waveforms[freq]:
+              if not amp in amplitudes:
+                amplitudes.append(amp)
+        amplitudes.sort()
+        allstats = {}
         for iChip in range(self.NASICS):
+            chipstats = {}
             #for iChan in range(16):
             for iChan in range(1):
                 #print(iChip,iChan)
-                for freq in frequencies:
-                    amplitudes = sorted(list(waveforms[freq].keys()))
-                    for amp in amplitudes:
+                fig, ax = plt.subplots(figsize=(8,8))
+                chanstats = {}
+                for amp in amplitudes:
+                    chanstats[amp] = {}
+                    chanstats[amp]['thds'] = []
+                    chanstats[amp]['snrs'] = []
+                    chanstats[amp]['sinads'] = []
+                    chanstats[amp]['enobs'] = []
+                    chanstats[amp]['freqs'] = []
+                    for freq in frequencies:
                         waveform = waveforms[freq][amp][iChip][iChan]
                         print("Chip: {}, Chan: {}, Freq: {} Hz, Amp: {} V".format(iChip,iChan,freq,amp))
                         freqStr = ""
@@ -52,8 +67,36 @@ class DYNAMIC_TESTS(object):
                         deltaFreqRel = (maxAmpFreq*1e6 - freq)/freq
                         if abs(deltaFreqRel) > 1e-2:
                             print("Warning: Chip: {} Channel: {} Frequency: {:.2g} Hz Amplitude: {:.2f} V FFT peak doesn't match input frequency, skipping. fft freq - input freq relative error: {:.2%}".format(iChip,iChan,freq,amp,deltaFreqRel))
-                            continue
-                        print("  THD: {:4.1f} SNR: {:4.1f} SINAD: {:4.1f} ENOB: {:4.2f}".format(thd,snr,sinad,enob))
+                            chanstats[amp]['thds'].append(float('nan'))
+                            chanstats[amp]['snrs'].append(float('nan'))
+                            chanstats[amp]['sinads'].append(float('nan'))
+                            chanstats[amp]['enobs'].append(float('nan'))
+                            chanstats[amp]['freqs'].append(freq)
+                        else:
+                            print("  THD: {:4.1f} SNR: {:4.1f} SINAD: {:4.1f} ENOB: {:4.2f}".format(thd,snr,sinad,enob))
+                            chanstats[amp]['thds'].append(thd)
+                            chanstats[amp]['snrs'].append(snr)
+                            chanstats[amp]['sinads'].append(sinad)
+                            chanstats[amp]['enobs'].append(enob)
+                            chanstats[amp]['freqs'].append(freq)
+                chipstats[iChan] = chanstats
+            allstats[iChip] = chipstats
+
+        # Now put out plots
+        for iChip in range(self.NASICS):
+            #for iChan in range(16):
+            for iChan in range(1):
+                chanstats = allstats[iChip][iChan]
+                for iKey, key in enumerate(['thds','snrs','sinads']):
+                    fig, ax = plt.subplots(figsize=(8,8))
+                    for amp in amplitudes:
+                        freqs = chanstats[amp]['freqs']
+                        ax.plot(freqs,chanstats[amp][key],label="{:.2f} V".format(amp))
+                    ax.set_xlabel("Frequency [MHz]")
+                    ax.set_ylabel("{} [dB]".format(key[:-1].upper()))
+                    ax.legend()
+                    fig.savefig("{}_chip{}_chan{}.png".format(key,iChip,iChan))
+                    plt.close()
 
     def getDynamicParameters(self,data,outputSuffix,fake=False):
         """
@@ -115,6 +158,8 @@ class DYNAMIC_TESTS(object):
         ax.set_xlabel("Frequency [MHz]")
         ax.set_ylabel("Power [dB]")
         fig.savefig("fft_{}.png".format(outputSuffix))
+        #fig.show()
+        #input("Press Enter to continue...")
         plt.close()
 
         thdDenom = 0.
