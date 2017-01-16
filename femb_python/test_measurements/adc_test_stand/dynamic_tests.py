@@ -34,6 +34,7 @@ class DYNAMIC_TESTS(object):
     def analyze(self,fileprefix):
         waveforms = self.loadWaveforms(fileprefix)
         frequencies = sorted(list(waveforms.keys()))
+        #frequencies = frequencies[:3]
         amplitudes = []
         for freq in frequencies:
             for amp in waveforms[freq]:
@@ -83,7 +84,36 @@ class DYNAMIC_TESTS(object):
             allstats[iChip] = chipstats
 
         # Now put out plots
+        figmanys = []
+        for iKey, key in enumerate(['thds','snrs','sinads']):
+            figmanys.append(plt.figure(figsize=(8,8)))
         for iChip in range(self.NASICS):
+            # setup summary figures
+            manyaxeses = []
+            for iKey, key in enumerate(['thds','snrs','sinads']):
+                figmany = figmanys[iKey]
+                figmany.clf()
+                manyaxes = []
+                for iChan in range(16):
+                    manyaxes.append(figmany.add_subplot(4,4,iChan+1))
+                    manyaxes[iChan].set_xlim(0,1)
+                    manyaxes[iChan].set_ylim(0,60)
+                    if key == "thds":
+                      manyaxes[iChan].set_ylim(-80,0)
+                    manyaxes[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
+                    xticks = [0,0.5,1]
+                    manyaxes[iChan].set_xticks(xticks)
+                    if iChan % 4 != 0:
+                        manyaxes[iChan].set_yticklabels([])
+                    else:
+                        manyaxes[iChan].set_ylabel("{} [dB]".format(key[:-1].upper()))
+                    if iChan // 4 != 3:
+                        manyaxes[iChan].set_xticklabels([])
+                    else:
+                        manyaxes[iChan].set_xlabel("Frequency [MHz]")
+                        manyaxes[iChan].set_xticklabels(["0","0.5","1"])
+                manyaxeses.append(manyaxes)
+            # do analysis
             for iChan in range(16):
             #for iChan in range(1):
                 chanstats = allstats[iChip][iChan]
@@ -92,12 +122,18 @@ class DYNAMIC_TESTS(object):
                     for amp in amplitudes:
                         freqs = numpy.array(chanstats[amp]['freqs'])
                         ax.plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
+                        manyaxeses[iKey][iChan].plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
                     ax.set_xlabel("Frequency [MHz]")
                     ax.set_ylabel("{} [dB]".format(key[:-1].upper()))
-                    ax.set_ylim(0,80)
+                    ax.set_xlim(0,1)
+                    ax.set_ylim(0,60)
+                    if key == "thds":
+                      ax.set_ylim(-80,0)
                     ax.legend()
                     fig.savefig("{}_chip{}_chan{}.png".format(key,iChip,iChan))
                     plt.close()
+            for iKey, key in enumerate(['thds','snrs','sinads']):
+              figmanys[iKey].savefig("{}_chip{}.png".format(key,iChip))
 
     def getDynamicParameters(self,data,outputSuffix,fake=False):
         """
@@ -160,14 +196,14 @@ class DYNAMIC_TESTS(object):
         #input("Press Enter to continue...")
         plt.close()
 
-        thdDenom = 0.
+        thd = 0.
 
         #print(fft.shape,fftAmplitude.shape,fftAmplitudeRelative.shape,fftAmplitudeRelativeDB.shape,len(fftAmplitudeRelativeDB))
         for iHarmonic in range(2,self.nHarmonics+1):
             iBin = self.getHarmonicBin(iMax,iHarmonic,len(fftPowerRelativeDB))
             #print(iBin)
 
-            thdDenom += fftPower[iBin]
+            thd += fftPower[iBin]
 
             goodElements = numpy.logical_and(goodElements,
                                         numpy.logical_or(
@@ -183,12 +219,11 @@ class DYNAMIC_TESTS(object):
             #ax.set_xlim(iBin-20,iBin+20)
             #fig.savefig("fft_{}.png".format(iHarmonic))
 
-        #print("thdDenom: {} amplitude".format(thdDenom))
-        thd = fftPower[iMax]/thdDenom
-        #print("thd: {} frac".format(thd))
-        thdDB = 10*numpy.log10(thd)
+        thdRatio = thd/fftPower[iMax]
+        thdDB = 10*numpy.log10(thdRatio)
+        #print("thd: {} power, thdRatio: {}, thdDB: {} dB".format(thd, thdRatio, thdDB))
         snr = fftPower[iMax]/fftPower[goodElements].sum()
-        #print("noise: {} amplitude".format(fftAmplitude[goodElements].sum()))
+        #print("noise: {} power".format(fftPower[goodElements].sum()))
         #print("snr: {} frac".format(snr))
         snrDB = 10*numpy.log10(snr)
 
