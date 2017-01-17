@@ -150,8 +150,10 @@ class FEMB_CONFIG(object):
             i = 0
             for regNum in range(self.REG_ADCSPI_BASE,self.REG_ADCSPI_BASE+len(Adcasic_regs),1):
                     self.femb.write_reg ( regNum, Adcasic_regs[i])
+                    time.sleep(0.05)
                     i = i + 1
 
+            #print("  ADC ASIC write : ",Adcasic_regs)
             #ADC ASIC sync
             #self.femb.write_reg ( 17, 0x1) # controls HS link, 0 for on, 1 for off
             #self.femb.write_reg ( 17, 0x0) # controls HS link, 0 for on, 1 for off        
@@ -172,10 +174,12 @@ class FEMB_CONFIG(object):
                 val = self.femb.read_reg ( regNum ) 
                 adcasic_rb_regs.append( val )
 
+            #print("  ADC ASIC read back: ",adcasic_rb_regs)
             if (adcasic_rb_regs !=Adcasic_regs  ) :
                 if ( k == 1 ):
                     sys.exit("femb_config : Wrong readback. ADC SPI failed")
                     return
+                print("FEMB_CONFIG--> ADC ASIC Readback didn't match, retrying...")
             else: 
                 print("FEMB_CONFIG--> ADC ASIC SPI is OK")
                 break
@@ -208,6 +212,7 @@ class FEMB_CONFIG(object):
                 if ( k == 9 ):
                     sys.exit("femb_config_femb : Wrong readback. FE SPI failed")
                     return
+                print("FEMB_CONFIG--> FE ASIC Readback didn't match, retrying...")
             else: 
                 print("FEMB_CONFIG--> FE ASIC SPI is OK")
                 break
