@@ -72,6 +72,8 @@ class STATIC_TESTS(object):
                     indices, choppedCodeHist = self.chopOffUnfilledBins(codeHist)
                     dnl, inl = self.makeLinearityHistograms(indices,choppedCodeHist)
                     dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(indices,choppedCodeHist,True)
+
+                    ### Plot DNL
                     ax.plot(indices,dnl,"k-",label="All Codes")
                     manyaxesDNL[iChan].plot(indices,dnl,"k-",label="All Codes",lw=1)
                     if self.nBits == 12:
@@ -95,6 +97,8 @@ class STATIC_TESTS(object):
                     #fig.savefig(filename+".pdf")
                     ax.cla()
                     axRight.cla()
+                    
+                    ### On to INL
                     ax.plot(indices,inl,"k-",label="All Codes")
                     manyaxesINL[iChan].plot(indices,inl,"k-",label="All Codes")
                     #ax.plot(indices,inlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
@@ -115,6 +119,26 @@ class STATIC_TESTS(object):
                     #fig.savefig(filename+".pdf")
                     ax.cla()
                     axRight.cla()
+                    
+                    # Stuck Code Analysis
+                    stuckCodeFraction, stuckCodeFractionShouldBe = self.getStuckCodeFraction(indices,choppedCodeHist)
+                    print("chan {:2} stuckCodeFraction: {:6.3f}, should be: {:6.3f}".format(iChan,stuckCodeFraction,stuckCodeFractionShouldBe))
+                    stuckCodeDNL, stuckCodeDNL0, stuckCodeDNL1 = self.getStuckCodeDNLs(indices,dnl)
+                    stuckCodeBins = numpy.linspace(-1,50,200)
+                    #ax.hist(dnlKillStuckCodes, bins=stuckCodeBins, histtype='step',label="LSB Not 000000 or 111111",log=True)
+                    ax.hist(stuckCodeDNL, bins=stuckCodeBins, histtype='step',label="LSB: 000000 or 111111",log=True)
+                    ax.hist(stuckCodeDNL0,bins=stuckCodeBins, histtype='step',label="LSB: 000000",log=True)
+                    ax.hist(stuckCodeDNL1,bins=stuckCodeBins, histtype='step',label="LSB: 111111",log=True)
+                    ax.legend()
+                    ax.set_ylabel("Number of Codes")
+                    ax.set_xlabel("DNL [bits]")
+                    ax.set_ylim(0,ax.get_ylim()[1])
+                    #ax.set_ylim(0.1,200)
+                    filename = "ADC_StuckCodeHist_Chip{}_Chan{}".format(iChip,iChan)
+                    fig.savefig(filename+".png")
+                    #print("Avg, stddev of dnlNoStuckCodes: {} {}, Avg, stddev of stuck code dnl: {} {}".format(numpy.mean(dnlKillStuckCodes), numpy.std(dnlKillStuckCodes),numpy.mean(stuckCodeDNL),numpy.std(stuckCodeDNL)))
+                    #print("65th, 80th, 90th percentile of non-stuck DNL: {:6.2f} {:6.2f} {:6.2f}, and stuck code dnl: {:6.2f} {:6.2f} {:6.2f}".format(numpy.percentile(dnlKillStuckCodes,65), numpy.percentile(dnlKillStuckCodes,80), numpy.percentile(dnlKillStuckCodes,90),numpy.percentile(stuckCodeDNL,65),numpy.percentile(stuckCodeDNL,80),numpy.percentile(stuckCodeDNL,90)))
+                    print("chan {:2} 75th percentile of non-stuck DNL: {:6.2f}, and stuck code dnl: {:6.2f}".format(iChan,numpy.percentile(dnlKillStuckCodes,75),numpy.percentile(stuckCodeDNL,75)))
                 except KeyError as e:
                     pass
             filename = "ADC_DNL_Chip{}".format(iChip)
@@ -297,6 +321,62 @@ class STATIC_TESTS(object):
         for i in range(len(dnl)-1):
             inl[i] = dnl[1:i+1].sum()
         return dnl,inl
+
+    def getStuckCodeDNLs(self,indices,dnls):
+        """
+        Makes arrays of DNL of codes with LSBs of 000000 or 111111
+
+        indices is an array of codes
+
+        dnls is an array of dnl values correspoinding to the codes in indices
+
+        Returns 3 arrays of dnl
+            values of codes: One for 0b000000, one for 0b111111, and one 
+            for either.
+
+        """
+        dnlStuck = []
+        dnlStuck0 = []
+        dnlStuck1 = []
+        for i,index in enumerate(indices):
+            lsb6 = index & 0b111111
+            isZeros = lsb6 == 0b111111
+            isOnes = lsb6 == 9
+            if isZeros or isOnes:
+                dnlStuck.append(dnls[i])
+            if isZeros:
+                dnlStuck0.append(dnls[i])
+            if isOnes:
+                dnlStuck1.append(dnls[i])
+        dnlStuck.sort()
+        dnlStuck0.sort()
+        dnlStuck1.sort()
+        #dnlBins = numpy.linspace(-1,100,1000)
+        #dnlStuckHist = numpy.histogram(dnlStuck,dnlBins)
+        #dnlStuck0Hist = numpy.histogram(dnlStuck0,dnlBins)
+        #dnlStuck1Hist = numpy.histogram(dnlStuck1,dnlBins)
+        return dnlStuck, dnlStuck0, dnlStuck1
+
+    def getStuckCodeFraction(self,indices,counts):
+        """
+        Returns the fraction of counts in stuck code indices, and the fraction of codes that are 000000 or 111111
+
+        indices is an array of codes
+
+        counts in an array of counts correspoinding to the codes in indices
+
+        """
+        sumAll = counts.sum()
+        sumStuckCodes = 0
+        nStuckCodes = 0
+        for i,index in enumerate(indices):
+            lsb6 = index & 0b111111
+            isZeros = lsb6 == 0b111111
+            isOnes = lsb6 == 9
+            if isZeros or isOnes:
+                sumStuckCodes += counts[i]
+                nStuckCodes += 1
+        return float(sumStuckCodes)/sumAll, float(nStuckCodes)/len(indices)
 
     def plotModXHistogram(self,hist,modNumber,iChip,iChan):
         fig, ax = plt.subplots(figsize=(8,8))
