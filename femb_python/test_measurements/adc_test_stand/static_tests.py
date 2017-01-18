@@ -30,8 +30,6 @@ class STATIC_TESTS(object):
 
     def analyzeLinearity(self,fileprefix):
         codeHists, bitHists = self.doHistograms(fileprefix)
-        fig, ax = plt.subplots(figsize=(8,8))
-        axRight = ax.twinx()
         figmanyDNL = plt.figure(figsize=(8,8))
         figmanyINL = plt.figure(figsize=(8,8))
         for iChip in range(self.NASICS):
@@ -72,8 +70,33 @@ class STATIC_TESTS(object):
                     indices, choppedCodeHist = self.chopOffUnfilledBins(codeHist)
                     dnl, inl = self.makeLinearityHistograms(indices,choppedCodeHist)
                     dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(indices,choppedCodeHist,True)
+                    stuckCodeFraction, stuckCodeFractionShouldBe = self.getStuckCodeFraction(indices,choppedCodeHist)
+                    stuckCodeDNL, stuckCodeDNL0, stuckCodeDNL1 = self.getStuckCodeDNLs(indices,dnl)
+                    stuckCodeBins = numpy.linspace(-1,50,200)
+
+                    ## Stuck Code Analysis
+                    fig, ax = plt.subplots(figsize=(8,8))
+                    ax.set_yscale('log')
+                    print("chan {:2} stuckCodeFraction: {:6.3f}, should be: {:6.3f}".format(iChan,stuckCodeFraction,stuckCodeFractionShouldBe))
+                    #ax.hist(dnlKillStuckCodes, bins=stuckCodeBins, histtype='step',label="LSB Not 000000 or 111111",log=True)
+                    ax.hist(stuckCodeDNL, bins=stuckCodeBins, histtype='step',label="LSB: 000000 or 111111",log=True)
+                    ax.hist(stuckCodeDNL0,bins=stuckCodeBins, histtype='step',label="LSB: 000000",log=True)
+                    ax.hist(stuckCodeDNL1,bins=stuckCodeBins, histtype='step',label="LSB: 111111",log=True)
+                    ax.legend()
+                    ax.set_ylabel("Number of Codes")
+                    ax.set_xlabel("DNL [bits]")
+                    ax.set_ylim(0,ax.get_ylim()[1])
+                    #ax.set_ylim(0.1,200)
+                    filename = "ADC_StuckCodeHist_Chip{}_Chan{}".format(iChip,iChan)
+                    fig.savefig(filename+".png")
+                    #print("Avg, stddev of dnlNoStuckCodes: {} {}, Avg, stddev of stuck code dnl: {} {}".format(numpy.mean(dnlKillStuckCodes), numpy.std(dnlKillStuckCodes),numpy.mean(stuckCodeDNL),numpy.std(stuckCodeDNL)))
+                    #print("65th, 80th, 90th percentile of non-stuck DNL: {:6.2f} {:6.2f} {:6.2f}, and stuck code dnl: {:6.2f} {:6.2f} {:6.2f}".format(numpy.percentile(dnlKillStuckCodes,65), numpy.percentile(dnlKillStuckCodes,80), numpy.percentile(dnlKillStuckCodes,90),numpy.percentile(stuckCodeDNL,65),numpy.percentile(stuckCodeDNL,80),numpy.percentile(stuckCodeDNL,90)))
+                    print("chan {:2} 75th percentile of non-stuck DNL: {:6.2f}, and stuck code dnl: {:6.2f}".format(iChan,numpy.percentile(dnlKillStuckCodes,75),numpy.percentile(stuckCodeDNL,75)))
+                    ax.cla()
 
                     ### Plot DNL
+                    ax.set_yscale('linear')
+                    axRight = ax.twinx()
                     ax.plot(indices,dnl,"k-",label="All Codes")
                     manyaxesDNL[iChan].plot(indices,dnl,"k-",label="All Codes",lw=1)
                     if self.nBits == 12:
@@ -120,25 +143,6 @@ class STATIC_TESTS(object):
                     ax.cla()
                     axRight.cla()
                     
-                    # Stuck Code Analysis
-                    stuckCodeFraction, stuckCodeFractionShouldBe = self.getStuckCodeFraction(indices,choppedCodeHist)
-                    print("chan {:2} stuckCodeFraction: {:6.3f}, should be: {:6.3f}".format(iChan,stuckCodeFraction,stuckCodeFractionShouldBe))
-                    stuckCodeDNL, stuckCodeDNL0, stuckCodeDNL1 = self.getStuckCodeDNLs(indices,dnl)
-                    stuckCodeBins = numpy.linspace(-1,50,200)
-                    #ax.hist(dnlKillStuckCodes, bins=stuckCodeBins, histtype='step',label="LSB Not 000000 or 111111",log=True)
-                    ax.hist(stuckCodeDNL, bins=stuckCodeBins, histtype='step',label="LSB: 000000 or 111111",log=True)
-                    ax.hist(stuckCodeDNL0,bins=stuckCodeBins, histtype='step',label="LSB: 000000",log=True)
-                    ax.hist(stuckCodeDNL1,bins=stuckCodeBins, histtype='step',label="LSB: 111111",log=True)
-                    ax.legend()
-                    ax.set_ylabel("Number of Codes")
-                    ax.set_xlabel("DNL [bits]")
-                    ax.set_ylim(0,ax.get_ylim()[1])
-                    #ax.set_ylim(0.1,200)
-                    filename = "ADC_StuckCodeHist_Chip{}_Chan{}".format(iChip,iChan)
-                    fig.savefig(filename+".png")
-                    #print("Avg, stddev of dnlNoStuckCodes: {} {}, Avg, stddev of stuck code dnl: {} {}".format(numpy.mean(dnlKillStuckCodes), numpy.std(dnlKillStuckCodes),numpy.mean(stuckCodeDNL),numpy.std(stuckCodeDNL)))
-                    #print("65th, 80th, 90th percentile of non-stuck DNL: {:6.2f} {:6.2f} {:6.2f}, and stuck code dnl: {:6.2f} {:6.2f} {:6.2f}".format(numpy.percentile(dnlKillStuckCodes,65), numpy.percentile(dnlKillStuckCodes,80), numpy.percentile(dnlKillStuckCodes,90),numpy.percentile(stuckCodeDNL,65),numpy.percentile(stuckCodeDNL,80),numpy.percentile(stuckCodeDNL,90)))
-                    print("chan {:2} 75th percentile of non-stuck DNL: {:6.2f}, and stuck code dnl: {:6.2f}".format(iChan,numpy.percentile(dnlKillStuckCodes,75),numpy.percentile(stuckCodeDNL,75)))
                 except KeyError as e:
                     pass
             filename = "ADC_DNL_Chip{}".format(iChip)
