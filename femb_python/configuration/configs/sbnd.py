@@ -246,12 +246,14 @@ class FEMB_CONFIG(object):
         newReg3 = ( reg3 | 0x80000000 )
 
         self.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
-        for a in range(0,8,1):
-                print("FEMB_CONFIG--> Test ADC " + str(a))
-                unsync = self.testUnsync(a)
-                if unsync != 0:
-                        print("FEMB_CONFIG--> ADC not synced, try to fix")
-                        self.fixUnsync(a)
+        alreadySynced = True
+        for a in range(0,self.NASICS,1):
+            print("FEMB_CONFIG--> Test ADC " + str(a))
+            unsync = self.testUnsync(a)
+            if unsync != 0:
+                alreadySynced = False
+                print("FEMB_CONFIG--> ADC not synced, try to fix")
+                self.fixUnsync(a)
         self.REG_LATCHLOC1_4_data = self.femb.read_reg ( self.REG_LATCHLOC1_4 ) 
         self.REG_LATCHLOC5_8_data = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
         self.REG_CLKPHASE_data    = self.femb.read_reg ( self.REG_CLKPHASE )
@@ -261,6 +263,7 @@ class FEMB_CONFIG(object):
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
         print("FEMB_CONFIG--> End sync ADC")
+        return not alreadySynced
 
     def testUnsync(self, adc):
         adcNum = int(adc)
@@ -274,7 +277,8 @@ class FEMB_CONFIG(object):
                 self.selectChannel(adcNum,ch, 1)
                 time.sleep(0.1)                
                 for test in range(0,100,1):
-                        data = self.femb.get_data()
+                        data = self.femb.get_data(1)
+                        print(data)
                         for samp in data[0:(16*1024+1023)]:
                                 chNum = ((samp >> 12 ) & 0xF)
                                 sampVal = (samp & 0xFFF)
