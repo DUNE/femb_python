@@ -455,14 +455,10 @@ def main():
     from ...configuration import CONFIG
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Measures ADC Linearity")
-    parser.addLoadWaveformRootFileArgs(True)
-    parser.addNPacketsArgs(False,10)
-    #parser.add_argument("outfilename",help="Output root file name")
+    parser.add_argument("infileprefix",help="Input file prefix. A string like 'adcTestData_2016-12-14T11:41:12' that is the beginning of the ROOT file names created by femb_adc_collect_data.")
     args = parser.parse_args()
   
     config = CONFIG()
   
     static_tests = STATIC_TESTS(config)
-    if args.loadWaveformRootFile:
-        static_tests.loadWaveformRootFileName = args.loadWaveformRootFile
-    static_tests.analyzeLinearity(args.loadWaveformRootFile)
+    static_tests.analyzeLinearity(args.infileprefix)

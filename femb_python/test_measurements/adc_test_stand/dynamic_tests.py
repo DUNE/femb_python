@@ -381,12 +381,10 @@ def main():
     from ...configuration.argument_parser import ArgumentParser
     from ...configuration import CONFIG
     parser = ArgumentParser(description="Dynamic (AC) tests of the ADC using FFT")
-    parser.addLoadWaveformRootFileArgs(True)
-    parser.addNPacketsArgs(False,10)
-    #parser.add_argument("outfilename",help="Output root file name")
+    parser.add_argument("infileprefix",help="Input file prefix. A string like 'adcTestData_2016-12-14T11:41:12' that is the beginning of the ROOT file names created by femb_adc_collect_data.")
     args = parser.parse_args()
   
     config = CONFIG()
   
     dynamic_tests = DYNAMIC_TESTS(config)
-    dynamic_tests.analyze(args.loadWaveformRootFile)
+    dynamic_tests.analyze(args.infileprefix)

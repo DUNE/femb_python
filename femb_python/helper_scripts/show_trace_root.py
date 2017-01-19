@@ -48,9 +48,9 @@ def loadWaveform(filename):
 def main():
     from ..configuration.argument_parser import ArgumentParser
     parser = ArgumentParser(description="Displays a trace from a root file")
-    parser.addLoadWaveformRootFileArgs(required=True)
+    parser.add_argument("infilename",help="file name to read the waveform from")
     args = parser.parse_args()
-    waveforms, metadata = loadWaveform(args.loadWaveformRootFile)
+    waveforms, metadata = loadWaveform(args.infilename)
 
     for iChip in waveforms:
       fig, axs = plt.subplots(4,4)
