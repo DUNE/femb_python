@@ -1,4 +1,4 @@
-//compile independently with: g++ -std=c++11 -o processNtuple_gainMeasurement processNtuple_gainMeasurement.cxx `root-config --cflags --glibs`
+//compile independently with: g++ -std=c++11 -o processNtuple_gainMeasurement processNtuple_gainMeasurement.cxx `root-config --cflags --glibs` -lMinuit
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -32,12 +32,16 @@ class Analyze {
         int processFileName(std::string inputFileName, std::string &baseFileName);
 	void doAnalysis();
 	void organizeData();
+
 	void analyzeSubrun(unsigned int subrun);
 	void analyzeChannel(unsigned int chan, const std::vector<unsigned short> &wf);
+ 	void identifyBadChannel(unsigned int chan);
 	void drawWf(unsigned int chan, const std::vector<unsigned short> &wf);
-	void findPulses(const std::vector<unsigned short> &wf);
-	void analyzePulse(unsigned int subrun, unsigned int chan,  int startSampleNum, const std::vector<unsigned short> &wf);
+
+	void findPulses(unsigned int chan, const std::vector<unsigned short> &wf);
+	void analyzePulse(unsigned int chan,  int startSampleNum, const std::vector<unsigned short> &wf);
 	void measurePulseHeights(unsigned int subrun, unsigned int chan);
+
 	void measureGain();
         void outputResults();
 
@@ -53,7 +57,7 @@ class Analyze {
 	//Constants
 	const int numChan = 128;// 35t
 	const float SAMP_PERIOD = 0.5; //us
-	const int numSubrun = 64;
+	const int numSubrun = 6;
 	const int numConfig = 1;
 	const int numSignalSize = 64;
 	const int preRange = 20;
@@ -61,8 +65,9 @@ class Analyze {
 
 	//data objects
 	TCanvas* c0;
-	TGraph *gCh;
-        std::vector<unsigned short> wfAll[64][128];
+	TGraph *gCh, *gFit;
+        std::vector<unsigned short> wfAll[6][128];
+	bool badChannelMask[128];
 
 	//histograms
 	TH2F *hSampVsChan;
@@ -74,18 +79,15 @@ class Analyze {
 	TProfile *pFracStuckVsChan;
 	TProfile2D *pFFTVsChan;
 
-	//Pulse height measurement	
+	//Pulse height measurement
+	TH1F *hNumPulses;
 	std::vector<int> pulseStart;
 	TH1F *hPulseHeights;
 
 	//Gain Measurement
 	TGraph *gPulseVsSignal[128];
 	TH2F *hPulseVsSignal[128];
-	double signalSizes[64] = {0.606,0.625,0.644,0.663,0.682,0.701,0.720,0.739,0.758,0.777,0.796,0.815,0.834,
-		0.853,0.872,0.891,0.909,0.928,0.947,0.966,0.985,1.004,1.023,1.042,1.061,1.080,1.099,1.118,1.137,
-		1.156,1.175,1.194,1.213,1.232,1.251,1.269,1.288,1.307,1.326,1.345,1.364,1.383,1.402,1.421,1.440,
-		1.459,1.478, 1.497,1.516,1.535,1.554,1.573,1.592,1.611,1.629,1.648,1.667,1.686,1.705,1.724,1.743,
-		1.762,1.781,1.800};
+	double signalSizes[6] = {0,0.146,0.286,0.430,0.580,0.716};
 
 	TH1F *hGainVsChan;
 	TH1F *hEncVsChan;
@@ -135,6 +137,9 @@ Analyze::Analyze(std::string inputFileName){
 	//initialize graphs
 	gCh = new TGraph();
 
+	for(int ch = 0 ; ch < numChan ; ch++ )
+		badChannelMask[ch] = 0;
+
   	//output histograms, data objects
   	hSampVsChan = new TH2F("hSampVsChan","",numChan,0-0.5,numChan-0.5,4096,-0.5,4096-0.5);
  	pSampVsChan = new TProfile("pSampVsChan","",numChan,0-0.5,numChan-0.5);
@@ -146,6 +151,7 @@ Analyze::Analyze(std::string inputFileName){
 	pFFTVsChan = new TProfile2D("pFFTVsChan","",numChan,0-0.5,numChan-0.5,100,0,1);
 
 	//gain measurement objects
+	hNumPulses = new TH1F("hNumPulses","",1000,0-0.5,1000-0.5);
 	hPulseHeights = new TH1F("hPulseHeights","",4100,0-0.5,4100-0.5);
 	for(int ch = 0 ; ch < numChan ; ch++ ){
 		gPulseVsSignal[ch] = new TGraph();
@@ -256,8 +262,6 @@ void Analyze::outputResults(){
 	c0->cd(6);
 	hEnc->Draw();
 
-	
-
 	c0->Update();
 
 	//save summary plots
@@ -283,6 +287,8 @@ void Analyze::outputResults(){
   	pRmsVsChan->Write();
 	pFracStuckVsChan->Write();
 	pFFTVsChan->Write();
+
+	hNumPulses->Write();
 
 	hGainVsChan->GetXaxis()->SetTitle("Channel #");
 	hGainVsChan->GetYaxis()->SetTitle("Gain (e- / ADC count)");
@@ -334,14 +340,22 @@ void Analyze::analyzeSubrun(unsigned int subrun){
 
 	//loop over channels, update subrun specific plots
 	for(unsigned int ch = 0 ; ch < numChan ; ch++){
+		//drawWf(ch,wfAll[subrun][ch]);
+		//only do noise measurement for subrun 0 ie no pulses
 		if( subrun == 0 ){
 			analyzeChannel(ch,wfAll[subrun][ch]);
+			identifyBadChannel(ch);
 			continue;
 		}
 
-		//find pulses
-		findPulses(wfAll[subrun][ch]);
+		//skip bad channels
+		if( badChannelMask[ch] )
+			continue;
 
+		//find pulses
+		findPulses(ch, wfAll[subrun][ch]);
+
+		hNumPulses->Fill( pulseStart.size() );
 		//skip very noisy channels
 		if( pulseStart.size() > 200 )
 			continue;
@@ -349,9 +363,7 @@ void Analyze::analyzeSubrun(unsigned int subrun){
 		//analyze channel pulses, measure heights
 		hPulseHeights->Reset();
 		for( unsigned int p = 0 ; p < pulseStart.size() ; p++ )
-			analyzePulse( subrun, ch, pulseStart.at(p) , wfAll[subrun][ch] ) ;
-
-		//drawWf(ch,wfAll[subrun][ch]);
+			analyzePulse( ch, pulseStart.at(p) , wfAll[subrun][ch] ) ;
 		measurePulseHeights(subrun, ch);
 	}
 
@@ -452,7 +464,29 @@ void Analyze::analyzeChannel(unsigned int chan, const std::vector<unsigned short
 	delete hFftData;
 }
 
-void Analyze::findPulses(const std::vector<unsigned short> &wf){
+void Analyze::identifyBadChannel(unsigned int chan){
+	if( chan >= numChan )
+		return;
+
+	//get RMS from subrun 0 measurmeent
+	bool isBadChannel = 0;
+	double rmsSubrun0 = pRmsVsChan->GetBinContent( chan + 1);
+	if( rmsSubrun0 == 0 )
+		isBadChannel = 1;
+	if( rmsSubrun0 > 30 )
+		isBadChannel = 1;
+	double meanSubrun0 =  pMeanVsChan->GetBinContent( chan + 1);
+	if( meanSubrun0 == 0 )
+		isBadChannel = 1;
+	if( meanSubrun0 < 100 || meanSubrun0 > 3000 )
+		isBadChannel = 1;
+	badChannelMask[chan] = isBadChannel;
+	return;
+}
+
+void Analyze::findPulses(unsigned int chan, const std::vector<unsigned short> &wf){
+	if( chan > numChan )
+		return;
 	if( wf.size() == 0 )
 		return;
 
@@ -485,10 +519,16 @@ void Analyze::findPulses(const std::vector<unsigned short> &wf){
 
 	//calculate RMS from histogram
 
+	//get RMS from subrun 0 measurmeent
+	double rmsSubrun0 = pRmsVsChan->GetBinContent( chan + 1);
+	if( rmsSubrun0 == 0 )
+		return;
+
 	//look for pulses along waveform, hardcoded number might be bad
-	double threshold = 5*rms;
-	if( threshold > 50 )
-		threshold = 50.;
+	//double threshold = 5*rms;
+	//if( threshold > 50 )
+	//	threshold = 50.;
+	double threshold = 5*rmsSubrun0;
 	int numPulse = 0;
 	pulseStart.clear();
 	for( int s = 0 + preRange ; s < wf.size() - postRange - 1 ; s++ ){
@@ -505,15 +545,21 @@ void Analyze::findPulses(const std::vector<unsigned short> &wf){
 	}
 }
 
-void Analyze::analyzePulse(unsigned int subrun, unsigned int chan, int startSampleNum, const std::vector<unsigned short> &wf){
+void Analyze::analyzePulse(unsigned int chan, int startSampleNum, const std::vector<unsigned short> &wf){
+	if( chan > numChan )
+		return;
 	//require pulse is not beside waveform edge
 	if( startSampleNum <= preRange || startSampleNum >= wf.size()  - postRange )
+		return;
+	if( preRange < 10 || postRange < 10 )
+		return;
+	if( wf.size() == 0 )
 		return;
 
 	//calculate baseline estimate in range preceeding pulse
 	double mean = 0;
 	int count = 0;
-	for(int s = startSampleNum-20 ; s < startSampleNum - 10 ; s++){
+	for(int s = startSampleNum-preRange ; s < startSampleNum - 10 ; s++){
 		if( s < 0 ) continue;
 		if( s >= wf.size() ) continue;
 		if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
@@ -529,7 +575,7 @@ void Analyze::analyzePulse(unsigned int subrun, unsigned int chan, int startSamp
 	//calculate baseline rms in range preceeding pulse
 	double rms = 0;
 	count = 0;
-	for(int s = startSampleNum-20 ; s < startSampleNum - 10 ; s++){
+	for(int s = startSampleNum-preRange ; s < startSampleNum - 10 ; s++){
 		if( s < 0 ) continue;
 		if( s >= wf.size() ) continue;
 		if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) continue;
@@ -570,7 +616,7 @@ void Analyze::analyzePulse(unsigned int subrun, unsigned int chan, int startSamp
 		gCh->SetPoint(gCh->GetN() , s*SAMP_PERIOD , wf.at(s) );
 	}
 
-	//integrate over expected pulse range, note use of averaged waveform pulse time
+	//integrate over expected pulse range, note use of interpolated waveform to reduce impact of bad samples
 	double sumVal = 0;
 	for( int s = 0 ; s < gCh->GetN() ; s++ ){
 		double sampTime,sampVal;
@@ -578,19 +624,30 @@ void Analyze::analyzePulse(unsigned int subrun, unsigned int chan, int startSamp
 		sumVal += sampVal - mean;
 	}
 
+	//get RMS from subrun 0 measurmeent
+	double rmsSubrun0 = pRmsVsChan->GetBinContent( chan + 1);
+	if( rmsSubrun0 == 0 )
+		return;
+
 	//selection criteria
-	
+	if( rmsSubrun0 > 30 )
+		return;
+	if( mean < 100 || mean > 3000)
+		return;
+	if( maxSampVal < 100 || maxSampVal > 3500 )
+		return;
+	if( maxSampVal - mean < 10 )
+		return;
 
 	//update histograms
 	double pulseHeight = maxSampVal - mean;
 	hPulseHeights->Fill(pulseHeight);
-	hPulseVsSignal[chan]->Fill(subrun, pulseHeight);
 
 	//draw waveform if needed
 	if(0){
-		std::cout << mean << "\t" << maxSampVal << "\t" << pulseHeight << std::endl;
-		//std::string title = "Subrun " + to_string( subrun ) + " Channel " + to_string( chan ) + " Height " + to_string( int(pulseHeight) );
-		std::string title = " Height " + to_string( int(pulseHeight) );
+		//std::cout << mean << "\t" << maxSampVal << "\t" << pulseHeight << std::endl;
+		std::string title = "Channel " + to_string( chan ) + " Height " + to_string( int(pulseHeight) );
+		//std::string title = " Height " + to_string( int(pulseHeight) );
 		gCh->SetTitle( title.c_str() );
 
 		gCh->GetXaxis()->SetTitle("Sample Number");
@@ -599,14 +656,14 @@ void Analyze::analyzePulse(unsigned int subrun, unsigned int chan, int startSamp
 		c0->Clear();
 		gCh->SetMarkerStyle(21);
 		gCh->SetMarkerColor(kRed);
-		gCh->Draw("ALP");
+		gCh->Draw("AP");
+
 		c0->Update();
 		usleep(100000);
 		char ct;
 		std::cin >> ct;
 	}
 }
-
 
 void Analyze::measurePulseHeights(unsigned int subrun, unsigned int chan){
 
@@ -648,10 +705,10 @@ void Analyze::measurePulseHeights(unsigned int subrun, unsigned int chan){
 
 void Analyze::measureGain(){
 	for(int ch = 0 ; ch < numChan ; ch++ ){
-		if( gPulseVsSignal[ch]->GetN() < 3 ) continue;
+		if( gPulseVsSignal[ch]->GetN() < 1 ) continue;
 
 		//gPulseVsSignal[ch]->GetXaxis()->SetRangeUser(700*1000.,1400*1000.);
-		gPulseVsSignal[ch]->GetXaxis()->SetRangeUser(-50*1000.,700*1000.);
+		gPulseVsSignal[ch]->GetXaxis()->SetRangeUser(-50*1000.,250*1000.);
 
 		//insist pulse height = 0 for signal = 0
 		gPulseVsSignal[ch]->SetPoint(gPulseVsSignal[ch]->GetN(),0,0);

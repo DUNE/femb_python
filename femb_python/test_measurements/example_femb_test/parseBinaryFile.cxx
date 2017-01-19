@@ -75,11 +75,9 @@ Analyze::Analyze(std::string inputFileName){
 	}
 
 	//make output file
-  	std::string outputFileName;
-	if( processFileName( inputFileName, outputFileName ) )
-		outputFileName = "output_parseBinaryFile_" + outputFileName + ".root";
-	else
-		outputFileName = "output_parseBinaryFile.root";
+  	std::string outputFileName = "output_parseBinaryFile.root";
+	//if( processFileName( inputFileName, outputFileName ) )
+	//	outputFileName = "output_parseBinaryFile_" + outputFileName + ".root";
 
   	gOut = new TFile(outputFileName.c_str() , "RECREATE");
 

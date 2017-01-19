@@ -1,13 +1,3 @@
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
-from __future__ import absolute_import
-from builtins import hex
-from builtins import range
-from builtins import str
-from future import standard_library
-standard_library.install_aliases()
-from builtins import object
 import sys
 import string
 from subprocess import call
@@ -17,18 +7,16 @@ import ntpath
 import glob
 import struct
 
-from ...configuration import CONFIG
-from ...write_data import WRITE_DATA
-from ...configuration.cppfilerunner import CPP_FILE_RUNNER
-
 #specify location of femb_udp package
 
-class FEMB_TEST(object):
+class FEMB_TEST:
 
     def __init__(self):
 
         #import femb_udp modules from femb_udp package
-        self.femb_config = CONFIG()
+        from femb_python.configuration.femb_config_35t import FEMB_CONFIG
+        self.femb_config = FEMB_CONFIG()
+        from femb_python.write_data import WRITE_DATA
         self.write_data = WRITE_DATA()
         #set appropriate packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000
@@ -38,8 +26,6 @@ class FEMB_TEST(object):
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
-
-        self.cppfr = CPP_FILE_RUNNER()
 
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
@@ -63,8 +49,8 @@ class FEMB_TEST(object):
 
         #initialize FEMB to known state
         print("Initializing board")
-        #self.femb_config.initBoard()
-        self.femb_config.initFemb(self.femb_config.fembNum)
+        self.femb_config.initBoard()
+        #self.femb_config.initFemb(self.femb_config.fembNum)
 
         #check if data streaming is working
         print("Checking data streaming")
@@ -85,7 +71,7 @@ class FEMB_TEST(object):
         print("Received data packet " + str(len(testData[0])) + " bytes long")
 
         #check for analysis executables
-        if not self.cppfr.exists('test_measurements/wibTestStand/parseBinaryFile'):    
+        if os.path.isfile('./parseBinaryFile') == False:    
             print('parseBinaryFile not found, run setup.sh')
             #sys.exit(0)
             return
@@ -133,8 +119,9 @@ class FEMB_TEST(object):
 
                 #loop over channels
                 for asic in range(0,8,1):
-                  self.femb_config.selectChannel(asic,asicCh)
-                  self.write_data.record_data(subrun, asic, asicCh)
+                  for asicCh in range(0,16,1): 
+                    self.femb_config.selectChannel(asic,asicCh)
+                    self.write_data.record_data(subrun, asic, asicCh)
 
                 #increment subrun, important
                 subrun = subrun + 1
@@ -157,19 +144,19 @@ class FEMB_TEST(object):
         print("NOISE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
-        self.cppfr.call('test_measurements/wibTestStand/parseBinaryFile',[str( self.write_data.filedir ) + str( self.write_data.filename )])
+        call(["./parseBinaryFile", str( self.write_data.filedir ) + str( self.write_data.filename ) ])
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
-        self.cppfr.call(["test_measurements/wibTestStand/processNtuple_noiseMeasurement",  str( self.write_data.filedir ) + str(newName) ])
+        call(["./processNtuple_noiseMeasurement",  str( self.write_data.filedir ) + str(newName) ])
 
         #move result to data directory
         newName = "output_processNtuple_noiseMeasurement_" + self.write_data.filename + ".root"
         call(["mv", "output_processNtuple_noiseMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
 
         #run summary program
-        self.cppfr.call(["test_measurements/wibTestStand/summaryAnalysis_noiseMeasurement",  str( self.write_data.filedir ) + str(newName) ])
+        call(["./summaryAnalysis_noiseMeasurement",  str( self.write_data.filedir ) + str(newName) ])
         newName = "summaryPlot_" + self.write_data.filename + ".png"
         call(["mv", "summaryPlot_noiseMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
 
@@ -196,7 +183,7 @@ class FEMB_TEST(object):
 def main():
 
     femb_test = FEMB_TEST()
-    femb_test.femb_config.selectFemb(0)
+    #femb_test.femb_config.selectFemb(0)
     femb_test.check_setup()
     femb_test.record_data()
     femb_test.do_analysis()
@@ -205,7 +192,7 @@ def main():
     #loop over all 4 WIB FEMBs
     for femb in range(0,4,1):
         femb_test = FEMB_TEST()
-        femb_test.femb_config.selectFemb(femb)
+        #femb_test.femb_config.selectFemb(femb)
         femb_test.check_setup()
         femb_test.record_data()
         femb_test.do_analysis()

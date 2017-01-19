@@ -24,11 +24,17 @@ class FEMB_UDP(object):
     """
 
     def write_reg(self, reg , data ):
-        regVal = int(reg)
+        try:
+            regVal = int(reg)
+        except TypeError:
+            return None
         if (regVal < 0) or (regVal > self.MAX_REG_NUM):
             #print "FEMB_UDP--> Error write_reg: Invalid register number"
             return None
-        dataVal = int(data)
+        try:
+            dataVal = int(data)
+        except TypeError:
+            return None
         if (dataVal < 0) or (dataVal > self.MAX_REG_VAL):
             #print "FEMB_UDP--> Error write_reg: Invalid data value"
             return None
@@ -48,35 +54,53 @@ class FEMB_UDP(object):
         time.sleep(0.05)
 
     def write_reg_bits(self, reg , pos, mask, data ):
-        regVal = int(reg)
+        try:
+            regVal = int(reg)
+        except TypeError:
+            return None
         if (regVal < 0) or (regVal > self.MAX_REG_NUM):
-                print( "FEMB_UDP--> Error write_reg_bits: Invalid register number")
-                return None
-        posVal = int(pos)
+            print( "FEMB_UDP--> Error write_reg_bits: Invalid register number")
+            return None
+
+        try:
+            posVal = int(pos)
+        except TypeError:
+            return None
         if (posVal < 0 ) or (posVal > 31):
-                print( "FEMB_UDP--> Error write_reg_bits: Invalid register position")
-                return None
-        maskVal = int(mask)
+            print( "FEMB_UDP--> Error write_reg_bits: Invalid register position")
+            return None
+
+        try:
+            maskVal = int(mask)
+        except TypeError:
+            return None
         if (maskVal < 0 ) or (maskVal > 0xFFFFFFFF):
-                print( "FEMB_UDP--> Error write_reg_bits: Invalid bit mask")
-                return None
-        dataVal = int(data)
+            print( "FEMB_UDP--> Error write_reg_bits: Invalid bit mask")
+            return None
+
+        try:
+            dataVal = int(data)
+        except TypeError:
+            return None
         if (dataVal < 0) or (dataVal > self.MAX_REG_VAL):
-                print( "FEMB_UDP--> Error write_reg_bits: Invalid data value")
-                return None
+            print( "FEMB_UDP--> Error write_reg_bits: Invalid data value")
+            return None
         if dataVal > maskVal :
-                print( "FEMB_UDP--> Error write_reg_bits: Write value does not fit within mask")
-                return None
+            print( "FEMB_UDP--> Error write_reg_bits: Write value does not fit within mask")
+            return None
         if (maskVal << posVal) > self.MAX_REG_VAL:
-                print( "FEMB_UDP--> Error write_reg_bits: Write range exceeds register size")
-                return None
+            print( "FEMB_UDP--> Error write_reg_bits: Write range exceeds register size")
+            return None
 
         #get initial register value
         initReg = self.read_reg( regVal )
-        initRegVal = int(initReg)
+        try:
+            initRegVal = int(initReg)
+        except TypeError:
+            return None
         if (initRegVal < 0) or (initRegVal > self.MAX_REG_VAL):
-                #print "FEMB_UDP--> Error write_reg_bits: Invalid initial register value"
-                return None
+            #print "FEMB_UDP--> Error write_reg_bits: Invalid initial register value"
+            return None
 
         shiftVal = (dataVal & maskVal)
         regMask = (maskVal << posVal)
@@ -99,10 +123,13 @@ class FEMB_UDP(object):
         time.sleep(0.05)
 
     def read_reg(self, reg ):
-        regVal = int(reg)
+        try:
+            regVal = int(reg)
+        except TypeError:
+            return None
         if (regVal < 0) or (regVal > self.MAX_REG_NUM):
-                #print "FEMB_UDP--> Error read_reg: Invalid register number"
-                return None
+            #print "FEMB_UDP--> Error read_reg: Invalid register number"
+            return None
 
         #set up listening socket, do before sending read request
         sock_readresp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
@@ -120,28 +147,40 @@ class FEMB_UDP(object):
         #try to receive response packet from board, store in hex
         data = []
         try:
-                data = sock_readresp.recv(self.MAX_PACKET_SIZE)
+            data = sock_readresp.recv(self.MAX_PACKET_SIZE)
         except socket.timeout:
-                print("FEMB_UDP--> Error read_reg: No read packet received from board, quitting")
-                sock_readresp.close()
-                return -1        
+            print("FEMB_UDP--> Error read_reg: No read packet received from board, quitting")
+            sock_readresp.close()
+            return None       
         dataHex = binascii.hexlify( data ) 
         sock_readresp.close()
 
-        #extract register value from response
-        if int(dataHex[0:4],16) != regVal :
-                print("FEMB_UDP--> Error read_reg: Invalid response packet")
-                return None
-        dataHexVal = int(dataHex[4:12],16)
+        #extract register value from response packet
+        try:
+            packetRegVal = int(dataHex[0:4],16)
+        except TypeError:
+            return None
+        if packetRegVal != regVal :
+            print("FEMB_UDP--> Error read_reg: Invalid response packet")
+            return None
+
+        try:
+            dataHexVal = int(dataHex[4:12],16)
+        except TypeError:
+            return None
+        
         #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,dataHexVal)
         time.sleep(0.05)
         return dataHexVal
 
     def get_data_packets(self, num):
-        numVal = int(num)
+        try:
+            numVal = int(num)
+        except TypeError:
+            return None
         if (numVal < 0) or (numVal > self.MAX_NUM_PACKETS):
-                #print "FEMB_UDP--> Error record_hs_data: Invalid number of data packets requested"
-                return None
+            #print "FEMB_UDP--> Error record_hs_data: Invalid number of data packets requested"
+            return None
 
         #set up listening socket
         sock_data = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
@@ -152,15 +191,15 @@ class FEMB_UDP(object):
         #get N data packets
         rawdataPackets = []
         for packet in range(0,numVal,1):
-                data = None
-                try:
-                        data = sock_data.recv(self.MAX_PACKET_SIZE)
-                except socket.timeout:
-                        #print "FEMB_UDP--> Error get_data_packets: No data packet received from board, quitting"
-                        sock_data.close()
-                        return None
-                if data != None:
-                        rawdataPackets.append(data)
+            data = None
+            try:
+                data = sock_data.recv(self.MAX_PACKET_SIZE)
+            except socket.timeout:
+                #print "FEMB_UDP--> Error get_data_packets: No data packet received from board, quitting"
+                sock_data.close()
+                return None
+            if data != None:
+                rawdataPackets.append(data)
         sock_data.close()
 
         return rawdataPackets
@@ -185,14 +224,17 @@ class FEMB_UDP(object):
         return dataPackets
 
     def get_data(self, num):
-      numVal = int(num)
-      if (numVal < 0) or (numVal > self.MAX_NUM_PACKETS):
-        #print "FEMB_UDP--> Error record_hs_data: Invalid number of data packets requested"
-        return None
+        try:
+            numVal = int(num)
+        except TypeError:
+            return None
+        if (numVal < 0) or (numVal > self.MAX_NUM_PACKETS):
+            #print "FEMB_UDP--> Error record_hs_data: Invalid number of data packets requested"
+            return None
 
-      rawdata = self.get_data_packets(numVal)
-      data = self.get_data_samples(rawdata)
-      return data 
+        rawdata = self.get_data_packets(numVal)
+        data = self.get_data_samples(rawdata)
+        return data 
 
     #__INIT__#
     def __init__(self):

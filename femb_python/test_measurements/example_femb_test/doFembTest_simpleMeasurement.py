@@ -52,13 +52,18 @@ class FEMB_TEST(object):
             print(" Please check that femb_python package directory structure is intact.")
             return
 
+        #for test in range(0,10,1):
+        #    self.femb_config.syncADC() 
+        #return
+
         #check if register interface is working
         print("Checking register interface")
-        regVal = self.write_data.femb.read_reg(6)
+        regVal = self.femb_config.femb.read_reg(6)
         if (regVal == None) or (regVal == -1):
             print("Error running doFembTest - FEMB register interface is not working.")
             print(" Turn on or debug FEMB UDP readout.")       
             return
+        print("Read register 6, value = " + str( hex( regVal ) ) )
 
         #initialize FEMB to known state
         print("Initializing board")
@@ -88,7 +93,7 @@ class FEMB_TEST(object):
             #sys.exit(0)
             return
 
-        print("SIMPLE MEASUREMENT - READOUT STATUS OK")
+        print("SIMPLE MEASUREMENT - READOUT STATUS OK" + "\n")
         self.status_check_setup = 1
 
     def record_data(self):
@@ -102,13 +107,15 @@ class FEMB_TEST(object):
         print("SIMPLE MEASUREMENT - RECORDING DATA")
 
         #initialize FEMB configuration to known state
-        self.femb_config.configFeAsic(0,0,0)
+        self.femb_config.configFeAsic(2,1,0)
+        #self.femb_config.setInternalPulser(1,0x0)
 
         #wait to make sure HS link is back on
         sleep(0.5)
 
         #set output file
-        self.write_data.filename = "data/output_simpleMeasurement_" + str(self.write_data.date) + ".bin"
+        self.write_data.filedir = "data/"
+        self.write_data.filename = "rawdata_simpleMeasurement_" + str(self.write_data.date) + ".bin"
         print("Recording " + self.write_data.filename )
         self.write_data.numpacketsrecord = 100
         self.write_data.run = 0
@@ -118,6 +125,7 @@ class FEMB_TEST(object):
         #setup output file and record data
         self.write_data.open_file()
         subrun = 0
+        asicCh = 0
         for asic in range(0,8,1):
           for asicCh in range(0,16,1):
             self.femb_config.selectChannel(asic,asicCh)
@@ -125,9 +133,9 @@ class FEMB_TEST(object):
         self.write_data.close_file()
 
         #reset configuration to known state
-        self.femb_config.configFeAsic(0,0,0)
+        #self.femb_config.configFeAsic(0,0,0)
 
-        print("SIMPLE MEASUREMENT - DONE RECORDING DATA")
+        print("SIMPLE MEASUREMENT - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1
 
     def do_analysis(self):
@@ -140,13 +148,25 @@ class FEMB_TEST(object):
         #ANALYSIS SECTION
         print("SIMPLE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
-        #process data
-        self.cppfr.call('test_measurements/example_femb_test/parseBinaryFile',[str( self.write_data.filename )])
+        #parse binary
+        self.cppfr.call(["test_measurements/example_femb_test/parseBinaryFile", str( self.write_data.filedir ) + str( self.write_data.filename ) ])
 
-        #run summary program
-        #self.cppfr.call('test_measurements/example_femb_test/summaryAnalysis_doFembTest_simpleMeasurement',self.newlist])
+        #run analysis program
+        newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
+        call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
+        self.cppfr.call(["./processNtuple_simpleMeasurement",  str( self.write_data.filedir ) + str(newName) ])
 
-        print("SIMPLE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA")
+        #move result to data directory
+        newName = "output_processNtuple_simpleMeasurement_" + self.write_data.filename + ".root"
+        call(["mv", "output_processNtuple_simpleMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
+        newName = "summaryPlot_" + self.write_data.filename + ".png"
+        call(["mv", "summaryPlot_simpleMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
+
+        #summary plot
+        print("SIMPLE MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
+        call(["display",str( self.write_data.filedir ) + str(newName) ])
+
+        print("SIMPLE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
 
     def archive_results(self):
@@ -158,63 +178,16 @@ class FEMB_TEST(object):
             return
         #ARCHIVE SECTION
         print("SIMPLE MEASUREMENT - STORE RESULTS IN DATABASE")
-        constantfiles = glob.glob('output_fembTest_simpleMeasurement_constants_' + '*.txt')
-        if len(constantfiles) == 0:
-            print("Could not find SIMPLE MEASUREMENT constants")
-            #sys.exit(0)
-            return
-        constantfilename = max(constantfiles, key=os.path.getctime)
-        #open constants file
-        input_file = open(constantfilename, 'r')
-
-        #open database, insert results
-        from sqlalchemy import create_engine
-        from sqlalchemy.orm import sessionmaker
-        from setup_database import Base, noise_test, noise_test_ch_result
-
-        engine = create_engine('sqlite:///database_simpleMeasurement.db')
-        Base.metadata.bind = engine
-        DBSession = sessionmaker(bind=engine)
-        session = DBSession()
-
-        #enter noise test
-        new_test = noise_test()
-        new_test.test_id = int(self.femb_rootdata.date)
-        new_test.board_id = 10
-        session.add(new_test)
-        session.commit()
-
-        #loop through constants file, get channel specific results
-        for line in input_file:
-            #print( line )
-            data = line.split()
-            if len(data) != 5:
-                continue
-            gain = int(data[0])
-            shape = int(data[1])
-            base = int(data[2])
-            ch = int(data[3])
-            rms = int(data[4])
-            #enter new channel result
-            new_ch_result = noise_test_ch_result()
-            new_ch_result.test_id = int(self.femb_rootdata.date)
-            new_ch_result.fegain = gain
-            new_ch_result.feshape = shape
-            new_ch_result.baseline = base
-            new_ch_result.ch_id = ch
-            new_ch_result.ch_rms = rms
-            session.add(new_ch_result)
-            session.commit()
-
-        input_file.close()
+        #placeholder
+        print("SIMPLE MEASUREMENT - DONE STORING RESULTS IN DATABASE" + "\n")
         self.status_archive_results = 1
 
 def main():
+
     femb_test = FEMB_TEST()
     femb_test.check_setup()
     femb_test.record_data()
     femb_test.do_analysis()
-    #femb_test.archive_results()
 
 if __name__ == '__main__':
     main()
