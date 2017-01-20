@@ -17,7 +17,10 @@ def main():
 
   femb = FEMB_UDP()
   data = femb.get_data(args.nPackets)
-  for samp in data:
-      chNum = ((samp >> 12 ) & 0xF)
-      sampVal = (samp & 0xFFF)
-      print( str(chNum) + "\t" + str(sampVal) + "\t" + str( hex(sampVal) ) )
+  if data == None:
+    print("Error: no data recieved from board")
+  else:
+    for samp in data:
+       chNum = ((samp >> 12 ) & 0xF)
+       sampVal = (samp & 0xFFF)
+       print( str(chNum) + "\t" + str(sampVal) + "\t" + str( hex(sampVal) ) )
