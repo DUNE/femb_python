@@ -82,126 +82,138 @@ class FEMB_CONFIG(object):
         time.sleep(0.5)
 
     def initBoard(self):
-        #set up default registers
-        
-        #Reset ADC ASICs
-        self.femb.write_reg( self.REG_ASIC_RESET, 1)
-        time.sleep(0.5)
+        nRetries = 5
+        for iRetry in range(nRetries):
+            #set up default registers
+            
+            #Reset ADC ASICs
+            self.femb.write_reg( self.REG_ASIC_RESET, 1)
+            time.sleep(0.5)
 
-        #Reset FE ASICs
-        self.femb.write_reg( self.REG_ASIC_RESET, 2)
-        time.sleep(0.5)
+            #Reset FE ASICs
+            self.femb.write_reg( self.REG_ASIC_RESET, 2)
+            time.sleep(0.5)
 
-        #Set ADC test pattern register
-        self.femb.write_reg( 3, 0x01230000) #31 - enable ADC test pattern, 
+            #Set ADC test pattern register
+            self.femb.write_reg( 3, 0x01230000) #31 - enable ADC test pattern, 
 
-        #Set ADC latch_loc
-        self.femb.write_reg( self.REG_LATCHLOC,0x77777677 )
-        #Set ADC clock phase
-        self.femb.write_reg( self.REG_CLKPHASE, 0x1e)
+            #Set ADC latch_loc
+            self.femb.write_reg( self.REG_LATCHLOC,0x77777677 )
+            #Set ADC clock phase
+            self.femb.write_reg( self.REG_CLKPHASE, 0x1e)
 
-        #internal test pulser control
-        self.femb.write_reg( 5, 0x02000001)
-        self.femb.write_reg( 13, 0x0) #enable
+            #internal test pulser control
+            self.femb.write_reg( 5, 0x02000001)
+            self.femb.write_reg( 13, 0x0) #enable
 
-        #Set test and readout mode register
-        self.femb.write_reg( 7, 0x0000) #11-8 = channel select, 3-0 = ASIC select
+            #Set test and readout mode register
+            self.femb.write_reg( 7, 0x0000) #11-8 = channel select, 3-0 = ASIC select
 
-        #Set number events per header
-        self.femb.write_reg( 8, 0x0)
+            #Set number events per header
+            self.femb.write_reg( 8, 0x0)
 
-        #FE ASIC SPI registers
-        print("Config FE ASIC SPI")
-        for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+34,1):
-                self.femb.write_reg( regNum, 0xC4C4C4C4)
-        self.femb.write_reg( self.REG_FESPI_BASE+8, 0xC400C400 )
-        self.femb.write_reg( self.REG_FESPI_BASE+16, 0x00C400C4 )
-        self.femb.write_reg( self.REG_FESPI_BASE+25, 0xC400C400 )
-        self.femb.write_reg( self.REG_FESPI_BASE+33, 0x00C400C4 )
+            #FE ASIC SPI registers
+            print("Config FE ASIC SPI")
+            for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+34,1):
+                    self.femb.write_reg( regNum, 0xC4C4C4C4)
+            self.femb.write_reg( self.REG_FESPI_BASE+8, 0xC400C400 )
+            self.femb.write_reg( self.REG_FESPI_BASE+16, 0x00C400C4 )
+            self.femb.write_reg( self.REG_FESPI_BASE+25, 0xC400C400 )
+            self.femb.write_reg( self.REG_FESPI_BASE+33, 0x00C400C4 )
 
-        #ADC ASIC SPI registers
-        print("Config ADC ASIC SPI")
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 0, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 1, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 2, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 3, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 4, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 5, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 6, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 7, 0xc0c0c0c)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 8, 0x18321832)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 9, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 10, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 11, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 12, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 13, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 14, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 15, 0x18181818)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 16, 0x64186418)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 17, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 18, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 19, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 20, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 21, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 22, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 23, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 24, 0x30303030)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 25, 0x60c860c8)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 26, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 27, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 28, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 29, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 30, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 31, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 32, 0x60606060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 33, 0x90609060)
-        self.femb.write_reg( self.REG_ADCSPI_BASE + 34, 0x10001)        
+            #ADC ASIC SPI registers
+            print("Config ADC ASIC SPI")
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 0, 0xc0c0c0c)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 1, 0xc0c0c0c)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 2, 0xc0c0c0c)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 3, 0xc0c0c0c)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 4, 0xc0c0c0c)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 5, 0xc0c0c0c)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 6, 0xc0c0c0c)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 7, 0xc0c0c0c)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 8, 0x18321832)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 9, 0x18181818)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 10, 0x18181818)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 11, 0x18181818)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 12, 0x18181818)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 13, 0x18181818)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 14, 0x18181818)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 15, 0x18181818)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 16, 0x64186418)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 17, 0x30303030)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 18, 0x30303030)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 19, 0x30303030)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 20, 0x30303030)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 21, 0x30303030)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 22, 0x30303030)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 23, 0x30303030)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 24, 0x30303030)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 25, 0x60c860c8)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 26, 0x60606060)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 27, 0x60606060)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 28, 0x60606060)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 29, 0x60606060)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 30, 0x60606060)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 31, 0x60606060)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 32, 0x60606060)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 33, 0x90609060)
+            self.femb.write_reg( self.REG_ADCSPI_BASE + 34, 0x10001)        
 
-        #ADC ASIC sync
-        self.femb.write_reg( 17, 0x1) # controls HS link, 0 for on, 1 for off
-        self.femb.write_reg( 17, 0x0) # controls HS link, 0 for on, 1 for off        
+            #ADC ASIC sync
+            self.femb.write_reg( 17, 0x1) # controls HS link, 0 for on, 1 for off
+            self.femb.write_reg( 17, 0x0) # controls HS link, 0 for on, 1 for off        
 
-        #Write FE ASIC SPI
-        print("Program FE ASIC SPI")
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
-        time.sleep(0.1)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
-        time.sleep(0.1)
+            #Write FE ASIC SPI
+            print("Program FE ASIC SPI")
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
+            time.sleep(0.1)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
+            time.sleep(0.1)
 
-        #Write ADC ASIC SPI
-        print("Program ADC ASIC SPI")
-        self.femb.write_reg( self.REG_ASIC_RESET, 1)
-        time.sleep(0.1)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.1)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.1)
-
-        #35t ONLY, check if sync is ok, try redoing ADC reprogramming if not
-        for test in range(0, 5, 1):
-            regVal = self.femb.read_reg( 6)
-            isSync = ( (regVal & 0xFFFF0000) >> 16 )
-            if isSync == 0:
-                print("Synced ADCs")
-                break
+            #Write ADC ASIC SPI
+            print("Program ADC ASIC SPI")
             self.femb.write_reg( self.REG_ASIC_RESET, 1)
             time.sleep(0.1)
             self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
             time.sleep(0.1)
             self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-            time.sleep(0.1)            
+            time.sleep(0.1)
 
-        """
-        print("Check ADC ASIC SPI")
-        for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+34,1):
-                val = self.femb.read_reg( regNum ) 
-                print(hex(val))
+            #35t ONLY, check if sync is ok, try redoing ADC reprogramming if not
+            for test in range(0, 5, 1):
+                regVal = self.femb.read_reg( 6)
+                isSync = ( (regVal & 0xFFFF0000) >> 16 )
+                if isSync == 0:
+                    print("Synced ADCs")
+                    break
+                self.femb.write_reg( self.REG_ASIC_RESET, 1)
+                time.sleep(0.1)
+                self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+                time.sleep(0.1)
+                self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+                time.sleep(0.1)            
 
-        print("Check FE ASIC SPI")
-        for regNum in range(self.REG_FESPI_RDBACK_BASE,self.REG_FESPI_RDBACK_BASE+34,1):
-                val = self.femb.read_reg( regNum)            
-                print(hex(val))
-        """
+            """
+            print("Check ADC ASIC SPI")
+            for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+34,1):
+                    val = self.femb.read_reg( regNum ) 
+                    print(hex(val))
+
+            print("Check FE ASIC SPI")
+            for regNum in range(self.REG_FESPI_RDBACK_BASE,self.REG_FESPI_RDBACK_BASE+34,1):
+                    val = self.femb.read_reg( regNum)            
+                    print(hex(val))
+            """
+
+            # Check that board streams data
+            data = self.femb.get_data(1)
+            if data == None:
+                print("Board not streaming data, retrying initialization...")
+                continue # try initializing again
+            print("FEMB_CONFIG--> Reset FEMB is DONE")
+            return
+        print("Error: Board not streaming data after trying to initialize {} times. Exiting.".format(nRetries))
+        sys.exit(1)
 
     def selectChannel(self,asic,chan):
         asicVal = int(asic)

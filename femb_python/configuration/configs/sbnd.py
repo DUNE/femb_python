@@ -36,48 +36,59 @@ class FEMB_CONFIG(object):
         self.femb.write_reg ( self.REG_ASIC_RESET, 1)
 
     def initBoard(self):
-        print("FEMB_CONFIG--> Reset FEMB")
-        #set up default registers
-        
-        #Reset ADC ASICs
-        self.femb.write_reg( self.REG_ASIC_RESET, 1)
+        nRetries = 5
+        for iRetry in range(nRetries):
+            print("FEMB_CONFIG--> Reset FEMB")
+            #set up default registers
+            
+            #Reset ADC ASICs
+            self.femb.write_reg( self.REG_ASIC_RESET, 1)
 
-        #Set ADC test pattern register
-        self.femb.write_reg ( 3, 0x01170000) #31 - enable ADC test pattern, 
+            #Set ADC test pattern register
+            self.femb.write_reg ( 3, 0x01170000) #31 - enable ADC test pattern, 
 
-        #Set ADC latch_loc
-        self.femb.write_reg ( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data )
-        self.femb.write_reg ( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data )
-        #Set ADC clock phase
-        self.femb.write_reg ( self.REG_CLKPHASE, self.REG_CLKPHASE_data)
+            #Set ADC latch_loc
+            self.femb.write_reg ( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data )
+            self.femb.write_reg ( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data )
+            #Set ADC clock phase
+            self.femb.write_reg ( self.REG_CLKPHASE, self.REG_CLKPHASE_data)
 
-        #internal test pulser control
-        freq = 500
-        dly = 80
-        ampl = 0 % 32
-        int_dac = 0 # or 0xA1
-        dac_meas = int_dac  # or 60
-        reg_5_value = ((freq<<16)&0xFFFF0000) + ((dly<<8)&0xFF00) + ( (dac_meas|ampl)& 0xFF )
-        self.femb.write_reg ( 5, reg_5_value)
-        self.femb.write_reg (16, 0x0)
+            #internal test pulser control
+            freq = 500
+            dly = 80
+            ampl = 0 % 32
+            int_dac = 0 # or 0xA1
+            dac_meas = int_dac  # or 60
+            reg_5_value = ((freq<<16)&0xFFFF0000) + ((dly<<8)&0xFF00) + ( (dac_meas|ampl)& 0xFF )
+            self.femb.write_reg ( 5, reg_5_value)
+            self.femb.write_reg (16, 0x0)
 
-        self.femb.write_reg ( 13, 0x0) #enable
+            self.femb.write_reg ( 13, 0x0) #enable
 
-        #Set test and readout mode register
-        self.femb.write_reg ( 7, 0x0000) #11-8 = channel select, 3-0 = ASIC select
-        self.femb.write_reg ( 17, 1) #11-8 = channel select, 3-0 = ASIC select
+            #Set test and readout mode register
+            self.femb.write_reg ( 7, 0x0000) #11-8 = channel select, 3-0 = ASIC select
+            self.femb.write_reg ( 17, 1) #11-8 = channel select, 3-0 = ASIC select
 
-        #self.fe_reg.set_fe_sbnd_board(slk0=1) # dumb justin thing
-        #self.fe_reg.set_fechip(chip=7,slk0=1) # dumb justin thing
-        #for iReg in range(len(self.fe_reg.REGS)):
-        #  self.fe_reg.REGS[iReg] = 0xFFFFFFFF
-        #set default value to FEMB ADCs and FEs
-        self.configAdcAsic(self.adc_reg.REGS)
-        self.configFeAsic(self.fe_reg.REGS)
+            #self.fe_reg.set_fe_sbnd_board(slk0=1) # dumb justin thing
+            #self.fe_reg.set_fechip(chip=7,slk0=1) # dumb justin thing
+            #for iReg in range(len(self.fe_reg.REGS)):
+            #  self.fe_reg.REGS[iReg] = 0xFFFFFFFF
+            #set default value to FEMB ADCs and FEs
+            self.configAdcAsic(self.adc_reg.REGS)
+            self.configFeAsic(self.fe_reg.REGS)
 
-        #Set number events per header -- no use
-        #self.femb.write_reg ( 8, 0x0)
-        print("FEMB_CONFIG--> Reset FEMB is DONE")
+            #Set number events per header -- no use
+            #self.femb.write_reg ( 8, 0x0)
+
+            # Check that board streams data
+            data = self.femb.get_data(1)
+            if data == None:
+                print("Board not streaming data, retrying initialization...")
+                continue # try initializing again
+            print("FEMB_CONFIG--> Reset FEMB is DONE")
+            return
+        print("Error: Board not streaming data after trying to initialize {} times. Exiting.".format(nRetries))
+        sys.exit(1)
 
     def enablePulseMode(self,srcflag):
         #Configures board in test pulse mode
