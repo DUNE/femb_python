@@ -40,7 +40,7 @@ class ADC_ASIC_REG_MAPPING(object):
         else:
             print("Chip Number exceeds the maximum value")
 
-        length = len(regs_bool1_4)/16
+        length = len(regs_bool1_4)//16
 
         for i in range(length):
            m = 0
@@ -85,7 +85,7 @@ class ADC_ASIC_REG_MAPPING(object):
         else:
             print("Chip Number exceeds the maximum value")
 
-        length = len(regs_bool1_4)/16
+        length = len(regs_bool1_4)//16
 
         for i in range(length):
            m = 0

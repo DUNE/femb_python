@@ -15,6 +15,7 @@ import sys
 import string
 import time
 import struct
+import copy
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
 from femb_python.configuration.fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
@@ -66,6 +67,10 @@ class FEMB_CONFIG(object):
         self.femb.write_reg ( 7, 0x0000) #11-8 = channel select, 3-0 = ASIC select
         self.femb.write_reg ( 17, 1) #11-8 = channel select, 3-0 = ASIC select
 
+        #self.fe_reg.set_fe_sbnd_board(slk0=1) # dumb justin thing
+        #self.fe_reg.set_fechip(chip=7,slk0=1) # dumb justin thing
+        #for iReg in range(len(self.fe_reg.REGS)):
+        #  self.fe_reg.REGS[iReg] = 0xFFFFFFFF
         #set default value to FEMB ADCs and FEs
         self.configAdcAsic(self.adc_reg.REGS)
         self.configFeAsic(self.fe_reg.REGS)
@@ -80,7 +85,8 @@ class FEMB_CONFIG(object):
         #srcflag = 1 means internal FPGA DAC is enabled with default settings
         #srcflag = 99 means turn it off
         #ETW just playing around with the internal DAC settings not sure this works
-        if (srcflag=="1"):
+        srcflag = int(srcflag)
+        if (srcflag==1):
             print("Enabling internal FPGA DAC")
 
             # turn on test capacitor on all FE ASIC channels
@@ -106,7 +112,7 @@ class FEMB_CONFIG(object):
             self.femb.write_reg(16, 0x0101)
             print(self.femb.read_reg(16))
 
-        elif (srcflag=="0"):
+        elif (srcflag==0):
             print("Enabling external pulse (still testing may not work)")
 
             # turn on test capacitor on all FE ASIC channels
@@ -123,7 +129,7 @@ class FEMB_CONFIG(object):
             self.femb.write_reg(16, 0x0001)
             print(self.femb.read_reg(16))
 
-        elif (srcflag=="99"):
+        elif (srcflag==99):
             print("Disabling pulser (still testing may not work)")
 
             # disable test capacitor
@@ -190,7 +196,7 @@ class FEMB_CONFIG(object):
 
     def configFeAsic(self,feasic_regs):
         print("FEMB_CONFIG--> Config FE ASIC SPI")
-        print(len(feasic_regs))
+        assert(len(feasic_regs)==34)
 
         for k in range(10):
             i = 0
@@ -213,8 +219,17 @@ class FEMB_CONFIG(object):
                     sys.exit("femb_config_femb : Wrong readback. FE SPI failed")
                     return
                 print("FEMB_CONFIG--> FE ASIC Readback didn't match, retrying...")
+                if len(feasic_rb_regs) == len(feasic_regs):
+                    print("{:15} {:15}".format("feasic_rb_regs","feasic_regs"))
+                    for iReg in range(len(feasic_rb_regs)):
+                        print("{:#010x}      {:#010x}".format(feasic_rb_regs[iReg],feasic_regs[iReg]))
+                else:
+                    print("lens don't match: {} != {}".format(len(feasic_rb_regs),len(feasic_regs)))
             else: 
                 print("FEMB_CONFIG--> FE ASIC SPI is OK")
+                #print("{:15} {:15}".format("feasic_rb_regs","feasic_regs"))
+                #for iReg in range(len(feasic_rb_regs)):
+                #    print("{:#010x}      {:#010x}".format(feasic_rb_regs[iReg],feasic_regs[iReg]))
                 break
 
     def selectChannel(self,asic,chan, hsmode= 1 ):
@@ -246,6 +261,7 @@ class FEMB_CONFIG(object):
         newReg3 = ( reg3 | 0x80000000 )
 
         self.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
+        time.sleep(0.1)                
         alreadySynced = True
         for a in range(0,self.NASICS,1):
             print("FEMB_CONFIG--> Test ADC " + str(a))
@@ -266,6 +282,7 @@ class FEMB_CONFIG(object):
         return not alreadySynced
 
     def testUnsync(self, adc):
+        print("Startint testUnsync adc: ",adc)
         adcNum = int(adc)
         if (adcNum < 0 ) or (adcNum > 7 ):
                 print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
@@ -275,11 +292,15 @@ class FEMB_CONFIG(object):
         badSync = 0
         for ch in range(0,16,1):
                 self.selectChannel(adcNum,ch, 1)
-                time.sleep(0.1)                
-                for test in range(0,100,1):
+                time.sleep(0.05)                
+                for test in range(0,10,1):
                         data = self.femb.get_data(1)
-                        print(data)
+                        print("test: ",test," data: ",data)
+                        if data == None:
+                                continue
                         for samp in data[0:(16*1024+1023)]:
+                                if samp == None:
+                                        continue
                                 chNum = ((samp >> 12 ) & 0xF)
                                 sampVal = (samp & 0xFFF)
                                 if sampVal != self.ADC_TESTPATTERN[ch]        :
@@ -308,14 +329,18 @@ class FEMB_CONFIG(object):
                 clkMask = (0x1 << adcNum)
                 testPhase = ( (initPHASE & ~(clkMask)) | (phase << adcNum) ) 
                 self.femb.write_reg ( self.REG_CLKPHASE, testPhase )
+                time.sleep(0.01)
                 for shift in range(0,16,1):
                         shiftMask = (0x3F << 8*adcNum)
                         if ( adcNum < 4 ):
                             testShift = ( (initLATCH1_4 & ~(shiftMask)) | (shift << 8*adcNum) )
                             self.femb.write_reg ( self.REG_LATCHLOC1_4, testShift )
+                            time.sleep(0.01)
                         else:
                             testShift = ( (initLATCH5_8 & ~(shiftMask)) | (shift << 8*adcNum) )
                             self.femb.write_reg ( self.REG_LATCHLOC5_8, testShift )
+                            time.sleep(0.01)
+                        print("trying phase: ",phase," shift: ",shift," testingUnsync...")
                         #reset ADC ASIC
                         self.femb.write_reg ( self.REG_ASIC_RESET, 1)
                         time.sleep(0.01)

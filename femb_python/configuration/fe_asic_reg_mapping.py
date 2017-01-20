@@ -48,7 +48,7 @@ class FE_ASIC_REG_MAPPING(object):
         else:
             print("FE Chip Number exceeds the maximum value")
 
-        length = len(regs_bool1_4)/16
+        length = len(regs_bool1_4)//16
 
         for i in range(length):
            m = 0
@@ -102,7 +102,7 @@ class FE_ASIC_REG_MAPPING(object):
         else:
             print("Chip Number exceeds the maximum value")
 
-        length = len(regs_bool1_4)/16
+        length = len(regs_bool1_4)//16
 
         for i in range(length):
            m = 0
