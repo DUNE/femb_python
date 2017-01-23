@@ -13,6 +13,7 @@ import sys
 import string
 import time
 from femb_python.femb_udp import FEMB_UDP
+from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 
 class FEASIC_CH_CONFIG(object):
     def __init__(self, num, regNum, regPos):
@@ -59,7 +60,47 @@ class FEASIC_CH_CONFIG(object):
         self.regval = ((testVal & 0x01)<<7) + ((baseVal & 0x01)<<6) + ((gainArray[gainVal] & 0x03)<<4) +\
                   ((shapeArray[shapeVal] & 0x03)<<2)  + ((acdcVal & 0x01)<<1) + ((bufVal & 0x01)<<0)
 
-class FEMB_CONFIG(object):
+class FEMB_CONFIG(FEMB_CONFIG_BASE):
+
+    def __init__(self):
+        #declare board specific registers
+        self.FEMB_VER = "35t"
+        self.REG_RESET = 0
+        self.REG_ASIC_RESET = 1
+        self.REG_ASIC_SPIPROG = 2
+        self.REG_SEL_ASIC = 7 
+        self.REG_SEL_CH = 7
+        self.REG_FESPI_BASE = 592
+        self.REG_ADCSPI_BASE = 512
+        self.REG_FESPI_RDBACK_BASE = 632
+        self.REG_ADCSPI_RDBACK_BASE = 552
+        self.REG_HS = 17
+        self.REG_LATCHLOC = 4
+        self.REG_CLKPHASE = 6
+        self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
+        self.NASICS = 8
+
+        #initialize FEMB UDP object
+        self.femb = FEMB_UDP()
+
+        #initialiuze ASIC ch objects, specify SPI register number (firmware specific!!!)
+        self.feasic_ch_list = []
+        for ch in range(0,128,1):
+          chVal = int(ch)
+          if (chVal < 0 ) or (chVal > 127 ):
+            continue
+
+          #seriously messy mapping between ch # and register bits
+          regGrp = int( ( chVal % 64 ) / 16 )
+          regGrpLine =  7 - int( ( chVal % 16 ) / 2 )
+          regGrpBase = [27,18,9,0]
+
+          regNum = self.REG_FESPI_BASE + regGrpBase[ regGrp ] + regGrpLine
+          regPos = (1 - chVal % 2 )*8 + int(chVal / 64 )*16
+
+          feasic_ch = FEASIC_CH_CONFIG(ch, regNum, regPos)
+          self.feasic_ch_list.append(feasic_ch)
+
     def resetBoard(self):
         #Reset system
         self.femb.write_reg( self.REG_RESET, 1)
@@ -215,21 +256,6 @@ class FEMB_CONFIG(object):
         print("Error: Board not streaming data after trying to initialize {} times. Exiting.".format(nRetries))
         sys.exit(1)
 
-    def selectChannel(self,asic,chan):
-        asicVal = int(asic)
-        if (asicVal < 0 ) or (asicVal > 7 ) :
-                print("femb_config_femb : selectChan - invalid ASIC number")
-                return
-        chVal = int(chan)
-        if (chVal < 0 ) or (chVal > 15 ) :
-                print("femb_config_femb : selectChan - invalid channel number")
-                return
-
-        #print "Selecting ASIC " + str(asicVal) + ", channel " + str(chVal)
-
-        regVal = (chVal << 8 ) + asicVal
-        self.femb.write_reg( self.REG_SEL_CH, regVal)
-
     def configFeAsic(self,gain,shape,base):
         gainVal = int(gain)
         if (gainVal < 0 ) or (gainVal > 3):
@@ -288,6 +314,21 @@ class FEMB_CONFIG(object):
         print("HS link turned back on")
         time.sleep(1)
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
+
+    def selectChannel(self,asic,chan,hsmode=None):
+        asicVal = int(asic)
+        if (asicVal < 0 ) or (asicVal > 7 ) :
+                print("femb_config_femb : selectChan - invalid ASIC number")
+                return
+        chVal = int(chan)
+        if (chVal < 0 ) or (chVal > 15 ) :
+                print("femb_config_femb : selectChan - invalid channel number")
+                return
+
+        #print "Selecting ASIC " + str(asicVal) + ", channel " + str(chVal)
+
+        regVal = (chVal << 8 ) + asicVal
+        self.femb.write_reg( self.REG_SEL_CH, regVal)
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
         pulserEnable = int(pulserEnable)
@@ -382,42 +423,3 @@ class FEMB_CONFIG(object):
         print("ADC SYNC process failed for ADC # " + str(adc))
 
 
-    #__INIT__#
-    def __init__(self):
-        #declare board specific registers
-        self.FEMB_VER = "35t"
-        self.REG_RESET = 0
-        self.REG_ASIC_RESET = 1
-        self.REG_ASIC_SPIPROG = 2
-        self.REG_SEL_ASIC = 7 
-        self.REG_SEL_CH = 7
-        self.REG_FESPI_BASE = 592
-        self.REG_ADCSPI_BASE = 512
-        self.REG_FESPI_RDBACK_BASE = 632
-        self.REG_ADCSPI_RDBACK_BASE = 552
-        self.REG_HS = 17
-        self.REG_LATCHLOC = 4
-        self.REG_CLKPHASE = 6
-        self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
-        self.NASICS = 8
-
-        #initialize FEMB UDP object
-        self.femb = FEMB_UDP()
-
-        #initialiuze ASIC ch objects, specify SPI register number (firmware specific!!!)
-        self.feasic_ch_list = []
-        for ch in range(0,128,1):
-          chVal = int(ch)
-          if (chVal < 0 ) or (chVal > 127 ):
-            continue
-
-          #seriously messy mapping between ch # and register bits
-          regGrp = int( ( chVal % 64 ) / 16 )
-          regGrpLine =  7 - int( ( chVal % 16 ) / 2 )
-          regGrpBase = [27,18,9,0]
-
-          regNum = self.REG_FESPI_BASE + regGrpBase[ regGrp ] + regGrpLine
-          regPos = (1 - chVal % 2 )*8 + int(chVal / 64 )*16
-
-          feasic_ch = FEASIC_CH_CONFIG(ch, regNum, regPos)
-          self.feasic_ch_list.append(feasic_ch)

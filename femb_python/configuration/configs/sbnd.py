@@ -17,10 +17,39 @@ import time
 import struct
 import copy
 from femb_python.femb_udp import FEMB_UDP
+from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.configuration.adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
 from femb_python.configuration.fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
 
-class FEMB_CONFIG(object):
+class FEMB_CONFIG(FEMB_CONFIG_BASE):
+
+    def __init__(self):
+        #declare board specific registers
+        self.FEMB_VER = "SBND(FE-ASIC with internal DAC)"
+        self.REG_RESET = 0
+        self.REG_ASIC_RESET = 1
+        self.REG_ASIC_SPIPROG = 2
+        self.REG_SEL_ASIC = 7 
+        self.REG_SEL_CH = 7
+        self.REG_FESPI_BASE = 0x250
+        self.REG_ADCSPI_BASE = 0x200
+        self.REG_FESPI_RDBACK_BASE = 0x278
+        self.REG_ADCSPI_RDBACK_BASE =0x228 
+        self.REG_HS = 17
+        self.REG_LATCHLOC1_4 = 4
+        self.REG_LATCHLOC1_4_data = 0x07060707
+        self.REG_LATCHLOC5_8 = 14
+        self.REG_LATCHLOC5_8_data = 0x06060606
+        self.REG_CLKPHASE = 6
+        self.REG_CLKPHASE_data = 0xe1
+        self.REG_EN_CALI = 16
+        self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
+        self.NASICS = 8
+
+        #initialize FEMB UDP object
+        self.femb = FEMB_UDP()
+        self.adc_reg = ADC_ASIC_REG_MAPPING()
+        self.fe_reg = FE_ASIC_REG_MAPPING() 
 
     def resetBoard(self):
         #Reset system
@@ -89,76 +118,6 @@ class FEMB_CONFIG(object):
             return
         print("Error: Board not streaming data after trying to initialize {} times. Exiting.".format(nRetries))
         sys.exit(1)
-
-    def enablePulseMode(self,srcflag):
-        #Configures board in test pulse mode
-        #srcflag = 0 means external input is enabled
-        #srcflag = 1 means internal FPGA DAC is enabled with default settings
-        #srcflag = 99 means turn it off
-        #ETW just playing around with the internal DAC settings not sure this works
-        srcflag = int(srcflag)
-        if (srcflag==1):
-            print("Enabling internal FPGA DAC")
-
-            # turn on test capacitor on all FE ASIC channels
-            fe_reg = copy.deepcopy(self.fe_reg.REGS)
-
-            self.fe_reg.set_fe_sbnd_board(sts=1)
-            for i in range(len(fe_reg)):
-                self.fe_reg.REGS[i] = fe_reg[i] | self.fe_reg.REGS[i]
-                print(hex(self.fe_reg.REGS[i]))
-
-            self.configFeAsic(self.fe_reg.REGS)
-
-            # internal FPGA DAC settings
-            freq = 20 # number of samples between pulses
-            dly = 80 # dly*5ns sets inteval between where FPGA starts pulse and ADC samples 
-            ampl =  20 % 32 # mV injected
-            int_dac = 0 # or 0xA1
-            dac_meas = int_dac  # or 60
-            reg_5_value = ((freq<<16)&0xFFFF0000) + ((dly<<8)&0xFF00) + ( (dac_meas|ampl)& 0xFF )
-            self.femb.write_reg ( 5, reg_5_value)
-
-            # set to pulser mode (0x01) and enable FPGA DAC (0x01xx)
-            self.femb.write_reg(16, 0x0101)
-            print(self.femb.read_reg(16))
-
-        elif (srcflag==0):
-            print("Enabling external pulse (still testing may not work)")
-
-            # turn on test capacitor on all FE ASIC channels
-            fe_reg = copy.deepcopy(self.fe_reg.REGS)
-
-            self.fe_reg.set_fe_sbnd_board(sts=1)
-            for i in range(len(fe_reg)):
-                self.fe_reg.REGS[i] = fe_reg[i] | self.fe_reg.REGS[i]
-                print(hex(self.fe_reg.REGS[i]))
-
-            self.configFeAsic(self.fe_reg.REGS)
-
-            # set to pulser mode (0x01) and enable external input (0x00xx)
-            self.femb.write_reg(16, 0x0001)
-            print(self.femb.read_reg(16))
-
-        elif (srcflag==99):
-            print("Disabling pulser (still testing may not work)")
-
-            # disable test capacitor
-            fe_reg = copy.deepcopy(self.fe_reg.REGS)
-
-            self.fe_reg.set_fe_sbnd_board(sts=0)
-            for i in range(len(fe_reg)):
-                self.fe_reg.REGS[i] = fe_reg[i] | self.fe_reg.REGS[i]
-                print(hex(self.fe_reg.REGS[i]))
-
-            self.configFeAsic(self.fe_reg.REGS)
-
-            # disable pulser mode
-            self.femb.write_reg(16, 0x0)
-            print(self.femb.read_reg(16))
-
-        else:
-            print("Source flag must be 0 (ext), 1 (dac), or 99 (disable)")
 
     def configAdcAsic(self,Adcasic_regs):
         #ADC ASIC SPI registers
@@ -264,6 +223,9 @@ class FEMB_CONFIG(object):
         regVal = (chVal << 8 ) + asicVal
         self.femb.write_reg ( self.REG_SEL_CH, regVal)
         self.femb.write_reg ( self.REG_SEL_CH, regVal)
+
+    def setInternalPulser(self,pulserEnable,pulseHeight):
+        pass
 
     def syncADC(self):
         #turn on ADC test mode
@@ -396,32 +358,73 @@ class FEMB_CONFIG(object):
                     break
         return data
 
-    #__INIT__#
-    def __init__(self):
-        #declare board specific registers
-        self.FEMB_VER = "SBND(FE-ASIC with internal DAC)"
-        self.REG_RESET = 0
-        self.REG_ASIC_RESET = 1
-        self.REG_ASIC_SPIPROG = 2
-        self.REG_SEL_ASIC = 7 
-        self.REG_SEL_CH = 7
-        self.REG_FESPI_BASE = 0x250
-        self.REG_ADCSPI_BASE = 0x200
-        self.REG_FESPI_RDBACK_BASE = 0x278
-        self.REG_ADCSPI_RDBACK_BASE =0x228 
-        self.REG_HS = 17
-        self.REG_LATCHLOC1_4 = 4
-        self.REG_LATCHLOC1_4_data = 0x07060707
-        self.REG_LATCHLOC5_8 = 14
-        self.REG_LATCHLOC5_8_data = 0x06060606
-        self.REG_CLKPHASE = 6
-        self.REG_CLKPHASE_data = 0xe1
-        self.REG_EN_CALI = 16
-        self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
-        self.NASICS = 8
+    def enablePulseMode(self,srcflag):
+        #Configures board in test pulse mode
+        #srcflag = 0 means external input is enabled
+        #srcflag = 1 means internal FPGA DAC is enabled with default settings
+        #srcflag = 99 means turn it off
+        #ETW just playing around with the internal DAC settings not sure this works
+        srcflag = int(srcflag)
+        if (srcflag==1):
+            print("Enabling internal FPGA DAC")
 
-        #initialize FEMB UDP object
-        self.femb = FEMB_UDP()
-        self.adc_reg = ADC_ASIC_REG_MAPPING()
-        self.fe_reg = FE_ASIC_REG_MAPPING() 
+            # turn on test capacitor on all FE ASIC channels
+            fe_reg = copy.deepcopy(self.fe_reg.REGS)
+
+            self.fe_reg.set_fe_sbnd_board(sts=1)
+            for i in range(len(fe_reg)):
+                self.fe_reg.REGS[i] = fe_reg[i] | self.fe_reg.REGS[i]
+                print(hex(self.fe_reg.REGS[i]))
+
+            self.configFeAsic(self.fe_reg.REGS)
+
+            # internal FPGA DAC settings
+            freq = 20 # number of samples between pulses
+            dly = 80 # dly*5ns sets inteval between where FPGA starts pulse and ADC samples 
+            ampl =  20 % 32 # mV injected
+            int_dac = 0 # or 0xA1
+            dac_meas = int_dac  # or 60
+            reg_5_value = ((freq<<16)&0xFFFF0000) + ((dly<<8)&0xFF00) + ( (dac_meas|ampl)& 0xFF )
+            self.femb.write_reg ( 5, reg_5_value)
+
+            # set to pulser mode (0x01) and enable FPGA DAC (0x01xx)
+            self.femb.write_reg(16, 0x0101)
+            print(self.femb.read_reg(16))
+
+        elif (srcflag==0):
+            print("Enabling external pulse (still testing may not work)")
+
+            # turn on test capacitor on all FE ASIC channels
+            fe_reg = copy.deepcopy(self.fe_reg.REGS)
+
+            self.fe_reg.set_fe_sbnd_board(sts=1)
+            for i in range(len(fe_reg)):
+                self.fe_reg.REGS[i] = fe_reg[i] | self.fe_reg.REGS[i]
+                print(hex(self.fe_reg.REGS[i]))
+
+            self.configFeAsic(self.fe_reg.REGS)
+
+            # set to pulser mode (0x01) and enable external input (0x00xx)
+            self.femb.write_reg(16, 0x0001)
+            print(self.femb.read_reg(16))
+
+        elif (srcflag==99):
+            print("Disabling pulser (still testing may not work)")
+
+            # disable test capacitor
+            fe_reg = copy.deepcopy(self.fe_reg.REGS)
+
+            self.fe_reg.set_fe_sbnd_board(sts=0)
+            for i in range(len(fe_reg)):
+                self.fe_reg.REGS[i] = fe_reg[i] | self.fe_reg.REGS[i]
+                print(hex(self.fe_reg.REGS[i]))
+
+            self.configFeAsic(self.fe_reg.REGS)
+
+            # disable pulser mode
+            self.femb.write_reg(16, 0x0)
+            print(self.femb.read_reg(16))
+
+        else:
+            print("Source flag must be 0 (ext), 1 (dac), or 99 (disable)")
 

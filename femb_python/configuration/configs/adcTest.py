@@ -15,8 +15,30 @@ import sys
 import string
 import time
 from femb_python.femb_udp import FEMB_UDP
+from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 
-class FEMB_CONFIG(object):
+class FEMB_CONFIG(FEMB_CONFIG_BASE):
+
+    def __init__(self):
+        #declare board specific registers
+        self.FEMB_VER = "adctest"
+        self.REG_RESET = 0
+        self.REG_ASIC_RESET = 1
+        self.REG_ASIC_SPIPROG = 2
+        self.REG_SEL_ASIC = 7 
+        self.REG_SEL_CH = 7
+        self.REG_FESPI_BASE = 592
+        self.REG_ADCSPI_BASE = 512
+        self.REG_FESPI_RDBACK_BASE = 632
+        self.REG_ADCSPI_RDBACK_BASE = 552
+        self.REG_HS = 17
+        self.REG_LATCHLOC = 4
+        self.REG_CLKPHASE = 6
+        self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
+        self.NASICS = 1
+
+        #initialize FEMB UDP object
+        self.femb = FEMB_UDP()
 
     def resetBoard(self):
         #Reset system
@@ -134,7 +156,7 @@ class FEMB_CONFIG(object):
         print("Error: Board not streaming data after trying to initialize {} times. Exiting.".format(nRetries))
         sys.exit(1)
 
-    def selectChannel(self,asic,chan):
+    def selectChannel(self,asic,chan,hsmode=None):
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
                 print( "femb_config_femb : selectChan - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
@@ -148,9 +170,6 @@ class FEMB_CONFIG(object):
 
         regVal = (chVal << 8 ) + asicVal
         self.femb.write_reg( self.REG_SEL_CH, regVal)
-
-    def configFeAsic(self,gain,shape,base):
-        print( "There are no FE ASICs on this board")
 
     def syncADC(self):
         #turn on ADC test mode
@@ -231,25 +250,3 @@ class FEMB_CONFIG(object):
         #if program reaches here, sync has failed
         print("ADC SYNC process failed for ADC # " + str(adc))
 
-
-    #__INIT__#
-    def __init__(self):
-        #declare board specific registers
-        self.FEMB_VER = "adctest"
-        self.REG_RESET = 0
-        self.REG_ASIC_RESET = 1
-        self.REG_ASIC_SPIPROG = 2
-        self.REG_SEL_ASIC = 7 
-        self.REG_SEL_CH = 7
-        self.REG_FESPI_BASE = 592
-        self.REG_ADCSPI_BASE = 512
-        self.REG_FESPI_RDBACK_BASE = 632
-        self.REG_ADCSPI_RDBACK_BASE = 552
-        self.REG_HS = 17
-        self.REG_LATCHLOC = 4
-        self.REG_CLKPHASE = 6
-        self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
-        self.NASICS = 1
-
-        #initialize FEMB UDP object
-        self.femb = FEMB_UDP()
