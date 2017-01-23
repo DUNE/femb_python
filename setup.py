@@ -138,7 +138,10 @@ setup(
             'femb_wib_measure_gain=femb_python.test_measurements.wibTestStand.doFembTest_gainMeasurement:main',
             'femb_wib_measure_noise=femb_python.test_measurements.wibTestStand.doFembTest_noiseMeasurement:main',
             'femb_wib_measure_simple=femb_python.test_measurements.wibTestStand.doFembTest_simpleMeasurement:main',
-            'femb_example_simple=femb_python.test_measurements.example_femb_test.doFembTest_simpleMeasurement:main',
+
+            'femb_example_measure_simple=femb_python.test_measurements.example_femb_test.doFembTest_simpleMeasurement:main',
+            'femb_example_measure_gain=femb_python.test_measurements.example_femb_test.doFembTest_gainMeasurement:main',
+            'femb_example_measure_noise=femb_python.test_measurements.example_femb_test.doFembTest_noiseMeasurement:main',
 
         ],
         #'gui_scripts': [
