@@ -203,12 +203,12 @@ class FEMB_TEST(object):
         print("GAIN MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
-        self.cppfr.call('test_measurements/wibTestStand/parseBinaryFile',[str( self.write_data.filedir ) + str( self.write_data.filename )])
+        self.cppfr.run('test_measurements/wibTestStand/parseBinaryFile',[str( self.write_data.filedir ) + str( self.write_data.filename )])
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
-        self.cppfr.call(["test_measurements/wibTestStand/processNtuple_gainMeasurement",  str( self.write_data.filedir ) + str(newName) ])
+        self.cppfr.run("test_measurements/wibTestStand/processNtuple_gainMeasurement", [ str( self.write_data.filedir ) + str(newName) ])
         newName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".root"
         call(["mv", "output_processNtuple_gainMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
         newName = "summaryPlot_" + self.write_data.filename + ".png"

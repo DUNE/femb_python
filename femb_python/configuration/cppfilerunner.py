@@ -17,13 +17,13 @@ class CPP_FILE_RUNNER(object):
 
   def run(self,filename,arguments):
       file_exists = self.exists(filename)
-      file_isfile = self.isdir(filename)
+      file_isdir = self.is_dir(filename)
       real_filename = self.filename(filename)
       if not file_exists:
           raise Exception("C++ executable filename doesn't exist: {} at {}".format(filename,real_filename))
       if file_isdir:
           raise Exception("C++ executable filename is a directory: {} at {}".format(filename,real_filename))
-      subprocess.call([real_filename]+args)
+      subprocess.call([real_filename]+arguments)
       
   def filename(self,filename):
       """

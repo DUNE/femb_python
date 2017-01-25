@@ -7,16 +7,16 @@ import ntpath
 import glob
 import struct
 
-#specify location of femb_udp package
+from ...configuration import CONFIG
+from ...write_data import WRITE_DATA
+from ...configuration.cppfilerunner import CPP_FILE_RUNNER
 
 class FEMB_TEST:
 
     def __init__(self):
 
         #import femb_udp modules from femb_udp package
-        from femb_python.configuration.femb_config_35t import FEMB_CONFIG
-        self.femb_config = FEMB_CONFIG()
-        from femb_python.write_data import WRITE_DATA
+        self.femb_config = CONFIG()
         self.write_data = WRITE_DATA()
         #set appropriate packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000
@@ -26,6 +26,7 @@ class FEMB_TEST:
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
+        self.cppfr = CPP_FILE_RUNNER()
 
         #misc variables
         self.fembNum = 0
@@ -77,7 +78,7 @@ class FEMB_TEST:
         print("Received data packet " + str(len(testData[0])) + " bytes long")
 
         #check for analysis executables
-        if os.path.isfile('./parseBinaryFile') == False:    
+        if not self.cppfr.exists('test_measurements/example_femb_test/parseBinaryFile'):    
             print('parseBinaryFile not found, run setup.sh')
             #sys.exit(0)
             return
@@ -188,12 +189,12 @@ class FEMB_TEST:
         print("GAIN MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
-        call(["./parseBinaryFile", str( self.write_data.filedir ) + str( self.write_data.filename ) ])
+        self.cppfr.run("test_measurements/example_femb_test/parseBinaryFile", [str( self.write_data.filedir ) + str( self.write_data.filename ) ])
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
-        call(["./processNtuple_gainMeasurement",  str( self.write_data.filedir ) + str(newName) ])
+        self.cppfr.run("test_measurements/example_femb_test/processNtuple_gainMeasurement",  [str( self.write_data.filedir ) + str(newName) ])
         newName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".root"
         call(["mv", "output_processNtuple_gainMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
         newName = "summaryPlot_" + self.write_data.filename + ".png"

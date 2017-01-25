@@ -144,12 +144,12 @@ class FEMB_TEST(object):
         print("SIMPLE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
-        self.cppfr.call('test_measurements/wibTestStand/parseBinaryFile',[str( self.write_data.filedir ) + str( self.write_data.filename )])
+        self.cppfr.run('test_measurements/wibTestStand/parseBinaryFile',[str( self.write_data.filedir ) + str( self.write_data.filename )])
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
-        self.cppfr.call(["test_measurements/wibTestStand/processNtuple_simpleMeasurement",  str( self.write_data.filedir ) + str(newName) ])
+        self.cppfr.run("test_measurements/wibTestStand/processNtuple_simpleMeasurement", [ str( self.write_data.filedir ) + str(newName) ])
 
         #move result to data directory
         newName = "output_processNtuple_simpleMeasurement_" + self.write_data.filename + ".root"
