@@ -63,6 +63,7 @@ class FEASIC_CH_CONFIG(object):
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def __init__(self):
+        super().__init__()
         #declare board specific registers
         self.FEMB_VER = "35t"
         self.REG_RESET = 0

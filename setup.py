@@ -127,6 +127,7 @@ setup(
             'femb_measureRMS=femb_python.helper_scripts.measureRms:main',
             'femb_sync_adc=femb_python.helper_scripts.sync_adc:main',
             'femb_config_adc=femb_python.helper_scripts.config_adc:main',
+            'femb_set_internal_pulser=femb_python.helper_scripts.set_internal_pulser:main',
 
             'femb_adc_static_tests=femb_python.test_measurements.adc_test_stand.static_tests:main',
             'femb_adc_dynamic_tests=femb_python.test_measurements.adc_test_stand.dynamic_tests:main',

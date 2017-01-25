@@ -24,6 +24,7 @@ from femb_python.configuration.fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def __init__(self):
+        super().__init__()
         #declare board specific registers
         self.FEMB_VER = "SBND(FE-ASIC with internal DAC)"
         self.REG_RESET = 0
@@ -104,7 +105,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             #  self.fe_reg.REGS[iReg] = 0xFFFFFFFF
             #set default value to FEMB ADCs and FEs
             self.configAdcAsic(self.adc_reg.REGS)
-            self.configFeAsic(self.fe_reg.REGS)
+            self.configFeAsic_regs(self.fe_reg.REGS)
 
             #Set number events per header -- no use
             #self.femb.write_reg ( 8, 0x0)
@@ -163,8 +164,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #self.femb.write_reg ( 9, 0x8)
         #LBNE_ADC_MODE
 
-
-    def configFeAsic(self,feasic_regs):
+    def configFeAsic_regs(self,feasic_regs):
         print("FEMB_CONFIG--> Config FE ASIC SPI")
         assert(len(feasic_regs)==34)
 
@@ -202,6 +202,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 #    print("{:#010x}      {:#010x}".format(feasic_rb_regs[iReg],feasic_regs[iReg]))
                 break
 
+    def configFeAsic(self,gain,shape,base):
+        pass
+
     def selectChannel(self,asic,chan, hsmode= 1 ):
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
@@ -225,7 +228,47 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg ( self.REG_SEL_CH, regVal)
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
-        pass
+        if pulserEnable:
+            print("Enabling internal FPGA DAC")
+
+            # turn on test capacitor on all FE ASIC channels
+            fe_reg = copy.deepcopy(self.fe_reg.REGS)
+
+            self.fe_reg.set_fe_sbnd_board(sts=1)
+            for i in range(len(fe_reg)):
+                self.fe_reg.REGS[i] = fe_reg[i] | self.fe_reg.REGS[i]
+                print(hex(self.fe_reg.REGS[i]))
+
+            self.configFeAsic_regs(self.fe_reg.REGS)
+
+            # internal FPGA DAC settings
+            freq = 20 # number of samples between pulses
+            dly = 80 # dly*5ns sets inteval between where FPGA starts pulse and ADC samples 
+            ampl =  pulseHeight % 32 # mV injected
+            int_dac = 0 # or 0xA1
+            dac_meas = int_dac  # or 60
+            reg_5_value = ((freq<<16)&0xFFFF0000) + ((dly<<8)&0xFF00) + ( (dac_meas|ampl)& 0xFF )
+            self.femb.write_reg ( 5, reg_5_value)
+
+            # set to pulser mode (0x01) and enable FPGA DAC (0x01xx)
+            self.femb.write_reg(16, 0x0101)
+            print(self.femb.read_reg(16))
+        else:
+            print("Disabling pulser (still testing may not work)")
+
+            # disable test capacitor
+            fe_reg = copy.deepcopy(self.fe_reg.REGS)
+
+            self.fe_reg.set_fe_sbnd_board(sts=0)
+            for i in range(len(fe_reg)):
+                self.fe_reg.REGS[i] = fe_reg[i] | self.fe_reg.REGS[i]
+                print(hex(self.fe_reg.REGS[i]))
+
+            self.configFeAsic_regs(self.fe_reg.REGS)
+
+            # disable pulser mode
+            self.femb.write_reg(16, 0x0)
+            print(self.femb.read_reg(16))
 
     def syncADC(self):
         #turn on ADC test mode
@@ -376,7 +419,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.fe_reg.REGS[i] = fe_reg[i] | self.fe_reg.REGS[i]
                 print(hex(self.fe_reg.REGS[i]))
 
-            self.configFeAsic(self.fe_reg.REGS)
+            self.configFeAsic_regs(self.fe_reg.REGS)
 
             # internal FPGA DAC settings
             freq = 20 # number of samples between pulses
@@ -402,7 +445,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.fe_reg.REGS[i] = fe_reg[i] | self.fe_reg.REGS[i]
                 print(hex(self.fe_reg.REGS[i]))
 
-            self.configFeAsic(self.fe_reg.REGS)
+            self.configFeAsic_regs(self.fe_reg.REGS)
 
             # set to pulser mode (0x01) and enable external input (0x00xx)
             self.femb.write_reg(16, 0x0001)
@@ -419,7 +462,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.fe_reg.REGS[i] = fe_reg[i] | self.fe_reg.REGS[i]
                 print(hex(self.fe_reg.REGS[i]))
 
-            self.configFeAsic(self.fe_reg.REGS)
+            self.configFeAsic_regs(self.fe_reg.REGS)
 
             # disable pulser mode
             self.femb.write_reg(16, 0x0)

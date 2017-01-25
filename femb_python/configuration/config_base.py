@@ -28,6 +28,8 @@ class FEMB_CONFIG_BASE(object):
         Initialize this class (no board communication here. Should setup self.femb as a femb_udp instance.
         """
         self.femb = None
+        self.NASICS = 1
+        self.NBOARDS = 1
 
     def resetBoard(self):
         """
@@ -66,6 +68,10 @@ class FEMB_CONFIG_BASE(object):
         pass
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
+        """
+        pulserEnable = 0 for disable, 1 for enable
+        pulseHeight = 0 to 32
+        """
         pass
 
     def syncADC(self):

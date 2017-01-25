@@ -20,6 +20,7 @@ from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def __init__(self):
+        super().__init__()
         #declare board specific registers
         self.FEMB_VER = "adctest"
         self.REG_RESET = 0
