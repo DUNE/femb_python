@@ -10,6 +10,7 @@ from future import standard_library
 standard_library.install_aliases()
 
 import time
+import datetime
 import numpy as np
 
 import matplotlib
@@ -59,31 +60,31 @@ class TRACE_FFT_WINDOW(Tk.Frame):
 
     self.femb = None
     self.iTrace = -1
-    self.data = []
+    self.traces = []
+    self.timestamps = []
     self.reset()
 
-  def reset(self,data=None):
+  def reset(self,iTrace=None):
     self.femb = FEMB_UDP()
     self.figure.clf()
     self.ax1 = self.figure.add_subplot(211)
     self.ax2 = self.figure.add_subplot(212)
     self.plot1 = self.ax1.plot([],[])
     self.plot2 = self.ax2.plot([],[])
-    if data is None:
+    if iTrace is None:
         self.ani = animation.FuncAnimation(self.figure, self.plotData,
                                    interval=1000, blit=True)
     else:
-        self.ani.event_source.stop()
-        self.plotData(0,data)
+        self.plotData(0,iTrace)
     self.canvas.draw()
 
   def pause(self):
-    print(self.iTrace)
-    self.reset(self.data[self.iTrace])
+    self.ani.event_source.stop()
+    self.reset(self.iTrace)
     self.pauseButton['state'] = Tk.DISABLED
     self.playButton['state'] = Tk.NORMAL
     self.prevButton['state'] = Tk.NORMAL
-    #self.nextButton['state'] = Tk.NORMAL
+    self.nextButton['state'] = Tk.DISABLED
 
   def play(self):
     self.ani.event_source.start()
@@ -94,77 +95,72 @@ class TRACE_FFT_WINDOW(Tk.Frame):
 
   def prevTrace(self):
     self.iTrace -= 1
-    print(self.iTrace)
-    self.reset(self.data[self.iTrace])
+    self.reset(self.iTrace)
     if self.iTrace < 1:
         self.prevButton['state'] = Tk.DISABLED
     else:
         self.prevButton['state'] = Tk.NORMAL
-    if (len(self.data) - self.iTrace) < 1:
+    if self.iTrace >= len(self.traces) - 1:
         self.nextButton['state'] = Tk.DISABLED
     else:
         self.nextButton['state'] = Tk.NORMAL
 
   def nextTrace(self):
     self.iTrace += 1
-    print(self.iTrace)
-    self.reset(self.data[self.iTrace])
+    self.reset(self.iTrace)
     if self.iTrace < 1:
         self.prevButton['state'] = Tk.DISABLED
     else:
         self.prevButton['state'] = Tk.NORMAL
-    if (len(self.data) - self.iTrace) < 1:
+    if self.iTrace >= len(self.traces) - 1:
         self.nextButton['state'] = Tk.DISABLED
     else:
         self.nextButton['state'] = Tk.NORMAL
 
-  def plotData(self,iFrame,data=None):
-    print("Running Plot Data")
+  def plotData(self,iFrame,iTrace=None):
     self.ax1.cla()
     self.ax2.cla()
     self.ax1.set_xlabel("Time [us]")
     self.ax1.set_ylabel("Sample Value [ADC Counts]")
     self.ax2.set_xlabel("Frequency [MHz]")
     self.ax2.set_ylabel("|Y(freq)|")
-    t, adc, frq, ampl = self.getTraceAndFFT(data=data)
-    if t and adc:
+    t, adc, frq, ampl, thistimestamp = self.getTraceAndFFT(iTrace=iTrace)
+    if not (t is None) and not (adc is None):
         self.plot1 = self.ax1.plot(t,adc)
-    #else:
-    #    t = np.arange(100)
-    #    adc = np.random.randn(100)
-    #    self.plot1 = self.ax1.plot(t,adc)
-    #    self.data.append(adc)
-    #    if len(self.data) > self.maxtraces:
-    #        self.data.pop(0)
-    #    self.iTrace = len(self.data) - 1
-    if frq and ampl:
+    if not (frq is None) and not (ampl is None):
         self.plot2 = self.ax2.plot(frq, ampl,'r')
-    #else:
-    #    frq = np.arange(100)
-    #    ampl = frq**(np.random.randn()+1)
-    #    self.plot2 = self.ax2.plot(frq, ampl,'r')
+    if not (thistimestamp is None):
+        self.figure.suptitle(thistimestamp.replace(microsecond=0).isoformat(" "))
     self.canvas.draw()
     return self.plot1
 
-  def getTraceAndFFT(self,data=None):
+  def getTraceAndFFT(self,iTrace=None):
     """
     Gets trace from FEMB and returns 4 1D arrays:
         times, ADC counts, frequencies, Amplitude
     """
     Yfft_total = []
     first = 1
-    if data == None:
+    data = None
+    timestamp = None
+    if iTrace is None:
         data = self.femb.get_data(10)
-        if data == None:
-            #time.sleep(1.)
-            return None, None, None, None
-        if len(data ) == 0:
-            #time.sleep(1.)
-            return None, None, None, None
-        self.data.append(data)
-        if len(self.data) > self.maxtraces:
-            self.data.pop(0)
-        self.iTrace = len(self.data) - 1
+        timestamp = datetime.datetime.now()
+        self.traces.append(data)
+        self.timestamps.append(timestamp)
+        if len(self.traces) > self.maxtraces:
+            self.traces.pop(0)
+            self.timestamps.pop(0)
+        self.iTrace = len(self.traces) - 1
+    else:
+        data = self.traces[iTrace]
+        timestamp = self.timestamps[iTrace]
+    if data == None:
+        #time.sleep(1.)
+        return None, None, None, None
+    if len(data ) == 0:
+        #time.sleep(1.)
+        return None, None, None, None
     xpoint = []
     ypoint = []
     num = 0
@@ -218,7 +214,7 @@ class TRACE_FFT_WINDOW(Tk.Frame):
     for bin in Yfft_total:
         Yfft_norm.append( bin / total)
 
-    return xarr, yarr, frq, Yfft_norm
+    return xarr, yarr, frq, Yfft_norm, timestamp
     
 def main():
     window = Tk.Tk()
