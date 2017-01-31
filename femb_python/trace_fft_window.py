@@ -157,10 +157,10 @@ class TRACE_FFT_WINDOW(Tk.Frame):
         timestamp = self.timestamps[iTrace]
     if data == None:
         #time.sleep(1.)
-        return None, None, None, None
+        return None, None, None, None, None
     if len(data ) == 0:
         #time.sleep(1.)
-        return None, None, None, None
+        return None, None, None, None, None
     xpoint = []
     ypoint = []
     num = 0
