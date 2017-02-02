@@ -229,7 +229,7 @@ class FEMB_UDP:
 
     #__INIT__#
     def __init__(self):
-        self.UDP_IP = "192.168.121.1"
+        self.UDP_IP = "192.168.121.50"
         self.KEY1 = 0xDEAD
         self.KEY2 = 0xBEEF
         self.FOOTER = 0xFFFF
@@ -237,7 +237,7 @@ class FEMB_UDP:
         self.UDP_PORT_RREG = 32001
         self.UDP_PORT_RREGRESP = 32002
         self.UDP_PORT_HSDATA = 32003
-        self.MAX_REG_NUM = 666
+        self.MAX_REG_NUM = 0xFFFF
         self.MAX_REG_VAL = 0xFFFFFFFF
         self.MAX_NUM_PACKETS = 1000
         self.MAX_PACKET_SIZE = 1024
