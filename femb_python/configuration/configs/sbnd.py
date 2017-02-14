@@ -1,5 +1,11 @@
 #!/usr/bin/env python33
 
+"""
+SBND-prototype FEMB. Same chips as 35t:
+FE 4*
+ADC V
+"""
+
 from __future__ import print_function
 from __future__ import unicode_literals
 from __future__ import division
@@ -203,7 +209,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 break
 
     def configFeAsic(self,gain,shape,base):
-        pass
+        self.fe_reg.set_fe_sbnd_board(snc=base,sg=gain,st=shape)
+        self.configFeAsic_regs(self.fe_reg.REGS)
 
     def selectChannel(self,asic,chan, hsmode= 1 ):
         asicVal = int(asic)

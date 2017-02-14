@@ -1,5 +1,9 @@
 #!/usr/bin/env python33
 
+"""
+Register mapping for ADC V on SBND prototype board
+"""
+
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
