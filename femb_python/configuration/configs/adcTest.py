@@ -190,7 +190,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         PHASE = self.femb.read_reg( self.REG_CLKPHASE )
         print("Latch latency " + str(hex(LATCH)) + "\tPhase " + str(hex(PHASE)))
         print("End sync ADC")
-        return not alreadySynced, LATCH, PHASE
+        return not alreadySynced, LATCH, None, PHASE
 
     def testUnsync(self, adc):
         adcNum = int(adc)

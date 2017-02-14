@@ -209,6 +209,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 break
 
     def configFeAsic(self,gain,shape,base):
+        gain = int("{:02b}".format(gain)[::-1],2) # need to reverse bits, use string/list tricks
+        shape = int("{:02b}".format(shape)[::-1],2) # need to reverse bits, use string/list tricks
         self.fe_reg.set_fe_sbnd_board(snc=base,sg=gain,st=shape)
         self.configFeAsic_regs(self.fe_reg.REGS)
 
@@ -302,10 +304,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
         print("FEMB_CONFIG--> End sync ADC")
-        return not alreadySynced
+        return not alreadySynced,self.REG_LATCHLOC1_4_data,self.REG_LATCHLOC5_8_data ,self.REG_CLKPHASE_data 
 
     def testUnsync(self, adc):
-        print("Startint testUnsync adc: ",adc)
+        print("Starting testUnsync adc: ",adc)
         adcNum = int(adc)
         if (adcNum < 0 ) or (adcNum > 7 ):
                 print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
@@ -318,7 +320,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 time.sleep(0.05)                
                 for test in range(0,10,1):
                         data = self.femb.get_data(1)
-                        print("test: ",test," data: ",data)
+                        #print("test: ",test," data: ",data)
                         if data == None:
                                 continue
                         for samp in data[0:(16*1024+1023)]:

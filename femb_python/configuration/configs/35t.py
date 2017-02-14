@@ -349,16 +349,19 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         reg3 = self.femb.read_reg(3)
         newReg3 = ( reg3 | 0x80000000 )
         self.femb.write_reg( 3, newReg3 ) #31 - enable ADC test pattern
+        alreadySynced = True
         for a in range(0,8,1):
                 print("Test ADC " + str(a))
                 unsync = self.testUnsync(a)
                 if unsync != 0:
                         print("ADC not synced, try to fix")
+                        alreadySynced = False
                         self.fixUnsync(a)
         LATCH = self.femb.read_reg( self.REG_LATCHLOC )
         PHASE = self.femb.read_reg( self.REG_CLKPHASE )
         print("Latch latency " + str(hex(LATCH)) + "\tPhase " + str(hex(PHASE)))
         print("End sync ADC")
+        return not alreadySynced, LATCH, None, PHASE
 
     def testUnsync(self, adc):
         adcNum = int(adc)

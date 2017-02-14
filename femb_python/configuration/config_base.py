@@ -77,5 +77,6 @@ class FEMB_CONFIG_BASE(object):
     def syncADC(self):
         """
         Syncronize the ADCs
+        Should return isAlreadySynced, latchloc1, latchloc2, phase
         """
         pass
