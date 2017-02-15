@@ -1,3 +1,13 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import range
+from builtins import str
+from builtins import hex
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import sys
 import string
 from subprocess import call
@@ -6,17 +16,18 @@ import os
 import ntpath
 import glob
 import struct
+from ...configuration import CONFIG
+from ...write_data import WRITE_DATA
+from ...configuration.cppfilerunner import CPP_FILE_RUNNER
 
 #specify location of femb_udp package
 
-class FEMB_TEST:
+class FEMB_TEST(object):
 
     def __init__(self):
 
         #import femb_udp modules from femb_udp package
-        from femb_python.configuration.femb_config_wib_protodune import FEMB_CONFIG
-        self.femb_config = FEMB_CONFIG()
-        from femb_python.write_data import WRITE_DATA
+        self.femb_config = CONFIG()
         self.write_data = WRITE_DATA()
         #set appropriate packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000
@@ -26,6 +37,8 @@ class FEMB_TEST:
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
+
+        self.cppfr = CPP_FILE_RUNNER()
 
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
@@ -71,7 +84,7 @@ class FEMB_TEST:
         print("Received data packet " + str(len(testData[0])) + " bytes long")
 
         #check for analysis executables
-        #if os.path.isfile('./parseBinaryFile') == False:    
+        #if not self.cppfr.exists('test_measurements/wibTestStand/parseBinaryFile'):    
         #    print('parseBinaryFile not found, run setup.sh')
         #    #sys.exit(0)
         #    return
@@ -130,12 +143,12 @@ class FEMB_TEST:
         print("SIMPLE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
-        call(["./parseBinaryFile", str( self.write_data.filedir ) + str( self.write_data.filename ) ])
+        self.cppfr.run('test_measurements/wibTestStand/parseBinaryFile',[str( self.write_data.filedir ) + str( self.write_data.filename )])
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
-        call(["./processNtuple_simpleMeasurement",  str( self.write_data.filedir ) + str(newName) ])
+        self.cppfr.run("test_measurements/wibTestStand/processNtuple_simpleMeasurement", [ str( self.write_data.filedir ) + str(newName) ])
 
         #move result to data directory
         newName = "output_processNtuple_simpleMeasurement_" + self.write_data.filename + ".root"

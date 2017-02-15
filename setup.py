@@ -133,16 +133,18 @@ setup(
             'femb_adc_dynamic_tests=femb_python.test_measurements.adc_test_stand.dynamic_tests:main',
             'femb_adc_collect_data=femb_python.test_measurements.adc_test_stand.collect_data:main',
 
+            'femb_example_measure_simple=femb_python.test_measurements.example_femb_test.doFembTest_simpleMeasurement:main',
+            'femb_example_measure_gain=femb_python.test_measurements.example_femb_test.doFembTest_gainMeasurement:main',
+            'femb_example_measure_noise=femb_python.test_measurements.example_femb_test.doFembTest_noiseMeasurement:main',
+
             'femb_wib_setup_clock=femb_python.test_measurements.wibTestStand.setup_wib_clock:main',
+            'femb_wib_setup_protodune=femb_python.test_measurements.wibTestStand.setup_wib_protodune:main',
             'femb_wib_gui=femb_python.test_measurements.wibTestStand.gui_wib:main',
             'femb_wib_trace_fft=femb_python.test_measurements.wibTestStand.trace_fft_window_wib:main',
             'femb_wib_measure_gain=femb_python.test_measurements.wibTestStand.doFembTest_gainMeasurement:main',
             'femb_wib_measure_noise=femb_python.test_measurements.wibTestStand.doFembTest_noiseMeasurement:main',
             'femb_wib_measure_simple=femb_python.test_measurements.wibTestStand.doFembTest_simpleMeasurement:main',
-
-            'femb_example_measure_simple=femb_python.test_measurements.example_femb_test.doFembTest_simpleMeasurement:main',
-            'femb_example_measure_gain=femb_python.test_measurements.example_femb_test.doFembTest_gainMeasurement:main',
-            'femb_example_measure_noise=femb_python.test_measurements.example_femb_test.doFembTest_noiseMeasurement:main',
+            'femb_wib_test_simpleCheck=femb_python.test_measurements.wibTestStand.doWibTest_simpleCheck:main',
 
         ],
         #'gui_scripts': [
