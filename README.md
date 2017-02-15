@@ -1,75 +1,134 @@
 # femb_python
 
-Core functions for DUNE/SBND cold electronics UDP readout (python version)
+DUNE/SBND cold electronics UDP readout (python version)
 
-## Do this first!
+## Installing the femb_python package
 
-You must manually compile the root C++ files into executables before setting up
-the python packages. Just run:
+You must have the `git` package installed to do anything.
 
+To build ROOT, you must also have some other packages.
+
+For Scientific Linux:
+
+First, run:
+
+```
+yum install -y epel-release
+```
+
+then
+
+```
+yum install -y git make cmake3 gcc-c++ gcc binutils libX11-devel libXpm-devel libXft-devel libXext-devel
+```
+
+For Ubuntu:
+
+```
+sudo apt install git dpkg-dev cmake g++ gcc binutils libx11-dev libxpm-dev libxft-dev libxext-dev libpng libjpeg
+```
+
+Download these two files:
+
+https://repo.continuum.io/archive/Anaconda3-4.2.0-Linux-x86_64.sh
+
+https://root.cern.ch/download/root_v6.08.02.source.tar.gz
+
+and then run the script:
+
+```
+bash Anaconda3-4.2.0-Linux-x86_64.sh
+```
+
+Install anaconda to the default location and don't add the path to your .bashrc
+
+Now run:
+
+```
+export PATH=~/anaconda3/bin:$PATH
+```
+
+Now we move on to installing ROOT:
+
+```
+tar xzf root_v6.08.02.source.tar.gz
+cd root-6.08.02/
+mkdir builddir
+cd builddir
+cmake3 -DCMAKE_INSTALL_PREFIX=~/root-6.08.02-pythonAnaconda3 -DPYTHON3=ON -DPYTHON_EXECUTABLE=~/anaconda3/bin/python3.5 -DPYTHON_INCLUDE_DIR=~/anaconda3/include/python3.5m -DPYTHON_LIBRARY=~/anaconda3/lib/libpython3.5m.so .. >& logConfigure
+cmake3 --build . >& logBuild
+cmake3 --build . --target install >& logInstall
+```
+
+You may have to replace cmake3 with cmake on Ubuntu and other OS's or run the
+configure step twice.
+
+Now, on to the femb_python package. In whatever directory you want to work in, run:
+
+```
+conda create -n myenv
+```
+
+then activate the conda environment with:
+
+```
+source activate myenv
+```
+
+Now get the package:
+
+```
+git clone https://github.com/jhugon/femb_python.git
+cd femb_python
+```
+
+and setup the package:
+
+```
 ./setup.sh
-
-## Python 2
-
-It's a pain to compile ROOT with support for python3, so by default we use
-python 2.
-
-Make sure python-setuptools, python-pip, python-virtualenv, python-numpy,
-python-matplotlib, and python-gi-cairo are installed on your machine. You also
-need to setup some version of ROOT and pyROOT.
-
-Then, for development, create a virtualenv with:
-
-virtualenv --system-site-packages myvirtualenv
-
-activate the virtualenv:
-
-source myvirtualenv/bin/activate
-
-Make sure you have compiled the C++ files with `./setup.sh`, then, from this
-directory run:
-
 pip install -e .
+```
 
-Now the package should be setup in development mode. The developement directory
-is softlinked into your python path.
+You are now all set up. All shell commands begin with femb, so try running
+`femb_init_board`.
 
-The FEMB_CONFIG env var is used to choose a configuration. Give it a file name.
-It first searches in the current directory, and if it is not found looks in the
-standard files. These include 35t.ini, sbne.ini, and adctest.ini.
+From a fresh terminal, whenever you want to work with the femb_python package, run:
 
-## Python 3
+```
+export PATH=~/anaconda3/bin:$PATH
+source activate myenv
+source ~/root-6.08.02-pythonAnaconda3/bin/thisroot.sh
+```
 
-If you can get ROOT working with python3, then the package might work with
-that. Make sure all of the dependency packages are installed in their python3
-version.
+You also need to set the environment variable `FEMB_CONFIG` for most commands.
+Running `femb_init_board` will present you with the available choices.
 
-Create the virtualenv like:
-
-virtualenv -p /usr/bin/env/python3 --system-site-packages mypython3virtualenv
 
 ## Rebuilding
 
 You shouldn't need to redo anything unless you change setup.py or the C++
 files. In that case, from this directory, just run:
 
+```
 ./setup.sh
-
 pip install -e .
+```
 
 ## Adding new commands
 
 To add your new script, e.g. `femb_python/test_measurements/rocket/ship.py`,
 with main function `main` as a command line command `femb_rocket_ship`, add a
-line to  `setup.py` in the list `console_scripts` that looks like this:
+line to `setup.py` in the list `console_scripts` that looks like this:
 
+```
 "femb_rocket_ship=femb_python.test_measurements.rocket.ship:main",
+```
 
 ## Calling compiled C++ executables from python
 
 Use the class in femb_python/configuration/cppfilerunner.py
 
-```python
+```
 from .configuration.cppfilerunner import CPP_FILE_RUNNER
 
 cppfr = CPP_FILE_RUNNER()
@@ -84,5 +143,6 @@ command.
 
 There is an example in:
 
+```
 femb_python/test_measurements/example_femb_test/doFembTest_simpleMeasurement.py
-
+```
