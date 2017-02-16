@@ -53,6 +53,7 @@ cd builddir
 cmake3 -DCMAKE_INSTALL_PREFIX=~/root-6.08.02-pythonAnaconda3 -DPYTHON3=ON -DPYTHON_EXECUTABLE=~/anaconda3/bin/python3.5 -DPYTHON_INCLUDE_DIR=~/anaconda3/include/python3.5m -DPYTHON_LIBRARY=~/anaconda3/lib/libpython3.5m.so .. >& logConfigure
 cmake3 --build . >& logBuild
 cmake3 --build . --target install >& logInstall
+source ~/root-6.08.02-pythonAnaconda3/bin/thisroot.sh
 ```
 
 You may have to replace cmake3 with cmake on Ubuntu and other OS's or run the
