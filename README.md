@@ -19,7 +19,7 @@ yum install -y epel-release
 then
 
 ```
-yum install -y git make cmake3 gcc-c++ gcc binutils libX11-devel libXpm-devel libXft-devel libXext-devel
+yum install -y git make cmake cmake3 gcc-c++ gcc binutils libX11-devel libXpm-devel libXft-devel libXext-devel
 ```
 
 For Ubuntu:
@@ -53,11 +53,9 @@ Now we move on to installing ROOT:
 ```
 tar xzf root_v6.08.02.source.tar.gz
 cd root-6.08.02/
-mkdir builddir
-cd builddir
-cmake3 -DCMAKE_INSTALL_PREFIX=~/root-6.08.02-pythonAnaconda3 -DPYTHON3=ON -DPYTHON_EXECUTABLE=~/anaconda3/bin/python3.5 -DPYTHON_INCLUDE_DIR=~/anaconda3/include/python3.5m -DPYTHON_LIBRARY=~/anaconda3/lib/libpython3.5m.so .. >& logConfigure
-cmake3 --build . >& logBuild
-cmake3 --build . --target install >& logInstall
+./configure --prefix=~/root-6.08.02-pythonAnaconda3 --with-python=~/anaconda3/bin/python3.5 --with-python-incdir=~/anaconda3/include/python3.5m  --with-python-libdir=~/anaconda3/lib/libpython3.5m.so >& logConfigure
+make >& logBuild
+make install >& logInstall
 ```
 
 You may have to replace cmake3 with cmake on Ubuntu and other OS's or run the
