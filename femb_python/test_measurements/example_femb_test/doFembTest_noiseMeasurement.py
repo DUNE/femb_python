@@ -1,3 +1,13 @@
+from __future__ import print_function
+from __future__ import unicode_literals
+from __future__ import division
+from __future__ import absolute_import
+from builtins import hex
+from builtins import range
+from builtins import str
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import sys
 import string
 from subprocess import call
@@ -13,7 +23,7 @@ from ...configuration.cppfilerunner import CPP_FILE_RUNNER
 
 #specify location of femb_udp package
 
-class FEMB_TEST:
+class FEMB_TEST(object):
 
     def __init__(self):
 

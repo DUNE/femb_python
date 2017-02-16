@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 from __future__ import print_function
 from __future__ import absolute_import
+from builtins import super
 from future import standard_library
 standard_library.install_aliases()
 
@@ -32,9 +33,8 @@ class TRACE_FFT_WINDOW(Tk.Frame):
   def __init__(self, master=None):
     self.maxtraces = 5
 
+    Tk.Frame.__init__(self,master) # hack to make work in python2
 
-
-    super().__init__(master)
     self.pack()
 
     self.figure = Figure(figsize=(8,8), dpi=100)
