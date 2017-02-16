@@ -4,7 +4,8 @@ DUNE/SBND cold electronics UDP readout (python version)
 
 ## Installing on Scientific Linux 7 and Recent Ubuntu/Fedora
 
-You must have the `git` package installed to do anything.
+femb_python requires ROOT, git, and a set of python packages provided by
+Anaconda.
 
 To build ROOT, you must also have some other packages.
 
@@ -78,7 +79,7 @@ source activate myenv
 Now get the package:
 
 ```
-git clone https://github.com/jhugon/femb_python.git
+git clone https://github.com/DUNE/femb_python.git
 cd femb_python
 ```
 
@@ -104,9 +105,13 @@ You also need to set the environment variable `FEMB_CONFIG` for most commands.
 Running `femb_init_board` will present you with the available choices.
 
 
-## Installing on Scientific Linux 6
+## Installing on Scientific Linux 5 or 6
 
-You must have the `git` package installed to do anything.
+In SL 5 or 6, an older c++ compiler must be used. This means we have to use an
+older version of ROOT as well as Python 2. Some functionality may not work,
+such as the C++ scripts and possibly other modules that haven't been tested
+with Python 2. SL5 also doesn't have git, so you must download a tagged release
+from Github.
 
 To build ROOT, you must also have some other packages.
 
@@ -165,14 +170,17 @@ then activate the conda environment with:
 source activate myenv
 ```
 
-Now get the package:
+Now get the package. On SL6, run:
 
 ```
-git clone https://github.com/jhugon/femb_python.git
+git clone https://github.com/DUNE/femb_python.git
 cd femb_python
 ```
 
-and setup the package:
+on SL5, go to https://github.com/DUNE/femb_python then click on the releases
+tab. Download one of those and untar it. Go into the resulting directory.
+
+Setup the package:
 
 ```
 ./setup.sh
