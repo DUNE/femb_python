@@ -111,7 +111,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             #for iReg in range(len(self.fe_reg.REGS)):
             #  self.fe_reg.REGS[iReg] = 0xFFFFFFFF
             #set default value to FEMB ADCs and FEs
-            self.configAdcAsic(self.adc_reg.REGS)
+            self.configAdcAsic_regs(self.adc_reg.REGS)
             self.configFeAsic_regs(self.fe_reg.REGS)
 
             #Set number events per header -- no use
@@ -127,7 +127,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("Error: Board not streaming data after trying to initialize {} times. Exiting.".format(nRetries))
         sys.exit(1)
 
-    def configAdcAsic(self,Adcasic_regs):
+    def configAdcAsic_regs(self,Adcasic_regs):
         #ADC ASIC SPI registers
         print("FEMB_CONFIG--> Config ADC ASIC SPI")
         for k in range(10):
@@ -209,11 +209,76 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 #    print("{:#010x}      {:#010x}".format(feasic_rb_regs[iReg],feasic_regs[iReg]))
                 break
 
-    def configFeAsic(self,gain,shape,base):
+    def configFeAsic(self,gain,shape,base,slk=None,slkh=None,monitorBandgap=None,monitorTemp=None):
+        """
+        Configure FEs with given gain/shape/base values.
+        Also, configure leakage current slk = 0 for 500 pA, 1 for 100 pA
+            and slkh = 0 for 1x leakage current, 1 for 10x leakage current
+        if monitorBandgap is True: monitor bandgap instead of signal
+        if monitorTemp is True: monitor temperature instead of signal
+        """
         gain = int("{:02b}".format(gain)[::-1],2) # need to reverse bits, use string/list tricks
         shape = int("{:02b}".format(shape)[::-1],2) # need to reverse bits, use string/list tricks
-        self.fe_reg.set_fe_sbnd_board(snc=base,sg=gain,st=shape)
+        if slk is None:
+            slk=0
+        if slkh is None:
+            slkh=0
+        if monitorBandgap and monitorTemp:
+            raise Exception("You can't monitor bandgap and temperature at the same time. Set either monitorBandgap or monitorTemp False")
+        stb=0
+        if monitorBandgap:
+            stb=0b11
+        if monitorTemp:
+            stb=0b10
+        self.fe_reg.set_fe_sbnd_board(snc=base,sg=gain,st=shape,slk0=slk,stb=stb)
         self.configFeAsic_regs(self.fe_reg.REGS)
+
+    def configAdcAsic(self,enableOffsetCurrent=None,offsetCurrent=None,testInput=None,
+                            freqInternal=None,sleep=None,pdsr=None,pcsr=None,
+                            clockMonostable=None,clockExternal=None,clockFromFIFO=None,
+                            sLSB=None,f0=None,f1=None,f2=None,f3=None,f4=None,f5=None):
+        """
+        Configure ADCs
+          enableOffsetCurrent: 0 disable offset current, 1 enable offset current
+          offsetCurrent: 0-15, amount of current to draw from sample and hold
+          testInput: 0 digitize normal input, 1 digitize test input
+          freqInternal: internal clock frequency: 0 1MHz, 1 2MHz
+          sleep: 0 disable sleep mode, 1 enable sleep mode
+          pdsr: if pcsr=0: 0 PD is low, 1 PD is high
+          pcsr: 0 power down controlled by pdsr, 1 power down controlled externally
+          Only one of these can be enabled:
+            clockMonostable: True ADC uses monostable clock
+            clockExternal: True ADC uses external clock
+            clockFromFIFO: True ADC uses digital generator FIFO clock
+          sLSB: LSB current steering mode. 0 for full, 1 for partial (ADC7 P1)
+          f0, f1, f2, f3, f4, f5: version specific
+        """
+        FEMB_CONFIG_BASE.configAdcAsic(self,clockMonostable=clockMonostable,
+                                        clockExternal=clockExternal,clockFromFIFO=clockFromFIFO)
+        if enableOffsetCurrent is None:
+            enableOffsetCurrent=0
+        if offsetCurrent is None:
+            offsetCurrent=0
+        if testInput is None:
+            testInput=0
+        if freqInternal is None:
+            freqInternal=0
+        if sleep is None:
+            sleep=0
+        if pdsr is None:
+            pdsr=0
+        if pcsr is None:
+            pcsr=0
+        clk0=0
+        clk1=0
+        if clockExternal:
+            clk0=1
+            clk1=0
+        elif clockFromFIFO:
+            clk0=0
+            clk1=1
+        self.adc_reg.set_sbnd_board(en_gr=enableOffsetCurrent,d=offsetCurrent,tstin=testInput,frqc=freqInternal,slp=sleep,pdsr=pdsr,pcsr=pcsr,clk0=clk0,clk1=clk1,f1=f1,f2=f2)
+        self.configAdcAsic_regs(self.adc_reg.REGS)
 
     def selectChannel(self,asic,chan, hsmode= 1 ):
         asicVal = int(asic)

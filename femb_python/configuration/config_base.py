@@ -55,11 +55,42 @@ class FEMB_CONFIG_BASE(object):
         """
         pass
 
-    def configFeAsic(self,gain,shape,base):
+    def configFeAsic(self,gain,shape,base,slk=None,slkh=None,monitorBandgap=None,monitorTemp=None):
         """
-        Configure FEs with given gain/shape/base values
+        Configure FEs with given gain/shape/base values.
+        Also, configure leakage current slk = 0 for 500 pA, 1 for 100 pA
+            and slkh = 0 for 1x leakage current, 1 for 10x leakage current
+        if monitorBandgap is True: monitor bandgap instead of signal
+        if monitorTemp is True: monitor temperature instead of signal
         """
         pass
+
+    def configAdcAsic(self,enableOffsetCurrent=None,offsetCurrent=None,testInput=None,
+                            freqInternal=None,sleep=None,pdsr=None,pcsr=None,
+                            clockMonostable=None,clockExternal=None,clockFromFIFO=None,
+                            sLSB=None,f0=None,f1=None,f2=None,f3=None,f4=None,f5=None):
+        """
+        Configure ADCs
+          enableOffsetCurrent: 0 disable offset current, 1 enable offset current
+          offsetCurrent: 0-15, amount of current to draw from sample and hold
+          testInput: 0 digitize normal input, 1 digitize test input
+          freqInternal: internal clock frequency: 0 1MHz, 1 2MHz
+          sleep: 0 disable sleep mode, 1 enable sleep mode
+          pdsr: if pcsr=0: 0 PD is low, 1 PD is high
+          pcsr: 0 power down controlled by pdsr, 1 power down controlled externally
+          Only one of these can be enabled:
+            clockMonostable: True ADC uses monostable clock
+            clockExternal: True ADC uses external clock
+            clockFromFIFO: True ADC uses digital generator FIFO clock
+          sLSB: LSB current steering mode. 0 for full, 1 for partial (ADC7 P1)
+          f0, f1, f2, f3, f4, f5: version specific
+        """
+        if clockMonostable and clockExternal:
+            raise Exception("Only clockMonostable, clockExternal, OR, clockFromFIFO can be true, clockMonostable and clockExternal were set true")
+        if clockMonostable and clockFromFIFO:
+            raise Exception("Only clockMonostable, clockExternal, OR, clockFromFIFO can be true, clockMonostable and clockFromFIFO were set true")
+        if clockExternal and clockFromFIFO:
+            raise Exception("Only clockMonostable, clockExternal, OR, clockFromFIFO can be true, clockExternal and clockFromFIFO were set true")
 
     def selectChannel(self,asic,chan, hsmode= 1 ):
         """
