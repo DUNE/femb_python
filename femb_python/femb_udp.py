@@ -239,7 +239,7 @@ class FEMB_UDP(object):
 
     #__INIT__#
     def __init__(self):
-        self.UDP_IP = "192.168.121.50"
+        self.UDP_IP = "192.168.121.1"
         self.KEY1 = 0xDEAD
         self.KEY2 = 0xBEEF
         self.FOOTER = 0xFFFF
