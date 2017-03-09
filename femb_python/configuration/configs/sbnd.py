@@ -261,9 +261,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if offsetCurrent is None:
             offsetCurrent=0
         else:
-            print(offsetCurrent,bin(offsetCurrent))
             offsetCurrent = int("{:04b}".format(offsetCurrent)[::-1],2) # need to reverse bits, use string/list tricks
-            print(offsetCurrent,bin(offsetCurrent))
         if testInput is None:
             testInput=0
         if freqInternal is None:
