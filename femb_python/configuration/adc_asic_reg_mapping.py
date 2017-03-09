@@ -59,6 +59,7 @@ class ADC_ASIC_REG_MAPPING(object):
 ####sec_chip_global only sets a chip global register, the other registers remains as before
     def set_chip_global(self, chip, res2 = 0, f1 = 0, clk0 = 0, clk1 = 1, 
                         frqc = 1, en_gr = 0, res1 = 0, f2 = 1, res0 = 0):
+        #print("globals: res2: {} f1: {} clk0: {} clk1: {} frqc: {} en_gr: {} res1: {} f2: {} res0: {}".format(res2,f1,clk0,clk1,frqc,en_gr,res1,f2,res0))
         global_reg = [True, False, True, False, True, True, False, False, True]
         global_reg[0] = (bool(res0)) 
         global_reg[1] = (bool(f2))

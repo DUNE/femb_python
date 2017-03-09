@@ -106,11 +106,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg ( 7, 0x0000) #11-8 = channel select, 3-0 = ASIC select
             self.femb.write_reg ( 17, 1) #11-8 = channel select, 3-0 = ASIC select
 
-            #self.fe_reg.set_fe_sbnd_board(slk0=1) # dumb justin thing
-            #self.fe_reg.set_fechip(chip=7,slk0=1) # dumb justin thing
             #for iReg in range(len(self.fe_reg.REGS)):
             #  self.fe_reg.REGS[iReg] = 0xFFFFFFFF
             #set default value to FEMB ADCs and FEs
+            #self.configAdcAsic(pdsr=1,pcsr=1,clockFromFIFO=True,freqInternal=1,f2=1)
             self.configAdcAsic_regs(self.adc_reg.REGS)
             self.configFeAsic_regs(self.fe_reg.REGS)
 
@@ -133,6 +132,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         for k in range(10):
             i = 0
             for regNum in range(self.REG_ADCSPI_BASE,self.REG_ADCSPI_BASE+len(Adcasic_regs),1):
+                    #print("{:032b}".format(Adcasic_regs[i]))
+                    #print("{:08x}".format(Adcasic_regs[i]))
                     self.femb.write_reg ( regNum, Adcasic_regs[i])
                     time.sleep(0.05)
                     i = i + 1
