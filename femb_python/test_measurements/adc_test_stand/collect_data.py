@@ -28,7 +28,7 @@ class COLLECT_DATA(object):
         self.config = config
         self.NASICS = config.NASICS
         self.femb = FEMB_UDP()
-        self.funcgen = RigolDG4000("/dev/usbtmc0")
+        self.funcgen = RigolDG4000(config.FUNCGENPATH,config.FUNCGENSOURCE)
         self.settlingTime = 0.1 # second
         self.maxTries = 1000
         self.fitMinV = 0.5

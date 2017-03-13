@@ -2,6 +2,7 @@
 
 """
 Register mapping for FE 4* on SBND prototype board
+should work for most 4 and 4* FEs
 """
 
 from __future__ import print_function

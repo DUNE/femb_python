@@ -25,8 +25,8 @@ import struct
 import copy
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
-from femb_python.configuration.adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
-from femb_python.configuration.fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
+from femb_python.configuration.adc_asic_reg_mapping_V import ADC_ASIC_REG_MAPPING
+from femb_python.configuration.fe_asic_reg_mapping_4 import FE_ASIC_REG_MAPPING
 
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 

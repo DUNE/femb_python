@@ -2,6 +2,7 @@
 
 """
 Register mapping for ADC V on SBND prototype board
+Should work for most V and V* ADCs
 """
 
 from __future__ import print_function

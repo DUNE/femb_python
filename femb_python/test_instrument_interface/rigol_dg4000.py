@@ -124,7 +124,7 @@ class RigolDG4000(object):
 
 if __name__ == "__main__":
 
-    fungen = RigolDG4000("/dev/usbtmc0")
+    fungen = RigolDG4000("/dev/usbtmc1",1)
     fungen.stop()
     fungen.startRamp(7320,0.5,1.5)
     time.sleep(3)
