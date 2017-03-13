@@ -41,7 +41,7 @@ class RigolDG4000(object):
           if sourceNumber != 1 and sourceNumber != 2:
             print("Error in Rigol Function Generator Setup: Environment variable FUNCGENSOURCENUM='{}'. Should be either 1 or 2".format(sourceNumber))
             sys.exit(1)
-        print("Using Rigol Channel {}".format(sourceNumber))
+        print("Using Rigol DG4000 at {} Channel {}".format(filename,sourceNumber))
         self.sourceNumber = sourceNumber
         self.sourceString = ":SOURce{}".format(sourceNumber)
         self.outputString = ":OUTPut{}".format(sourceNumber)
@@ -122,20 +122,40 @@ class RigolDG4000(object):
         time.sleep(0.1)
         self.writeCommand(self.outputString+":STATe ON")
 
-if __name__ == "__main__":
+def main():
 
-    fungen = RigolDG4000("/dev/usbtmc1",1)
-    fungen.stop()
-    fungen.startRamp(7320,0.5,1.5)
-    time.sleep(3)
-    print()
-    fungen.startSin(300,0.1,0.2)
-    time.sleep(3)
-    print()
-    fungen.startDC(0.15)
-    time.sleep(3)
-    print()
-    fungen.stop()
+    from ..configuration.argument_parser import ArgumentParser
+    from ..configuration import CONFIG
+    parser = ArgumentParser(description="Control Rigol DG4000 Function Generator. If run without arguments, stops generator.")
+    parser.add_argument("--dc",help="Start DC signal, argument is voltage [V]",type=float,default=-99999)
+    parser.add_argument("--sin",help="Start sin signal",action='store_true')
+    parser.add_argument("--ramp",help="Start ramp signal",action='store_true')
+    parser.add_argument("--offset",help="Set voltage offset [V], default=0.75",type=float,default=0.75)
+    parser.add_argument("--amplitude",help="Set voltage amplitude [V], default=0.25",type=float,default=0.25)
+    parser.add_argument("--frequency",help="Set signal frequency [Hz], default=100000",type=float,default=100000)
+    args = parser.parse_args()
+
+    if(args.dc > -100 and args.sin):
+        print("Error: You may not run DC and sin at the same time, exiting.")
+        sys.exit(1)
+    if(args.dc > -100 and args.ramp):
+        print("Error: You may not run DC and ramp at the same time, exiting.")
+        sys.exit(1)
+    if(args.sin and args.ramp):
+        print("Error: You may not run sin and ramp at the same time, exiting.")
+        sys.exit(1)
+
+    config = CONFIG()
+    funcgen = RigolDG4000(config.FUNCGENPATH,config.FUNCGENSOURCE)
+
+    funcgen.stop()
+    
+    if args.ramp:
+      funcgen.startRamp(args.frequency,args.offset-args.amplitude,args.offset+args.amplitude)
+    elif args.sin:
+      funcgen.startSin(args.frequency,args.amplitude,args.offset)
+    elif args.dc > -100:
+      funcgen.startDC(args.dc)
 
 #  with open("/dev/usbtmc0",'w') as wfile:
 #

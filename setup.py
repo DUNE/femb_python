@@ -129,6 +129,8 @@ setup(
             'femb_config_adc=femb_python.helper_scripts.config_adc:main',
             'femb_config_fe=femb_python.helper_scripts.config_fe:main',
 
+            'femb_instrument_rigol_dg4000=femb_python.test_instrument_interface.rigol_dg4000:main',
+
             'femb_adc_static_tests=femb_python.test_measurements.adc_test_stand.static_tests:main',
             'femb_adc_dynamic_tests=femb_python.test_measurements.adc_test_stand.dynamic_tests:main',
             'femb_adc_collect_data=femb_python.test_measurements.adc_test_stand.collect_data:main',
