@@ -20,7 +20,7 @@ class ADC_ASIC_REG_MAPPING(object):
 ####sec_chn_reg only sets a channel register, the other registers remains as before
     def set_chn_reg(self, chip=0, chn=0, d=0, pcsr=1, pdsr=1, slp=0, tstin=0 ):
         chn_reg = ((d<<4)&0xF0) + ((pcsr&0x01)<<3) + ((pdsr&0x01)<<2) + \
-                  ((slp&0x01)<<1) + ((slp&0x01)<<0)
+                  ((slp&0x01)<<1) + ((tstin&0x01)<<0)
 
         chn_reg_bool = []
         for j in range(8):
