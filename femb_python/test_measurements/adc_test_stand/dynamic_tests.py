@@ -25,14 +25,13 @@ class DYNAMIC_TESTS(object):
         config is a femb_python.configuration.CONFIG object
         """
         self.config = config
-        self.NASICS = config.NASICS
         self.signalLeakageWidthBins = 20
         self.harmonicLeakageWidthBins = 20
         self.nHarmonics = 5 # total harmonic distortion includes up to this harmonic (and S/N excludes them)
         self.nBits = 12
 
     def analyze(self,fileprefix):
-        waveforms = self.loadWaveforms(fileprefix)
+        waveforms, adcSerial = self.loadWaveforms(fileprefix)
         frequencies = sorted(list(waveforms.keys()))
         #frequencies = frequencies[:3]
         amplitudes = []
@@ -41,99 +40,96 @@ class DYNAMIC_TESTS(object):
               if not amp in amplitudes:
                 amplitudes.append(amp)
         amplitudes.sort()
-        allstats = {}
-        for iChip in range(self.NASICS):
-            chipstats = {}
-            for iChan in range(16):
-            #for iChan in range(1):
-                #print(iChip,iChan)
-                fig, ax = plt.subplots(figsize=(8,8))
-                chanstats = {}
-                for amp in amplitudes:
-                    chanstats[amp] = {}
-                    chanstats[amp]['thds'] = []
-                    chanstats[amp]['snrs'] = []
-                    chanstats[amp]['sinads'] = []
-                    chanstats[amp]['enobs'] = []
-                    chanstats[amp]['freqs'] = []
-                    for freq in frequencies:
-                        waveform = waveforms[freq][amp][iChip][iChan]
-                        print("Chip: {}, Chan: {}, Freq: {} Hz, Amp: {} V".format(iChip,iChan,freq,amp))
-                        freqStr = ""
-                        freqExp = numpy.floor(numpy.log10(freq))
-                        freqCoef = freq/10**freqExp
-                        freqStr = "{:.0f}e{:.0f}".format(freqCoef,freqExp)
-                        outputSuffix = "chip{}_chan{}_freq{}Hz_amp{:.0f}mV".format(iChip,iChan,freqStr,amp*1000)
-                        maxAmpFreq, thd, snr, sinad, enob = self.getDynamicParameters(waveform,outputSuffix)
-                        deltaFreqRel = (maxAmpFreq*1e6 - freq)/freq
-                        if abs(deltaFreqRel) > 1e-2:
-                            print("Warning: Chip: {} Channel: {} Frequency: {:.2g} Hz Amplitude: {:.2f} V FFT peak doesn't match input frequency, skipping. fft freq - input freq relative error: {:.2%}".format(iChip,iChan,freq,amp,deltaFreqRel))
-                            chanstats[amp]['thds'].append(float('nan'))
-                            chanstats[amp]['snrs'].append(float('nan'))
-                            chanstats[amp]['sinads'].append(float('nan'))
-                            chanstats[amp]['enobs'].append(float('nan'))
-                            chanstats[amp]['freqs'].append(freq)
-                        else:
-                            print("  THD: {:4.1f} SNR: {:4.1f} SINAD: {:4.1f} ENOB: {:4.2f}".format(thd,snr,sinad,enob))
-                            chanstats[amp]['thds'].append(thd)
-                            chanstats[amp]['snrs'].append(snr)
-                            chanstats[amp]['sinads'].append(sinad)
-                            chanstats[amp]['enobs'].append(enob)
-                            chanstats[amp]['freqs'].append(freq)
-                chipstats[iChan] = chanstats
-            allstats[iChip] = chipstats
+        chipstats = {}
+        for iChan in range(16):
+        #for iChan in range(1):
+            #print(iChan)
+            fig, ax = plt.subplots(figsize=(8,8))
+            chanstats = {}
+            for amp in amplitudes:
+                chanstats[amp] = {}
+                chanstats[amp]['thds'] = []
+                chanstats[amp]['snrs'] = []
+                chanstats[amp]['sinads'] = []
+                chanstats[amp]['enobs'] = []
+                chanstats[amp]['freqs'] = []
+                for freq in frequencies:
+                    waveform = waveforms[freq][amp][iChan]
+                    print("Chip: {}, Chan: {}, Freq: {} Hz, Amp: {} V".format(adcSerial,iChan,freq,amp))
+                    freqStr = ""
+                    freqExp = numpy.floor(numpy.log10(freq))
+                    freqCoef = freq/10**freqExp
+                    freqStr = "{:.0f}e{:.0f}".format(freqCoef,freqExp)
+                    outputSuffix = "chip{}_chan{}_freq{}Hz_amp{:.0f}mV".format(adcSerial,iChan,freqStr,amp*1000)
+                    maxAmpFreq, thd, snr, sinad, enob = self.getDynamicParameters(waveform,outputSuffix)
+                    deltaFreqRel = (maxAmpFreq*1e6 - freq)/freq
+                    if abs(deltaFreqRel) > 1e-2:
+                        print("Warning: Chip: {} Channel: {} Frequency: {:.2g} Hz Amplitude: {:.2f} V FFT peak doesn't match input frequency, skipping. fft freq - input freq relative error: {:.2%}".format(adcSerial,iChan,freq,amp,deltaFreqRel))
+                        chanstats[amp]['thds'].append(float('nan'))
+                        chanstats[amp]['snrs'].append(float('nan'))
+                        chanstats[amp]['sinads'].append(float('nan'))
+                        chanstats[amp]['enobs'].append(float('nan'))
+                        chanstats[amp]['freqs'].append(freq)
+                    else:
+                        print("  THD: {:4.1f} SNR: {:4.1f} SINAD: {:4.1f} ENOB: {:4.2f}".format(thd,snr,sinad,enob))
+                        chanstats[amp]['thds'].append(thd)
+                        chanstats[amp]['snrs'].append(snr)
+                        chanstats[amp]['sinads'].append(sinad)
+                        chanstats[amp]['enobs'].append(enob)
+                        chanstats[amp]['freqs'].append(freq)
+            chipstats[iChan] = chanstats
+        allstats = chipstats
 
         # Now put out plots
         figmanys = []
         for iKey, key in enumerate(['thds','snrs','sinads']):
             figmanys.append(plt.figure(figsize=(8,8)))
-        for iChip in range(self.NASICS):
-            # setup summary figures
-            manyaxeses = []
-            for iKey, key in enumerate(['thds','snrs','sinads']):
-                figmany = figmanys[iKey]
-                figmany.clf()
-                manyaxes = []
-                for iChan in range(16):
-                    manyaxes.append(figmany.add_subplot(4,4,iChan+1))
-                    manyaxes[iChan].set_xlim(0,1)
-                    manyaxes[iChan].set_ylim(0,60)
-                    if key == "thds":
-                      manyaxes[iChan].set_ylim(-80,0)
-                    manyaxes[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
-                    xticks = [0,0.5,1]
-                    manyaxes[iChan].set_xticks(xticks)
-                    if iChan % 4 != 0:
-                        manyaxes[iChan].set_yticklabels([])
-                    else:
-                        manyaxes[iChan].set_ylabel("{} [dB]".format(key[:-1].upper()))
-                    if iChan // 4 != 3:
-                        manyaxes[iChan].set_xticklabels([])
-                    else:
-                        manyaxes[iChan].set_xlabel("Frequency [MHz]")
-                        manyaxes[iChan].set_xticklabels(["0","0.5","1"])
-                manyaxeses.append(manyaxes)
-            # do analysis
+        # setup summary figures
+        manyaxeses = []
+        for iKey, key in enumerate(['thds','snrs','sinads']):
+            figmany = figmanys[iKey]
+            figmany.clf()
+            manyaxes = []
             for iChan in range(16):
-            #for iChan in range(1):
-                chanstats = allstats[iChip][iChan]
-                for iKey, key in enumerate(['thds','snrs','sinads']):
-                    fig, ax = plt.subplots(figsize=(8,8))
-                    for amp in amplitudes:
-                        freqs = numpy.array(chanstats[amp]['freqs'])
-                        ax.plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
-                        manyaxeses[iKey][iChan].plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
-                    ax.set_xlabel("Frequency [MHz]")
-                    ax.set_ylabel("{} [dB]".format(key[:-1].upper()))
-                    ax.set_xlim(0,1)
-                    ax.set_ylim(0,60)
-                    if key == "thds":
-                      ax.set_ylim(-80,0)
-                    ax.legend()
-                    fig.savefig("{}_chip{}_chan{}.png".format(key,iChip,iChan))
-                    plt.close()
+                manyaxes.append(figmany.add_subplot(4,4,iChan+1))
+                manyaxes[iChan].set_xlim(0,1)
+                manyaxes[iChan].set_ylim(0,60)
+                if key == "thds":
+                  manyaxes[iChan].set_ylim(-80,0)
+                manyaxes[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
+                xticks = [0,0.5,1]
+                manyaxes[iChan].set_xticks(xticks)
+                if iChan % 4 != 0:
+                    manyaxes[iChan].set_yticklabels([])
+                else:
+                    manyaxes[iChan].set_ylabel("{} [dB]".format(key[:-1].upper()))
+                if iChan // 4 != 3:
+                    manyaxes[iChan].set_xticklabels([])
+                else:
+                    manyaxes[iChan].set_xlabel("Frequency [MHz]")
+                    manyaxes[iChan].set_xticklabels(["0","0.5","1"])
+            manyaxeses.append(manyaxes)
+        # do analysis
+        for iChan in range(16):
+        #for iChan in range(1):
+            chanstats = allstats[iChan]
             for iKey, key in enumerate(['thds','snrs','sinads']):
-              figmanys[iKey].savefig("{}_chip{}.png".format(key,iChip))
+                fig, ax = plt.subplots(figsize=(8,8))
+                for amp in amplitudes:
+                    freqs = numpy.array(chanstats[amp]['freqs'])
+                    ax.plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
+                    manyaxeses[iKey][iChan].plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
+                ax.set_xlabel("Frequency [MHz]")
+                ax.set_ylabel("{} [dB]".format(key[:-1].upper()))
+                ax.set_xlim(0,1)
+                ax.set_ylim(0,60)
+                if key == "thds":
+                  ax.set_ylim(-80,0)
+                ax.legend()
+                fig.savefig("{}_chip{}_chan{}.png".format(key,adcSerial,iChan))
+                plt.close()
+        for iKey, key in enumerate(['thds','snrs','sinads']):
+          figmanys[iKey].savefig("{}_chip{}.png".format(key,adcSerial))
 
     def getDynamicParameters(self,data,outputSuffix,fake=False):
         """
@@ -236,20 +232,6 @@ class DYNAMIC_TESTS(object):
 
         return frequencies[iMax], thdDB, snrDB, sinadDB, enob
 
-    def getSinWaveforms(self,freq,offsetV,amplitudeV,fake=False):
-        self.funcgen.startSin(freq,amplitudeV,offsetV)
-        if self.waveformRootFileName:
-            self.dumpWaveformRootFile(freq,offsetV,amplitudeV)
-
-        result = []
-        for iChip in range(self.NASICS):
-            result.append([])
-            for iChan in range(16):
-                waveform = self.getWaveform(iChip,iChan,freq,offsetV,amplitudeV)
-                result[iChip].append(waveform)
-        self.iRun += 1
-        return result
-
     def dumpWaveformRootFile(self,freq,offsetV,amplitudeV):
         filename = "{}_freq{:.3f}_offset{:.3f}_amplitude{:.3f}.root".format(self.waveformRootFileName,freq,offsetV,amplitudeV)
         wrt = WRITE_ROOT_TREE(self.config,filename,10)
@@ -260,34 +242,9 @@ class DYNAMIC_TESTS(object):
         wrt.funcAmp = amplitudeV
         wrt.record_data_run()
 
-    def getWaveform(self,iChip,iChan,freq,offsetV,amplitudeV,fake=False):
-        """
-        Gets an array of ADC counts for a given waveform generator offset, A and freq.
-        """
-
-        self.config.selectChannel(iChip,iChan)
-        time.sleep(self.settlingTime)
-
-        if not fake:
-            samples = []
-            raw_data = self.femb.get_data(self.femb.MAX_NUM_PACKETS)
-            
-            for samp in raw_data:
-                chNum = ((samp >> 12 ) & 0xF)
-                if chNum != iChan:
-                    print("makeRampHist: chNum {} != iChan {}".format(chNum,iChan))
-                    continue
-                sampVal = (samp & 0xFFF)
-                if self.nBits < 12:
-                    sampVal = sampVal >> (12 - self.nBits)
-                samples.append(sampVal)
-            return numpy.array(samples)
-        else:
-            raise NotImplementedError()
-
     def loadWaveforms(self,fileprefix):
         """
-        result[freq][amp][iChip][iChan][iSample]
+        result[freq][amp][iChan][iSample]
         """
         filenames = glob.glob(fileprefix+"_functype2_"+"*.root")
         files = []
@@ -301,6 +258,7 @@ class DYNAMIC_TESTS(object):
         metadatas = []
         amplitudes = set()
         frequencies = set()
+        adcSerials = set()
         for mdt in metadataTrees:
             mdt.GetEntry(0)
             md = {
@@ -308,36 +266,39 @@ class DYNAMIC_TESTS(object):
                 'funcAmp': mdt.funcAmp,
                 'funcOffset': mdt.funcOffset,
                 'funcFreq': mdt.funcFreq,
+                'adcSerial': mdt.adcSerial
                 }
             metadatas.append(md)
             if not mdt.funcAmp in amplitudes:
                 amplitudes.add(mdt.funcAmp)
             if not mdt.funcFreq in frequencies:
                 frequencies.add(mdt.funcFreq)
-        
+            if not mdt.adcSerial in adcSerials:
+                adcSerials.add(mdt.adcSerial)
+        if len(adcSerials) > 1:
+            raise Exception("fileprefix '{}' matches files with more than one ADC serial number, only one serial number allowed at a time")
+        elif len(adcSerials) == 0:
+            raise Exception("fileprefix '{}' doesn't match to any files with functype2.")
         result = {}
         for freq in frequencies:
             result[freq] = {}
             for amp in amplitudes:
               thesePoints = []
-              for iChip in range(self.config.NASICS):
-                thesePoints.append([])
-                for iChannel in range(16):
-                  thesePoints[iChip].append([])
+              for iChannel in range(16):
+                  thesePoints.append([])
               for iTree in range(len(metadatas)):
                 md = metadatas[iTree]
                 if md['funcType'] == 2 and md['funcAmp'] == amp and md['funcFreq'] == freq:
                   tree = trees[iTree]
                   for iEntry in range(tree.GetEntries()):
                       tree.GetEntry(iEntry)
-                      iChip = tree.chan//16
-                      iChannel = tree.chan % 16
+                      iChannel = tree.chan
                       adccodes = list(tree.wf)
                       if self.nBits < 12:
                           adccodes = [i >> (12 - self.nBits) for i in adccodes]
-                      thesePoints[iChip][iChannel].extend(adccodes)
+                      thesePoints[iChannel].extend(adccodes)
               result[freq][amp] = thesePoints
-        return result
+        return result, adcSerials.pop()
 
     def getHanningWindow(self,N):
         """
