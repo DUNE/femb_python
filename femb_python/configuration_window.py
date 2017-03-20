@@ -176,13 +176,14 @@ class CONFIGURATION_WINDOW:
 
 
     def reset_plot(self):
+        window = tk.Toplevel(root)
         try:
-          if self.plot_window.get_property("visible"):
-            self.plot_window.reset()
+          if window.plot_window.get_property("visible"):
+            window.plot_window.reset()
           else:
-            self.plot_window = trace_fft_window.TRACE_FFT_WINDOW()
+            window.plot_window = trace_fft_window.TRACE_FFT_WINDOW()
         except AttributeError:
-            self.plot_window = trace_fft_window.TRACE_FFT_WINDOW()
+            window.plot_window = trace_fft_window.TRACE_FFT_WINDOW()
 
     #And here! =============================================================================================|
 
