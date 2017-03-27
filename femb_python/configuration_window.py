@@ -157,6 +157,22 @@ class CONFIGURATION_WINDOW(Frame):
         adc_config_button = Button(self, text="Config ADC-ASIC", command=self.call_adcasic_config)
         adc_config_button.pack()
 
+        self.adc_offset_current_entry = Spinbox(self,from_=0,to=15,insertwidth=2)
+        self.adc_offset_current_entry.pack()
+
+        self.adc_offset_enable_var = IntVar()
+        self.adc_offset_enable_entry = Checkbutton(self,text="Enable Offset Current",variable=self.adc_offset_enable_var)
+        self.adc_offset_enable_entry.pack()
+
+        self.adc_result = Label(self, text="")
+        self.adc_result.pack()
+
+        adc_sync_button = Button(self, text="Sync ADCs", command=self.call_sync_adc)
+        adc_sync_button.pack()
+
+        self.adc_sync_result = Label(self, text="")
+        self.adc_sync_result.pack()
+
 
     def call_readRegister(self):
         regnum = self.readreg_number_entry.get()
@@ -264,7 +280,62 @@ class CONFIGURATION_WINDOW(Frame):
 
     def call_adcasic_config(self):
         print("call_adcasic_config")
-        self.femb_config.configAdcAsic()
+        enabled = self.adc_offset_enable_var.get()
+        if not(enabled == 0 or enabled == 1):
+           raise ValueError("Pulser enabled must be 0 or 1")
+        offsetCurrent = None
+        try:
+          offsetCurrent = int(self.adc_offset_current_entry.get())
+        except ValueError:
+          self.adc_result["text"] = "Error offsetCurrent must be an int"
+          return
+        if offsetCurrent < 0 or offsetCurrent >= 16:
+          self.adc_result["text"] = "Error offsetCurrent must be 0 to 15"
+          return
+        self.adc_result["text"] = ""
+
+        f2default = 0
+        clkdefault = "fifo"
+        if hasattr(self.femb_config,"F2DEFAULT"):
+            f2default = self.femb_config.F2DEFAULT
+        if hasattr(self.femb_config,"CLKDEFAULT"):
+            clkdefault = self.femb_config.CLKDEFAULT
+
+        clockMonostable = False
+        clockExternal = False
+        clockFromFIFO = False
+        if clkdefault=="fifo":
+          clockFromFIFO = True
+        elif clkdefault=="monostable":
+          clockMonostable = True
+        elif clkdefault=="external":
+          clockExternal = True
+        else:
+          print("Error: CLKDEFAULT='{}' not one of the allowed options. Try fife, monostable, or external..".format(clkdefault))
+
+        self.femb_config.configAdcAsic(enableOffsetCurrent=enabled,offsetCurrent=offsetCurrent,f2=f2default,clockMonostable=clockMonostable,clockExternal=clockExternal,clockFromFIFO=clockFromFIFO,pdsr=1,pcsr=1)
+        #nRetries = 5
+        #for iRetry in range(nRetries):
+        #    self.femb_config.configAdcAsic(enableOffsetCurrent=enabled,offsetCurrent=offsetCurrent,f2=f2default,clockMonostable=clockMonostable,clockExternal=clockExternal,clockFromFIFO=clockFromFIFO)
+        #    # Check that board streams data
+        #    data = self.femb.get_data(1)
+        #    if data == None:
+        #        print("Board not streaming data, retrying initialization...")
+        #        continue # try initializing again
+        #    self.adc_result["text"] = ""
+        #    return
+        #self.adc_result["text"] = "Board not streaming data after {} tries".format(nRetries)
+
+    def call_sync_adc(self):
+        print("call_sync_adc")
+        message = "Sync Error"
+        isAlreadySynced, latchloc1, latchloc2, phase = self.femb_config.syncADC()
+        if isAlreadySynced: 
+           message = "Already Sync'd"
+        else:
+
+      	   message = "Sync'd: latch latency " + str(hex(latchloc1)) + str(hex(latchloc2)) + "\tPhase " + str(hex(phase))
+        self.adc_sync_result["text"] = message
 
     def call_quit(self):
         print("call_adcasic_config")
