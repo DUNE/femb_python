@@ -25,8 +25,8 @@ import struct
 import copy
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
-from femb_python.configuration.adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
-from femb_python.configuration.fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
+from femb_python.configuration.adc_asic_reg_mapping_V import ADC_ASIC_REG_MAPPING
+from femb_python.configuration.fe_asic_reg_mapping_4 import FE_ASIC_REG_MAPPING
 
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
@@ -53,6 +53,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_EN_CALI = 16
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
         self.NASICS = 8
+        self.F2DEFAULT = 1
+        self.CLKDEFAULT = "fifo"
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()

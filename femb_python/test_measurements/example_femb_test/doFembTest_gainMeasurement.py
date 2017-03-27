@@ -45,6 +45,12 @@ class FEMB_TEST(object):
         self.shape = 0
         self.base = 0
 
+    def reset(self):
+        self.status_check_setup = 0
+        self.status_record_data = 0
+        self.status_do_analysis = 0
+        self.status_archive_results = 0
+
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
         print("GAIN MEASUREMENT - CHECKING READOUT STATUS")
@@ -212,8 +218,8 @@ class FEMB_TEST(object):
         call(["mv", "summaryPlot_gainMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
 
         #summary plot
-        print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
-        call(["display",str( self.write_data.filedir ) + str(newName) ])
+        #print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
+        #call(["display",str( self.write_data.filedir ) + str(newName) ])
 
         print("GAIN MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
@@ -233,9 +239,10 @@ class FEMB_TEST(object):
 
 def main():
     femb_test = FEMB_TEST()
-    for g in range(2,3,1):
-      for s in range(1,2,1):
-        for b in range(0,1,1):
+    for g in range(0,4,1):
+      for s in range(0,4,1):
+        for b in range(0,2,1):
+          femb_test.reset()
           femb_test.fembNum = int(0)
           femb_test.gain = int(g)
           femb_test.shape = int(s)

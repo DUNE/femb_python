@@ -148,6 +148,7 @@ void simNtuple_gainMeasurement() {
 
 int main(int argc, char *argv[]){
   //define ROOT application object
+  gROOT->SetBatch(true);
   theApp = new TApplication("App", &argc, argv);
   simNtuple_gainMeasurement(); 
 

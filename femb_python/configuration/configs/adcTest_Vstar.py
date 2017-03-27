@@ -1,5 +1,9 @@
 #!/usr/bin/env python33
 
+"""
+Configuration for V* ADC Test Board
+"""
+
 from __future__ import print_function
 from __future__ import unicode_literals
 from __future__ import division
@@ -15,8 +19,10 @@ from builtins import object
 import sys 
 import string
 import time
+import copy
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
+from femb_python.configuration.adc_asic_reg_mapping_V import ADC_ASIC_REG_MAPPING
 
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
@@ -36,11 +42,17 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_HS = 17
         self.REG_LATCHLOC = 4
         self.REG_CLKPHASE = 6
+        #Latch latency 0x6666666f    Phase 0xffff0055
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
         self.NASICS = 1
+        self.FUNCGENPATH = "/dev/usbtmc1"
+        self.FUNCGENSOURCE = 1
+        self.F2DEFAULT = 0
+        self.CLKDEFAULT = "fifo"
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
+        self.adc_reg = ADC_ASIC_REG_MAPPING()
 
     def resetBoard(self):
         #Reset system
@@ -90,41 +102,53 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             #ADC ASIC SPI registers
             print("Config ADC ASIC SPI")
             print("ADCADC")
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 0, 0xC0C0C0C)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 1, 0xC0C0C0C)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 2, 0xC0C0C0C)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 3, 0xC0C0C0C)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 4, 0xC0C0C0C)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 5, 0xC0C0C0C)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 6, 0xC0C0C0C)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 7, 0xC0C0C0C)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 8, 0x18321832)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 9, 0x18181818)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 10, 0x18181818)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 11, 0x18181818)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 12, 0x18181818)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 13, 0x18181818)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 14, 0x18181818)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 15, 0x18181818)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 16, 0x64186418)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 17, 0x30303030)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 18, 0x30303030)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 19, 0x30303030)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 20, 0x30303030)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 21, 0x30303030)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 22, 0x30303030)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 23, 0x30303030)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 24, 0x30303030)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 25, 0x60c868c8)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 26, 0x60606868)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 27, 0x60606868)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 28, 0x60606868)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 29, 0x60606868)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 30, 0x60606868)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 31, 0x60606868)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 32, 0x60606868)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 33, 0x9060A868)
-            self.femb.write_reg( self.REG_ADCSPI_BASE + 34, 0x10001)        
+            ## Corresponds to f0=f1=0, clk=0,clk1=1, pcsr=pdsr=frqc=1, tstin=1
+            ## en_gr=0, slp=0
+            ## Clocks from digital generator of FIFO
+            regs = [
+             0xC0C0C0C,
+             0xC0C0C0C,
+             0xC0C0C0C,
+             0xC0C0C0C,
+             0xC0C0C0C,
+             0xC0C0C0C,
+             0xC0C0C0C,
+             0xC0C0C0C,
+             0x18321832,
+             0x18181819,
+             0x18181818,
+             0x18181818,
+             0x18181818,
+             0x18181818,
+             0x18181818,
+             0x18181818,
+             0x64186418,
+             0x30303030,
+             0x30303030,
+             0x30303030,
+             0x30303030,
+             0x30303030,
+             0x30303030,
+             0x30303030,
+             0x30303030,
+             0x60c868c8,
+             0x60606868,
+             0x60606868,
+             0x60606868,
+             0x60606868,
+             0x60606868,
+             0x60606868,
+             0x60606868,
+             0x9060A868,
+             0x10001,
+            ]
+            
+            self.adc_reg.set_sbnd_board(frqc=1,pdsr=1,pcsr=1,clk0=0,clk1=1,f1=0,f2=0,tstin=1)
+            regs = self.adc_reg.REGS
+            for iReg, val in enumerate(regs):
+                #print("{:032b}".format(val))
+                print("{:08x}".format(val))
+                self.femb.write_reg(self.REG_ADCSPI_BASE+iReg,val)
 
             #ADC ASIC sync
             self.femb.write_reg( 17, 0x1) # controls HS link, 0 for on, 1 for off
@@ -140,7 +164,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print( "Check ADC ASIC SPI")
             for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+34,1):
                     val = self.femb.read_reg( regNum ) 
-                    print( hex(val))
+                    #print("{:08x}".format(val))
 
             #enable streaming
             #self.femb.write_reg( 9, 0x8)
@@ -157,6 +181,145 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             return
         print("Error: Board not streaming data after trying to initialize {} times. Exiting.".format(nRetries))
         sys.exit(1)
+
+    def configAdcAsic_regs(self,Adcasic_regs):
+        #ADC ASIC SPI registers
+        print("FEMB_CONFIG--> Config ADC ASIC SPI")
+        for k in range(10):
+            i = 0
+            for regNum in range(self.REG_ADCSPI_BASE,self.REG_ADCSPI_BASE+len(Adcasic_regs),1):
+                    #print("{:032b}".format(Adcasic_regs[i]))
+                    print("{:08x}".format(Adcasic_regs[i]))
+                    self.femb.write_reg ( regNum, Adcasic_regs[i])
+                    time.sleep(0.05)
+                    i = i + 1
+
+            #print("  ADC ASIC write : ",Adcasic_regs)
+            #ADC ASIC sync
+            self.femb.write_reg ( 17, 0x1) # controls HS link, 0 for on, 1 for off
+            self.femb.write_reg ( 17, 0x0) # controls HS link, 0 for on, 1 for off        
+
+            #Write ADC ASIC SPI
+            print("FEMB_CONFIG--> Program ADC ASIC SPI")
+            self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
+            time.sleep(0.1)
+            self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
+            time.sleep(0.1)
+
+            #self.femb.write_reg ( 18, 0x0)
+            #time.sleep(0.1)
+
+            #LBNE_ADC_MODE
+            self.femb.write_reg( 16, 0x1)
+
+            print("FEMB_CONFIG--> Check ADC ASIC SPI")
+            adcasic_rb_regs = []
+            for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+len(Adcasic_regs),1):
+                val = self.femb.read_reg ( regNum ) 
+                #print("{:08x}".format(val))
+                adcasic_rb_regs.append( val )
+
+            #print("  ADC ASIC read back: ",adcasic_rb_regs)
+            #if (adcasic_rb_regs !=Adcasic_regs  ) :
+            #    #if ( k == 1 ):
+            #    #    sys.exit("femb_config : Wrong readback. ADC SPI failed")
+            #    #    return
+            #    print("FEMB_CONFIG--> ADC ASIC Readback didn't match, retrying...")
+            #else: 
+            if True:
+                print("FEMB_CONFIG--> ADC ASIC SPI is OK")
+                break
+        #enable streaming
+        #self.femb.write_reg ( 9, 0x8)
+        #LBNE_ADC_MODE
+
+    def configAdcAsic(self,enableOffsetCurrent=None,offsetCurrent=None,testInput=None,
+                            freqInternal=None,sleep=None,pdsr=None,pcsr=None,
+                            clockMonostable=None,clockExternal=None,clockFromFIFO=None,
+                            sLSB=None,f0=None,f1=None,f2=None,f3=None,f4=None,f5=None):
+        """
+        Configure ADCs
+          enableOffsetCurrent: 0 disable offset current, 1 enable offset current
+          offsetCurrent: 0-15, amount of current to draw from sample and hold
+          testInput: 0 digitize normal input, 1 digitize test input
+          freqInternal: internal clock frequency: 0 1MHz, 1 2MHz
+          sleep: 0 disable sleep mode, 1 enable sleep mode
+          pdsr: if pcsr=0: 0 PD is low, 1 PD is high
+          pcsr: 0 power down controlled by pdsr, 1 power down controlled externally
+          Only one of these can be enabled:
+            clockMonostable: True ADC uses monostable clock
+            clockExternal: True ADC uses external clock
+            clockFromFIFO: True ADC uses digital generator FIFO clock
+          sLSB: LSB current steering mode. 0 for full, 1 for partial (ADC7 P1)
+          f0, f1, f2, f3, f4, f5: version specific
+        """
+        FEMB_CONFIG_BASE.configAdcAsic(self,clockMonostable=clockMonostable,
+                                        clockExternal=clockExternal,clockFromFIFO=clockFromFIFO)
+        if enableOffsetCurrent is None:
+            enableOffsetCurrent=0
+        if offsetCurrent is None:
+            offsetCurrent=0
+        else:
+            offsetCurrent = int("{:04b}".format(offsetCurrent)[::-1],2) # need to reverse bits, use string/list tricks
+        if testInput is None:
+            testInput=0
+        if freqInternal is None:
+            freqInternal=0
+        if sleep is None:
+            sleep=0
+        if pdsr is None:
+            pdsr=0
+        if pcsr is None:
+            pcsr=0
+        clk0=0
+        clk1=0
+        if clockExternal:
+            clk0=1
+            clk1=0
+        elif clockFromFIFO:
+            clk0=0
+            clk1=1
+        self.adc_reg.set_sbnd_board(en_gr=enableOffsetCurrent,d=offsetCurrent,tstin=testInput,frqc=freqInternal,slp=sleep,pdsr=pdsr,pcsr=pcsr,clk0=clk0,clk1=clk1,f1=f1,f2=f2)
+        self.configAdcAsic_regs(self.adc_reg.REGS)
+
+        #regs = [
+        # 0xC0C0C0C,
+        # 0xC0C0C0C,
+        # 0xC0C0C0C,
+        # 0xC0C0C0C,
+        # 0xC0C0C0C,
+        # 0xC0C0C0C,
+        # 0xC0C0C0C,
+        # 0xC0C0C0C,
+        # 0x18321832,
+        # 0x18181818,
+        # 0x18181818,
+        # 0x18181818,
+        # 0x18181818,
+        # 0x18181818,
+        # 0x18181818,
+        # 0x18181818,
+        # 0x64186418,
+        # 0x30303030,
+        # 0x30303030,
+        # 0x30303030,
+        # 0x30303030,
+        # 0x30303030,
+        # 0x30303030,
+        # 0x30303030,
+        # 0x30303030,
+        # 0x60c868c8,
+        # 0x60606868,
+        # 0x60606868,
+        # 0x60606868,
+        # 0x60606868,
+        # 0x60606868,
+        # 0x60606868,
+        # 0x60606868,
+        # 0x9060A868,
+        # 0x10001,
+        #]
+        #self.configAdcAsic_regs(regs)
 
     def selectChannel(self,asic,chan,hsmode=None):
         asicVal = int(asic)
