@@ -100,6 +100,17 @@ class CONFIGURATION_WINDOW(Frame):
         selectChannel_button = Button(self, text="Select Channel", command=self.call_selectChannel)
         selectChannel_button.pack()
 
+        # Adding asic number to select
+        self.asic_number_entry = Spinbox(self,from_=0,to=self.femb_config.NASICS-1,insertwidth=1)
+        self.asic_number_entry.pack()
+
+        # Adding channel number to select
+        self.channel_number_entry = Spinbox(self,from_=0,to=15,insertwidth=3)
+        self.channel_number_entry.pack()
+
+        self.selectChannel_result = Label(self, text="")
+        self.selectChannel_result.pack()
+
     def define_feasic_config_commands_column(self):
 
         label = Label(self, text="FE ASIC Configuration Commands Column")
@@ -180,16 +191,18 @@ class CONFIGURATION_WINDOW(Frame):
     def call_initialize(self):
         self.femb_config.initBoard()
 
-
     def call_selectChannel(self):
-        chVal = int(self.selectChannel_entry.get_text())
-        # need to get min + max channel values from femb_config object
-        if (chVal < 0) or (chVal >= 128):
-                return
-        asic = chVal / 16
-        chan = chVal % 16
+        asic = int(self.asic_number_entry.get())
+        chan = int(self.channel_number_entry.get())
+        message = ""
+        if asic < 0 or asic >= self.femb_config.NASICS:
+          self.selectChannel_result["text"] = "Error asic only from 0 to {}".format(self.femb_config.NASICS - 1)
+          return
+        if chan < 0 or chan >= 16:
+          self.selectChannel_result["text"] = "Error channel only from 0 to 15"
+          return
         self.femb_config.selectChannel(asic,chan)
-
+        self.selectChannel_result["text"] = ""
 
     def call_feasic_config(self):
         gainInd = int(self.gainval_combo.get_active())
@@ -197,15 +210,12 @@ class CONFIGURATION_WINDOW(Frame):
         baseInd = int(self.selbase_combo.get_active())
         self.femb_config.configFeAsic(gainInd,shapeInd,baseInd)
 
-
     def call_adcasic_config(self):
         print("call_adcasic_config")
         self.femb_config.configAdcAsic()
 
-
     def call_quit(self):
         print("call_adcasic_config")
-
 
     def reset_plot(self):
         window = tk.Toplevel(root)
