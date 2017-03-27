@@ -101,7 +101,7 @@ class FEMB_CONFIG_BASE(object):
     def setInternalPulser(self,pulserEnable,pulseHeight):
         """
         pulserEnable = 0 for disable, 1 for enable
-        pulseHeight = 0 to 32
+        pulseHeight = 0 to 31
         """
         pass
 

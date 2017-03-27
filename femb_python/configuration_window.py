@@ -21,6 +21,9 @@ from matplotlib import pyplot
 
 from tkinter import *
 
+GAINVALS = ("4.7 mV/fC","7.8 mV/fC","14 mV/fC","25 mV/fC")
+SHAPEVALS = ("0.5 us", "1 us", "2 us", "3 us")
+BASEVALS = ("900 mV--induction","200 mV--collection")
 
 class CONFIGURATION_WINDOW(Frame):
 
@@ -81,7 +84,7 @@ class CONFIGURATION_WINDOW(Frame):
         self.writereg_result.pack()
 
         #Adding the reset plot button
-        reset_plot_button = Button(self, text="Show/Reset Plots", command=self.reset_plot)   
+        reset_plot_button = Button(self, text="Show/Reset Plots", command=self.call_reset_plot)   
         reset_plot_button.pack()
 
 
@@ -123,6 +126,27 @@ class CONFIGURATION_WINDOW(Frame):
         feasic_config_button = Button(self, text="Config FE-ASIC", command=self.call_feasic_config)
         feasic_config_button.pack()
 
+        # FE ASIC config entry
+        self.feasic_config_gain_entry = Spinbox(self,values=GAINVALS,state="readonly")
+        self.feasic_config_gain_entry.pack()
+        self.feasic_config_shape_entry = Spinbox(self,values=SHAPEVALS,state="readonly")
+        self.feasic_config_shape_entry.pack()
+        self.feasic_config_base_entry = Spinbox(self,values=BASEVALS,state="readonly")
+        self.feasic_config_base_entry.pack()
+        
+        # pulser set button
+        pulser_button = Button(self, text="Set Pulser", command=self.call_set_pulser)
+        pulser_button.pack()
+
+        self.pulser_height_entry = Spinbox(self,from_=0,to=31,insertwidth=2)
+        self.pulser_height_entry.pack()
+
+        self.pulser_enable_var = IntVar()
+        self.pulser_enable_entry = Checkbutton(self,text="Pulser Enabled",variable=self.pulser_enable_var)
+        self.pulser_enable_entry.pack()
+
+        self.pulser_result = Label(self, text="")
+        self.pulser_result.pack()
 
     def define_adcasic_config_commands_column(self):
 
@@ -190,13 +214,22 @@ class CONFIGURATION_WINDOW(Frame):
     def call_reset(self):
         self.femb_config.resetBoard()
 
-
     def call_initialize(self):
         self.femb_config.initBoard()
 
     def call_selectChannel(self):
-        asic = int(self.asic_number_entry.get())
-        chan = int(self.channel_number_entry.get())
+        asic = None
+        chan = None
+        try:
+          asic = int(self.asic_number_entry.get())
+        except ValueError:
+          self.selectChannel_result["text"] = "Error asic must be an int"
+          return
+        try:
+          chan = int(self.channel_number_entry.get())
+        except ValueError:
+          self.selectChannel_result["text"] = "Error channel must be an int"
+          return
         message = ""
         if asic < 0 or asic >= self.femb_config.NASICS:
           self.selectChannel_result["text"] = "Error asic only from 0 to {}".format(self.femb_config.NASICS - 1)
@@ -208,10 +241,26 @@ class CONFIGURATION_WINDOW(Frame):
         self.selectChannel_result["text"] = ""
 
     def call_feasic_config(self):
-        gainInd = int(self.gainval_combo.get_active())
-        shapeInd = int(self.selshape_combo.get_active())
-        baseInd = int(self.selbase_combo.get_active())
-        self.femb_config.configFeAsic(gainInd,shapeInd,baseInd)
+        gain = GAINVALS.index(self.feasic_config_gain_entry.get())
+        shape = SHAPEVALS.index(self.feasic_config_shape_entry.get())
+        base = BASEVALS.index(self.feasic_config_base_entry.get())
+        self.femb_config.configFeAsic(gain,shape,base)
+
+    def call_set_pulser(self):
+        enabled = self.pulser_enable_var.get()
+        if not(enabled == 0 or enabled == 1):
+           raise ValueError("Pulser enabled must be 0 or 1")
+        pulseHeight = None
+        try:
+          pulseHeight = int(self.pulser_height_entry.get())
+        except ValueError:
+          self.pulser_result["text"] = "Error pulseHeight must be an int"
+          return
+        if pulseHeight < 0 or pulseHeight >= 32:
+          self.pulser_result["text"] = "Error pulseHeight must be 0 to 31"
+          return
+        self.pulser_result["text"] = ""
+        self.femb_config.setInternalPulser(enabled,pulseHeight)
 
     def call_adcasic_config(self):
         print("call_adcasic_config")
@@ -220,7 +269,7 @@ class CONFIGURATION_WINDOW(Frame):
     def call_quit(self):
         print("call_adcasic_config")
 
-    def reset_plot(self):
+    def call_reset_plot(self):
         if self.trace_fft_window:
           self.trace_fft_window.destroy()
         self.trace_fft_window = Toplevel(self)
@@ -234,5 +283,5 @@ def main():
   root = Tk()
   root.title("Configuration Window")
   window = CONFIGURATION_WINDOW(root)
-  window.reset_plot()
+  window.call_reset_plot()
   root.mainloop()        
