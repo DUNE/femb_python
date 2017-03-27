@@ -51,127 +51,156 @@ class CONFIGURATION_WINDOW(Frame):
         self.trace_fft = None
 
     def define_general_commands_column(self):
+        columnbase=0
 
-        label = Label(self, text="General Commands Column")
-        label.pack()
+        label = Label(self, text="General Commands")
+        label.grid(row=0,column=columnbase, columnspan=2)
 
-        #Adding the read register button
-        readreg_button = Button(self, text="Read Register", command=self.call_readRegister)
-        readreg_button.pack()      
+        label = Label(self,text="Register to read:")
+        label.grid(sticky=W,row=1,column=columnbase+0)
 
         # Adding register number to read entry box
         self.readreg_number_entry = Entry(self,width=4)
-        self.readreg_number_entry.pack()
+        self.readreg_number_entry.grid(sticky=W,row=1,column=columnbase+1)
 
         # Adding read register result label
-        self.readreg_result = Label(self, text="")
-        self.readreg_result.pack()
+        label = Label(self,text="Register contents:")
+        label.grid(sticky=W,row=2,column=columnbase+0)
+        self.readreg_result = Label(self, text="",width=10)
+        self.readreg_result.grid(sticky=W,row=2,column=columnbase+1)
 
-        #Adding the write register button
-        writereg_button = Button(self, text="Write Register", command=self.call_writeRegister)
-        writereg_button.pack()
+        #Adding the read register button
+        readreg_button = Button(self, text="Read Register", command=self.call_readRegister)
+        readreg_button.grid(row=3,column=columnbase,columnspan=2)      
+
+        label = Label(self,text="Register to write:")
+        label.grid(sticky=W,row=4,column=columnbase+0)
 
         # Adding register number to write entry box
         self.writereg_number_entry = Entry(self,width=4)
-        self.writereg_number_entry.pack()
+        self.writereg_number_entry.grid(sticky=W,row=4,column=columnbase+1)
 
-        # Adding register number to write entry box
+        label = Label(self,text="Value to write:")
+        label.grid(sticky=W,row=5,column=columnbase+0)
+
+        # Adding register value to write entry box
         self.writereg_value_entry = Entry(self,width=15)
-        self.writereg_value_entry.pack()
+        self.writereg_value_entry.grid(sticky=W,row=5,column=columnbase+1)
+
+        #Adding the write register button
+        writereg_button = Button(self, text="Write Register", command=self.call_writeRegister)
+        writereg_button.grid(row=6,column=columnbase,columnspan=2)
 
         # Adding write register result label
         self.writereg_result = Label(self, text="")
-        self.writereg_result.pack()
+        self.writereg_result.grid(sticky=W,row=7,column=columnbase,columnspan=2)
 
         #Adding the reset plot button
         reset_plot_button = Button(self, text="Show/Reset Plots", command=self.call_reset_plot)   
-        reset_plot_button.pack()
+        reset_plot_button.grid(row=8,column=columnbase,columnspan=2)
 
 
     def define_config_commands_column(self):
-        label = Label(self, text="Configuration Commands Column")
-        label.pack()
+        columnbase=10
 
-        #Need to write to the register here (define the variable to write there)
+        label = Label(self, text="Configuration Commands")
+        label.grid(row=0,column=columnbase,columnspan=2)
 
         #Adding the reset button
         reset_button = Button(self, text="Reset", command=self.call_reset)
-        reset_button.pack()
+        reset_button.grid(row=1,column=columnbase,columnspan=2)
 
         #Adding the initialization button
         init_button = Button(self, text="Initialize", command=self.call_initialize)
-        init_button.pack()
+        init_button.grid(row=2,column=columnbase,columnspan=2)
+
+        # Adding asic number to select
+        label = Label(self,text="ASIC:")
+        label.grid(sticky=W,row=3,column=columnbase+0)
+        self.asic_number_entry = Spinbox(self,from_=0,to=self.femb_config.NASICS-1,insertwidth=1,width=4)
+        self.asic_number_entry.grid(sticky=W,row=3,column=columnbase+1)
+
+        # Adding channel number to select
+        label = Label(self,text="Channel:")
+        label.grid(sticky=W,row=4,column=columnbase+0)
+        self.channel_number_entry = Spinbox(self,from_=0,to=15,insertwidth=3,width=4)
+        self.channel_number_entry.grid(sticky=W,row=4,column=columnbase+1)
 
         #Adding the select channel button
         selectChannel_button = Button(self, text="Select Channel", command=self.call_selectChannel)
-        selectChannel_button.pack()
-
-        # Adding asic number to select
-        self.asic_number_entry = Spinbox(self,from_=0,to=self.femb_config.NASICS-1,insertwidth=1)
-        self.asic_number_entry.pack()
-
-        # Adding channel number to select
-        self.channel_number_entry = Spinbox(self,from_=0,to=15,insertwidth=3)
-        self.channel_number_entry.pack()
+        selectChannel_button.grid(row=5,column=columnbase,columnspan=2)
 
         self.selectChannel_result = Label(self, text="")
-        self.selectChannel_result.pack()
+        self.selectChannel_result.grid(sticky=W,row=6,column=columnbase)
 
     def define_feasic_config_commands_column(self):
+        columnbase=20
 
-        label = Label(self, text="FE ASIC Configuration Commands Column")
-        label.pack()
-
-        #Adding the configure all FE-ASIC channels button
-        feasic_config_button = Button(self, text="Config FE-ASIC", command=self.call_feasic_config)
-        feasic_config_button.pack()
+        label = Label(self, text="FE ASIC Configuration Commands")
+        label.grid(row=0,column=columnbase,columnspan=2)
 
         # FE ASIC config entry
+        label = Label(self, text="Gain")
+        label.grid(sticky=W,row=1,column=columnbase)
         self.feasic_config_gain_entry = Spinbox(self,values=GAINVALS,state="readonly")
-        self.feasic_config_gain_entry.pack()
+        self.feasic_config_gain_entry.grid(sticky=W,row=1,column=columnbase+1)
+        label = Label(self, text="Shape")
+        label.grid(sticky=W,row=2,column=columnbase)
         self.feasic_config_shape_entry = Spinbox(self,values=SHAPEVALS,state="readonly")
-        self.feasic_config_shape_entry.pack()
+        self.feasic_config_shape_entry.grid(sticky=W,row=2,column=columnbase+1)
+        label = Label(self, text="Baseline")
+        label.grid(sticky=W,row=3,column=columnbase)
         self.feasic_config_base_entry = Spinbox(self,values=BASEVALS,state="readonly")
-        self.feasic_config_base_entry.pack()
+        self.feasic_config_base_entry.grid(sticky=W,row=3,column=columnbase+1)
         
-        # pulser set button
-        pulser_button = Button(self, text="Set Pulser", command=self.call_set_pulser)
-        pulser_button.pack()
+        #Adding the configure all FE-ASIC channels button
+        feasic_config_button = Button(self, text="Config FE-ASIC", command=self.call_feasic_config)
+        feasic_config_button.grid(row=4,column=columnbase,columnspan=2)
 
-        self.pulser_height_entry = Spinbox(self,from_=0,to=31,insertwidth=2)
-        self.pulser_height_entry.pack()
+        # pulser set button
+
+        label = Label(self, text="Pulse Height")
+        label.grid(sticky=W,row=5,column=columnbase)
+        self.pulser_height_entry = Spinbox(self,from_=0,to=31,insertwidth=2,width=3)
+        self.pulser_height_entry.grid(sticky=W,row=5,column=columnbase+1)
 
         self.pulser_enable_var = IntVar()
         self.pulser_enable_entry = Checkbutton(self,text="Pulser Enabled",variable=self.pulser_enable_var)
-        self.pulser_enable_entry.pack()
+        self.pulser_enable_entry.grid(sticky=W,row=6,column=columnbase,columnspan=2)
+
+        pulser_button = Button(self, text="Set Pulser", command=self.call_set_pulser)
+        pulser_button.grid(row=8,column=columnbase,columnspan=2)
 
         self.pulser_result = Label(self, text="")
-        self.pulser_result.pack()
+        self.pulser_result.grid(sticky=W,row=7,column=columnbase,columnspan=2)
 
     def define_adcasic_config_commands_column(self):
+        columnbase=30
 
-        label = Label(self, text="ADC ASIC Configuration Commands Column")
-        label.pack()
+        label = Label(self, text="ADC ASIC Configuration Commands")
+        label.grid(row=0,column=columnbase)
 
         #Adding the configure all ADC-ASIC channels button
-        adc_config_button = Button(self, text="Config ADC-ASIC", command=self.call_adcasic_config)
-        adc_config_button.pack()
-
-        self.adc_offset_current_entry = Spinbox(self,from_=0,to=15,insertwidth=2)
-        self.adc_offset_current_entry.pack()
+        label = Label(self, text="Offset Current:")
+        label.grid(row=1,column=columnbase)
+        self.adc_offset_current_entry = Spinbox(self,from_=0,to=15,insertwidth=2,width=3)
+        self.adc_offset_current_entry.grid(sticky=W,row=1,column=columnbase+1)
 
         self.adc_offset_enable_var = IntVar()
         self.adc_offset_enable_entry = Checkbutton(self,text="Enable Offset Current",variable=self.adc_offset_enable_var)
-        self.adc_offset_enable_entry.pack()
+        self.adc_offset_enable_entry.grid(sticky=W,row=2,column=columnbase)
+
+        adc_config_button = Button(self, text="Config ADC-ASIC", command=self.call_adcasic_config)
+        adc_config_button.grid(row=3,column=columnbase,columnspan=2)
 
         self.adc_result = Label(self, text="")
-        self.adc_result.pack()
+        self.adc_result.grid(sticky=W,row=4,column=columnbase,columnspan=2)
 
         adc_sync_button = Button(self, text="Sync ADCs", command=self.call_sync_adc)
-        adc_sync_button.pack()
+        adc_sync_button.grid(row=5,column=columnbase,columnspan=2)
 
         self.adc_sync_result = Label(self, text="")
-        self.adc_sync_result.pack()
+        self.adc_sync_result.grid(sticky=W,row=6,column=columnbase,columnspan=2)
 
 
     def call_readRegister(self):
