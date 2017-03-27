@@ -20,13 +20,13 @@ yum install -y epel-release
 then
 
 ```
-yum install -y git make cmake cmake3 gcc-c++ gcc gcc-gfortran binutils libX11-devel libXpm-devel libXft-devel libXext-devel
+yum install -y git make cmake cmake3 gcc-c++ gcc gcc-gfortran binutils libX11-devel libXpm-devel libXft-devel libXext-devel ImageMagick
 ```
 
 For Ubuntu:
 
 ```
-sudo apt install git dpkg-dev cmake g++ gcc gfortran binutils libx11-dev libxpm-dev libxft-dev libxext-dev libpng libjpeg
+sudo apt install git dpkg-dev cmake g++ gcc gfortran binutils libx11-dev libxpm-dev libxft-dev libxext-dev libpng libjpeg imagemagick
 ```
 
 Download these two files:
@@ -50,7 +50,7 @@ tar xzf root_v6.08.02.source.tar.gz
 cd root-6.08.02/
 mkdir builddir
 cd builddir
-cmake3 -DCMAKE_INSTALL_PREFIX=~/root-6.08.02-pythonAnaconda3 -DPYTHON3=ON -DPYTHON_EXECUTABLE=~/anaconda3/bin/python3.5 -DPYTHON_INCLUDE_DIR=~/anaconda3/include/python3.5m -DPYTHON_LIBRARY=~/anaconda3/lib/libpython3.5m.so -Dssl=OFF .. >& logConfigure
+cmake3 -DCMAKE_INSTALL_PREFIX=~/root-6.08.02-pythonAnaconda3 -DPYTHON3=ON -DPYTHON_EXECUTABLE=~/anaconda3/bin/python3.5 -DPYTHON_INCLUDE_DIR=~/anaconda3/include/python3.5m -DPYTHON_LIBRARY=~/anaconda3/lib/libpython3.5m.so -Dssl=OFF -Dbuiltin_fftw3=ON .. >& logConfigure
 cmake3 --build . >& logBuild
 cmake3 --build . --target install >& logInstall
 source ~/root-6.08.02-pythonAnaconda3/bin/thisroot.sh
@@ -125,7 +125,7 @@ yum install -y epel-release
 then
 
 ```
-yum install -y git make cmake cmake3 gcc-c++ gcc gcc-gfortran binutils libX11-devel libXpm-devel libXft-devel libXext-devel
+yum install -y git make cmake cmake3 gcc-c++ gcc gcc-gfortran binutils libX11-devel libXpm-devel libXft-devel libXext-devel ImageMagick
 ```
 
 Download these two files:
