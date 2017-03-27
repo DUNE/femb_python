@@ -19,127 +19,159 @@ from . import trace_fft_window
 import numpy as np
 from matplotlib import pyplot
 
-from Tkinter import *
+from tkinter import *
 
 
-class CONFIGURATION_WINDOW:
+class CONFIGURATION_WINDOW(Frame):
 
 
-    def __init__(self, master):
-        mainframe = Frame(master)
-        mainframe.pack()
+    def __init__(self, master=None):
+        Frame.__init__(self,master)
+        self.pack()
 
         #Define configuration object
         self.femb_config = CONFIG()
 
         #Define general commands column
-        self.define_general_commands_column(mainframe)
+        self.define_general_commands_column()
 
         #Define configuration commands column
-        self.define_config_commands_column(mainframe)
+        self.define_config_commands_column()
 
         #Define fe-asic configuration column
-        self.define_feasic_config_commands_column(mainframe)
+        self.define_feasic_config_commands_column()
 
         #Define adc asic configuration column
-        self.define_adcasic_config_commands_column(mainframe)
+        self.define_adcasic_config_commands_column()
 
+    def define_general_commands_column(self):
 
-    def define_general_commands_column(self, master):
-        frame_cmd = Frame(master)
-        frame_cmd.pack(side=TOP)
-        
-        #Now you need to fill inbetween here ---------------------------------------------------------------|
-
-        self.label = Label(frame_cmd, text="General Commands Column")
-        self.label.pack()
-
-        #Need to write to the register here (define the variable to write there)
+        label = Label(self, text="General Commands Column")
+        label.pack()
 
         #Adding the read register button
-        readreg_button = Button(frame_cmd, text="Read Register", command=self.call_readRegister)
+        readreg_button = Button(self, text="Read Register", command=self.call_readRegister)
         readreg_button.pack()      
 
+        # Adding register number to read entry box
+        self.readreg_number_entry = Entry(self,width=4)
+        self.readreg_number_entry.pack()
+
+        # Adding read register result label
+        self.readreg_result = Label(self, text="")
+        self.readreg_result.pack()
+
         #Adding the write register button
-        writereg_button = Button(frame_cmd, text="Write Register", command=self.call_writeRegister)
+        writereg_button = Button(self, text="Write Register", command=self.call_writeRegister)
         writereg_button.pack()
 
+        # Adding register number to write entry box
+        self.writereg_number_entry = Entry(self,width=4)
+        self.writereg_number_entry.pack()
+
+        # Adding register number to write entry box
+        self.writereg_value_entry = Entry(self,width=15)
+        self.writereg_value_entry.pack()
+
+        # Adding write register result label
+        self.writereg_result = Label(self, text="")
+        self.writereg_result.pack()
+
         #Adding the reset plot button
-        reset_plot_button = Button(frame_cmd, text="Show/Reset Plots", command=self.reset_plot)   
+        reset_plot_button = Button(self, text="Show/Reset Plots", command=self.reset_plot)   
         reset_plot_button.pack()
 
-        #And here ------------------------------------------------------------------------------------------|
 
-
-    def define_config_commands_column(self, master):
-        frame_config = Frame(master)
-        frame_config.pack(side=TOP)
-
-        #Now you need to fill inbetween here ---------------------------------------------------------------|
-
-        self.label = Label(frame_config, text="Configuration Commands Column")
-        self.label.pack()
+    def define_config_commands_column(self):
+        label = Label(self, text="Configuration Commands Column")
+        label.pack()
 
         #Need to write to the register here (define the variable to write there)
 
         #Adding the reset button
-        reset_button = Button(frame_config, text="Reset", command=self.call_reset)
+        reset_button = Button(self, text="Reset", command=self.call_reset)
         reset_button.pack()
 
         #Adding the initialization button
-        init_button = Button(frame_config, text="Initialize", command=self.call_initialize)
+        init_button = Button(self, text="Initialize", command=self.call_initialize)
         init_button.pack()
 
         #Adding the select channel button
-        selectChannel_button = Button(frame_config, text="Select Channel", command=self.call_selectChannel)
+        selectChannel_button = Button(self, text="Select Channel", command=self.call_selectChannel)
         selectChannel_button.pack()
 
-        #And here ------------------------------------------------------------------------------------------|
+    def define_feasic_config_commands_column(self):
 
-
-    def define_feasic_config_commands_column(self, master):
-        frame_feasic_config = Frame(master)
-        frame_feasic_config.pack(side=TOP)
-
-        #Now you need to fill inbetween here ---------------------------------------------------------------|
-
-        self.label = Label(frame_feasic_config, text="FE ASIC Configuration Commands Column")
-        self.label.pack()
+        label = Label(self, text="FE ASIC Configuration Commands Column")
+        label.pack()
 
         #Adding the configure all FE-ASIC channels button
-        feasic_config_button = Button(frame_feasic_config, text="Config FE-ASIC", command=self.call_feasic_config)
+        feasic_config_button = Button(self, text="Config FE-ASIC", command=self.call_feasic_config)
         feasic_config_button.pack()
 
-        #And here ------------------------------------------------------------------------------------------|
 
+    def define_adcasic_config_commands_column(self):
 
-    def define_adcasic_config_commands_column(self, master):
-        frame_adcasic_config = Frame(master)
-        frame_adcasic_config.pack(side=TOP)
-
-        #Now you need to fill inbetween here ---------------------------------------------------------------|
-
-        self.label = Label(frame_adcasic_config, text="ADC ASIC Configuration Commands Column")
-        self.label.pack()
+        label = Label(self, text="ADC ASIC Configuration Commands Column")
+        label.pack()
 
         #Adding the configure all ADC-ASIC channels button
-        adc_config_button = Button(frame_adcasic_config, text="Config ADC-ASIC", command=self.call_adcasic_config)
+        adc_config_button = Button(self, text="Config ADC-ASIC", command=self.call_adcasic_config)
         adc_config_button.pack()
 
-        #And here ------------------------------------------------------------------------------------------|
-
-
-    #The buttons will go inbetween here! ===================================================================|
 
     def call_readRegister(self):
-        regVal = self.femb_config.femb.read_reg(self.selectreg_entry.get_text())
+        regnum = self.readreg_number_entry.get()
+        try:
+          regnum = int(regnum)
+          if regnum < 0:
+            raise ValueError("regnum must be >= 0")
+        except ValueError:
+          self.readreg_result["text"] = "Error: Register must be a number >= 0"
+          return
+        message = ""
+        regVal = self.femb_config.femb.read_reg(regnum)
         if regVal != None:
-                self.readreg_entry.set_text(str(hex(regVal)))
-
+                message = "0x{:08x}".format(regVal)
+        else:
+                message = "Error: regVal = None"
+        self.readreg_result["text"] = message
 
     def call_writeRegister(self):
-        regNum = self.femb_config.femb.write_reg(self.selectreg_entry.get_text(),self.writereg_entry.get_text())
-
+        regnum = self.writereg_number_entry.get()
+        try:
+          regnum = int(regnum)
+          if regnum < 0:
+            raise ValueError("regnum must be >= 0")
+        except ValueError:
+          self.writereg_result["text"] = "Error: Register must be a number >= 0"
+          return
+        regval = self.writereg_value_entry.get()
+        message = "value must be int literal e.g. 123, 0xF3, 0b0101"
+        if regval[:2] == "0x":
+          try:
+            regval = int(regval,16)
+          except ValueError:
+            self.writereg_result["text"] = message
+            return
+        elif regval[:2] == "0b":
+          try:
+            regval = int(regval,2)
+          except ValueError:
+            self.writereg_result["text"] = message
+            return
+        else:
+          try:
+            regval = int(regval)
+          except ValueError:
+            self.writereg_result["text"] = message
+            return
+        if (regval < 0) or (regval > 0xFFFFFFFF):
+            message = 'Value must be > 0 and < 0xFFFFFFFF'
+            self.writereg_result["text"] = message
+            return
+        self.femb_config.femb.write_reg(regnum,regval)
+        self.writereg_result["text"] = ""
 
     def call_reset(self):
         self.femb_config.resetBoard()
@@ -185,10 +217,11 @@ class CONFIGURATION_WINDOW:
         except AttributeError:
             window.plot_window = trace_fft_window.TRACE_FFT_WINDOW()
 
-    #And here! =============================================================================================|
+#And here! =============================================================================================|
 
-
-root = Tk()
-root.title("Configuration Window")
-window = CONFIGURATION_WINDOW(root)
-root.mainloop()        
+def main():
+  
+  root = Tk()
+  root.title("Configuration Window")
+  window = CONFIGURATION_WINDOW(root)
+  root.mainloop()        
