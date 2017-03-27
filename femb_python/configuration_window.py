@@ -14,7 +14,7 @@ standard_library.install_aliases()
 from time import sleep
 
 from .configuration import CONFIG
-from . import trace_fft_window
+from .trace_fft_window import TRACE_FFT_WINDOW
 
 import numpy as np
 from matplotlib import pyplot
@@ -43,6 +43,9 @@ class CONFIGURATION_WINDOW(Frame):
 
         #Define adc asic configuration column
         self.define_adcasic_config_commands_column()
+
+        self.trace_fft_window = None
+        self.trace_fft = None
 
     def define_general_commands_column(self):
 
@@ -218,20 +221,18 @@ class CONFIGURATION_WINDOW(Frame):
         print("call_adcasic_config")
 
     def reset_plot(self):
-        window = tk.Toplevel(root)
-        try:
-          if window.plot_window.get_property("visible"):
-            window.plot_window.reset()
-          else:
-            window.plot_window = trace_fft_window.TRACE_FFT_WINDOW()
-        except AttributeError:
-            window.plot_window = trace_fft_window.TRACE_FFT_WINDOW()
+        if self.trace_fft_window:
+          self.trace_fft_window.destroy()
+        self.trace_fft_window = Toplevel(self)
+        self.trace_fft_window.title("Trace FFT Window")
+        self.trace_fft = TRACE_FFT_WINDOW(self.trace_fft_window)
 
-#And here! =============================================================================================|
+###################################################
 
 def main():
   
   root = Tk()
   root.title("Configuration Window")
   window = CONFIGURATION_WINDOW(root)
+  window.reset_plot()
   root.mainloop()        
