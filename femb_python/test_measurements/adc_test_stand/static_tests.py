@@ -38,6 +38,7 @@ class STATIC_TESTS(object):
         figmanyINL.clf()
         manyaxesDNL = []
         manyaxesINL = []
+        allStats = []
         for iChan in range(16):
             manyaxesDNL.append(figmanyDNL.add_subplot(4,4,iChan+1))
             manyaxesDNL[iChan].set_xlim(-256,2**self.nBits+256)
@@ -64,7 +65,7 @@ class STATIC_TESTS(object):
                 manyaxesDNL[iChan].set_xlabel("ADC Code")
                 manyaxesINL[iChan].set_xlabel("ADC Code")
         for iChan in range(16):
-            try:
+                chanStats = {}
                 codeHist = codeHists[iChan]
                 sumAllCodeHists += codeHist
                 indices, choppedCodeHist = self.chopOffUnfilledBins(codeHist)
@@ -72,9 +73,27 @@ class STATIC_TESTS(object):
                 dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(indices,choppedCodeHist,True)
                 stuckCodeFraction, stuckCodeFractionShouldBe = self.getStuckCodeFraction(indices,choppedCodeHist)
                 stuckCodeDNL, stuckCodeDNL0, stuckCodeDNL1 = self.getStuckCodeDNLs(indices,dnl)
-                stuckCodeBins = numpy.linspace(-1,50,200)
+                DNL75perc = numpy.percentile(dnl,75)
+                DNL75percNoStuck = numpy.percentile(dnlKillStuckCodes,75)
+                DNL75percStuck = numpy.percentile(stuckCodeDNL,75)
+                INLabs75perc = numpy.percentile(abs(inl),75)
+
+                chanStats["DNLmax"] = max(dnl)
+                chanStats["INLabsMax"] = max(abs(inl))
+                chanStats["DNLmaxNoStuck"] = max(dnlKillStuckCodes)
+                chanStats["INLabsNoStuck"] = max(abs(inlKillStuckCodes))
+                chanStats["stuckCodeFrac"] = stuckCodeFraction
+                chanStats["stuckCodeFracShouldBe"] = stuckCodeFractionShouldBe
+                chanStats["stuckCodeFrac"] = stuckCodeFraction
+                chanStats["stuckCodeFracShouldBe"] = stuckCodeFractionShouldBe
+                chanStats["DNL75perc"] = DNL75perc
+                chanStats["DNL75percNoStuck"] = DNL75percNoStuck
+                chanStats["DNL75percStuck"] = DNL75percStuck
+                chanStats["INLabs75perc"] = INLabs75perc
+                allStats.append(chanStats)
 
                 ## Stuck Code Analysis
+                stuckCodeBins = numpy.linspace(-1,50,200)
                 fig, ax = plt.subplots(figsize=(8,8))
                 ax.set_yscale('log')
                 print("chan {:2} stuckCodeFraction: {:6.3f}, should be: {:6.3f}".format(iChan,stuckCodeFraction,stuckCodeFractionShouldBe))
@@ -94,7 +113,7 @@ class STATIC_TESTS(object):
                 fig.savefig(filename+".png")
                 #print("Avg, stddev of dnlNoStuckCodes: {} {}, Avg, stddev of stuck code dnl: {} {}".format(numpy.mean(dnlKillStuckCodes), numpy.std(dnlKillStuckCodes),numpy.mean(stuckCodeDNL),numpy.std(stuckCodeDNL)))
                 #print("65th, 80th, 90th percentile of non-stuck DNL: {:6.2f} {:6.2f} {:6.2f}, and stuck code dnl: {:6.2f} {:6.2f} {:6.2f}".format(numpy.percentile(dnlKillStuckCodes,65), numpy.percentile(dnlKillStuckCodes,80), numpy.percentile(dnlKillStuckCodes,90),numpy.percentile(stuckCodeDNL,65),numpy.percentile(stuckCodeDNL,80),numpy.percentile(stuckCodeDNL,90)))
-                print("chan {:2} 75th percentile of non-stuck DNL: {:6.2f}, and stuck code dnl: {:6.2f}".format(iChan,numpy.percentile(dnlKillStuckCodes,75),numpy.percentile(stuckCodeDNL,75)))
+                print("chan {:2} 75th percentile of DNL: {:6.2f} non-stuck DNL: {:6.2f} stuck code dnl: {:6.2f}  INL: {:6.2f}".format(iChan,DNL75perc,DNL75percNoStuck,DNL75percStuck,INLabs75perc))
                 ax.cla()
 
                 ### Plot DNL
@@ -145,9 +164,6 @@ class STATIC_TESTS(object):
                 #fig.savefig(filename+".pdf")
                 ax.cla()
                 axRight.cla()
-                
-            except KeyError as e:
-                pass
         filename = "ADC_DNL_Chip{}_Offset{}".format(iChip,metadata["adcOffset"])
         figmanyDNL.savefig(filename+".png")
         #figmanyDNL.savefig(filename+".pdf")
@@ -175,6 +191,8 @@ class STATIC_TESTS(object):
         #print("Chip: ",iChip)
         #for code in indicesAll[dnl > 1.5]:
         #   print("code: {}, code % 6: {} code % 12: {} code % 64: {}, bits: {:#014b} ".format(code,code % 6,code % 12, code % 64,code))
+
+        return allStats
 
     def doHistograms(self,infilename):
         """

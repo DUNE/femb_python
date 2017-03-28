@@ -34,17 +34,25 @@ def main():
     dynamic_tests = DYNAMIC_TESTS(config)
     startDateTime = datetime.datetime.now().replace(microsecond=0).isoformat()
 
+    allStatsRaw = {}
     #for offset in range(-1,16):
     for offset in [-1,0]:
+      offsetStats = {}
       if offset <=0:
         config.configAdcAsic(enableOffsetCurrent=0,offsetCurrent=0)
       else:
         config.configAdcAsic(enableOffsetCurrent=1,offsetCurrent=offset)
       for iChip in range(config.NASICS):
+          chipStats = {}
           fileprefix = "adcTestData_{}_chip{}_offset{}".format(startDateTime,iChip,offset)
           collect_data.getData(fileprefix,iChip,adcOffset=offset)
           static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
           assert(len(static_fns)==1)
           static_fn = static_fns[0]
-          static_tests.analyzeLinearity(static_fn)
+          staticStats = static_tests.analyzeLinearity(static_fn)
           dynamic_tests.analyze(fileprefix)
+          chipStats["static"] = staticStats
+          offsetStats[iChip] = chipStats
+      allStatsRaw[offset] = offsetStats
+    print(allStatsRaw)
+    
