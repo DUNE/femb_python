@@ -28,9 +28,11 @@ class STATIC_TESTS(object):
         self.nBits = 12
 
     def analyzeLinearity(self,infile):
-        codeHists, bitHists, iChip = self.doHistograms(infile)
+        codeHists, bitHists, iChip, metadata = self.doHistograms(infile)
         figmanyDNL = plt.figure(figsize=(8,8))
+        figmanyDNL.suptitle("ADC: {}, Offset: {}".format(iChip,metadata['adcOffset']))
         figmanyINL = plt.figure(figsize=(8,8))
+        figmanyINL.suptitle("ADC: {}, Offset: {}".format(iChip,metadata['adcOffset']))
         sumAllCodeHists = numpy.zeros(2**self.nBits)
         figmanyDNL.clf()
         figmanyINL.clf()
@@ -77,15 +79,18 @@ class STATIC_TESTS(object):
                 ax.set_yscale('log')
                 print("chan {:2} stuckCodeFraction: {:6.3f}, should be: {:6.3f}".format(iChan,stuckCodeFraction,stuckCodeFractionShouldBe))
                 #ax.hist(dnlKillStuckCodes, bins=stuckCodeBins, histtype='step',label="LSB Not 000000 or 111111",log=True)
-                ax.hist(stuckCodeDNL, bins=stuckCodeBins, histtype='step',label="LSB: 000000 or 111111",log=True)
-                ax.hist(stuckCodeDNL0,bins=stuckCodeBins, histtype='step',label="LSB: 000000",log=True)
-                ax.hist(stuckCodeDNL1,bins=stuckCodeBins, histtype='step',label="LSB: 111111",log=True)
+                if numpy.isfinite(stuckCodeDNL).any():
+                  ax.hist(stuckCodeDNL, bins=stuckCodeBins, histtype='step',label="LSB: 000000 or 111111",log=True)
+                if numpy.isfinite(stuckCodeDNL0).any():
+                  ax.hist(stuckCodeDNL0,bins=stuckCodeBins, histtype='step',label="LSB: 000000",log=True)
+                if numpy.isfinite(stuckCodeDNL1).any():
+                  ax.hist(stuckCodeDNL1,bins=stuckCodeBins, histtype='step',label="LSB: 111111",log=True)
                 ax.legend()
                 ax.set_ylabel("Number of Codes")
                 ax.set_xlabel("DNL [bits]")
                 ax.set_ylim(0,ax.get_ylim()[1])
                 #ax.set_ylim(0.1,200)
-                filename = "ADC_StuckCodeHist_Chip{}_Chan{}".format(iChip,iChan)
+                filename = "ADC_StuckCodeHist_Chip{}_Chan{}_Offset{}".format(iChip,iChan,metadata['adcOffset'])
                 fig.savefig(filename+".png")
                 #print("Avg, stddev of dnlNoStuckCodes: {} {}, Avg, stddev of stuck code dnl: {} {}".format(numpy.mean(dnlKillStuckCodes), numpy.std(dnlKillStuckCodes),numpy.mean(stuckCodeDNL),numpy.std(stuckCodeDNL)))
                 #print("65th, 80th, 90th percentile of non-stuck DNL: {:6.2f} {:6.2f} {:6.2f}, and stuck code dnl: {:6.2f} {:6.2f} {:6.2f}".format(numpy.percentile(dnlKillStuckCodes,65), numpy.percentile(dnlKillStuckCodes,80), numpy.percentile(dnlKillStuckCodes,90),numpy.percentile(stuckCodeDNL,65),numpy.percentile(stuckCodeDNL,80),numpy.percentile(stuckCodeDNL,90)))
@@ -113,7 +118,7 @@ class STATIC_TESTS(object):
                 axRight.set_ylabel("DNL [% of Full Scale]")
                 #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
                 #axFSR.set_label("DNL [% of FSR]")
-                filename = "ADC_DNL_Chip{}_Chan{}".format(iChip,iChan)
+                filename = "ADC_DNL_Chip{}_Chan{}_Offset{}".format(iChip,iChan,metadata["adcOffset"])
                 fig.savefig(filename+".png")
                 #fig.savefig(filename+".pdf")
                 ax.cla()
@@ -135,7 +140,7 @@ class STATIC_TESTS(object):
                 #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
                 #axFSR.set_label("DNL [% of FSR]")
                 #ax.legend(loc='best')
-                filename = "ADC_INL_Chip{}_Chan{}".format(iChip,iChan)
+                filename = "ADC_INL_Chip{}_Chan{}_Offset{}".format(iChip,iChan,metadata["adcOffset"])
                 fig.savefig(filename+".png")
                 #fig.savefig(filename+".pdf")
                 ax.cla()
@@ -143,10 +148,10 @@ class STATIC_TESTS(object):
                 
             except KeyError as e:
                 pass
-        filename = "ADC_DNL_Chip{}".format(iChip)
+        filename = "ADC_DNL_Chip{}_Offset{}".format(iChip,metadata["adcOffset"])
         figmanyDNL.savefig(filename+".png")
         #figmanyDNL.savefig(filename+".pdf")
-        filename = "ADC_INL_Chip{}".format(iChip)
+        filename = "ADC_INL_Chip{}_Offset{}".format(iChip,metadata["adcOffset"])
         figmanyINL.savefig(filename+".png")
         #figmanyINL.savefig(filename+".pdf")
 
@@ -162,7 +167,7 @@ class STATIC_TESTS(object):
         ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
         if self.nBits == 12:
           ax.legend(loc='best')
-        filename = "ADC_DNL_Sum_Chip{}".format(iChip)
+        filename = "ADC_DNL_Sum_Chip{}_Offset{}".format(iChip,metadata["adcOffset"])
         fig.savefig(filename+".png")
         #fig.savefig(filename+".pdf")
         ax.cla()
@@ -188,8 +193,9 @@ class STATIC_TESTS(object):
         codeHists = []
         bitHists = []
         iChip = -1
+        metadata = None
         for iChan in range(16):
-           hist, iChip = self.makeRampHist(iChan,infilename)
+           hist, iChip, metadata = self.makeRampHist(iChan,infilename)
            codeHists.append(hist)
            #ax.plot(range(len(hist)),hist,"ko")
            #ax.set_xlabel("ADC Code")
@@ -217,7 +223,7 @@ class STATIC_TESTS(object):
            #fig.savefig(filename+".png")
            ##fig.savefig(filename+".pdf")
            #ax.cla()
-        return codeHists, bitHists, iChip
+        return codeHists, bitHists, iChip, metadata
 
     def makeRampHist(self,iChan,infilename):
         """
@@ -226,10 +232,10 @@ class STATIC_TESTS(object):
         """
         #print("makeRampHist: ",iChip,iChan,xLow,xHigh,nSamples)
 
-        samples, iChip = self.loadWaveforms(iChan,infilename)
+        samples, iChip, metadata = self.loadWaveforms(iChan,infilename)
         binning = [i-0.5 for i in range(2**self.nBits+1)]
         hist, bin_edges = numpy.histogram(samples,bins=binning)
-        return hist, iChip
+        return hist, iChip, metadata
 
     def makeCodeModXHistogram(self,counts,modNumber):
         """
@@ -308,6 +314,8 @@ class STATIC_TESTS(object):
         """
         nIndices = len(indices)
         nGoodSamples = sum(counts[1:-1])
+        if nGoodSamples == 0:
+            return numpy.ones(counts.shape)*float('nan'), numpy.ones(counts.shape)*float('nan'),
         countIdeal = nGoodSamples / (nIndices - 2)
         dnl = counts/countIdeal - 1.
         dnl[0] = 0.
@@ -371,8 +379,8 @@ class STATIC_TESTS(object):
         nStuckCodes = 0
         for i,index in enumerate(indices):
             lsb6 = index & 0b111111
-            isZeros = lsb6 == 0b111111
-            isOnes = lsb6 == 9
+            isZeros = lsb6 == 0
+            isOnes = lsb6 == 0b111111
             if isZeros or isOnes:
                 sumStuckCodes += counts[i]
                 nStuckCodes += 1
@@ -409,7 +417,8 @@ class STATIC_TESTS(object):
             'funcAmp': metadataTree.funcAmp,
             'funcOffset': metadataTree.funcOffset,
             'funcFreq': metadataTree.funcFreq,
-            'adcSerial': metadataTree.adcSerial
+            'adcSerial': metadataTree.adcSerial,
+            'adcOffset': metadataTree.adcOffset,
             }
         if metadata['funcType'] != 3:
             raise Exception("Input file is not funcType==3 ramp data")
@@ -422,7 +431,7 @@ class STATIC_TESTS(object):
                 if self.nBits < 12:
                     adccode = [i >> (12 - self.nBits) for i in adccode]
                 result.extend(adccode)
-        return result, metadata['adcSerial']
+        return result, metadata['adcSerial'], metadata
         
 def main():
     from ...configuration.argument_parser import ArgumentParser
