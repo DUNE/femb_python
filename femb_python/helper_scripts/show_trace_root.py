@@ -26,23 +26,22 @@ def loadWaveform(filename):
         'funcAmp': metadataTree.funcAmp,
         'funcOffset': metadataTree.funcOffset,
         'funcFreq': metadataTree.funcFreq,
+	'iChip' : metadataTree.iChip,
+	'adcSerial' : metadataTree.adcSerial,
+	'feSerial' : metadataTree.feSerial,
         }
     
     result = {}
     for iEntry in range(tree.GetEntries()):
         tree.GetEntry(iEntry)
-        iChip = tree.chan//16
         iChannel = tree.chan % 16
         adccodes = list(tree.wf)
         #if self.nBits < 12:
         #    adccodes = [i >> (12 - self.nBits) for i in adccodes]
         try:
-          result[iChip][iChannel].extend(adccodes)
+          result[iChannel].extend(adccodes)
         except KeyError:
-          if iChip in result:
-            result[iChip][iChannel] = adccodes
-          else:
-            result[iChip] = {iChannel:adccodes}
+          result[iChannel] = adccodes
     return result, metadata
 
 def main():
@@ -52,14 +51,30 @@ def main():
     args = parser.parse_args()
     waveforms, metadata = loadWaveform(args.infilename)
 
-    for iChip in waveforms:
-      fig, axs = plt.subplots(4,4)
-      print(axs)
-      for iChan in waveforms[iChip]:
-        ax = axs[iChan // 4][iChan % 4]
-        waveform = waveforms[iChip][iChan]
-        ax.plot(waveform)
-        ax.set_title("Chip: {} Channel: {}".format(iChip,iChan))
-        ax.set_xlabel("Time Sample")
-        ax.set_ylabel("ADC Code")
-      plt.show()
+    fig, axs = plt.subplots(4,4)
+    fig2, axs2 = plt.subplots(4,4)
+    fig.suptitle("Socket: {}, FE: {} ADC: {}".format(metadata['iChip'],metadata['feSerial'],metadata['adcSerial']))
+    fig2.suptitle("Socket: {}, FE: {} ADC: {}".format(metadata['iChip'],metadata['feSerial'],metadata['adcSerial']))
+    for iChan in waveforms:
+      ax = axs[iChan // 4][iChan % 4]
+      ax2 = axs2[iChan // 4][iChan % 4]
+      waveform = waveforms[iChan]
+      ax.plot(waveform)
+      ax.set_title("Channel: {}".format(iChan))
+      ax.set_xlabel("Time Sample")
+      ax.set_ylabel("ADC Code")
+
+      N = len(waveform)
+      freqs = numpy.arange(N) / (N / 2.0)
+      fft = numpy.fft.fft(waveform)
+
+      freqs = freqs[1:N//2]
+      fft = fft[1:N//2]
+
+      fft = abs(fft*fft.conj())
+
+      ax2.plot(freqs,fft)
+      ax2.set_title("Channel: {}".format(iChan))
+      ax2.set_xlabel("Frequency")
+      ax2.set_ylabel("Power")
+    plt.show()
