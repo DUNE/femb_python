@@ -236,7 +236,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def configAdcAsic(self,enableOffsetCurrent=None,offsetCurrent=None,testInput=None,
                             freqInternal=None,sleep=None,pdsr=None,pcsr=None,
                             clockMonostable=None,clockExternal=None,clockFromFIFO=None,
-                            sLSB=None,f0=None,f1=None,f2=None,f3=None,f4=None,f5=None):
+                            sLSB=None,f0=0,f1=0,f2=None,f3=None,f4=None,f5=None):
         """
         Configure ADCs
           enableOffsetCurrent: 0 disable offset current, 1 enable offset current
@@ -262,15 +262,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         else:
             offsetCurrent = int("{:04b}".format(offsetCurrent)[::-1],2) # need to reverse bits, use string/list tricks
         if testInput is None:
-            testInput=0
+            testInput=1
         if freqInternal is None:
-            freqInternal=0
+            freqInternal=1
         if sleep is None:
             sleep=0
         if pdsr is None:
-            pdsr=0
+            pdsr=1
         if pcsr is None:
-            pcsr=0
+            pcsr=1
         clk0=0
         clk1=0
         if clockExternal:
