@@ -236,7 +236,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def configAdcAsic(self,enableOffsetCurrent=None,offsetCurrent=None,testInput=None,
                             freqInternal=None,sleep=None,pdsr=None,pcsr=None,
                             clockMonostable=None,clockExternal=None,clockFromFIFO=None,
-                            sLSB=None,f0=0,f1=0,f2=None,f3=None,f4=None,f5=None):
+                            sLSB=None,f0=0,f1=0,f2=0,f3=None,f4=None,f5=None):
         """
         Configure ADCs
           enableOffsetCurrent: 0 disable offset current, 1 enable offset current
@@ -271,6 +271,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             pdsr=1
         if pcsr is None:
             pcsr=1
+        if not (clockMonostable or clockExternal or clockFromFIFO):
+            clockFromFIFO=True
         clk0=0
         clk1=0
         if clockExternal:
@@ -279,7 +281,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         elif clockFromFIFO:
             clk0=0
             clk1=1
-        self.adc_reg.set_sbnd_board(en_gr=enableOffsetCurrent,d=offsetCurrent,tstin=testInput,frqc=freqInternal,slp=sleep,pdsr=pdsr,pcsr=pcsr,clk0=clk0,clk1=clk1,f1=f1,f2=f2)
+        self.adc_reg.set_sbnd_board(en_gr=enableOffsetCurrent,d=offsetCurrent,tstin=testInput,frqc=freqInternal,slp=sleep,pdsr=pdsr,pcsr=pcsr,clk0=clk0,clk1=clk1,f1=f1,f2=f2,res2=0,res1=1,res0=1)
         self.configAdcAsic_regs(self.adc_reg.REGS)
 
         #regs = [
