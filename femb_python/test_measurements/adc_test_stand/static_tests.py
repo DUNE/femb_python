@@ -164,6 +164,7 @@ class STATIC_TESTS(object):
                 #fig.savefig(filename+".pdf")
                 ax.cla()
                 axRight.cla()
+                plt.close(fig)
         filename = "ADC_DNL_Chip{}_Offset{}".format(iChip,metadata["adcOffset"])
         figmanyDNL.savefig(filename+".png")
         #figmanyDNL.savefig(filename+".pdf")
@@ -187,6 +188,9 @@ class STATIC_TESTS(object):
         fig.savefig(filename+".png")
         #fig.savefig(filename+".pdf")
         ax.cla()
+        plt.close(fig)
+        plt.close(figmanyDNL)
+        plt.close(figmanyINL)
 
         #print("Chip: ",iChip)
         #for code in indicesAll[dnl > 1.5]:
@@ -241,6 +245,7 @@ class STATIC_TESTS(object):
            #fig.savefig(filename+".png")
            ##fig.savefig(filename+".pdf")
            #ax.cla()
+        plt.close(fig)
         return codeHists, bitHists, iChip, metadata
 
     def makeRampHist(self,iChan,infilename):
@@ -417,6 +422,7 @@ class STATIC_TESTS(object):
         fig.savefig(filename+".png")
         #fig.savefig(filename+".pdf")
         fig.clf()
+        plt.close(fig)
         return codeModXHist
 
     def makePercentFSRAxisOnLSBAxis(self,ax):

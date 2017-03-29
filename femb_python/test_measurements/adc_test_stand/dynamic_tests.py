@@ -78,6 +78,7 @@ class DYNAMIC_TESTS(object):
                         chanstats[amp]['enobs'].append(enob)
                         chanstats[amp]['freqs'].append(freq)
             chipstats[iChan] = chanstats
+            plt.close(fig)
         allstats = chipstats
 
         # Now put out plots
@@ -127,9 +128,12 @@ class DYNAMIC_TESTS(object):
                   ax.set_ylim(-80,0)
                 ax.legend()
                 fig.savefig("{}_chip{}_chan{}.png".format(key,adcSerial,iChan))
-                plt.close()
+                plt.close(fig)
         for iKey, key in enumerate(['thds','snrs','sinads']):
           figmanys[iKey].savefig("{}_chip{}.png".format(key,adcSerial))
+          plt.close(figmanys[iKey])
+
+        return allstats
 
     def getDynamicParameters(self,data,outputSuffix,fake=False):
         """
@@ -190,7 +194,7 @@ class DYNAMIC_TESTS(object):
         fig.savefig("fft_{}.png".format(outputSuffix))
         #fig.show()
         #input("Press Enter to continue...")
-        plt.close()
+        plt.close(fig)
 
         thd = 0.
 

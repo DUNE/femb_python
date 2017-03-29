@@ -50,8 +50,9 @@ def main():
           assert(len(static_fns)==1)
           static_fn = static_fns[0]
           staticStats = static_tests.analyzeLinearity(static_fn)
-          dynamic_tests.analyze(fileprefix)
+          dynamicStats = dynamic_tests.analyze(fileprefix)
           chipStats["static"] = staticStats
+          chipStats["dynamic"] = dynamicStats
           offsetStats[iChip] = chipStats
       allStatsRaw[offset] = offsetStats
     print(allStatsRaw)
