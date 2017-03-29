@@ -49,8 +49,8 @@ def main():
           static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
           assert(len(static_fns)==1)
           static_fn = static_fns[0]
-          staticStats = static_tests.analyzeLinearity(static_fn)
-          dynamicStats = dynamic_tests.analyze(fileprefix)
+          staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
+          dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
           chipStats["static"] = staticStats
           chipStats["dynamic"] = dynamicStats
           offsetStats[iChip] = chipStats

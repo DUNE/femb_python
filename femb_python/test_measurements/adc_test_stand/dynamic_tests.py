@@ -30,7 +30,7 @@ class DYNAMIC_TESTS(object):
         self.nHarmonics = 5 # total harmonic distortion includes up to this harmonic (and S/N excludes them)
         self.nBits = 12
 
-    def analyze(self,fileprefix):
+    def analyze(self,fileprefix,diagnosticPlots=True,debugPlots=False):
         waveforms, adcSerial = self.loadWaveforms(fileprefix)
         frequencies = sorted(list(waveforms.keys()))
         #frequencies = frequencies[:3]
@@ -44,7 +44,6 @@ class DYNAMIC_TESTS(object):
         for iChan in range(16):
         #for iChan in range(1):
             #print(iChan)
-            fig, ax = plt.subplots(figsize=(8,8))
             chanstats = {}
             for amp in amplitudes:
                 chanstats[amp] = {}
@@ -55,13 +54,14 @@ class DYNAMIC_TESTS(object):
                 chanstats[amp]['freqs'] = []
                 for freq in frequencies:
                     waveform = waveforms[freq][amp][iChan]
-                    print("Chip: {}, Chan: {}, Freq: {} Hz, Amp: {} V".format(adcSerial,iChan,freq,amp))
+                    if diagnosticPlots:
+                        print("Chip: {}, Chan: {}, Freq: {} Hz, Amp: {} V".format(adcSerial,iChan,freq,amp))
                     freqStr = ""
                     freqExp = numpy.floor(numpy.log10(freq))
                     freqCoef = freq/10**freqExp
                     freqStr = "{:.0f}e{:.0f}".format(freqCoef,freqExp)
                     outputSuffix = "chip{}_chan{}_freq{}Hz_amp{:.0f}mV".format(adcSerial,iChan,freqStr,amp*1000)
-                    maxAmpFreq, thd, snr, sinad, enob = self.getDynamicParameters(waveform,outputSuffix)
+                    maxAmpFreq, thd, snr, sinad, enob = self.getDynamicParameters(waveform,outputSuffix,debugPlots=debugPlots)
                     deltaFreqRel = (maxAmpFreq*1e6 - freq)/freq
                     if abs(deltaFreqRel) > 1e-2:
                         print("Warning: Chip: {} Channel: {} Frequency: {:.2g} Hz Amplitude: {:.2f} V FFT peak doesn't match input frequency, skipping. fft freq - input freq relative error: {:.2%}".format(adcSerial,iChan,freq,amp,deltaFreqRel))
@@ -71,71 +71,72 @@ class DYNAMIC_TESTS(object):
                         chanstats[amp]['enobs'].append(float('nan'))
                         chanstats[amp]['freqs'].append(freq)
                     else:
-                        print("  THD: {:4.1f} SNR: {:4.1f} SINAD: {:4.1f} ENOB: {:4.2f}".format(thd,snr,sinad,enob))
+                        if diagnosticPlots:
+                            print("  THD: {:4.1f} SNR: {:4.1f} SINAD: {:4.1f} ENOB: {:4.2f}".format(thd,snr,sinad,enob))
                         chanstats[amp]['thds'].append(thd)
                         chanstats[amp]['snrs'].append(snr)
                         chanstats[amp]['sinads'].append(sinad)
                         chanstats[amp]['enobs'].append(enob)
                         chanstats[amp]['freqs'].append(freq)
             chipstats[iChan] = chanstats
-            plt.close(fig)
         allstats = chipstats
 
         # Now put out plots
-        figmanys = []
-        for iKey, key in enumerate(['thds','snrs','sinads']):
-            figmanys.append(plt.figure(figsize=(8,8)))
-        # setup summary figures
-        manyaxeses = []
-        for iKey, key in enumerate(['thds','snrs','sinads']):
-            figmany = figmanys[iKey]
-            figmany.clf()
-            manyaxes = []
-            for iChan in range(16):
-                manyaxes.append(figmany.add_subplot(4,4,iChan+1))
-                manyaxes[iChan].set_xlim(0,1)
-                manyaxes[iChan].set_ylim(0,60)
-                if key == "thds":
-                  manyaxes[iChan].set_ylim(-80,0)
-                manyaxes[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
-                xticks = [0,0.5,1]
-                manyaxes[iChan].set_xticks(xticks)
-                if iChan % 4 != 0:
-                    manyaxes[iChan].set_yticklabels([])
-                else:
-                    manyaxes[iChan].set_ylabel("{} [dB]".format(key[:-1].upper()))
-                if iChan // 4 != 3:
-                    manyaxes[iChan].set_xticklabels([])
-                else:
-                    manyaxes[iChan].set_xlabel("Frequency [MHz]")
-                    manyaxes[iChan].set_xticklabels(["0","0.5","1"])
-            manyaxeses.append(manyaxes)
-        # do analysis
-        for iChan in range(16):
-        #for iChan in range(1):
-            chanstats = allstats[iChan]
+        if diagnosticPlots:
+            figmanys = []
             for iKey, key in enumerate(['thds','snrs','sinads']):
-                fig, ax = plt.subplots(figsize=(8,8))
-                for amp in amplitudes:
-                    freqs = numpy.array(chanstats[amp]['freqs'])
-                    ax.plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
-                    manyaxeses[iKey][iChan].plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
-                ax.set_xlabel("Frequency [MHz]")
-                ax.set_ylabel("{} [dB]".format(key[:-1].upper()))
-                ax.set_xlim(0,1)
-                ax.set_ylim(0,60)
-                if key == "thds":
-                  ax.set_ylim(-80,0)
-                ax.legend()
-                fig.savefig("{}_chip{}_chan{}.png".format(key,adcSerial,iChan))
-                plt.close(fig)
-        for iKey, key in enumerate(['thds','snrs','sinads']):
-          figmanys[iKey].savefig("{}_chip{}.png".format(key,adcSerial))
-          plt.close(figmanys[iKey])
+                figmanys.append(plt.figure(figsize=(8,8)))
+            # setup summary figures
+            manyaxeses = []
+            for iKey, key in enumerate(['thds','snrs','sinads']):
+                figmany = figmanys[iKey]
+                figmany.clf()
+                manyaxes = []
+                for iChan in range(16):
+                    manyaxes.append(figmany.add_subplot(4,4,iChan+1))
+                    manyaxes[iChan].set_xlim(0,1)
+                    manyaxes[iChan].set_ylim(0,60)
+                    if key == "thds":
+                      manyaxes[iChan].set_ylim(-80,0)
+                    manyaxes[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
+                    xticks = [0,0.5,1]
+                    manyaxes[iChan].set_xticks(xticks)
+                    if iChan % 4 != 0:
+                        manyaxes[iChan].set_yticklabels([])
+                    else:
+                        manyaxes[iChan].set_ylabel("{} [dB]".format(key[:-1].upper()))
+                    if iChan // 4 != 3:
+                        manyaxes[iChan].set_xticklabels([])
+                    else:
+                        manyaxes[iChan].set_xlabel("Frequency [MHz]")
+                        manyaxes[iChan].set_xticklabels(["0","0.5","1"])
+                manyaxeses.append(manyaxes)
+            # do analysis
+            for iChan in range(16):
+            #for iChan in range(1):
+                chanstats = allstats[iChan]
+                for iKey, key in enumerate(['thds','snrs','sinads']):
+                    fig, ax = plt.subplots(figsize=(8,8))
+                    for amp in amplitudes:
+                        freqs = numpy.array(chanstats[amp]['freqs'])
+                        ax.plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
+                        manyaxeses[iKey][iChan].plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
+                    ax.set_xlabel("Frequency [MHz]")
+                    ax.set_ylabel("{} [dB]".format(key[:-1].upper()))
+                    ax.set_xlim(0,1)
+                    ax.set_ylim(0,60)
+                    if key == "thds":
+                      ax.set_ylim(-80,0)
+                    ax.legend()
+                    fig.savefig("{}_chip{}_chan{}.png".format(key,adcSerial,iChan))
+                    plt.close(fig)
+            for iKey, key in enumerate(['thds','snrs','sinads']):
+              figmanys[iKey].savefig("{}_chip{}.png".format(key,adcSerial))
+              plt.close(figmanys[iKey])
 
         return allstats
 
-    def getDynamicParameters(self,data,outputSuffix,fake=False):
+    def getDynamicParameters(self,data,outputSuffix,fake=False,debugPlots=False):
         """
         Performs the fft on the input sample data and returns:
 
@@ -186,15 +187,16 @@ class DYNAMIC_TESTS(object):
         enob = (sinadDB - 1.76) / (6.02)
         #enob = (sinad - 10*numpy.log10(1.5)) / (20*numpy.log10(2))
         
-        fig, ax = plt.subplots(figsize=(8,8))
-        ax.plot(frequencies,fftPowerRelativeDB,'b-')
-        ax.set_xlim(-0.025,1.025)
-        ax.set_xlabel("Frequency [MHz]")
-        ax.set_ylabel("Power [dB]")
-        fig.savefig("fft_{}.png".format(outputSuffix))
-        #fig.show()
-        #input("Press Enter to continue...")
-        plt.close(fig)
+        if debugPlots:
+            fig, ax = plt.subplots(figsize=(8,8))
+            ax.plot(frequencies,fftPowerRelativeDB,'b-')
+            ax.set_xlim(-0.025,1.025)
+            ax.set_xlabel("Frequency [MHz]")
+            ax.set_ylabel("Power [dB]")
+            fig.savefig("fft_{}.png".format(outputSuffix))
+            #fig.show()
+            #input("Press Enter to continue...")
+            plt.close(fig)
 
         thd = 0.
 
@@ -347,9 +349,13 @@ def main():
     from ...configuration import CONFIG
     parser = ArgumentParser(description="Dynamic (AC) tests of the ADC using FFT")
     parser.add_argument("infileprefix",help="Input file prefix. A string like 'adcTestData_2016-12-14T11:41:12' that is the beginning of the ROOT file names created by femb_adc_collect_data.")
+    parser.add_argument("-q", "--quiet",help="Disables output plots and printing, just dumps stats to stdout.",action='store_true')
+    parser.add_argument("-d", "--debug",help="Enables extra debug plots.",action='store_true')
     args = parser.parse_args()
   
     config = CONFIG()
   
     dynamic_tests = DYNAMIC_TESTS(config)
-    dynamic_tests.analyze(args.infileprefix)
+    stats = dynamic_tests.analyze(args.infileprefix,diagnosticPlots=not args.quiet, debugPlots=args.debug)
+    if args.quiet:
+        print(stats)

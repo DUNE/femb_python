@@ -27,43 +27,46 @@ class STATIC_TESTS(object):
         self.config = config
         self.nBits = 12
 
-    def analyzeLinearity(self,infile):
+    def analyzeLinearity(self,infile,diagnosticPlots=True):
         codeHists, bitHists, iChip, metadata = self.doHistograms(infile)
-        figmanyDNL = plt.figure(figsize=(8,8))
-        figmanyDNL.suptitle("ADC: {}, Offset: {}".format(iChip,metadata['adcOffset']))
-        figmanyINL = plt.figure(figsize=(8,8))
-        figmanyINL.suptitle("ADC: {}, Offset: {}".format(iChip,metadata['adcOffset']))
+        allStats = []
+        figmanyDNL = None
+        figmanyINL = None
         sumAllCodeHists = numpy.zeros(2**self.nBits)
-        figmanyDNL.clf()
-        figmanyINL.clf()
         manyaxesDNL = []
         manyaxesINL = []
-        allStats = []
-        for iChan in range(16):
-            manyaxesDNL.append(figmanyDNL.add_subplot(4,4,iChan+1))
-            manyaxesDNL[iChan].set_xlim(-256,2**self.nBits+256)
-            manyaxesDNL[iChan].set_ylim(-10,30)
-            manyaxesDNL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
-            manyaxesINL.append(figmanyINL.add_subplot(4,4,iChan+1))
-            manyaxesINL[iChan].set_xlim(-256,2**self.nBits+256)
-            manyaxesINL[iChan].set_ylim(-100,100)
-            manyaxesINL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
-            #xticks = [x*1024 for x in range(5)]
-            xticks = [0,0.5*2**self.nBits,2**self.nBits]
-            manyaxesDNL[iChan].set_xticks(xticks)
-            manyaxesINL[iChan].set_xticks(xticks)
-            if iChan % 4 != 0:
-                manyaxesDNL[iChan].set_yticklabels([])
-                manyaxesINL[iChan].set_yticklabels([])
-            else:
-                manyaxesDNL[iChan].set_ylabel("DNL [LSB]")
-                manyaxesINL[iChan].set_ylabel("INL [LSB]")
-            if iChan // 4 != 3:
-                manyaxesDNL[iChan].set_xticklabels([])
-                manyaxesINL[iChan].set_xticklabels([])
-            else:
-                manyaxesDNL[iChan].set_xlabel("ADC Code")
-                manyaxesINL[iChan].set_xlabel("ADC Code")
+        if diagnosticPlots:
+          figmanyDNL = plt.figure(figsize=(8,8))
+          figmanyDNL.suptitle("ADC: {}, Offset: {}".format(iChip,metadata['adcOffset']))
+          figmanyINL = plt.figure(figsize=(8,8))
+          figmanyINL.suptitle("ADC: {}, Offset: {}".format(iChip,metadata['adcOffset']))
+          figmanyDNL.clf()
+          figmanyINL.clf()
+          for iChan in range(16):
+              manyaxesDNL.append(figmanyDNL.add_subplot(4,4,iChan+1))
+              manyaxesDNL[iChan].set_xlim(-256,2**self.nBits+256)
+              manyaxesDNL[iChan].set_ylim(-10,30)
+              manyaxesDNL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
+              manyaxesINL.append(figmanyINL.add_subplot(4,4,iChan+1))
+              manyaxesINL[iChan].set_xlim(-256,2**self.nBits+256)
+              manyaxesINL[iChan].set_ylim(-100,100)
+              manyaxesINL[iChan].set_title("Channel: {}".format(iChan),{'fontsize':'small'})
+              #xticks = [x*1024 for x in range(5)]
+              xticks = [0,0.5*2**self.nBits,2**self.nBits]
+              manyaxesDNL[iChan].set_xticks(xticks)
+              manyaxesINL[iChan].set_xticks(xticks)
+              if iChan % 4 != 0:
+                  manyaxesDNL[iChan].set_yticklabels([])
+                  manyaxesINL[iChan].set_yticklabels([])
+              else:
+                  manyaxesDNL[iChan].set_ylabel("DNL [LSB]")
+                  manyaxesINL[iChan].set_ylabel("INL [LSB]")
+              if iChan // 4 != 3:
+                  manyaxesDNL[iChan].set_xticklabels([])
+                  manyaxesINL[iChan].set_xticklabels([])
+              else:
+                  manyaxesDNL[iChan].set_xlabel("ADC Code")
+                  manyaxesINL[iChan].set_xlabel("ADC Code")
         for iChan in range(16):
                 chanStats = {}
                 codeHist = codeHists[iChan]
@@ -92,109 +95,111 @@ class STATIC_TESTS(object):
                 chanStats["INLabs75perc"] = INLabs75perc
                 allStats.append(chanStats)
 
-                ## Stuck Code Analysis
-                stuckCodeBins = numpy.linspace(-1,50,200)
-                fig, ax = plt.subplots(figsize=(8,8))
-                ax.set_yscale('log')
-                print("chan {:2} stuckCodeFraction: {:6.3f}, should be: {:6.3f}".format(iChan,stuckCodeFraction,stuckCodeFractionShouldBe))
-                #ax.hist(dnlKillStuckCodes, bins=stuckCodeBins, histtype='step',label="LSB Not 000000 or 111111",log=True)
-                if numpy.isfinite(stuckCodeDNL).any():
-                  ax.hist(stuckCodeDNL, bins=stuckCodeBins, histtype='step',label="LSB: 000000 or 111111",log=True)
-                if numpy.isfinite(stuckCodeDNL0).any():
-                  ax.hist(stuckCodeDNL0,bins=stuckCodeBins, histtype='step',label="LSB: 000000",log=True)
-                if numpy.isfinite(stuckCodeDNL1).any():
-                  ax.hist(stuckCodeDNL1,bins=stuckCodeBins, histtype='step',label="LSB: 111111",log=True)
-                ax.legend()
-                ax.set_ylabel("Number of Codes")
-                ax.set_xlabel("DNL [bits]")
-                ax.set_ylim(0,ax.get_ylim()[1])
-                #ax.set_ylim(0.1,200)
-                filename = "ADC_StuckCodeHist_Chip{}_Chan{}_Offset{}".format(iChip,iChan,metadata['adcOffset'])
-                fig.savefig(filename+".png")
-                #print("Avg, stddev of dnlNoStuckCodes: {} {}, Avg, stddev of stuck code dnl: {} {}".format(numpy.mean(dnlKillStuckCodes), numpy.std(dnlKillStuckCodes),numpy.mean(stuckCodeDNL),numpy.std(stuckCodeDNL)))
-                #print("65th, 80th, 90th percentile of non-stuck DNL: {:6.2f} {:6.2f} {:6.2f}, and stuck code dnl: {:6.2f} {:6.2f} {:6.2f}".format(numpy.percentile(dnlKillStuckCodes,65), numpy.percentile(dnlKillStuckCodes,80), numpy.percentile(dnlKillStuckCodes,90),numpy.percentile(stuckCodeDNL,65),numpy.percentile(stuckCodeDNL,80),numpy.percentile(stuckCodeDNL,90)))
-                print("chan {:2} 75th percentile of DNL: {:6.2f} non-stuck DNL: {:6.2f} stuck code dnl: {:6.2f}  INL: {:6.2f}".format(iChan,DNL75perc,DNL75percNoStuck,DNL75percStuck,INLabs75perc))
-                ax.cla()
+                if diagnosticPlots:
+                    ## Stuck Code Analysis
+                    stuckCodeBins = numpy.linspace(-1,50,200)
+                    fig, ax = plt.subplots(figsize=(8,8))
+                    ax.set_yscale('log')
+                    print("chan {:2} stuckCodeFraction: {:6.3f}, should be: {:6.3f}".format(iChan,stuckCodeFraction,stuckCodeFractionShouldBe))
+                    #ax.hist(dnlKillStuckCodes, bins=stuckCodeBins, histtype='step',label="LSB Not 000000 or 111111",log=True)
+                    if numpy.isfinite(stuckCodeDNL).any():
+                      ax.hist(stuckCodeDNL, bins=stuckCodeBins, histtype='step',label="LSB: 000000 or 111111",log=True)
+                    if numpy.isfinite(stuckCodeDNL0).any():
+                      ax.hist(stuckCodeDNL0,bins=stuckCodeBins, histtype='step',label="LSB: 000000",log=True)
+                    if numpy.isfinite(stuckCodeDNL1).any():
+                      ax.hist(stuckCodeDNL1,bins=stuckCodeBins, histtype='step',label="LSB: 111111",log=True)
+                    ax.legend()
+                    ax.set_ylabel("Number of Codes")
+                    ax.set_xlabel("DNL [bits]")
+                    ax.set_ylim(0,ax.get_ylim()[1])
+                    #ax.set_ylim(0.1,200)
+                    filename = "ADC_StuckCodeHist_Chip{}_Chan{}_Offset{}".format(iChip,iChan,metadata['adcOffset'])
+                    fig.savefig(filename+".png")
+                    #print("Avg, stddev of dnlNoStuckCodes: {} {}, Avg, stddev of stuck code dnl: {} {}".format(numpy.mean(dnlKillStuckCodes), numpy.std(dnlKillStuckCodes),numpy.mean(stuckCodeDNL),numpy.std(stuckCodeDNL)))
+                    #print("65th, 80th, 90th percentile of non-stuck DNL: {:6.2f} {:6.2f} {:6.2f}, and stuck code dnl: {:6.2f} {:6.2f} {:6.2f}".format(numpy.percentile(dnlKillStuckCodes,65), numpy.percentile(dnlKillStuckCodes,80), numpy.percentile(dnlKillStuckCodes,90),numpy.percentile(stuckCodeDNL,65),numpy.percentile(stuckCodeDNL,80),numpy.percentile(stuckCodeDNL,90)))
+                    print("chan {:2} 75th percentile of DNL: {:6.2f} non-stuck DNL: {:6.2f} stuck code dnl: {:6.2f}  INL: {:6.2f}".format(iChan,DNL75perc,DNL75percNoStuck,DNL75percStuck,INLabs75perc))
+                    ax.cla()
 
-                ### Plot DNL
-                ax.set_yscale('linear')
-                axRight = ax.twinx()
-                ax.plot(indices,dnl,"k-",label="All Codes")
-                manyaxesDNL[iChan].plot(indices,dnl,"k-",label="All Codes",lw=1)
-                if self.nBits == 12:
-                  ax.plot(indices,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
-                  manyaxesDNL[iChan].plot(indices,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
-                ax.set_xlabel("ADC Code")
-                ax.set_ylabel("DNL [Least Significant Bits]")
-                ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
-                if self.nBits == 12:
-                  ax.legend(loc='best')
-                xmin, xmax, ymin, ymax = ax.axis()
-                ymin *= 2**(-self.nBits)*100.
-                ymax *= 2**(-self.nBits)*100.
-                axRight.set_ylim(ymin,ymax)
-                axRight.set_ylabel("DNL [% of Full Scale]")
-                #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
-                #axFSR.set_label("DNL [% of FSR]")
-                filename = "ADC_DNL_Chip{}_Chan{}_Offset{}".format(iChip,iChan,metadata["adcOffset"])
-                fig.savefig(filename+".png")
-                #fig.savefig(filename+".pdf")
-                ax.cla()
-                axRight.cla()
-                
-                ### On to INL
-                ax.plot(indices,inl,"k-",label="All Codes")
-                manyaxesINL[iChan].plot(indices,inl,"k-",label="All Codes")
-                #ax.plot(indices,inlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
-                ax.set_xlabel("ADC Code")
-                ax.set_ylabel("INL [Least Significant Bits]")
-                ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
-                ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
-                xmin, xmax, ymin, ymax = ax.axis()
-                ymin *= 2**(-self.nBits)*100.
-                ymax *= 2**(-self.nBits)*100.
-                axRight.set_ylim(ymin,ymax)
-                axRight.set_ylabel("INL [% of Full Scale]")
-                #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
-                #axFSR.set_label("DNL [% of FSR]")
-                #ax.legend(loc='best')
-                filename = "ADC_INL_Chip{}_Chan{}_Offset{}".format(iChip,iChan,metadata["adcOffset"])
-                fig.savefig(filename+".png")
-                #fig.savefig(filename+".pdf")
-                ax.cla()
-                axRight.cla()
-                plt.close(fig)
-        filename = "ADC_DNL_Chip{}_Offset{}".format(iChip,metadata["adcOffset"])
-        figmanyDNL.savefig(filename+".png")
-        #figmanyDNL.savefig(filename+".pdf")
-        filename = "ADC_INL_Chip{}_Offset{}".format(iChip,metadata["adcOffset"])
-        figmanyINL.savefig(filename+".png")
-        #figmanyINL.savefig(filename+".pdf")
+                    ### Plot DNL
+                    ax.set_yscale('linear')
+                    axRight = ax.twinx()
+                    ax.plot(indices,dnl,"k-",label="All Codes")
+                    manyaxesDNL[iChan].plot(indices,dnl,"k-",label="All Codes",lw=1)
+                    if self.nBits == 12:
+                      ax.plot(indices,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
+                      manyaxesDNL[iChan].plot(indices,dnlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001",lw=1)
+                    ax.set_xlabel("ADC Code")
+                    ax.set_ylabel("DNL [Least Significant Bits]")
+                    ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+                    ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
+                    if self.nBits == 12:
+                      ax.legend(loc='best')
+                    xmin, xmax, ymin, ymax = ax.axis()
+                    ymin *= 2**(-self.nBits)*100.
+                    ymax *= 2**(-self.nBits)*100.
+                    axRight.set_ylim(ymin,ymax)
+                    axRight.set_ylabel("DNL [% of Full Scale]")
+                    #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
+                    #axFSR.set_label("DNL [% of FSR]")
+                    filename = "ADC_DNL_Chip{}_Chan{}_Offset{}".format(iChip,iChan,metadata["adcOffset"])
+                    fig.savefig(filename+".png")
+                    #fig.savefig(filename+".pdf")
+                    ax.cla()
+                    axRight.cla()
+                    
+                    ### On to INL
+                    ax.plot(indices,inl,"k-",label="All Codes")
+                    manyaxesINL[iChan].plot(indices,inl,"k-",label="All Codes")
+                    #ax.plot(indices,inlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
+                    ax.set_xlabel("ADC Code")
+                    ax.set_ylabel("INL [Least Significant Bits]")
+                    ax.set_title("ADC Chip {} Channel {}".format(iChip,iChan))
+                    ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
+                    xmin, xmax, ymin, ymax = ax.axis()
+                    ymin *= 2**(-self.nBits)*100.
+                    ymax *= 2**(-self.nBits)*100.
+                    axRight.set_ylim(ymin,ymax)
+                    axRight.set_ylabel("INL [% of Full Scale]")
+                    #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
+                    #axFSR.set_label("DNL [% of FSR]")
+                    #ax.legend(loc='best')
+                    filename = "ADC_INL_Chip{}_Chan{}_Offset{}".format(iChip,iChan,metadata["adcOffset"])
+                    fig.savefig(filename+".png")
+                    #fig.savefig(filename+".pdf")
+                    ax.cla()
+                    axRight.cla()
+                    plt.close(fig)
+        if diagnosticPlots:
+            filename = "ADC_DNL_Chip{}_Offset{}".format(iChip,metadata["adcOffset"])
+            figmanyDNL.savefig(filename+".png")
+            #figmanyDNL.savefig(filename+".pdf")
+            filename = "ADC_INL_Chip{}_Offset{}".format(iChip,metadata["adcOffset"])
+            figmanyINL.savefig(filename+".png")
+            #figmanyINL.savefig(filename+".pdf")
 
-        indicesAll, choppedSumAllCodeHists = self.chopOffUnfilledBins(sumAllCodeHists)
-        dnlAll, inlAll = self.makeLinearityHistograms(indicesAll,choppedSumAllCodeHists)
-        dnlAllKillStuckCodes, inlAllKillStuckCodes = self.makeLinearityHistograms(indicesAll,choppedSumAllCodeHists,True)
-        ax.plot(indicesAll,dnlAll,"k-",label="All Codes")
-        if self.nBits == 12:
-          ax.plot(indicesAll,dnlAllKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
-        ax.set_xlabel("ADC Code")
-        ax.set_ylabel("DNL [LSB]")
-        ax.set_title("Using Histograms Summed Over Channels of Chip: {0}".format(iChip))
-        ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
-        if self.nBits == 12:
-          ax.legend(loc='best')
-        filename = "ADC_DNL_Sum_Chip{}_Offset{}".format(iChip,metadata["adcOffset"])
-        fig.savefig(filename+".png")
-        #fig.savefig(filename+".pdf")
-        ax.cla()
-        plt.close(fig)
-        plt.close(figmanyDNL)
-        plt.close(figmanyINL)
+            indicesAll, choppedSumAllCodeHists = self.chopOffUnfilledBins(sumAllCodeHists)
+            dnlAll, inlAll = self.makeLinearityHistograms(indicesAll,choppedSumAllCodeHists)
+            dnlAllKillStuckCodes, inlAllKillStuckCodes = self.makeLinearityHistograms(indicesAll,choppedSumAllCodeHists,True)
+            ax.plot(indicesAll,dnlAll,"k-",label="All Codes")
+            if self.nBits == 12:
+              ax.plot(indicesAll,dnlAllKillStuckCodes,"b-",label="No LSBs: 000000 or 111111 or 000001")
+            ax.set_xlabel("ADC Code")
+            ax.set_ylabel("DNL [LSB]")
+            ax.set_title("Using Histograms Summed Over Channels of Chip: {0}".format(iChip))
+            ax.set_xticks([x*2**(self.nBits-2) for x in range(5)])
+            if self.nBits == 12:
+              ax.legend(loc='best')
+            filename = "ADC_DNL_Sum_Chip{}_Offset{}".format(iChip,metadata["adcOffset"])
+            fig.savefig(filename+".png")
+            #fig.savefig(filename+".pdf")
+            ax.cla()
+            plt.close(fig)
+            plt.close(figmanyDNL)
+            plt.close(figmanyINL)
 
-        #print("Chip: ",iChip)
-        #for code in indicesAll[dnl > 1.5]:
-        #   print("code: {}, code % 6: {} code % 12: {} code % 64: {}, bits: {:#014b} ".format(code,code % 6,code % 12, code % 64,code))
+            #print("Chip: ",iChip)
+            #for code in indicesAll[dnl > 1.5]:
+            #   print("code: {}, code % 6: {} code % 12: {} code % 64: {}, bits: {:#014b} ".format(code,code % 6,code % 12, code % 64,code))
 
         return allStats
 
@@ -463,9 +468,12 @@ def main():
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Measures ADC Linearity")
     parser.add_argument("infilename",help="Input file name. The file created by femb_adc_collect_data that includes 'functype3'.")
+    parser.add_argument("-q", "--quiet",help="Disables output plots and printing, just dumps stats to stdout.",action='store_true')
     args = parser.parse_args()
   
     config = CONFIG()
   
     static_tests = STATIC_TESTS(config)
-    static_tests.analyzeLinearity(args.infilename)
+    stats = static_tests.analyzeLinearity(args.infilename,diagnosticPlots=not args.quiet)
+    if args.quiet:
+        print(stats)
