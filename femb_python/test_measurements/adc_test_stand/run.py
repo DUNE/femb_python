@@ -12,6 +12,7 @@ import time
 import datetime
 import glob
 from uuid import uuid1 as uuid
+import json
 import numpy
 import matplotlib.pyplot as plt
 import ROOT
@@ -57,12 +58,21 @@ class ADC_TEST_SUMMARY(object):
         """
         statNames = stats[0].keys()
         result = {}
-        print(stats)
         for statName in statNames:
             result[statName] = []
             for iChan in range(16):
                 result[statName].append(stats[iChan][statName])
         return result
+
+    def get_summary(self):
+        return {"static":self.staticSummary}
+
+    def write_jsons(self,fileprefix):
+        for serial in self.staticSummary:
+            filename = fileprefix + "_" + str(serial) + ".json"
+            data = {"static":self.staticSummary[serial]}
+            with open(filename,"w") as f:
+                json.dump(data,f)
 
 def main():
     from ...configuration.argument_parser import ArgumentParser
@@ -101,4 +111,5 @@ def main():
           offsetStats[iChip] = chipStats
       allStatsRaw[offset] = offsetStats
     summary = ADC_TEST_SUMMARY(allStatsRaw)
+    summary.write_jsons("adcTest_{}".format(startDateTime))
     
