@@ -10,10 +10,6 @@ from ...test_instrument_interface import RigolDG4000
 from ...write_root_tree import WRITE_ROOT_TREE
 import time
 import datetime
-import glob
-from uuid import uuid1 as uuid
-import numpy
-import matplotlib.pyplot as plt
 import ROOT
 
 class COLLECT_DATA(object):
@@ -40,7 +36,6 @@ class COLLECT_DATA(object):
         Creates data files starting with outPrefix for iChip for ramp and sin inputs
         """
 
-        fig, ax = plt.subplots(figsize=(8,8))
         codeHists = []
         bitHists = []
         freqList = [6.2365e4,1.234e5,5.13587e5,9.515125e5]

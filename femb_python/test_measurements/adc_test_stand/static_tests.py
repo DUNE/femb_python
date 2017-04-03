@@ -216,7 +216,7 @@ class STATIC_TESTS(object):
             bitHists[iChan][iBit] = count
         """
 
-        fig, ax = plt.subplots(figsize=(8,8))
+        #fig, ax = plt.subplots(figsize=(8,8))
         codeHists = []
         bitHists = []
         iChip = -1
@@ -250,7 +250,7 @@ class STATIC_TESTS(object):
            #fig.savefig(filename+".png")
            ##fig.savefig(filename+".pdf")
            #ax.cla()
-        plt.close(fig)
+        #plt.close(fig)
         return codeHists, bitHists, iChip, metadata
 
     def makeRampHist(self,iChan,infilename):

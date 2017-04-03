@@ -19,6 +19,51 @@ from .collect_data import COLLECT_DATA
 from .static_tests import STATIC_TESTS
 from .dynamic_tests import DYNAMIC_TESTS
 
+class ADC_TEST_SUMMARY(object):
+
+    def __init__(self,allStatsRaw):
+        self.allStatsRaw = allStatsRaw
+        self.allStats = None
+        self.makeSummaries()
+
+    def makeSummaries(self):
+        """
+        makes keys:
+        self.staticSummary[chipSerial][offset][statistic][channel]
+
+        from:
+        self.allStatsRaw[offset][chipSerial]
+        """
+        allStatsRaw = self.allStatsRaw
+        offsets = sorted(allStatsRaw.keys())
+        chipSerials = []
+        for offset in offsets:
+            chipSerials = sorted(allStatsRaw[offset].keys())
+            break
+        staticSummary = {}
+        for chipSerial in chipSerials:
+            staticSummary[chipSerial]={}
+            for offset in offsets:
+                staticSummary[chipSerial][offset] = self.makeStaticSummary(allStatsRaw[offset][chipSerial]["static"])
+        self.staticSummary = staticSummary
+
+    def makeStaticSummary(self,stats):
+        """
+        returns:
+        result[statistic][channel]
+
+        from:
+        stats[channel][statistic]
+        """
+        statNames = stats[0].keys()
+        result = {}
+        print(stats)
+        for statName in statNames:
+            result[statName] = []
+            for iChan in range(16):
+                result[statName].append(stats[iChan][statName])
+        return result
+
 def main():
     from ...configuration.argument_parser import ArgumentParser
     from ...configuration import CONFIG
@@ -55,5 +100,5 @@ def main():
           chipStats["dynamic"] = dynamicStats
           offsetStats[iChip] = chipStats
       allStatsRaw[offset] = offsetStats
-    print(allStatsRaw)
+    summary = ADC_TEST_SUMMARY(allStatsRaw)
     
