@@ -87,8 +87,6 @@ class STATIC_TESTS(object):
                 chanStats["INLabsNoStuck"] = max(abs(inlKillStuckCodes))
                 chanStats["stuckCodeFrac"] = stuckCodeFraction
                 chanStats["stuckCodeFracShouldBe"] = stuckCodeFractionShouldBe
-                chanStats["stuckCodeFrac"] = stuckCodeFraction
-                chanStats["stuckCodeFracShouldBe"] = stuckCodeFractionShouldBe
                 chanStats["DNL75perc"] = DNL75perc
                 chanStats["DNL75percNoStuck"] = DNL75percNoStuck
                 chanStats["DNL75percStuck"] = DNL75percStuck

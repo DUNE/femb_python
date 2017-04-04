@@ -19,11 +19,13 @@ import ROOT
 from .collect_data import COLLECT_DATA 
 from .static_tests import STATIC_TESTS
 from .dynamic_tests import DYNAMIC_TESTS
+from .summary_plots import SUMMARY_PLOTS
 
 class ADC_TEST_SUMMARY(object):
 
-    def __init__(self,allStatsRaw):
+    def __init__(self,allStatsRaw,testTime):
         self.allStatsRaw = allStatsRaw
+        self.testTime = testTime
         self.allStats = None
         self.makeSummaries()
 
@@ -64,13 +66,16 @@ class ADC_TEST_SUMMARY(object):
                 result[statName].append(stats[iChan][statName])
         return result
 
-    def get_summary(self):
-        return {"static":self.staticSummary}
+    def get_serials(self):
+        return self.staticSummary.keys()
+
+    def get_summary(self,serial):
+        return {"static":self.staticSummary[serial],"serial":serial,"time":self.testTime}
 
     def write_jsons(self,fileprefix):
         for serial in self.staticSummary:
             filename = fileprefix + "_" + str(serial) + ".json"
-            data = {"static":self.staticSummary[serial]}
+            data = self.get_summary(serial)
             with open(filename,"w") as f:
                 json.dump(data,f)
 
@@ -110,6 +115,8 @@ def main():
           chipStats["dynamic"] = dynamicStats
           offsetStats[iChip] = chipStats
       allStatsRaw[offset] = offsetStats
-    summary = ADC_TEST_SUMMARY(allStatsRaw)
+    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime)
     summary.write_jsons("adcTest_{}".format(startDateTime))
+    for serial in summary.get_serials():
+      SUMMARY_PLOTS(summary.get_summary(serial),"adcTest_{}_{}".format(startDateTime,serial),plotAll=True)
     
