@@ -17,9 +17,9 @@ import ntpath
 import glob
 import struct
 
-from ...configuration import CONFIG
-from ...write_data import WRITE_DATA
-from ...configuration.cppfilerunner import CPP_FILE_RUNNER
+from femb_python.configuration import CONFIG
+from femb_python.write_data import WRITE_DATA
+from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
 #specify location of femb_udp package
 
