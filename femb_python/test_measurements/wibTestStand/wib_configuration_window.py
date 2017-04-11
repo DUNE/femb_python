@@ -14,7 +14,7 @@ standard_library.install_aliases()
 from time import sleep
 
 from femb_python.configuration import CONFIG
-from wib_trace_fft_window import TRACE_FFT_WINDOW
+from femb_python.test_measurements.wibTestStand.wib_trace_fft_window import TRACE_FFT_WINDOW
 
 import numpy as np
 from matplotlib import pyplot
