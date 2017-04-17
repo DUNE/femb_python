@@ -23,7 +23,7 @@ from tkinter import *
 
 GAINVALS = ("4.7 mV/fC","7.8 mV/fC","14 mV/fC","25 mV/fC")
 SHAPEVALS = ("0.5 us", "1 us", "2 us", "3 us")
-BASEVALS = ("900 mV--induction","200 mV--collection")
+BASEVALS = ("200 mV--collection","900 mV--induction")
 
 class CONFIGURATION_WINDOW(Frame):
 
