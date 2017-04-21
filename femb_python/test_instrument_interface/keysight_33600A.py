@@ -59,7 +59,7 @@ class Keysight_33600A(object):
         """
         Stops output
         """
-        command = self.outputString+":STATe OFF"
+        command = self.outputString+" OFF"
         self.writeCommand(command)
 
     def startSin(self,freq,amp,offset):
@@ -74,13 +74,13 @@ class Keysight_33600A(object):
         commands = [
             self.sourceString+":FUNCtion SINusoid",
             self.sourceString+":FREQuency {:f}".format(freq),
-            self.sourceString+":VOLTage:AMPLitude {:f}".format(amp),
+            self.sourceString+":VOLTage {:f}".format(amp),
             self.sourceString+":VOLTage:OFFSet {:f}".format(offset),
         ]
         for command in commands:
             self.writeCommand(command)
         time.sleep(0.1)
-        self.writeCommand(self.outputString+":STATe ON")
+        self.writeCommand(self.outputString+" ON")
 
     def startDC(self,voltage):
         """
@@ -96,7 +96,7 @@ class Keysight_33600A(object):
         for command in commands:
             self.writeCommand(command)
         time.sleep(0.5)
-        self.writeCommand(self.outputString+":STATe ON")
+        self.writeCommand(self.outputString+" ON")
 
     def startRamp(self,freq,minV,maxV):
         """
@@ -112,7 +112,7 @@ class Keysight_33600A(object):
         if minV >= maxV:
             raise Exception("Ramp minVoltage {} >= maxVoltage {}".format(minV,maxV))
         commands = [
-            self.sourceString+":FUNCtion RAMP",
+            self.sourceString+":FUNCtion TRIangle",
             self.sourceString+":FREQuency {:f}".format(freq),
             self.sourceString+":VOLTage:LOW {:f}".format(minV),
             self.sourceString+":VOLTage:HIGH {:f}".format(maxV),
@@ -120,7 +120,7 @@ class Keysight_33600A(object):
         for command in commands:
             self.writeCommand(command)
         time.sleep(0.1)
-        self.writeCommand(self.outputString+":STATe ON")
+        self.writeCommand(self.outputString+" ON")
 
 def main():
 
