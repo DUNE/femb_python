@@ -85,7 +85,7 @@ class FEMB_TEST(object):
         print("Received data packet " + str(len(testData[0])) + " bytes long")
 
         #check for analysis executables
-        if not self.cppfr.exists('test_measurements/wibTestStand/parseBinaryFile'):    
+        if not self.cppfr.exists('test_measurements/feAsicTest/parseBinaryFile'):    
             print('parseBinaryFile not found, run setup.sh')
             #sys.exit(0)
             return
@@ -103,9 +103,6 @@ class FEMB_TEST(object):
         #MEASUREMENT SECTION
         print("SIMPLE MEASUREMENT - RECORDING DATA")
 
-        #initialize FEMB configuration to known state
-        #self.femb_config.configFeAsic(0,0,0)
-
         #wait to make sure HS link is back on
         sleep(0.5)
 
@@ -122,7 +119,7 @@ class FEMB_TEST(object):
         self.write_data.open_file()
         subrun = 0
         asicCh = 0
-        for asic in range(0,8,1):
+        for asic in range(0,4,1):
           self.femb_config.selectChannel(asic,asicCh)
           self.write_data.record_data(subrun, asic, asicCh)
         self.write_data.close_file()
@@ -144,12 +141,12 @@ class FEMB_TEST(object):
         print("SIMPLE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
-        self.cppfr.run('test_measurements/wibTestStand/parseBinaryFile',[str( self.write_data.filedir ) + str( self.write_data.filename )])
+        self.cppfr.run('test_measurements/feAsicTest/parseBinaryFile',[str( self.write_data.filedir ) + str( self.write_data.filename )])
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
-        self.cppfr.run("test_measurements/wibTestStand/processNtuple_simpleMeasurement", [ str( self.write_data.filedir ) + str(newName) ])
+        self.cppfr.run("test_measurements/feAsicTest/processNtuple_simpleMeasurement", [ str( self.write_data.filedir ) + str(newName) ])
 
         #move result to data directory
         newName = "output_processNtuple_simpleMeasurement_" + self.write_data.filename + ".root"
@@ -180,21 +177,9 @@ class FEMB_TEST(object):
 def main():
 
     femb_test = FEMB_TEST()
-    femb_test.femb_config.selectFemb(0)
-    femb_test.check_setup()
-    femb_test.record_data()
-    femb_test.do_analysis()
-    
-    """
-    #loop over all 4 WIB FEMBs
-    for femb in range(0,4,1):
-        femb_test = FEMB_TEST()
-        femb_test.femb_config.selectFemb(femb)
-        femb_test.check_setup()
-        femb_test.record_data()
-        femb_test.do_analysis()
-        #femb_test.archive_results()
-    """
+    #femb_test.check_setup()
+    #femb_test.record_data()
+    #femb_test.do_analysis()
 
 if __name__ == '__main__':
     main()

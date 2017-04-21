@@ -145,7 +145,7 @@ setup(
 
             'femb_wib_setup_clock=femb_python.test_measurements.wibTestStand.setup_wib_clock:main',
             'femb_wib_setup_protodune=femb_python.test_measurements.wibTestStand.setup_wib_protodune:main',
-            'femb_wib_gui=femb_python.test_measurements.wibTestStand.gui_wib:main',
+            'femb_wib_gui=femb_python.test_measurements.wibTestStand.wib_configuration_window:main',
             'femb_wib_trace_fft=femb_python.test_measurements.wibTestStand.trace_fft_window_wib:main',
             'femb_wib_measure_gain=femb_python.test_measurements.wibTestStand.doFembTest_gainMeasurement:main',
             'femb_wib_measure_noise=femb_python.test_measurements.wibTestStand.doFembTest_noiseMeasurement:main',

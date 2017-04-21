@@ -120,6 +120,9 @@ class FEMB_CONFIG(object):
         #phase control
         self.femb.write_reg_bits(6 , 0, 0xFF, 0xAF )
 
+        self.femb.write_reg_bits(4 , 0, 0xFFFFFFFF, 0x00000100 )
+        self.femb.write_reg_bits(14 , 0, 0xFFFFFFFF, 0x00000000 )
+
         #enable streaming
         self.femb.write_reg_bits(9 , 0, 0x1, 1 ) #Enable streaming
         self.femb.write_reg_bits(9 , 3, 0x1, 1 ) #Enable ADC data
