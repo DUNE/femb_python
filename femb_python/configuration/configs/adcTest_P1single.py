@@ -45,7 +45,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Latch latency 0x6666666f    Phase 0xffff0055
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
         self.NASICS = 1
-        self.FUNCGENPATH = "/dev/usbtmc1"
+        self.POWERSUPPLYPATH = "/dev/null"
+        self.FUNCGENPATH = "/dev/null"
         self.FUNCGENSOURCE = 1
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
@@ -103,7 +104,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print("Config ADC ASIC SPI")
             print("ADCADC")
             
-            self.adc_reg.set_sbnd_board(frqc=1,pdsr=1,pcsr=1,clk0=0,clk1=1,f1=0,f2=0,tstin=1)
+            #self.adc_reg.set_sbnd_board(frqc=1,pdsr=1,pcsr=1,clk0=0,clk1=1,f1=0,f2=0,tstin=1)
+            self.adc_reg.set_sbnd_board()
             regs = self.adc_reg.REGS
             for iReg, val in enumerate(regs):
                 #print("{:032b}".format(val))

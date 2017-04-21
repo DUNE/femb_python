@@ -129,6 +129,7 @@ setup(
             'femb_config_adc=femb_python.helper_scripts.config_adc:main',
             'femb_config_fe=femb_python.helper_scripts.config_fe:main',
 
+            'femb_instrument_rigol_dp800=femb_python.test_instrument_interface.rigol_dp800:main',
             'femb_instrument_rigol_dg4000=femb_python.test_instrument_interface.rigol_dg4000:main',
             'femb_instrument_keysight_33600A=femb_python.test_instrument_interface.keysight_33600A:main',
 
