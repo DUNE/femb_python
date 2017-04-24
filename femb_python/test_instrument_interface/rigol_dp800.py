@@ -22,13 +22,29 @@ class RigolDP800(object):
     Interface to Rigol DP800 Power Supply
     """
 
-    def __init__(self,filename):
+    def __init__(self,config):
         """
-        filename is the file descriptor for the usbtmc object like /dev/usbtmc0
+        config is a CONFIG object. It must have a config.POWERSUPPLYPATH variable 
+        set to a usbtmc object like /dev/usbtmc0.
+
+        config should also have config.POWERSUPPLYCHANNELS which is a list of
+        the channels to turn on e.g. ["CH1","CH2","CH3"]. All three channels
+        are turned off no matter what POWERSUPPLYCHANNELS is set to.
         """
 
-        self.filename = filename
-        print("Using Rigol DP800 at {}".format(filename))
+        self.filename = None
+        try:
+            self.filename = config.POWERSUPPLYPATH
+        except AttributeError:
+            print("Error setting up RigolDP800: config.POWERSUPPLYPATH doesn't exist. Exiting.")
+            sys.exit(1)
+        print("Using Rigol DP800 at {}".format(self.filename))
+        self.channels = []
+        try:
+            self.channels = config.POWERSUPPLYCHANNELS
+        except AttributeError:
+            print("Warning setting up RigolDP800: config.POWERSUPPLYCHANNELS doesn't exist")
+        print("Configured to turn on these power supply channels: {}".format(self.channels))
 
     def writeCommand(self,command):
         """
@@ -40,13 +56,12 @@ class RigolDP800(object):
 
     def on(self):
         """
-        Turns on all channels
+        Turns on all channels listed in configuration file
         """
         print("Turning on power!")
         time.sleep(0.05)
-        self.writeCommand("OUTPut CH1,ON")
-        self.writeCommand("OUTPut CH2,ON")
-        self.writeCommand("OUTPut CH3,ON")
+        for channel in self.channels:
+            self.writeCommand("OUTPut {},ON".format(channel))
         time.sleep(0.05)
 
     def off(self):
@@ -65,14 +80,20 @@ def main():
     from ..configuration.argument_parser import ArgumentParser
     from ..configuration import CONFIG
     parser = ArgumentParser(description="Control Rigol DP800 power supply. If run without arguments, turns off all channels.")
-    parser.add_argument("--turnOn",help="Turn on all channels",action='store_true')
+    parser.add_argument("--turnOn",help="Turn on all channels listed in configuration file",action='store_true')
+    parser.add_argument("--turnOff",help="Turn off all channels",action='store_true')
     args = parser.parse_args()
 
     config = CONFIG()
-    ps = RigolDP800(config.POWERSUPPLYPATH)
+    ps = RigolDP800(config)
     
-    if args.turnOn:
+    if args.turnOn and args.turnOff:
+        print("Error: Can't turn on and turn off at the same time")
+        sys.exit(1)
+    elif args.turnOn:
       ps.on()
+    elif args.turnOff:
+      ps.off()
     else:
       ps.off()
 

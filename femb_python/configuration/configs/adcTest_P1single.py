@@ -47,6 +47,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.NASICS = 1
         self.POWERSUPPLYPATH = "/dev/null"
         self.FUNCGENPATH = "/dev/null"
+        self.POWERSUPPLYCHANNELS = ["CH1"]
         self.FUNCGENSOURCE = 1
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
