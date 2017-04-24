@@ -105,8 +105,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print("Config ADC ASIC SPI")
             print("ADCADC")
             
-            #self.adc_reg.set_sbnd_board(frqc=1,pdsr=1,pcsr=1,clk0=0,clk1=1,f1=0,f2=0,tstin=1)
-            self.adc_reg.set_sbnd_board()
+            self.adc_reg.set_sbnd_board(tstin=1, clk0=0, clk1=1, f0=1, f4=1) # from Shanshan labview
             regs = self.adc_reg.REGS
             for iReg, val in enumerate(regs):
                 #print("{:032b}".format(val))

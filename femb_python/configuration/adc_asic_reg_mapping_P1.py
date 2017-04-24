@@ -17,7 +17,7 @@ import string
 class ADC_ASIC_REG_MAPPING(object):
 
 ####sec_chn_reg only sets a channel register, the other registers remains as before
-    def set_chn_reg(self, chip=0, chn=0, d=0, pcsr=1, pdsr=1, slp=0, tstin=0 ):
+    def set_chn_reg(self, chip=0, chn=0, d=0, pcsr=0, pdsr=0, slp=0, tstin=0 ):
         chn_reg = ((d<<4)&0xF0) + ((pcsr&0x01)<<3) + ((pdsr&0x01)<<2) + \
                   ((slp&0x01)<<1) + ((tstin&0x01)<<0)
 
@@ -54,7 +54,6 @@ class ADC_ASIC_REG_MAPPING(object):
                if ( regs_bool5_8[16*i + j] ): 
                    m = m + ((1 << j)<<16)
            self.REGS[i] = m
-
 
 ####sec_chip_global only sets a chip global register, the other registers remains as before
     def set_chip_global(self, chip, clk0 = 0, clk1 = 0, frqc = 0, en_gr = 0,
@@ -111,7 +110,7 @@ class ADC_ASIC_REG_MAPPING(object):
 
 ####sec_chip sets registers of a whole chip, registers of the other chips remains as before
     def set_chip(self, chip=0,
-                d=0, pcsr=1, pdsr=1, slp=0, tstin=0,
+                d=0, pcsr=0, pdsr=0, slp=0, tstin=0,
                 clk0 = 0, clk1 = 0, frqc = 0, en_gr = 0,
                 f0=0, f1=0, f2=0,f3=0, f4=0, f5=0,
                 slsb=0, res0=0, res1=0, res2=0, res3=0, res4=0):
@@ -124,14 +123,16 @@ class ADC_ASIC_REG_MAPPING(object):
 
 ####sec_sbnd_board sets registers of a whole board 
     def set_sbnd_board(self,  
-                d=0, pcsr=1, pdsr=1, slp=0, tstin=0,
+                d=0, pcsr=0, pdsr=0, slp=0, tstin=0,
                 clk0 = 0, clk1 = 0, frqc = 0, en_gr = 0,
                 f0=0, f1=0, f2=0,f3=0, f4=0, f5=0,
                 slsb=0, res0=0, res1=0, res2=0, res3=0, res4=0):
         for chip in range(8):
-                self.set_chip_global(chip, clk0, clk1, frqc, en_gr,
-                                f0, f1, f2,f3, f4, f5,
-                                slsb, res0, res1, res2, res3, res4)
+            self.set_chip(chip,
+                        d, pcsr, pdsr, slp, tstin,
+                        clk0, clk1, frqc, en_gr,
+                        f0, f1, f2,f3, f4, f5,
+                        slsb, res0, res1, res2, res3, res4)
 
     #__INIT__#
     def __init__(self):
