@@ -33,19 +33,18 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_RESET = 0
         self.REG_ASIC_RESET = 1
         self.REG_ASIC_SPIPROG = 2
-        self.REG_SEL_ASIC = 7 
         self.REG_SEL_CH = 7
-        self.REG_FESPI_BASE = 592
-        self.REG_ADCSPI_BASE = 512
-        self.REG_FESPI_RDBACK_BASE = 632
-        self.REG_ADCSPI_RDBACK_BASE = 552
         self.REG_HS = 17
+        self.REG_FESPI_BASE = 0x250 # 592 in decimal
+        self.REG_ADCSPI_BASE = 0x200 # 512 in decimal
+        self.REG_FESPI_RDBACK_BASE = 0x278 # 632 in decimal
+        self.REG_ADCSPI_RDBACK_BASE = 0x228 # 552 in decimal
         self.REG_LATCHLOC1_4 = 4
         self.REG_LATCHLOC5_8 = 14
         self.REG_CLKPHASE = 6
-        self.REG_LATCHLOC1_4_data = 0x0
-        self.REG_LATCHLOC5_8_data = 0x0
-        self.REG_CLKPHASE_data = 0x0
+        self.REG_LATCHLOC1_4_data = 0x1
+        self.REG_LATCHLOC5_8_data = 0x1
+        self.REG_CLKPHASE_data = 0x1
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
         ##################################
         # external clock control registers
@@ -120,7 +119,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg( 13, 0x0) #enable
 
             #Set test and readout mode register
-            self.femb.write_reg( 7, 0x0000) #11-8 = channel select, 3-0 = ASIC select
+            self.femb.write_reg( self.REG_HS, 0x0) # 0 readout all 15 channels, 1 readout only selected one
+            self.femb.write_reg( self.REG_SEL_CH, 0x0000) #11-8 = channel select, 3-0 = ASIC select
 
             #Set number events per header
             self.femb.write_reg( 8, 0x0)
@@ -258,7 +258,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.adc_reg.set_sbnd_board(en_gr=enableOffsetCurrent,d=offsetCurrent,tstin=testInput,frqc=freqInternal,slp=sleep,pdsr=pdsr,pcsr=pcsr,clk0=clk0,clk1=clk1,f0=f0,f1=f1,f2=f2,f3=f3,f4=f4,f5=f5,slsb=sLSB)
         self.configAdcAsic_regs(self.adc_reg.REGS)
 
-    def selectChannel(self,asic,chan,hsmode=None):
+    def selectChannel(self,asic,chan,hsmode=1):
+        """
+        asic is chip number 0 to 7
+        chan is channel within asic from 0 to 15
+        hsmode: if 0 then streams all channels of a chip, if 1 only te selected channel. defaults to 1
+        """
+        hsmodeVal = int(hsmode) & 1;
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
                 print( "femb_config_femb : selectChan - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
@@ -270,6 +276,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #print( "Selecting ASIC " + str(asicVal) + ", channel " + str(chVal))
 
+        self.femb.write_reg ( self.REG_HS, hsmodeVal)
         regVal = (chVal << 8 ) + asicVal
         self.femb.write_reg( self.REG_SEL_CH, regVal)
 

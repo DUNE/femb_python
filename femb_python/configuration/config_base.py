@@ -94,7 +94,11 @@ class FEMB_CONFIG_BASE(object):
 
     def selectChannel(self,asic,chan, hsmode= 1 ):
         """
-        Select asic/chan for readout and set hsmode
+        asic is chip number 0 to 7
+        chan is channel within asic from 0 to 15
+        hsmode: if 0 then streams all channels of a chip, 
+                if 1 only te selected channel
+                defaults to 1. Not enabled for all firmware versions
         """
         pass
 
