@@ -267,6 +267,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         elif clockFromFIFO:
             clk0=0
             clk1=1
+
+        if clockExternal:
+            self.extClock(enable=True)
+        else:
+            self.extClock(enable=False)
+
         self.adc_reg.set_sbnd_board(en_gr=enableOffsetCurrent,d=offsetCurrent,tstin=testInput,frqc=freqInternal,slp=sleep,pdsr=pdsr,pcsr=pcsr,clk0=clk0,clk1=clk1,f1=f1,f2=f2,res2=0,res1=1,res0=1)
         self.configAdcAsic_regs(self.adc_reg.REGS)
 
@@ -427,3 +433,75 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc))
 
 
+    def extClock(self, enable=False, 
+                period=5, clock=1, mult=1, 
+                offset_rst=0, offset_read=0, offset_msb=0, offset_lsb=0, 
+                width_rst=1, width_read=0, width_msb=0, width_lsb=0,
+                offset_lsb_1st_1=0, width_lsb_1st_1=0,
+                offset_lsb_1st_1=0, width_lsb_1st_1=0,
+                inv_rst=True, inv_read=True, inv_msb=False, inv_lsb=False, inv_lsb_1st=False):
+        """
+        Programs external clock.
+        """
+
+        rd_en_off = 0
+        adc_off = 0
+        adc_wid = 0
+        msb_off = 0
+        msb_wid = 0
+        period = 0
+        lsb_fc_wid2 = 0
+        lsb_fc_off1 = 0
+        rd_en_wid = 0
+        lsb_fc_wid1 = 0
+        lsb_fc_off2 = 0
+        lsb_s_wid = 0
+        lsb_s_off = 0
+        inv = 0
+
+        if enable:
+            denominator = clock / mult
+            rd_en_off =  offset_read / denominator
+            adc_off =  offset_rst / denominator
+            adc_wid =  width_rst / denominator
+            msb_off = offset_msb  / denominator
+            msb_wid = width_msb  / denominator
+            period = period / denominator
+            lsb_fc_wid2 = width_lsb_1st_2 / denominator
+            lsb_fc_off1 = offset_lsb_1st_1 / denominator
+            rd_en_wid = width_read / denominator
+            lsb_fc_wid1 = width_lsb_1st_1 / denominator
+            lsb_fc_off2 = offset_lsb_1st_2 / denominator
+            lsb_s_wid = width_lsb / denominator
+            lsb_s_off = offset_lsb / denominator
+            if inv_rst:
+              inv += 1 << 0
+            if inv_read:
+              inv += 1 << 1
+            if inv_msb:
+              inv += 1 << 2
+            if inv_lsb:
+              inv += 1 << 3
+            if inv_lsb_1st:
+              inv += 1 << 4
+
+        regsValsToWrite = [
+            (self.REG_EXTCLK_RD_EN_OFF, rd_en_off),
+            (self.REG_EXTCLK_ADC_OFF, adc_off),
+            (self.REG_EXTCLK_ADC_WID, adc_wid),
+            (self.REG_EXTCLK_MSB_OFF, msb_off),
+            (self.REG_EXTCLK_MSB_WID, msb_wid),
+            (self.REG_EXTCLK_PERIOD, period),
+            (self.REG_EXTCLK_LSB_FC_WID2, lsb_fc_wid2),
+            (self.REG_EXTCLK_LSB_FC_OFF1, lsb_fc_off1),
+            (self.REG_EXTCLK_RD_EN_WID, rd_en_wid),
+            (self.REG_EXTCLK_LSB_FC_WID1, lsb_fc_wid1),
+            (self.REG_EXTCLK_LSB_FC_OFF2, lsb_fc_off2),
+            (self.REG_EXTCLK_LSB_S_WID, lsb_s_wid),
+            (self.REG_EXTCLK_LSB_S_OFF, lsb_s_off),
+            (self.REG_EXTCLK_INV, inv),
+        ]
+        for reg,val in regsValsToWrite:
+            val = val & 0xFFFF # only 16 bits for some reason
+            self.femb.write_reg(reg,val)
+            
