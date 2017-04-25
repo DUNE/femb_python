@@ -43,8 +43,8 @@ class Keysight_33600A(object):
             sys.exit(1)
         print("Using Keysight 33600A at {} Channel {}".format(filename,sourceNumber))
         self.sourceNumber = sourceNumber
-        self.sourceString = ":SOURce{}".format(sourceNumber)
-        self.outputString = ":OUTPut{}".format(sourceNumber)
+        self.sourceString = ":source{}".format(sourceNumber)
+        self.outputString = ":output{}".format(sourceNumber)
 
     def writeCommand(self,command):
         """
@@ -60,6 +60,7 @@ class Keysight_33600A(object):
         Stops output
         """
         command = self.outputString+" OFF"
+        print(command)
         self.writeCommand(command)
 
     def startSin(self,freq,amp,offset):
@@ -71,16 +72,19 @@ class Keysight_33600A(object):
         """
         if offset - amp < VMIN or offset + amp > VMAX:
             raise Exception("Voltage swings outside of {} to {} V, may damage things, amp={} offset={}".format(VMIN,VMAX,amp,offset))
-        commands = [
-            self.sourceString+":FUNCtion SINusoid",
-            self.sourceString+":FREQuency {:f}".format(freq),
-            self.sourceString+":VOLTage {:f}".format(amp),
-            self.sourceString+":VOLTage:OFFSet {:f}".format(offset),
-        ]
-        for command in commands:
-            self.writeCommand(command)
-        time.sleep(0.1)
-        self.writeCommand(self.outputString+" ON")
+        #commands = [
+        #    self.sourceString+":FUNCtion SINusoid",
+        #    self.sourceString+":FREQuency {:f}".format(freq),
+        #    self.sourceString+":VOLTage {:f}".format(amp),
+        #    self.sourceString+":VOLTage:OFFSet {:f}".format(offset),
+        #]
+        #for command in commands:
+        #    self.writeCommand(command)
+        #time.sleep(0.1)
+        #self.writeCommand(self.outputString+" ON")
+        command = self.sourceString+":sin {},{},{}".format(freq,amp,offset)
+        print(command)
+        self.writeCommand(command)
 
     def startDC(self,voltage):
         """
@@ -89,14 +93,20 @@ class Keysight_33600A(object):
         """
         if voltage < VMIN or voltage > VMAX:
             raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
-        commands = [
-            self.sourceString+":FUNCtion DC",
-            self.sourceString+":VOLTage:OFFSet {:f}".format(voltage),
-        ]
-        for command in commands:
-            self.writeCommand(command)
-        time.sleep(0.5)
-        self.writeCommand(self.outputString+" ON")
+        #commands = [
+        #    self.sourceString+":FUNCtion DC",
+        #    self.sourceString+":VOLTage:OFFSet {:f}".format(voltage),
+        #]
+        #for command in commands:
+        #    self.writeCommand(command)
+        #time.sleep(0.5)
+        #self.writeCommand(self.outputString+" ON")
+        freq = 1000
+        amplitude = 0.01
+        offset = voltage
+        command = self.sourceString+":dc {},{},{}".format(freq,amplitude,offset)
+        print(command)
+        self.writeCommand(command)
 
     def startRamp(self,freq,minV,maxV):
         """
@@ -111,16 +121,22 @@ class Keysight_33600A(object):
             raise Exception("Voltage swings outside of {} to {} V, may damage things, minV={}, maxV={}".format(VMIN,VMAX,minV,maxV))
         if minV >= maxV:
             raise Exception("Ramp minVoltage {} >= maxVoltage {}".format(minV,maxV))
-        commands = [
-            self.sourceString+":FUNCtion TRIangle",
-            self.sourceString+":FREQuency {:f}".format(freq),
-            self.sourceString+":VOLTage:LOW {:f}".format(minV),
-            self.sourceString+":VOLTage:HIGH {:f}".format(maxV),
-        ]
-        for command in commands:
-            self.writeCommand(command)
-        time.sleep(0.1)
-        self.writeCommand(self.outputString+" ON")
+        #commands = [
+        #    self.sourceString+":FUNCtion TRIangle",
+        #    self.sourceString+":FREQuency {:f}".format(freq),
+        #    self.sourceString+":VOLTage:LOW {:f}".format(minV),
+        #    self.sourceString+":VOLTage:HIGH {:f}".format(maxV),
+        #]
+        #for command in commands:
+        #    self.writeCommand(command)
+        #time.sleep(0.1)
+        #self.writeCommand(self.outputString+" ON")
+        amplitude = 0.5*(maxV-minV)
+        offset = 0.5*(maxV+minV)
+        command = self.sourceString+":triangle {},{},{}".format(freq,amplitude,offset)
+        print(command)
+        self.writeCommand(command)
+        
 
 def main():
 

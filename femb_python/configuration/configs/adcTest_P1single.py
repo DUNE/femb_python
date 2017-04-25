@@ -45,8 +45,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Latch latency 0x6666666f    Phase 0xffff0055
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
         self.NASICS = 1
-        self.POWERSUPPLYPATH = "/dev/null"
-        self.FUNCGENPATH = "/dev/null"
+        self.POWERSUPPLYPATH = "/dev/null" # "/dev/usbtmc0"
+        self.FUNCGENPATH = "/dev/usbtmc1"
         self.POWERSUPPLYCHANNELS = ["CH1"]
         self.FUNCGENSOURCE = 1
         self.F2DEFAULT = 0
