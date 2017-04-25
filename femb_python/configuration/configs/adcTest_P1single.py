@@ -125,40 +125,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             #Set number events per header
             self.femb.write_reg( 8, 0x0)
 
-            #ADC ASIC SPI registers
-            self.configAdcAsic()
-
-#            print("Config ADC ASIC SPI")
-#            print("ADCADC")
-#            
-#            self.adc_reg.set_sbnd_board(tstin=1, clk0=0, clk1=1, f0=1, f4=1) # from Shanshan labview
-#            regs = self.adc_reg.REGS
-#            for iReg, val in enumerate(regs):
-#                #print("{:032b}".format(val))
-#                print("{:08x}".format(val))
-#                self.femb.write_reg(self.REG_ADCSPI_BASE+iReg,val)
-#
-#            #ADC ASIC sync
-#            self.femb.write_reg( 17, 0x1) # controls HS link, 0 for on, 1 for off
-#            self.femb.write_reg( 17, 0x0) # controls HS link, 0 for on, 1 for off        
-#
-#            #Write ADC ASIC SPI
-#            print( "Program ADC ASIC SPI")
-#            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-#            time.sleep(0.1)
-#            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-#            time.sleep(0.1)
-#
-#            print( "Check ADC ASIC SPI")
-#            for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+34,1):
-#                    val = self.femb.read_reg( regNum ) 
-#                    #print("{:08x}".format(val))
-#
-#            #enable streaming
-#            #self.femb.write_reg( 9, 0x8)
-#
-#            #LBNE_ADC_MODE
-#            self.femb.write_reg( 16, 0x1)
+            #Configure ADC (and external clock inside)
+            self.configAdcAsic(clockFromFIFO=True)
 
             # Check that board streams data
             data = self.femb.get_data(1)
@@ -184,9 +152,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                     i = i + 1
 
             #print("  ADC ASIC write : ",Adcasic_regs)
-            #ADC ASIC sync
-            self.femb.write_reg ( 17, 0x1) # controls HS link, 0 for on, 1 for off
-            self.femb.write_reg ( 17, 0x0) # controls HS link, 0 for on, 1 for off        
+            #ADC ASIC sync -- Justin: I don't think this exists anymore
+            #self.femb.write_reg ( 17, 0x1) # controls HS link, 0 for on, 1 for off
+            #self.femb.write_reg ( 17, 0x0) # controls HS link, 0 for on, 1 for off        
 
             #Write ADC ASIC SPI
             print("FEMB_CONFIG--> Program ADC ASIC SPI")
@@ -196,10 +164,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             time.sleep(0.1)
 
             #enable streaming
-            #self.femb.write_reg( 9, 0x8)
+            #self.femb.write_reg( 9, 0x1)
 
             #LBNE_ADC_MODE
-            self.femb.write_reg( 16, 0x1)
+            self.femb.write_reg( 18, 0x1)
 
             #print("FEMB_CONFIG--> Check ADC ASIC SPI")
             #adcasic_rb_regs = []
@@ -413,7 +381,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 offset_rst=0, offset_read=0, offset_msb=0, offset_lsb=0, 
                 width_rst=1, width_read=0, width_msb=0, width_lsb=0,
                 offset_lsb_1st_1=0, width_lsb_1st_1=0,
-                offset_lsb_1st_1=0, width_lsb_1st_1=0,
+                offset_lsb_1st_2=0, width_lsb_1st_2=0,
                 inv_rst=True, inv_read=True, inv_msb=False, inv_lsb=False, inv_lsb_1st=False):
         """
         Programs external clock.
@@ -435,20 +403,20 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         inv = 0
 
         if enable:
-            denominator = clock / mult
-            rd_en_off =  offset_read / denominator
-            adc_off =  offset_rst / denominator
-            adc_wid =  width_rst / denominator
-            msb_off = offset_msb  / denominator
-            msb_wid = width_msb  / denominator
-            period = period / denominator
-            lsb_fc_wid2 = width_lsb_1st_2 / denominator
-            lsb_fc_off1 = offset_lsb_1st_1 / denominator
-            rd_en_wid = width_read / denominator
-            lsb_fc_wid1 = width_lsb_1st_1 / denominator
-            lsb_fc_off2 = offset_lsb_1st_2 / denominator
-            lsb_s_wid = width_lsb / denominator
-            lsb_s_off = offset_lsb / denominator
+            denominator = clock // mult
+            rd_en_off =  offset_read // denominator
+            adc_off =  offset_rst // denominator
+            adc_wid =  width_rst // denominator
+            msb_off = offset_msb  // denominator
+            msb_wid = width_msb  // denominator
+            period = period // denominator
+            lsb_fc_wid2 = width_lsb_1st_2 // denominator
+            lsb_fc_off1 = offset_lsb_1st_1 // denominator
+            rd_en_wid = width_read // denominator
+            lsb_fc_wid1 = width_lsb_1st_1 // denominator
+            lsb_fc_off2 = offset_lsb_1st_2 // denominator
+            lsb_s_wid = width_lsb // denominator
+            lsb_s_off = offset_lsb // denominator
             if inv_rst:
               inv += 1 << 0
             if inv_read:
