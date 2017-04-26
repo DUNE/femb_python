@@ -369,9 +369,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC1_4_data = self.femb.read_reg ( self.REG_LATCHLOC1_4 ) 
         self.REG_LATCHLOC5_8_data = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
         self.REG_CLKPHASE_data    = self.femb.read_reg ( self.REG_CLKPHASE )
-        print("FEMB_CONFIG--> Latch latency " + str(hex(self.REG_LATCHLOC1_4_data)) \
-                        + str(hex(self.REG_LATCHLOC5_8_data )) + \
-                        "\tPhase " + str(hex(self.REG_CLKPHASE_data)))
+        print("FEMB_CONFIG--> Latch latency {:#08x} {:#08x} Phase: {:#08x}".format(self.REG_LATCHLOC1_4_data,
+                        self.REG_LATCHLOC5_8_data, self.REG_CLKPHASE_data))
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
         print("FEMB_CONFIG--> End sync ADC")

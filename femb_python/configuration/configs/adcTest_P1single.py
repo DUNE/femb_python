@@ -42,13 +42,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC1_4 = 4
         self.REG_LATCHLOC5_8 = 14
         self.REG_CLKPHASE = 6
-        self.REG_LATCHLOC1_4_data = 0x1
-        self.REG_LATCHLOC5_8_data = 0x1
-        self.REG_CLKPHASE_data = 0x1
+        self.REG_LATCHLOC1_4_data = 0x000006
+        self.REG_LATCHLOC5_8_data = 0x0
+        self.REG_CLKPHASE_data = 0xffff0000
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
         ##################################
         # external clock control registers
         ##################################
+        self.FPGA_FREQ_MHZ = 200 # frequency of FPGA clock in MHz
         self.REG_EXTCLK_RD_EN_OFF = 23
         self.REG_EXTCLK_ADC_OFF = 21
         self.REG_EXTCLK_ADC_WID = 22
@@ -106,7 +107,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             #Set ADC test pattern register
             self.femb.write_reg( 3, 0x01170000) # test pattern off
-            #self.femb.write_reg( 3, 0x81230000) # test pattern on
+            #self.femb.write_reg( 3, 0x81170000) # test pattern on
 
             #Set ADC latch_loc
             self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data)
@@ -126,7 +127,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg( 8, 0x0)
 
             #Configure ADC (and external clock inside)
-            self.configAdcAsic(clockFromFIFO=True)
+            self.configAdcAsic()
 
             # Check that board streams data
             data = self.femb.get_data(1)
@@ -299,9 +300,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC1_4_data = self.femb.read_reg ( self.REG_LATCHLOC1_4 ) 
         self.REG_LATCHLOC5_8_data = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
         self.REG_CLKPHASE_data    = self.femb.read_reg ( self.REG_CLKPHASE )
-        print("FEMB_CONFIG--> Latch latency " + str(hex(self.REG_LATCHLOC1_4_data)) \
-                        + str(hex(self.REG_LATCHLOC5_8_data )) + \
-                        "\tPhase " + str(hex(self.REG_CLKPHASE_data)))
+        print("FEMB_CONFIG--> Latch latency {:#08x} {:#08x} Phase: {:#08x}".format(self.REG_LATCHLOC1_4_data,
+                        self.REG_LATCHLOC5_8_data, self.REG_CLKPHASE_data))
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
         print("FEMB_CONFIG--> End sync ADC")
@@ -384,14 +384,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
 
     def extClock(self, enable=False, 
-                period=5, clock=1, mult=1, 
-                offset_rst=0, offset_read=0, offset_msb=0, offset_lsb=0, 
-                width_rst=1, width_read=0, width_msb=0, width_lsb=0,
-                offset_lsb_1st_1=0, width_lsb_1st_1=0,
-                offset_lsb_1st_2=0, width_lsb_1st_2=0,
+                period=500, mult=1, 
+                offset_rst=0, offset_read=450, offset_msb=200, offset_lsb=450, 
+                width_rst=50, width_read=50, width_msb=350, width_lsb=50,
+                offset_lsb_1st_1=50, width_lsb_1st_1=155,
+                offset_lsb_1st_2=450, width_lsb_1st_2=50,
                 inv_rst=True, inv_read=True, inv_msb=False, inv_lsb=False, inv_lsb_1st=False):
         """
-        Programs external clock.
+        Programs external clock. All non-boolean arguments except mult are in nanoseconds
         """
 
         rd_en_off = 0
@@ -399,7 +399,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         adc_wid = 0
         msb_off = 0
         msb_wid = 0
-        period = 0
+        period_val = 0
         lsb_fc_wid2 = 0
         lsb_fc_off1 = 0
         rd_en_wid = 0
@@ -410,13 +410,35 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         inv = 0
 
         if enable:
-            denominator = clock // mult
+            clock = 1./self.FPGA_FREQ_MHZ * 1000. # clock now in ns
+            print("FPGA Clock freq: {} MHz period: {} ns".format(self.FPGA_FREQ_MHZ,clock))
+            print("ExtClock option mult: {}".format(mult))
+            print("ExtClock option period: {} ns".format(period))
+            print("ExtClock option offset_read: {} ns".format(offset_read))
+            print("ExtClock option offset_rst: {} ns".format(offset_rst))
+            print("ExtClock option offset_msb: {} ns".format(offset_msb))
+            print("ExtClock option offset_lsb: {} ns".format(offset_lsb))
+            print("ExtClock option offset_lsb_1st_1: {} ns".format(offset_lsb_1st_1))
+            print("ExtClock option offset_lsb_1st_2: {} ns".format(offset_lsb_1st_2))
+            print("ExtClock option width_read: {} ns".format(width_read))
+            print("ExtClock option width_rst: {} ns".format(width_rst))
+            print("ExtClock option width_msb: {} ns".format(width_msb))
+            print("ExtClock option width_lsb: {} ns".format(width_lsb))
+            print("ExtClock option width_lsb_1st_1: {} ns".format(width_lsb_1st_1))
+            print("ExtClock option width_lsb_1st_2: {} ns".format(width_lsb_1st_2))
+            print("ExtClock option inv_rst: {}".format(inv_rst))
+            print("ExtClock option inv_read: {}".format(inv_read))
+            print("ExtClock option inv_msb: {}".format(inv_msb))
+            print("ExtClock option inv_lsb: {}".format(inv_lsb))
+            print("ExtClock option inv_lsb_1st: {}".format(inv_lsb_1st))
+            denominator = clock/mult
+            print("ExtClock denominator: {} ns".format(denominator))
+            period_val = period // denominator
             rd_en_off =  offset_read // denominator
             adc_off =  offset_rst // denominator
             adc_wid =  width_rst // denominator
             msb_off = offset_msb  // denominator
             msb_wid = width_msb  // denominator
-            period = period // denominator
             lsb_fc_wid2 = width_lsb_1st_2 // denominator
             lsb_fc_off1 = offset_lsb_1st_1 // denominator
             rd_en_wid = width_read // denominator
@@ -435,23 +457,25 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             if inv_lsb_1st:
               inv += 1 << 4
 
+
         regsValsToWrite = [
-            (self.REG_EXTCLK_RD_EN_OFF, rd_en_off),
-            (self.REG_EXTCLK_ADC_OFF, adc_off),
-            (self.REG_EXTCLK_ADC_WID, adc_wid),
-            (self.REG_EXTCLK_MSB_OFF, msb_off),
-            (self.REG_EXTCLK_MSB_WID, msb_wid),
-            (self.REG_EXTCLK_PERIOD, period),
-            (self.REG_EXTCLK_LSB_FC_WID2, lsb_fc_wid2),
-            (self.REG_EXTCLK_LSB_FC_OFF1, lsb_fc_off1),
-            (self.REG_EXTCLK_RD_EN_WID, rd_en_wid),
-            (self.REG_EXTCLK_LSB_FC_WID1, lsb_fc_wid1),
-            (self.REG_EXTCLK_LSB_FC_OFF2, lsb_fc_off2),
-            (self.REG_EXTCLK_LSB_S_WID, lsb_s_wid),
-            (self.REG_EXTCLK_LSB_S_OFF, lsb_s_off),
-            (self.REG_EXTCLK_INV, inv),
+            ("rd_en_off",self.REG_EXTCLK_RD_EN_OFF, rd_en_off),
+            ("adc_off",self.REG_EXTCLK_ADC_OFF, adc_off),
+            ("adc_wid",self.REG_EXTCLK_ADC_WID, adc_wid),
+            ("msb_off",self.REG_EXTCLK_MSB_OFF, msb_off),
+            ("msb_wid",self.REG_EXTCLK_MSB_WID, msb_wid),
+            ("period",self.REG_EXTCLK_PERIOD, period_val),
+            ("lsb_fc_wid2",self.REG_EXTCLK_LSB_FC_WID2, lsb_fc_wid2),
+            ("lsb_fc_off1",self.REG_EXTCLK_LSB_FC_OFF1, lsb_fc_off1),
+            ("rd_en_wid",self.REG_EXTCLK_RD_EN_WID, rd_en_wid),
+            ("lsb_fc_wid1",self.REG_EXTCLK_LSB_FC_WID1, lsb_fc_wid1),
+            ("lsb_fc_off2",self.REG_EXTCLK_LSB_FC_OFF2, lsb_fc_off2),
+            ("lsb_s_wid",self.REG_EXTCLK_LSB_S_WID, lsb_s_wid),
+            ("lsb_s_off",self.REG_EXTCLK_LSB_S_OFF, lsb_s_off),
+            ("inv",self.REG_EXTCLK_INV, inv),
         ]
-        for reg,val in regsValsToWrite:
-            val = val & 0xFFFF # only 16 bits for some reason
+        for name,reg,val in regsValsToWrite:
+            val = int(val) & 0xFFFF # only 16 bits for some reason
+            print("ExtClock Register {0:12} number {1:3} set to {2:5} = {2:#08x}".format(name,reg,val))
             self.femb.write_reg(reg,val)
             
