@@ -46,6 +46,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC5_8_data = 0x0
         self.REG_CLKPHASE_data = 0xffff0000
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
+
         ##################################
         # external clock control registers
         ##################################
@@ -64,11 +65,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_EXTCLK_LSB_S_WID = 28
         self.REG_EXTCLK_LSB_S_OFF = 27
         self.REG_EXTCLK_INV = 33
+        ##################################
+        ##################################
 
-        ##################################
-        ##################################
         self.NASICS = 1
-        self.POWERSUPPLYPATH = "/dev/null" # "/dev/usbtmc0"
+        self.POWERSUPPLYPATH = "/dev/usbtmc0"
         self.FUNCGENPATH = "/dev/usbtmc1"
         self.POWERSUPPLYCHANNELS = ["CH1"]
         self.FUNCGENSOURCE = 1
