@@ -362,8 +362,7 @@ class CONFIGURATION_WINDOW(Frame):
         if isAlreadySynced: 
            message = "Already Sync'd"
         else:
-
-      	   message = "Sync'd: latch latency " + str(hex(latchloc1)) + str(hex(latchloc2)) + "\tPhase " + str(hex(phase))
+      	   message = "Latch latency {:#010x} {:#010x} Phase: {:#010x}".format(latchloc1,latchloc2,phase)
         self.adc_sync_result["text"] = message
 
     def call_quit(self):
