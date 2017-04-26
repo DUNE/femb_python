@@ -105,7 +105,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             time.sleep(0.5)
 
             #Set ADC test pattern register
-            self.femb.write_reg( 3, 0x01230000) # test pattern off
+            self.femb.write_reg( 3, 0x01170000) # test pattern off
             #self.femb.write_reg( 3, 0x81230000) # test pattern on
 
             #Set ADC latch_loc
