@@ -13,13 +13,13 @@ def main():
     femb_config.resetBoard()
     femb_config.initBoard()
     hadToSync, latch1, latch2, phase = femb_config.syncADC()
-    femb_config.resetBoard()
-    femb_config.initBoard()
+    #femb_config.resetBoard()
+    #femb_config.initBoard()
     if hadToSync:
       print("Had to sync chips. Please change settings to:")
       if latch2 is None:
-        print("Latch latency {:#08x} Phase: {:#08x}".format(latch1,phase))
+        print("Latch latency {:#010x} Phase: {:#010x}".format(latch1,phase))
       else:
-        print("Latch latency {:#08x} {:#08x} Phase: {:#08x}".format(latch1,latch2,phase))
+        print("Latch latency {:#010x} {:#010x} Phase: {:#010x}".format(latch1,latch2,phase))
     else:
       print("All chips already sync'd")

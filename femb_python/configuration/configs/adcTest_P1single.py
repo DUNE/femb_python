@@ -300,7 +300,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC1_4_data = self.femb.read_reg ( self.REG_LATCHLOC1_4 ) 
         self.REG_LATCHLOC5_8_data = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
         self.REG_CLKPHASE_data    = self.femb.read_reg ( self.REG_CLKPHASE )
-        print("FEMB_CONFIG--> Latch latency {:#08x} {:#08x} Phase: {:#08x}".format(self.REG_LATCHLOC1_4_data,
+        print("FEMB_CONFIG--> Latch latency {:#010x} {:#010x} Phase: {:#010x}".format(self.REG_LATCHLOC1_4_data,
                         self.REG_LATCHLOC5_8_data, self.REG_CLKPHASE_data))
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
@@ -476,6 +476,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         ]
         for name,reg,val in regsValsToWrite:
             val = int(val) & 0xFFFF # only 16 bits for some reason
-            print("ExtClock Register {0:12} number {1:3} set to {2:5} = {2:#08x}".format(name,reg,val))
+            print("ExtClock Register {0:12} number {1:3} set to {2:5} = {2:#06x}".format(name,reg,val))
             self.femb.write_reg(reg,val)
             
