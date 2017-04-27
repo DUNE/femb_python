@@ -129,6 +129,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             #Configure ADC (and external clock inside)
             self.configAdcAsic()
+            #self.configAdcAsic(clockMonostable=True)
 
             # Check that board streams data
             data = self.femb.get_data(1)
@@ -224,9 +225,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if sleep is None:
             sleep=0
         if pdsr is None:
-            pdsr=1
+            pdsr=0
         if pcsr is None:
-            pcsr=1
+            pcsr=0
         if sLSB is None:
             sLSB = 0
         if f1 is None:
@@ -389,9 +390,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def extClock(self, enable=False, 
                 period=500, mult=1, 
-                offset_rst=0, offset_read=450, offset_msb=200, offset_lsb=450, 
-                width_rst=50, width_read=50, width_msb=350, width_lsb=50,
-                offset_lsb_1st_1=50, width_lsb_1st_1=155,
+                offset_rst=0, offset_read=460, offset_msb=200, offset_lsb=450,
+                width_rst=60, width_read=30, width_msb=300, width_lsb=50,
+                offset_lsb_1st_1=50, width_lsb_1st_1=160,
                 offset_lsb_1st_2=450, width_lsb_1st_2=50,
                 inv_rst=True, inv_read=True, inv_msb=False, inv_lsb=False, inv_lsb_1st=False):
         """
