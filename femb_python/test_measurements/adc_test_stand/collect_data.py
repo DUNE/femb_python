@@ -7,6 +7,7 @@ from future import standard_library
 standard_library.install_aliases()
 from ...femb_udp import FEMB_UDP
 from ...test_instrument_interface import RigolDG4000
+from ...test_instrument_interface.keysight_33600A import Keysight_33600A
 from ...write_root_tree import WRITE_ROOT_TREE
 import time
 import datetime
@@ -23,11 +24,10 @@ class COLLECT_DATA(object):
         """
         self.config = config
         self.femb = FEMB_UDP()
-        self.funcgen = RigolDG4000(config.FUNCGENPATH,config.FUNCGENSOURCE)
+        #self.funcgen = RigolDG4000(config.FUNCGENPATH,config.FUNCGENSOURCE)
+        self.funcgen = Keysight_33600A(config.FUNCGENPATH,config.FUNCGENSOURCE)
         self.settlingTime = 0.1 # second
         self.maxTries = 1000
-        self.fitMinV = 0.5
-        self.fitMaxV = 2.5
         self.nPackets = nPackets
         self.nBits = 12
 
@@ -39,8 +39,8 @@ class COLLECT_DATA(object):
         codeHists = []
         bitHists = []
         freqList = [6.2365e4,1.234e5,5.13587e5,9.515125e5]
-        xLow = 0.3
-        xHigh = 2.7
+        xLow =-0.3
+        xHigh = 1.7
         freq = 734
         offsetV = (xLow + xHigh)*0.5
         amplitudeV = (xHigh - xLow)*0.5
@@ -49,7 +49,7 @@ class COLLECT_DATA(object):
         time.sleep(self.settlingTime)
         self.dumpWaveformRootFile(iChip,outPrefix,3,freq,offsetV,amplitudeV,self.femb.MAX_NUM_PACKETS,adcSerial=adcSerial,adcOffset=adcOffset)
         ## Sin
-        amplitudeV -= amplitudeV*0.1
+        amplitudeV *= 0.6
         for freq in freqList:
           self.funcgen.startSin(freq,amplitudeV,offsetV)
           time.sleep(self.settlingTime)
