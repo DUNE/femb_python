@@ -53,16 +53,14 @@ def main():
 
     fig, axs = plt.subplots(4,4)
     fig2, axs2 = plt.subplots(4,4)
-    fig.suptitle("Socket: {}, FE: {} ADC: {}".format(metadata['iChip'],metadata['feSerial'],metadata['adcSerial']))
-    fig2.suptitle("Socket: {}, FE: {} ADC: {}".format(metadata['iChip'],metadata['feSerial'],metadata['adcSerial']))
+    fig.suptitle("Waveforms for socket: {}, FE: {} ADC: {}".format(metadata['iChip'],metadata['feSerial'],metadata['adcSerial']))
+    fig2.suptitle("FFT for socket: {}, FE: {} ADC: {}".format(metadata['iChip'],metadata['feSerial'],metadata['adcSerial']))
     for iChan in waveforms:
       ax = axs[iChan // 4][iChan % 4]
       ax2 = axs2[iChan // 4][iChan % 4]
       waveform = waveforms[iChan]
       ax.plot(waveform)
       ax.set_title("Channel: {}".format(iChan))
-      ax.set_xlabel("Time Sample")
-      ax.set_ylabel("ADC Code")
 
       N = len(waveform)
       freqs = numpy.arange(N) / (N / 2.0)
@@ -75,6 +73,13 @@ def main():
 
       ax2.plot(freqs,fft)
       ax2.set_title("Channel: {}".format(iChan))
-      ax2.set_xlabel("Frequency")
-      ax2.set_ylabel("Power")
+      if (fft > 0.).all():
+        ax2.set_yscale('log')
+
+      if iChan // 4 == 3:
+        ax.set_xlabel("Time Sample")
+        ax2.set_xlabel("Frequency")
+      if iChan % 4 == 0:
+        ax.set_ylabel("ADC Code")
+        ax2.set_ylabel("Power")
     plt.show()

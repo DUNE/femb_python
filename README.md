@@ -105,6 +105,56 @@ source ~/root-6.08.02-pythonAnaconda3/bin/thisroot.sh
 You also need to set the environment variable `FEMB_CONFIG` for most commands.
 Running `femb_init_board` will present you with the available choices.
 
+## Alternate Ubuntu Installation
+
+This version uses the system python3 installation
+
+```
+sudo apt install git dpkg-dev cmake g++ gcc gfortran binutils libx11-dev libxpm-dev libxft-dev libxext-dev libpng libjpeg imagemagick python3-dev python3-matplotlib python3-numpy
+```
+
+Download this file:
+
+https://root.cern.ch/download/root_v6.08.02.source.tar.gz
+
+Now we install ROOT:
+
+```
+tar xzf root_v6.08.02.source.tar.gz
+cd root-6.08.02/
+mkdir builddir
+cd builddir
+cmake -DCMAKE_INSTALL_PREFIX=~/root-6.08.02-python3 -DPYTHON3=ON -DPYTHON_EXECUTABLE=/usr/bin/python3.5 -DPYTHON_INCLUDE_DIR=/usr/include/python3.5m -DPYTHON_LIBRARY=/usr/lib/python3.5/config-3.5m-x86_64-linux-gnu/libpython3.5.so NUMPY_INCLUDE_DIR=/usr/lib/python3/dist-packages/numpy/core/include -Dssl=OFF -Dbuiltin_fftw3=ON .. >& logConfigure
+cmake --build . >& logBuild
+cmake --build . --target install >& logInstall
+source ~/root-6.08.02-python3/bin/thisroot.sh
+```
+
+now go to whatever directory you want femb code to live in and run:
+
+```
+git clone https://github.com/DUNE/femb_python.git
+virtualenv -p python3 --system-site-packages venv
+source venv/bin/activate
+cd femb_python
+./setup.sh
+pip install -e .
+```
+
+You are now all set up. All shell commands begin with femb, so try running
+`femb_init_board`.
+
+From a fresh terminal, whenever you want to work with the femb_python package,
+go to your femb code directory and run:
+
+```
+source ~/root-6.08.02-python3/bin/thisroot.sh
+source venv/bin/activate
+```
+
+You also need to set the environment variable `FEMB_CONFIG` for most commands.
+Running `femb_init_board` will present you with the available choices.
+
 
 ## Installing on Scientific Linux 5 or 6
 
