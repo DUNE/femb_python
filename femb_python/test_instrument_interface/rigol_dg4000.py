@@ -14,8 +14,8 @@ import time
 import os
 import sys
 
-VMIN=0.
-VMAX=3.5
+VMIN=-0.2
+VMAX=3.
 
 class RigolDG4000(object):
     """

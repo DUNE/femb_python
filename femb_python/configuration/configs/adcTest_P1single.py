@@ -220,7 +220,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if testInput is None:
             testInput=1
         if freqInternal is None:
-            freqInternal=0
+            freqInternal=1
         if sleep is None:
             sleep=0
         if pdsr is None:
@@ -229,8 +229,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             pcsr=1
         if sLSB is None:
             sLSB = 0
-        if f0 is None:
-            f0 = 1
         if f1 is None:
             f1 = 0
         if f2 is None:
@@ -243,6 +241,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             f5 = 0
         if not (clockMonostable or clockExternal or clockFromFIFO):
             clockExternal=True
+        # a bunch of things depend on the clock choice
         clk0=0
         clk1=0
         if clockExternal:
@@ -251,7 +250,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         elif clockFromFIFO:
             clk0=0
             clk1=1
-
+        if f0 is None:
+            if clockExternal:
+                f0 = 1
+            else:
+                f0 = 0
         if clockExternal:
             self.extClock(enable=True)
         else:
