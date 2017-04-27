@@ -14,8 +14,8 @@ import time
 import os
 import sys
 
-VMIN=0.
-VMAX=3.5
+VMIN=-0.3000001
+VMAX=2.0000001
 
 class Keysight_33600A(object):
     """
@@ -72,7 +72,8 @@ class Keysight_33600A(object):
         """
         if offset - amp < VMIN or offset + amp > VMAX:
             raise Exception("Voltage swings outside of {} to {} V, may damage things, amp={} offset={}".format(VMIN,VMAX,amp,offset))
-        command = self.sourceString+":apply:sin {},{},{}".format(freq,amp,offset)
+        peakToPeak = amp*2
+        command = self.sourceString+":apply:sin {},{},{}".format(freq,peakToPeak,offset)
         #print(command)
         self.writeCommand(command)
 
@@ -103,9 +104,9 @@ class Keysight_33600A(object):
             raise Exception("Voltage swings outside of {} to {} V, may damage things, minV={}, maxV={}".format(VMIN,VMAX,minV,maxV))
         if minV >= maxV:
             raise Exception("Ramp minVoltage {} >= maxVoltage {}".format(minV,maxV))
-        amplitude = 0.5*(maxV-minV)
+        peakToPeak = (maxV-minV)
         offset = 0.5*(maxV+minV)
-        command = self.sourceString+":apply:triangle {},{},{}".format(freq,amplitude,offset)
+        command = self.sourceString+":apply:triangle {},{},{}".format(freq,peakToPeak,offset)
         #print(command)
         self.writeCommand(command)
         

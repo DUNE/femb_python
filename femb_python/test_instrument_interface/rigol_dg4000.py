@@ -71,10 +71,11 @@ class RigolDG4000(object):
         """
         if offset - amp < VMIN or offset + amp > VMAX:
             raise Exception("Voltage swings outside of {} to {} V, may damage things, amp={} offset={}".format(VMIN,VMAX,amp,offset))
+        peakToPeak = amp*2
         commands = [
             self.sourceString+":FUNCtion SINusoid",
             self.sourceString+":FREQuency {:f}".format(freq),
-            self.sourceString+":VOLTage:AMPLitude {:f}".format(amp),
+            self.sourceString+":VOLTage:AMPLitude {:f}".format(peakToPeak),
             self.sourceString+":VOLTage:OFFSet {:f}".format(offset),
         ]
         for command in commands:
