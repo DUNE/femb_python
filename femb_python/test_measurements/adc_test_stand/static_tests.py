@@ -26,6 +26,7 @@ class STATIC_TESTS(object):
         """
         self.config = config
         self.nBits = 12
+        self.samplingFreq = 2e6
 
     def analyzeLinearity(self,infile,diagnosticPlots=True):
         codeHists, bitHists, iChip, metadata = self.doHistograms(infile)
@@ -258,9 +259,10 @@ class STATIC_TESTS(object):
         """
         #print("makeRampHist: ",iChip,iChan,xLow,xHigh,nSamples)
 
-        samples, iChip, metadata = self.loadWaveforms(iChan,infilename)
+        samples, iChip, metadata = self.loadWaveform(iChan,infilename)
+        cleanedSamples = self.cleanWaveform(samples,metadata['funcFreq'])
         binning = [i-0.5 for i in range(2**self.nBits+1)]
-        hist, bin_edges = numpy.histogram(samples,bins=binning)
+        hist, bin_edges = numpy.histogram(cleanedSamples,bins=binning)
         return hist, iChip, metadata
 
     def makeCodeModXHistogram(self,counts,modNumber):
@@ -434,7 +436,45 @@ class STATIC_TESTS(object):
         ax2.set_ylim(ylow/2.**self.nBits*100,yhigh/2.**self.nBits*100)
         return ax2
 
-    def loadWaveforms(self,iChan,infilename):
+    def cleanWaveform(self,waveform,freq):
+        nSamplesPeriod = self.samplingFreq/freq
+        iFirstPeak = None
+        for iSample in range(int(numpy.floor(nSamplesPeriod/2.)),len(waveform)-1):
+            if not (iFirstPeak is None):
+                break
+            if waveform[iSample] == 4095 and waveform[iSample+1] < 4095:
+                for jSample in range(iSample,-1,-1):
+                    if waveform[jSample-1] < 4095:
+                        iFirstPeak = 0.5*(iSample + jSample)
+                        break
+        result = []
+        for iPeak in range(int(numpy.ceil(iFirstPeak)),len(waveform),int(numpy.floor(nSamplesPeriod))):
+            # first look after peak
+            iStartLook = iPeak + int(0.3*nSamplesPeriod)
+            iStopLook = iPeak + int(nSamplesPeriod/2.) -1 # -1 to not double count 
+            iStopLook = min(iStopLook,len(waveform))
+            iEnd = iStopLook
+            for iLook in range(iStartLook,iStopLook-1):
+                if waveform[iLook+1] > waveform[iLook]:
+                    iEnd = iLook
+                    break
+            # then look before peak
+            iStartLook = iPeak - int(0.3*nSamplesPeriod)
+            iStopLook = iPeak - int(nSamplesPeriod/2.)
+            iStopLook = max(iStopLook,0)
+            iStart = False
+            for iLook in range(iStartLook,iStopLook,-1):
+                if waveform[iLook-1] > waveform[iLook]:
+                    iStart = iLook
+                    break
+            result.extend(waveform[iStart:iEnd+1])
+
+        #fig, ax = plt.subplots()
+        #ax.plot(result)
+        #plt.show()
+        return result
+
+    def loadWaveform(self,iChan,infilename):
         f = ROOT.TFile(infilename)
         tree = f.Get("femb_wfdata")
         metadataTree = f.Get("metadata")
