@@ -55,15 +55,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def resetBoard(self):
         #Reset system
-        self.femb.write_reg( self.REG_RESET, 1)
-        time.sleep(5.)
+        #self.femb.write_reg( self.REG_RESET, 1)
+        time.sleep(1.)
+        #print("RESET")
 
     def initBoard(self):
         print("Initialize board")
 
         #Set DAC to 0
-        self.femb.write_reg( self.REG_SET_DAC , 0x1000 )
-        self.femb.write_reg( self.REG_DAC_ADC_EN , 1 )
+        self.femb.write_reg( self.REG_SET_DAC , 0x0000 )
+        self.femb.write_reg( self.REG_DAC_ADC_EN , 0 )
 
         #disable LEDs
         self.femb.write_reg( self.REG_LED_CNTL , 0 )
@@ -109,6 +110,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 return
 
         print( "Selecting ASIC " + str(asicVal) + ", channel " + str(chVal))
+
+        #note need to add 1 to asicVal
+        asicVal = asicVal + 1
 
         regVal = (asicVal << 8 ) + chVal
         self.femb.write_reg( self.REG_SEL_CH, regVal)

@@ -31,7 +31,7 @@ class Analyze {
 	void doAnalysis();
 	void parseFile();
 	void parseRawData();
-	void parseAsicRawData(unsigned int subrun, unsigned int asic);
+	void parseAsicRawData(unsigned short subrun, unsigned short asic, unsigned short asicCh);
 	void drawWf(unsigned int subrun, unsigned int chan);
 
 	//Files
@@ -39,18 +39,18 @@ class Analyze {
 	TFile *gOut;
 
 	//Constants
-        const unsigned int maxNumAsic = 8;// 35t
-	const unsigned int maxNumChan = 128;// 35t
-        const unsigned int maxNumSubrun = 1024; //want to get rid of this
+        const int maxNumAsic = 8;// 35t
+	const int maxNumAsicCh = 16;// 35t
+	const int maxNumChan = 128;// 35t
+        const int maxNumSubrun = 256; //want to get rid of this
 
-	//variables
 	unsigned int maxSubrunParsed = 0;
 
 	//data objects
 	TCanvas* c0;
 	TGraph *gCh;
-	std::vector<unsigned short> asicPackets[1024][8]; //subrun, asics
-	std::vector<unsigned short> wfIn[1024][128]; //subrun, ch
+	std::vector<unsigned short> asicPackets[256][8][16]; //subrun, asics, asic channels
+	std::vector<unsigned short> wfIn[256][128]; //subrun, ch
 
 	//histograms
 
@@ -86,6 +86,8 @@ Analyze::Analyze(std::string inputFileName){
 
 	//initialize graphs
 	gCh = new TGraph();
+
+  	//output histograms, data objects
 
 	//output tree
 	tTree = new TTree("femb_wfdata","femb_wfdata");
@@ -127,12 +129,10 @@ void Analyze::doAnalysis(){
     	parseFile();
 	parseRawData();
 
-	//save waveforms in output tree
 	//for(int subrun = 0 ; subrun < maxNumSubrun ; subrun++ ){
 	for(unsigned int subrun = 0 ; subrun <= maxSubrunParsed ; subrun++ ){
-		std::cout << "Analsyzing data from subrun " << subrun << std::endl;
+		std::cout << "Analyzing data from subrun " << subrun << std::endl;
 		for( unsigned int ch = 0 ; ch <maxNumChan ; ch++ ){
-			//drawWf(subrun,ch);
 			//fill tree
 			fSubrun = subrun;
 			fChan = ch;
@@ -224,7 +224,7 @@ void Analyze::parseFile(){
 			continue;
 
 		unsigned int packetSize = endPos - basePos + 1;
-		if( packetSize <= 9  )
+		if( packetSize <= 7  )
 			continue;
 
 		//get subrun number
@@ -244,13 +244,13 @@ void Analyze::parseFile(){
 		//get ASIC number
 		unsigned short asicNum = (unsigned short ) ntohs(buffer_ushort[basePos + 6]);
 		//std::cout << "ASIC NUMBER " << asicNum << std::endl;
-		if(  asicNum > maxNumAsic )
+		if(  asicNum >= maxNumAsic )
 			continue;
 
 		//get channel number
 		unsigned short chanNum = (unsigned short ) ntohs(buffer_ushort[basePos + 7]);
 		//std::cout << "CHANNEL NUMBER " << chanNum << std::endl;
-		if(  chanNum > maxNumChan )
+		if(  chanNum >= maxNumAsicCh )
 			continue;
 
 		//get UDP packet number
@@ -260,7 +260,7 @@ void Analyze::parseFile(){
 		//store actual data in vector
 		for( unsigned int line = basePos + 16 ; line <= endPos ;line++){
 			unsigned short dataWord = (unsigned short) ntohs(buffer_ushort[line]);
-			asicPackets[subrunNum][asicNum].push_back(dataWord);
+			asicPackets[subrunNum][asicNum][chanNum].push_back(dataWord);
 			//if( line < basePos + 40 )
 			//	std::cout << std::dec << line << "\t" << basePos << "\t" << endPos << "\t" << std::hex << dataWord << std::endl;
 		}
@@ -274,93 +274,47 @@ void Analyze::parseFile(){
 void Analyze::parseRawData(){
 	//loop over subruns
 	//for(int subrun = 0 ; subrun < maxNumSubrun ; subrun++ ){
-	for(int subrun = 0 ; subrun <= maxSubrunParsed ; subrun++ ){
+	for(unsigned short subrun = 0 ; subrun <= maxSubrunParsed ; subrun++ ){
 		std::cout << "Parsing data from subrun " << subrun << std::endl;
 		//loop over ASIC data packets
-		for(int asic = 0 ; asic < maxNumAsic ; asic++ )
-			parseAsicRawData(subrun,asic);
+		for(unsigned short asic = 0 ; asic < maxNumAsic ; asic++ )
+			for(unsigned short asicCh = 0 ; asicCh < maxNumAsicCh ; asicCh++ )
+				parseAsicRawData(subrun,asic,asicCh);
 	}
 
 	return;
 }
 
-void Analyze::parseAsicRawData(unsigned int subrun, unsigned int asic){
-	if( subrun > maxNumSubrun || asic > maxNumAsic )
+void Analyze::parseAsicRawData(unsigned short subrun, unsigned short asic, unsigned short asicCh){
+	if( subrun >= maxNumSubrun || asic >= maxNumAsic || asicCh >= maxNumAsicCh)
 		return;
-	if( asicPackets[subrun][asic].size() == 0 )
-		return;
-
-	//find 0xface words
-	std::vector<unsigned int> facePos;
-	for( unsigned int line = 0 ; line < asicPackets[subrun][asic].size() ; line++){
-		//std::cout << asicPackets[subrun][asic].at(line) << std::endl;
-		if( asicPackets[subrun][asic].at(line) == 0xface )
-			facePos.push_back(line);
-	}
-
-	//require some minimum number of ASIC packets
-	if( facePos.size() < 3  )
+	if( asicPackets[subrun][asic][asicCh].size() == 0 )
 		return;
 
-	//double check correct packet spacing
-	if( facePos.at(1) - facePos.at(0) != 13 || facePos.at(2) - facePos.at(1) != 13 )
-		return;
-	unsigned int basePos = facePos.at(0);
+	//loop through ASIC packets
+	unsigned int line = 0;
+	while(line < asicPackets[subrun][asic][asicCh].size() ){
+		unsigned short dataWord = asicPackets[subrun][asic][asicCh].at(line);
+		line = line + 1;
 
-	//loop through ASIC packets, ignore clipped packets
-	unsigned int line = basePos;
-	while(line < asicPackets[subrun][asic].size() ){
+		//get sample value
+		//unsigned short sample = (dataWord & 0x0FFF);
+                unsigned short sample = (dataWord & 0xFFFF);
 
-		//don't use clipped packets
-		if( line + 13 >= asicPackets[subrun][asic].size() )
-			break;
+		//get packet channel value, check against input channel
+		//unsigned short chanWord =  ((dataWord & 0xF000) >> 12);
+               
+		//if( chanWord != asicCh ){
+		//	std::cout << "MISMATCH" << std::endl;
+		//	continue;
+		//}
 
-		unsigned short dataWord = asicPackets[subrun][asic].at(line);
-		//std::cout << std::hex << dataWord << std::endl;
-		if( dataWord != 0xface ){
-			//std::cout << "Invalid ASIC packet header, breaking" << std::endl;
-			break; //should always find ASIC packet headers
-		}
-		//get data words in ASIC packets
-		//std::cout << "ASIC PACKET " << std::endl;
-		short wordArray[12];
-		for(int wordNum = 0 ; wordNum < 12 ; wordNum++){
-			unsigned int lineNum = line+1+wordNum;
-			if( lineNum >= asicPackets[subrun][asic].size() ) continue;
-			wordArray[wordNum] = asicPackets[subrun][asic].at(lineNum);
-			//std::cout << "\t" << std::dec << wordNum << "\t" << std::hex << wordArray[wordNum] << std::endl;
-		}
-
-		//update buffer position
-		line = line + 13;
-
-		//attempt to decode ASIC packet
-		short chSamp[16] = {0};
-		chSamp[0] = ((wordArray[5] & 0xFFF0 ) >> 4);
-		chSamp[1] = ((wordArray[4] & 0xFF00 ) >> 8) | ((wordArray[5] & 0x000F ) << 8);
-		chSamp[2] = ((wordArray[4] & 0x00FF ) << 4) | ((wordArray[3] & 0xF000 ) >> 12);
-		chSamp[3] = ((wordArray[3] & 0x0FFF ) >> 0);
-		chSamp[4] = ((wordArray[2] & 0xFFF0 ) >> 4);
-		chSamp[5] = ((wordArray[2] & 0x000F ) << 8) | ((wordArray[1] & 0xFF00 ) >> 8);
-		chSamp[6] = ((wordArray[1] & 0x00FF ) << 4) | ((wordArray[0] & 0xF000 ) >> 12);
-		chSamp[7] = ((wordArray[0] & 0x0FFF ) >> 0);						
-		chSamp[8] = ((wordArray[11] & 0xFFF0 ) >> 4) ;
-		chSamp[9] = ((wordArray[11] & 0x000F ) << 8) | ((wordArray[10] & 0xFF00 ) >> 8) ;
-		chSamp[10] = ((wordArray[10] & 0x00FF ) << 4) | ((wordArray[9] & 0xF000 ) >> 12) ;
-		chSamp[11] = ((wordArray[9] & 0x0FFF ));
-		chSamp[12] = ((wordArray[8] & 0xFFF0 ) >> 4);
-		chSamp[13] = ((wordArray[8] & 0x000F ) << 8) | ((wordArray[7] & 0xFF00 ) >> 8) ;
-		chSamp[14] = ((wordArray[7] & 0x00FF ) << 4) | ((wordArray[6] & 0xF000 ) >> 12) ;
-		chSamp[15] = ((wordArray[6] & 0x0FFF ) );
-
-		//std::cout << "PARSED SAMPLES " << std::endl;
-		for(int ch = 0 ; ch < 16 ; ch++){
-			//std::cout << asic << "\t" << ch << "\t" << std::hex << chSamp[ch] << "\t" << std::dec << chSamp[ch] << std::endl;
-			int chNum = 16*asic + ch;
-			if( chNum < 0 || chNum > 127 )
-				continue;
-			wfIn[subrun][chNum].push_back(chSamp[ch]);
-		}
+		//calculate channel number
+		int chNum = 16*asic + asicCh;
+		if( chNum < 0 || chNum > 127 )
+			continue;
+		wfIn[subrun][chNum].push_back(sample);
+	
 		//char ct;
 		//std::cin >> ct;
 	}//end loop over asic packets
@@ -395,6 +349,7 @@ int main(int argc, char *argv[]){
     cout<<"Usage: parseBinaryFile [inputFilename]"<<endl;
     return 0;
   }
+
   std::string inputFileName = argv[1];
   std::cout << "inputFileName " << inputFileName << std::endl;
 
