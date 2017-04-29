@@ -29,7 +29,7 @@ class STATIC_TESTS(object):
         self.samplingFreq = 2e6
 
     def analyzeLinearity(self,infile,diagnosticPlots=True):
-        codeHists, bitHists, iChip, metadata = self.doHistograms(infile)
+        codeHists, bitHists, minCodes, minCodeVs, iChip, metadata = self.doHistograms(infile)
         allStats = []
         figmanyDNL = None
         figmanyINL = None
@@ -92,6 +92,8 @@ class STATIC_TESTS(object):
                 chanStats["DNL75percNoStuck"] = DNL75percNoStuck
                 chanStats["DNL75percStuck"] = DNL75percStuck
                 chanStats["INLabs75perc"] = INLabs75perc
+                chanStats["minCode"] = minCodes[iChan]
+                chanStats["minCodeV"] = minCodeVs[iChan]
                 allStats.append(chanStats)
 
                 if diagnosticPlots:
@@ -218,10 +220,14 @@ class STATIC_TESTS(object):
         #fig, ax = plt.subplots(figsize=(8,8))
         codeHists = []
         bitHists = []
+        minCodes = []
+        minCodeVs = []
         iChip = -1
         metadata = None
         for iChan in range(16):
-           hist, iChip, metadata = self.makeRampHist(iChan,infilename)
+           hist, minCode, minCodeV, iChip, metadata = self.makeRampHist(iChan,infilename)
+           minCodes.append(minCode)
+           minCodeVs.append(minCodeV)
            codeHists.append(hist)
            #ax.plot(range(len(hist)),hist,"ko")
            #ax.set_xlabel("ADC Code")
@@ -250,7 +256,7 @@ class STATIC_TESTS(object):
            ##fig.savefig(filename+".pdf")
            #ax.cla()
         #plt.close(fig)
-        return codeHists, bitHists, iChip, metadata
+        return codeHists, bitHists, minCodes, minCodeVs, iChip, metadata
 
     def makeRampHist(self,iChan,infilename):
         """
@@ -260,10 +266,10 @@ class STATIC_TESTS(object):
         #print("makeRampHist: ",iChip,iChan,xLow,xHigh,nSamples)
 
         samples, iChip, metadata = self.loadWaveform(iChan,infilename)
-        cleanedSamples = self.cleanWaveform(samples,metadata)
+        cleanedSamples, minCode, minCodeV = self.cleanWaveform(samples,metadata)
         binning = [i-0.5 for i in range(2**self.nBits+1)]
         hist, bin_edges = numpy.histogram(cleanedSamples,bins=binning)
-        return hist, iChip, metadata
+        return hist, minCode, minCodeV, iChip, metadata
 
     def makeCodeModXHistogram(self,counts,modNumber):
         """
@@ -452,43 +458,48 @@ class STATIC_TESTS(object):
         # Also find the min ADC code and the time from the peak to it
         cleanWaveform = []
         minCodes = []
-        minCodeDTs = []
+        minCodeVs = []
         for iPeak in range(int(numpy.ceil(iFirstPeak)),len(waveform),int(numpy.floor(nSamplesPeriod))):
-            # first look after peak
-            iStartLook = iPeak + int(0.3*nSamplesPeriod)
-            iStopLook = iPeak + int(nSamplesPeriod/2.) -1 # -1 to not double count 
-            iStopLook = min(iStopLook,len(waveform))
-            iEnd = iStopLook-1
-            for iLook in range(iStartLook,iStopLook-1):
-                if waveform[iLook+1] > waveform[iLook]:
-                    iEnd = iLook
-                    break
-            # then look before peak
+            # First look before peak
             iStartLook = iPeak - int(0.3*nSamplesPeriod)
             iStopLook = iPeak - int(nSamplesPeriod/2.)
             iStopLook = max(iStopLook,0)
-            iStart = False
+            minCode = numpy.min(waveform[iStopLook:iStartLook])
+            iStart = iStopLook
             for iLook in range(iStartLook,iStopLook,-1):
-                if waveform[iLook-1] > waveform[iLook]:
+                if waveform[iLook] <= minCode:
                     iStart = iLook
                     break
-            cleanWaveform.extend(waveform[iStart:iEnd+1])
-            # Also find the min ADC code and the time from the peak to it
-            minCodes.append([waveform[iStart],iPeak-iStart])
-            minCodes.append([waveform[iEnd],iEnd-iPeak])
+            minCodeV = metadata["funcOffset"]+metadata["funcAmp"]-(iPeak-iStart)/nSamplesPeriod*metadata["funcAmp"]*4
+            minCodes.append(minCode)
+            minCodeVs.append(minCodeV)
+            # then look after peak
+            iStartLook = iPeak + int(0.3*nSamplesPeriod)
+            iStopLook = iPeak + int(nSamplesPeriod/2.) -1 # -1 to not double count 
+            iStopLook = min(iStopLook,len(waveform))
+            if iStartLook < len(waveform):
+              minCode = numpy.min(waveform[iStartLook:iStopLook-1])
+              iEnd = iStopLook-1
+              for iLook in range(iStartLook,iStopLook-1):
+                  if waveform[iLook] <= minCode:
+                      iEnd = iLook
+                      break
+              minCodeV = metadata["funcOffset"]+metadata["funcAmp"]-(iEnd-iPeak)/nSamplesPeriod*metadata["funcAmp"]*4
+              minCodes.append(minCode)
+              minCodeVs.append(minCodeV)
+              cleanWaveform.extend(waveform[iStart:iEnd+1])
 
-        #minCodes.sort(key=lambda x: x[0])
-        minCodes = numpy.array(minCodes)
-        print(minCodes[:,0])
-        print(minCodes[:,1])
+        #print(minCodes)
+        #print(minCodeVs)
+        minCode = numpy.mean(minCodes)
+        minCodeVs = numpy.mean(minCodeVs)
+        #print(minCode,minCodeV,metadata['funcOffset'],metadata['funcAmp'],nSamplesPeriod)
+
         #fig, ax = plt.subplots()
         #ax.plot(cleanWaveform)
         #plt.show()
 
-        # Now Find min ADC code, the corresponding voltage
-        # and the voltage when we get to 4095
-        
-        return numpy.array(cleanWaveform)
+        return numpy.array(cleanWaveform), minCode, minCodeV
 
     def loadWaveform(self,iChan,infilename):
         f = ROOT.TFile(infilename)
