@@ -47,7 +47,8 @@ class WRITE_ROOT_TREE(object):
         self.gain = 0
         self.shape = 0
         self.base = 0
-        self.adcOffset = -2
+        self.adcOffset = -2 # -2 undefined, -1 off, 0-15 on with various values
+        self.adcClock = -1 # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
         # func generator
         self.funcType = 0 # 0 means not active, 1 constant, 2 sin, 3 ramp
         self.funcFreq = 0.
@@ -98,6 +99,7 @@ class WRITE_ROOT_TREE(object):
         _shape = array( 'H', [self.shape] )
         _base = array( 'H', [self.base] )
         _adcOffset = array( 'h', [self.adcOffset] )
+        _adcClock = array( 'h', [self.adcClock] )
         _funcType = array( 'H', [self.funcType] )
         _funcAmp = array( 'f', [self.funcAmp] )
         _funcOffset = array( 'f', [self.funcOffset] )
@@ -120,6 +122,7 @@ class WRITE_ROOT_TREE(object):
         metatree.Branch( 'shape',_shape, 'shape/s')
         metatree.Branch( 'base',_base, 'base/s')
         metatree.Branch( 'adcOffset',_adcOffset, 'adcOffset/S')
+        metatree.Branch( 'adcClock',_adcClock, 'adcClock/S')
         metatree.Branch( 'funcType',_funcType, 'funcType/s')
         metatree.Branch( 'funcAmp',_funcAmp, 'funcAmp/F')
         metatree.Branch( 'funcOffset',_funcOffset, 'funcOffset/F')

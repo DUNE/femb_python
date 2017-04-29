@@ -31,7 +31,7 @@ class COLLECT_DATA(object):
         self.nPackets = nPackets
         self.nBits = 12
 
-    def getData(self,outPrefix,iChip,adcSerial=-1,adcOffset=-2):
+    def getData(self,outPrefix,iChip,adcSerial=-1,adcOffset=-2,adcClock=-1):
         """
         Creates data files starting with outPrefix for iChip for ramp and sin inputs
         """
@@ -47,16 +47,16 @@ class COLLECT_DATA(object):
         ## Ramp
         self.funcgen.startRamp(freq,xLow,xHigh)
         time.sleep(self.settlingTime)
-        self.dumpWaveformRootFile(iChip,outPrefix,3,freq,offsetV,amplitudeV,self.femb.MAX_NUM_PACKETS,adcSerial=adcSerial,adcOffset=adcOffset)
+        self.dumpWaveformRootFile(iChip,outPrefix,3,freq,offsetV,amplitudeV,self.femb.MAX_NUM_PACKETS,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock)
         ## Sin
         amplitudeV *= 0.6
         for freq in freqList:
           self.funcgen.startSin(freq,amplitudeV,offsetV)
           time.sleep(self.settlingTime)
-          self.dumpWaveformRootFile(iChip,outPrefix,2,freq,offsetV,amplitudeV,self.femb.MAX_NUM_PACKETS,adcSerial=adcSerial,adcOffset=adcOffset)
+          self.dumpWaveformRootFile(iChip,outPrefix,2,freq,offsetV,amplitudeV,self.femb.MAX_NUM_PACKETS,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock)
         self.funcgen.stop()
 
-    def dumpWaveformRootFile(self,iChip,fileprefix,functype,freq,offsetV,amplitudeV,nPackets=None,adcSerial=-1,adcOffset=-2):
+    def dumpWaveformRootFile(self,iChip,fileprefix,functype,freq,offsetV,amplitudeV,nPackets=None,adcSerial=-1,adcOffset=-2,adcClock=-1):
         filename = "{}_functype{}_freq{:.3f}_offset{:.3f}_amplitude{:.3f}.root".format(fileprefix,functype,freq,offsetV,amplitudeV)
         if not nPackets:
           nPackets = self.nPackets
@@ -69,6 +69,7 @@ class COLLECT_DATA(object):
         wrt.funcAmp = amplitudeV
         wrt.adcSerial = adcSerial
         wrt.adcOffset = adcOffset
+        wrt.adcClock = adcClock
         wrt.record_data_run()
 
 def main():
