@@ -73,7 +73,11 @@ class STATIC_TESTS(object):
                 codeHist = codeHists[iChan]
                 sumAllCodeHists += codeHist
                 indices, choppedCodeHist = self.chopOffUnfilledBins(codeHist)
+                indices256, choppedCodeHist256 = self.chopLowCodes(256,codeHist)
+                indices512, choppedCodeHist512 = self.chopLowCodes(512,codeHist)
                 dnl, inl = self.makeLinearityHistograms(indices,choppedCodeHist)
+                dnl256, inl256 = self.makeLinearityHistograms(indices256,choppedCodeHist256)
+                dnl512, inl512 = self.makeLinearityHistograms(indices512,choppedCodeHist512)
                 dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(indices,choppedCodeHist,True)
                 stuckCodeFraction, stuckCodeFractionShouldBe = self.getStuckCodeFraction(indices,choppedCodeHist)
                 stuckCodeDNL, stuckCodeDNL0, stuckCodeDNL1 = self.getStuckCodeDNLs(indices,dnl)
@@ -81,17 +85,29 @@ class STATIC_TESTS(object):
                 DNL75percNoStuck = numpy.percentile(dnlKillStuckCodes,75)
                 DNL75percStuck = numpy.percentile(stuckCodeDNL,75)
                 INLabs75perc = numpy.percentile(abs(inl),75)
+                DNL75perc256 = numpy.percentile(dnl256,75)
+                INLabs75perc256 = numpy.percentile(abs(inl256),75)
+                DNL75perc512 = numpy.percentile(dnl512,75)
+                INLabs75perc512 = numpy.percentile(abs(inl512),75)
 
                 chanStats["DNLmax"] = max(dnl)
                 chanStats["INLabsMax"] = max(abs(inl))
+                chanStats["DNLmax256"] = max(dnl256)
+                chanStats["INLabsMax256"] = max(abs(inl256))
+                chanStats["DNLmax512"] = max(dnl512)
+                chanStats["INLabsMax512"] = max(abs(inl512))
                 chanStats["DNLmaxNoStuck"] = max(dnlKillStuckCodes)
                 chanStats["INLabsNoStuck"] = max(abs(inlKillStuckCodes))
                 chanStats["stuckCodeFrac"] = stuckCodeFraction
                 chanStats["stuckCodeFracShouldBe"] = stuckCodeFractionShouldBe
                 chanStats["DNL75perc"] = DNL75perc
+                chanStats["DNL75perc256"] = DNL75perc256
+                chanStats["DNL75perc512"] = DNL75perc512
                 chanStats["DNL75percNoStuck"] = DNL75percNoStuck
                 chanStats["DNL75percStuck"] = DNL75percStuck
                 chanStats["INLabs75perc"] = INLabs75perc
+                chanStats["INLabs75perc256"] = INLabs75perc256
+                chanStats["INLabs75perc512"] = INLabs75perc512
                 chanStats["minCode"] = minCodes[iChan]
                 chanStats["minCodeV"] = minCodeVs[iChan]
                 allStats.append(chanStats)
@@ -150,7 +166,11 @@ class STATIC_TESTS(object):
                     
                     ### On to INL
                     ax.plot(indices,inl,"k-",label="All Codes")
+                    ax.plot(indices256,inl256,"b-",label="All Codes$\geq$256")
+                    ax.plot(indices512,inl512,"c-",label="All Codes$\geq$512")
                     manyaxesINL[iChan].plot(indices,inl,"k-",label="All Codes")
+                    manyaxesINL[iChan].plot(indices256,inl256,"b-",label="All Codes$\geq$256")
+                    manyaxesINL[iChan].plot(indices512,inl512,"c-",label="All Codes$\geq$512")
                     #ax.plot(indices,inlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("INL [Least Significant Bits]")
@@ -163,7 +183,7 @@ class STATIC_TESTS(object):
                     axRight.set_ylabel("INL [% of Full Scale]")
                     #axFSR = self.makePercentFSRAxisOnLSBAxis(ax)
                     #axFSR.set_label("DNL [% of FSR]")
-                    #ax.legend(loc='best')
+                    ax.legend(loc='best')
                     filename = "ADC_INL_Chip{}_Chan{}_Offset{}".format(iChip,iChan,metadata["adcOffset"])
                     fig.savefig(filename+".png")
                     #fig.savefig(filename+".pdf")
@@ -332,6 +352,20 @@ class STATIC_TESTS(object):
             break
         indices = numpy.arange(iStart,iEnd+1)
         outcounts = counts[iStart:iEnd+1]
+        assert(len(indices)==len(outcounts))
+        return indices, outcounts
+
+    def chopLowCodes(self,lowestBin,counts):
+        """
+        Chops bins lower than lowestBin
+
+        counts is an array of counts
+
+        Returns an array of indices and an array of the corresponding counts
+        """
+        indices = numpy.arange(len(counts))
+        indices = indices[lowestBin:]
+        outcounts = counts[lowestBin:]
         assert(len(indices)==len(outcounts))
         return indices, outcounts
 
