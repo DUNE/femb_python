@@ -260,7 +260,7 @@ class STATIC_TESTS(object):
         #print("makeRampHist: ",iChip,iChan,xLow,xHigh,nSamples)
 
         samples, iChip, metadata = self.loadWaveform(iChan,infilename)
-        cleanedSamples = self.cleanWaveform(samples,metadata['funcFreq'])
+        cleanedSamples = self.cleanWaveform(samples,metadata)
         binning = [i-0.5 for i in range(2**self.nBits+1)]
         hist, bin_edges = numpy.histogram(cleanedSamples,bins=binning)
         return hist, iChip, metadata
@@ -436,7 +436,8 @@ class STATIC_TESTS(object):
         ax2.set_ylim(ylow/2.**self.nBits*100,yhigh/2.**self.nBits*100)
         return ax2
 
-    def cleanWaveform(self,waveform,freq):
+    def cleanWaveform(self,waveform,metadata):
+        freq = metadata["funcFreq"]
         nSamplesPeriod = self.samplingFreq/freq
         iFirstPeak = None
         for iSample in range(int(numpy.floor(nSamplesPeriod/2.)),len(waveform)-1):
@@ -447,13 +448,17 @@ class STATIC_TESTS(object):
                     if waveform[jSample-1] < 4095:
                         iFirstPeak = 0.5*(iSample + jSample)
                         break
-        result = []
+        # Get rid of spurious jumps upward for very low voltage inputs
+        # Also find the min ADC code and the time from the peak to it
+        cleanWaveform = []
+        minCodes = []
+        minCodeDTs = []
         for iPeak in range(int(numpy.ceil(iFirstPeak)),len(waveform),int(numpy.floor(nSamplesPeriod))):
             # first look after peak
             iStartLook = iPeak + int(0.3*nSamplesPeriod)
             iStopLook = iPeak + int(nSamplesPeriod/2.) -1 # -1 to not double count 
             iStopLook = min(iStopLook,len(waveform))
-            iEnd = iStopLook
+            iEnd = iStopLook-1
             for iLook in range(iStartLook,iStopLook-1):
                 if waveform[iLook+1] > waveform[iLook]:
                     iEnd = iLook
@@ -467,12 +472,23 @@ class STATIC_TESTS(object):
                 if waveform[iLook-1] > waveform[iLook]:
                     iStart = iLook
                     break
-            result.extend(waveform[iStart:iEnd+1])
+            cleanWaveform.extend(waveform[iStart:iEnd+1])
+            # Also find the min ADC code and the time from the peak to it
+            minCodes.append([waveform[iStart],iPeak-iStart])
+            minCodes.append([waveform[iEnd],iEnd-iPeak])
 
+        #minCodes.sort(key=lambda x: x[0])
+        minCodes = numpy.array(minCodes)
+        print(minCodes[:,0])
+        print(minCodes[:,1])
         #fig, ax = plt.subplots()
-        #ax.plot(result)
+        #ax.plot(cleanWaveform)
         #plt.show()
-        return result
+
+        # Now Find min ADC code, the corresponding voltage
+        # and the voltage when we get to 4095
+        
+        return numpy.array(cleanWaveform)
 
     def loadWaveform(self,iChan,infilename):
         f = ROOT.TFile(infilename)
@@ -499,6 +515,20 @@ class STATIC_TESTS(object):
                     adccode = [i >> (12 - self.nBits) for i in adccode]
                 result.extend(adccode)
         return result, metadata['adcSerial'], metadata
+
+    def centralFiniteDifference(self,waveform,i):
+        """
+        1st deriv 4th order
+        """
+        #return 1/12.*waveform[i-2]-2/3.*waveform[i-1]+2/3.*waveform[i+1]-1/12.*waveform[i+2]
+        return (0.25*waveform[i-2]-2*waveform[i-1]+2*waveform[i+1]-0.25*waveform[i+2])/3.
+
+    def forwardFiniteDifference(self,waveform,i):
+        """
+        1st deriv 4th order
+        """
+        #return -25./12*waveform[i]+4*waveform[i+1]-3*waveform[i+2]+4/3*waveform[i+3]-0.25*waveform[i+4]
+        return (-25./12*waveform[i]+4*waveform[i+1]-3*waveform[i+2]+4/3*waveform[i+3]-0.25*waveform[i+4])
         
 def main():
     from ...configuration.argument_parser import ArgumentParser
