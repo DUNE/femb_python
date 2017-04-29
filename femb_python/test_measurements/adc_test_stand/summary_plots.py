@@ -32,71 +32,81 @@ class SUMMARY_PLOTS(object):
 
     def staticSummary(self,plotAll):
         staticTests = self.stats["static"]
-        fig, ((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2,figsize=(12,12))
-        fig.suptitle("ADC {}, Test Time: {}".format(self.serial,self.time))
-        ax1.set_xlabel("Channel")
-        ax2.set_xlabel("Channel")
-        ax3.set_xlabel("Channel")
-        ax4.set_xlabel("Channel")
-        ax1.set_ylabel("DNL [LSB]")
-        ax2.set_ylabel("Stuck Code Fraction")
-        ax3.set_ylabel("INL [LSB]")
-        ax4.set_ylabel("????")
-        colors = ["grey","m","plum","darkorchid","firebrick","red","sienna","sandybrown","gold","olivedrab","chartreuse","seagreen","paleturquoise","deepskyblue","navy","blue"]*2
-        colors.reverse()
-        linestyle = ['solid',"dashed","dashdot","dotted"]*10
-        markerstyle = ['o','s','*','p','^']*10
-        legendDict1 = {}
-        legendDict2 = {}
-        legendDict3 = {}
-        legendDict4 = {}
-        colorDict = {}
-        for offset, color in zip(sorted(staticTests),colors[:len(staticTests)]):
-            i1 = 0
-            im1 = 0
-            i2 = 0
-            i3 = 0
-            i4 = 0
-            colorDict[offset] = color
-            for stat in sorted(staticTests[offset]):
-              if stat[:13] == "stuckCodeFrac":
-                if stat == "stuckCodeFracShouldBe":
-                  ax2.plot(staticTests[offset][stat],label=stat,c='k',ls="dotted")
-                  legendDict2[stat] = ("dotted",None)
-                else:
-                  #ax2.plot(staticTests[offset][stat],label=stat,c=color,marker=markerstyle[i2],ls="")
-                  ax2.plot(staticTests[offset][stat],label=stat,c=color,ls=linestyle[i2])
-                  legendDict2[stat] = (linestyle[i2],None)
-                  i2 += 1
-              elif stat[:3] == "DNL":
-                if "max" in stat:
-                  ax1.plot(staticTests[offset][stat],label=stat,c=color,marker=markerstyle[im1],ls="")
-                  legendDict1[stat] = ("",markerstyle[im1])
-                  im1 += 1
-                else:
-                  ax1.plot(staticTests[offset][stat],label=stat,c=color,ls=linestyle[i1])
-                  legendDict1[stat] = (linestyle[i1],None)
-                  i1 += 1
-              elif stat[:3] == "INL":
-                #ax3.plot(staticTests[offset][stat],label=stat,c=color,marker=markerstyle[i3],ls="")
-                ax3.plot(staticTests[offset][stat],label=stat,c=color,ls=linestyle[i3])
-                legendDict3[stat] = (linestyle[i3],None)
-                i3 += 1
-              else:
-                ax4.plot(staticTests[offset][stat],label=stat,c=color,ls=linestyle[i4])
-                i4 += 1
-            if not plotAll:
-                break
-        ax1.set_yscale("log")
-        ax3.set_yscale("log")
-        self.doLegend(ax1,legendDict1)
-        self.doLegend(ax2,legendDict2)
-        self.doLegend(ax3,legendDict3)
-        self.doLegend(fig,colorDict,patches=True,offsets=True)
-        fig.savefig(self.outfileprefix + "_static.png")
-        fig.savefig(self.outfileprefix + "_static.pdf")
-        plt.close(fig)
-        self.legendHandles = []
+        for iClock in sorted(staticTests):
+            data = staticTests[iClock]
+            clockFn = "extClock"
+            clockLabel="External Clock"
+            if iClock == 1:
+              clockFn = "intClock"
+              clockLabel="Internal Clock"
+            elif iClock == 2:
+              clockFn = "fifoClock"
+              clockLabel="FIFO Clock"
+            fig, ((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2,figsize=(12,12))
+            fig.suptitle("ADC {}, {}, Test Time: {}".format(self.serial,clockLabel,self.time))
+            ax1.set_xlabel("Channel")
+            ax2.set_xlabel("Channel")
+            ax3.set_xlabel("Channel")
+            ax4.set_xlabel("Channel")
+            ax1.set_ylabel("DNL [LSB]")
+            ax2.set_ylabel("Stuck Code Fraction")
+            ax3.set_ylabel("INL [LSB]")
+            ax4.set_ylabel("????")
+            colors = ["grey","m","plum","darkorchid","firebrick","red","sienna","sandybrown","gold","olivedrab","chartreuse","seagreen","paleturquoise","deepskyblue","navy","blue"]*2
+            colors.reverse()
+            linestyle = ['solid',"dashed","dashdot","dotted"]*10
+            markerstyle = ['o','s','*','p','^']*10
+            legendDict1 = {}
+            legendDict2 = {}
+            legendDict3 = {}
+            legendDict4 = {}
+            colorDict = {}
+            for offset, color in zip(sorted(data),colors[:len(data)]):
+                i1 = 0
+                im1 = 0
+                i2 = 0
+                i3 = 0
+                i4 = 0
+                colorDict[offset] = color
+                for stat in sorted(data[offset]):
+                  if stat[:13] == "stuckCodeFrac":
+                    if stat == "stuckCodeFracShouldBe":
+                      ax2.plot(data[offset][stat],label=stat,c='k',ls="dotted")
+                      legendDict2[stat] = ("dotted",None)
+                    else:
+                      #ax2.plot(data[offset][stat],label=stat,c=color,marker=markerstyle[i2],ls="")
+                      ax2.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i2])
+                      legendDict2[stat] = (linestyle[i2],None)
+                      i2 += 1
+                  elif stat[:3] == "DNL":
+                    if "max" in stat:
+                      ax1.plot(data[offset][stat],label=stat,c=color,marker=markerstyle[im1],ls="")
+                      legendDict1[stat] = ("",markerstyle[im1])
+                      im1 += 1
+                    else:
+                      ax1.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i1])
+                      legendDict1[stat] = (linestyle[i1],None)
+                      i1 += 1
+                  elif stat[:3] == "INL":
+                    #ax3.plot(data[offset][stat],label=stat,c=color,marker=markerstyle[i3],ls="")
+                    ax3.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i3])
+                    legendDict3[stat] = (linestyle[i3],None)
+                    i3 += 1
+                  else:
+                    ax4.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i4])
+                    i4 += 1
+                if not plotAll:
+                    break
+            ax1.set_yscale("log")
+            ax3.set_yscale("log")
+            self.doLegend(ax1,legendDict1)
+            self.doLegend(ax2,legendDict2)
+            self.doLegend(ax3,legendDict3)
+            self.doLegend(fig,colorDict,patches=True,offsets=True)
+            fig.savefig(self.outfileprefix + "_static_"+clockFn+".png")
+            fig.savefig(self.outfileprefix + "_static_"+clockFn+".pdf")
+            plt.close(fig)
+            self.legendHandles = []
 
     def doLegend(self,ax,legendDict,patches=False,offsets=False):
         legendHandles = []

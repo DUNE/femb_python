@@ -32,22 +32,28 @@ class ADC_TEST_SUMMARY(object):
     def makeSummaries(self):
         """
         makes keys:
-        self.staticSummary[chipSerial][offset][statistic][channel]
+        self.staticSummary[chipSerial][clock][offset][statistic][channel]
 
         from:
-        self.allStatsRaw[offset][chipSerial]
+        self.allStatsRaw[clock][offset][chipSerial]
         """
         allStatsRaw = self.allStatsRaw
-        offsets = sorted(allStatsRaw.keys())
+        clocks = sorted(allStatsRaw.keys())
+        offsets = []
         chipSerials = []
-        for offset in offsets:
-            chipSerials = sorted(allStatsRaw[offset].keys())
+        for clock in clocks:
+            offsets = sorted(allStatsRaw[clock].keys())
+            for offset in offsets:
+                chipSerials = sorted(allStatsRaw[clock][offset].keys())
+                break
             break
         staticSummary = {}
         for chipSerial in chipSerials:
             staticSummary[chipSerial]={}
-            for offset in offsets:
-                staticSummary[chipSerial][offset] = self.makeStaticSummary(allStatsRaw[offset][chipSerial]["static"])
+            for clock in clocks:
+                staticSummary[chipSerial][clock]={}
+                for offset in offsets:
+                    staticSummary[chipSerial][clock][offset] = self.makeStaticSummary(allStatsRaw[clock][offset][chipSerial]["static"])
         self.staticSummary = staticSummary
 
     def makeStaticSummary(self,stats):
@@ -85,6 +91,7 @@ def main():
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Runs ADC tests")
     parser.addNPacketsArgs(False,100)
+    parser.add_argument("-s", "--singleConfig",help="Only run a single configuration (normally runs all clocks and offsets)",action='store_true')
     args = parser.parse_args()
   
     config = CONFIG()
@@ -94,27 +101,47 @@ def main():
     dynamic_tests = DYNAMIC_TESTS(config)
     startDateTime = datetime.datetime.now().replace(microsecond=0).isoformat()
 
+    clocks = [0,1] # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
+    offsets = range(-1,16)
+    if args.singleConfig:
+        clocks = [0]
+        offsets = [-1]
+
     allStatsRaw = {}
-    #for offset in range(-1,16):
-    for offset in [-1,0]:
-      offsetStats = {}
-      if offset <=0:
-        config.configAdcAsic(enableOffsetCurrent=0,offsetCurrent=0)
-      else:
-        config.configAdcAsic(enableOffsetCurrent=1,offsetCurrent=offset)
-      for iChip in range(config.NASICS):
-          chipStats = {}
-          fileprefix = "adcTestData_{}_chip{}_offset{}".format(startDateTime,iChip,offset)
-          collect_data.getData(fileprefix,iChip,adcOffset=offset)
-          static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
-          assert(len(static_fns)==1)
-          static_fn = static_fns[0]
-          staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
-          dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
-          chipStats["static"] = staticStats
-          chipStats["dynamic"] = dynamicStats
-          offsetStats[iChip] = chipStats
-      allStatsRaw[offset] = offsetStats
+    for clock in clocks: # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
+        allStatsRaw[clock] = {}
+        clockMonostable=False
+        clockFromFIFO=False
+        clockExternal=False
+        if clock == 0:
+            clockExternal=True
+        elif clock == 1:
+            clockMonostable=True
+        else:
+            clockFromFIFO=True
+        for offset in offsets:
+            configStats = {}
+            if offset <=0:
+                config.configAdcAsic(enableOffsetCurrent=0,offsetCurrent=0,
+                                    clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
+                                    clockExternal=clockExternal)
+            else:
+                config.configAdcAsic(enableOffsetCurrent=1,offsetCurrent=offset,
+                                    clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
+                                    clockExternal=clockExternal)
+            for iChip in range(config.NASICS):
+                chipStats = {}
+                fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}".format(startDateTime,iChip,clock,offset)
+                collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset)
+                static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
+                assert(len(static_fns)==1)
+                static_fn = static_fns[0]
+                staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
+                dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
+                chipStats["static"] = staticStats
+                chipStats["dynamic"] = dynamicStats
+                configStats[iChip] = chipStats
+            allStatsRaw[clock][offset] = configStats
     summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime)
     summary.write_jsons("adcTest_{}".format(startDateTime))
     for serial in summary.get_serials():
