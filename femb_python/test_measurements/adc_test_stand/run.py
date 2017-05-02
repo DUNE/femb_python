@@ -87,8 +87,17 @@ class ADC_TEST_SUMMARY(object):
 
 def runTests(config,adcSerialNumbers,username,singleConfig=True):
     """
-    adcCodes is a list of a serial numbers for the ADCs
-    username is the operator user name
+    Runs the ADC tests for all chips on the ADC test board.
+
+    config is the CONFIG object for the test board.
+    adcSerialNumbers is a list of a serial numbers for the ADC ASICS
+    username is the operator user name string
+    singleConfig is a boolean. If True only test the ASICS with the external clock
+        and no offset current. If False test both clocks and all offset current
+        settings.
+
+    returns a list of bools whether an asic passed the tests. The list
+        corresponds to the input serial number list.  
     """
 
     collect_data = COLLECT_DATA(config,100)
