@@ -106,7 +106,11 @@ class FEMB_TEST(object):
 
         #initialize FEMB configuration to known state
         #self.femb_config.configFeAsic(2,1,0)
-        #self.femb_config.setInternalPulser(1,0x0)
+        #self.femb_config.setInternalPulser(1,0x400)
+        self.femb_config.configFeAsic(0,0,0)
+        #self.femb_config.setDacPulser(0,0x0000)
+        #self.femb_config.setDacPulser(1,0xFF00)
+        self.femb_config.setInternalPulser(0,0x0)
 
         #wait to make sure HS link is back on
         #sleep(0.5)
