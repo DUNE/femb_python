@@ -61,7 +61,6 @@ class CALIBRATE_RAMP(object):
             #if iEntry > 10:
             #    break
 
-        outtree.Print()
         fout.Write()
         fout.Close()
 
