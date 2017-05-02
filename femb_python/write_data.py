@@ -20,13 +20,14 @@ class WRITE_DATA(object):
 
     def __init__(self):
         self.femb = FEMB_UDP()
-        self.filedir = "data/"
         self.filename = "output_write_data.bin"
         self.numpacketsrecord = 100
         self.run = 0
         self.runtype = 0
         self.runversion = 0
         self.date = int( datetime.datetime.today().strftime('%Y%m%d%H%M%S') )
+        self.filedir = "data/"
+        #self.filedir = "data/data_" + str( self.date )
 
     def open_file(self):
         print("write_data: Open file")
