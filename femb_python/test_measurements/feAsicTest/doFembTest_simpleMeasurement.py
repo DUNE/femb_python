@@ -2,9 +2,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 from __future__ import division
 from __future__ import absolute_import
-from builtins import range
-from builtins import str
 from builtins import hex
+from builtins import open
+from builtins import range
+from builtins import int
+from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
@@ -38,7 +40,6 @@ class FEMB_TEST(object):
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
-
         self.cppfr = CPP_FILE_RUNNER()
 
     def check_setup(self):
@@ -54,17 +55,16 @@ class FEMB_TEST(object):
 
         #check if register interface is working
         print("Checking register interface")
-        regVal = self.femb_config.femb.read_reg(5)
+        regVal = self.femb_config.femb.read_reg(6)
         if (regVal == None) or (regVal == -1):
             print("Error running doFembTest - FEMB register interface is not working.")
             print(" Turn on or debug FEMB UDP readout.")       
             return
-        print("Read register 5, value = " + str( hex( regVal ) ) )
+        print("Read register 6, value = " + str( hex( regVal ) ) )
 
         #initialize FEMB to known state
         print("Initializing board")
-        #self.femb_config.initBoard()
-        self.femb_config.initFemb(self.femb_config.fembNum)
+        self.femb_config.initBoard()
 
         #check if data streaming is working
         print("Checking data streaming")
@@ -85,7 +85,7 @@ class FEMB_TEST(object):
         print("Received data packet " + str(len(testData[0])) + " bytes long")
 
         #check for analysis executables
-        if not self.cppfr.exists('test_measurements/feAsicTest/parseBinaryFile'):    
+        if not self.cppfr.exists('test_measurements/example_femb_test/parseBinaryFile'):    
             print('parseBinaryFile not found, run setup.sh')
             #sys.exit(0)
             return
@@ -100,17 +100,22 @@ class FEMB_TEST(object):
         if self.status_record_data == 1:
             print("Data already recorded. Reset/restat GUI to begin a new measurement")
             return
+
         #MEASUREMENT SECTION
         print("SIMPLE MEASUREMENT - RECORDING DATA")
 
+        #initialize FEMB configuration to known state
+        #self.femb_config.configFeAsic(2,1,0)
+        #self.femb_config.setInternalPulser(1,0x0)
+
         #wait to make sure HS link is back on
-        sleep(0.5)
+        #sleep(0.5)
 
         #set output file
         self.write_data.filedir = "data/"
         self.write_data.filename = "rawdata_simpleMeasurement_" + str(self.write_data.date) + ".bin"
         print("Recording " + self.write_data.filename )
-        self.write_data.numpacketsrecord = 100
+        self.write_data.numpacketsrecord = 10
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -118,10 +123,12 @@ class FEMB_TEST(object):
         #setup output file and record data
         self.write_data.open_file()
         subrun = 0
+
         asicCh = 0
-        for asic in range(0,4,1):
-          self.femb_config.selectChannel(asic,asicCh)
-          self.write_data.record_data(subrun, asic, asicCh)
+        for asic in range(2,3,1):
+          for asicCh in range(0,16,1):
+            self.femb_config.selectChannel(asic,asicCh)
+            self.write_data.record_data(subrun, asic, asicCh)
         self.write_data.close_file()
 
         #reset configuration to known state
@@ -141,12 +148,12 @@ class FEMB_TEST(object):
         print("SIMPLE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
-        self.cppfr.run('test_measurements/feAsicTest/parseBinaryFile',[str( self.write_data.filedir ) + str( self.write_data.filename )])
+        self.cppfr.run("test_measurements/feAsicTest/parseBinaryFile", [str( self.write_data.filedir ) + str( self.write_data.filename ) ])
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
-        self.cppfr.run("test_measurements/feAsicTest/processNtuple_simpleMeasurement", [ str( self.write_data.filedir ) + str(newName) ])
+        self.cppfr.run("test_measurements/feAsicTest/processNtuple_simpleMeasurement",  [str( self.write_data.filedir ) + str(newName) ])
 
         #move result to data directory
         newName = "output_processNtuple_simpleMeasurement_" + self.write_data.filename + ".root"
@@ -177,9 +184,9 @@ class FEMB_TEST(object):
 def main():
 
     femb_test = FEMB_TEST()
-    #femb_test.check_setup()
-    #femb_test.record_data()
-    #femb_test.do_analysis()
+    femb_test.check_setup()
+    femb_test.record_data()
+    femb_test.do_analysis()
 
 if __name__ == '__main__':
     main()

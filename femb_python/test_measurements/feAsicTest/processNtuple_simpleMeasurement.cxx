@@ -107,9 +107,9 @@ Analyze::Analyze(std::string inputFileName){
 	gCh = new TGraph();
 
   	//output histograms, data objects
-  	hSampVsChan = new TH2F("hSampVsChan","",numChan,0-0.5,numChan-0.5,4096,-0.5,4096-0.5);
+  	hSampVsChan = new TH2F("hSampVsChan","",numChan,0-0.5,numChan-0.5,20000,-0.5,20000 - 0.5);
  	pSampVsChan = new TProfile("pSampVsChan","",numChan,0-0.5,numChan-0.5);
-  	hMeanVsChan = new TH2F("hMeanVsChan","",numChan,0-0.5,numChan-0.5,4096,-0.5,4096-0.5);
+  	hMeanVsChan = new TH2F("hMeanVsChan","",numChan,0-0.5,numChan-0.5,20000,-0.5,20000 - 0.5);
 	pMeanVsChan = new TProfile("pMeanVsChan","",numChan,0-0.5,numChan-0.5);
   	hRmsVsChan = new TH2F("hRmsVsChan","",numChan,0-0.5,numChan-0.5,300,0,300.);
   	pRmsVsChan = new TProfile("pRmsVsChan","",numChan,0-0.5,numChan-0.5);
