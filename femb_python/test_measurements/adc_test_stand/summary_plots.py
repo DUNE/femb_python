@@ -51,7 +51,7 @@ class SUMMARY_PLOTS(object):
             ax1.set_ylabel("DNL [LSB]")
             ax2.set_ylabel("Stuck Code Fraction")
             ax3.set_ylabel("INL [LSB]")
-            ax4.set_ylabel("????")
+            ax4.set_ylabel("Min ADC Code")
             colors = ["grey","m","plum","darkorchid","firebrick","red","sienna","sandybrown","gold","olivedrab","chartreuse","seagreen","paleturquoise","deepskyblue","navy","blue"]*2
             colors.reverse()
             linestyle = ['solid',"dashed","dashdot","dotted"]*10
@@ -79,6 +79,8 @@ class SUMMARY_PLOTS(object):
                       legendDict2[stat] = (linestyle[i2],None)
                       i2 += 1
                   elif stat[:3] == "DNL":
+                    if not ("400" in stat):
+                        continue
                     if "max" in stat:
                       ax1.plot(data[offset][stat],label=stat,c=color,marker=markerstyle[im1],ls="")
                       legendDict1[stat] = ("",markerstyle[im1])
@@ -88,12 +90,18 @@ class SUMMARY_PLOTS(object):
                       legendDict1[stat] = (linestyle[i1],None)
                       i1 += 1
                   elif stat[:3] == "INL":
+                    if not ("400" in stat):
+                        continue
                     #ax3.plot(data[offset][stat],label=stat,c=color,marker=markerstyle[i3],ls="")
                     ax3.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i3])
                     legendDict3[stat] = (linestyle[i3],None)
                     i3 += 1
                   else:
-                    ax4.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i4])
+                    data4 = data[offset][stat]
+                    if stat == "minCodeV":
+                        data4 = numpy.array(data4)*200
+                    ax4.plot(data4,label=stat,c=color,ls=linestyle[i4])
+                    legendDict4[stat] = (linestyle[i4],None)
                     i4 += 1
                 if not plotAll:
                     break
@@ -102,7 +110,11 @@ class SUMMARY_PLOTS(object):
             self.doLegend(ax1,legendDict1)
             self.doLegend(ax2,legendDict2)
             self.doLegend(ax3,legendDict3)
+            self.doLegend(ax4,legendDict4)
             self.doLegend(fig,colorDict,patches=True,offsets=True)
+            ax4Right = ax4.twinx()
+            ax4Right.set_ylim(0.005*numpy.array(ax4.get_ylim()))
+            ax4Right.set_ylabel("Min ADC Code Voltage [V]")
             fig.savefig(self.outfileprefix + "_static_"+clockFn+".png")
             fig.savefig(self.outfileprefix + "_static_"+clockFn+".pdf")
             plt.close(fig)

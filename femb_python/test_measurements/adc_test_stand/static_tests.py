@@ -74,9 +74,11 @@ class STATIC_TESTS(object):
                 sumAllCodeHists += codeHist
                 indices, choppedCodeHist = self.chopOffUnfilledBins(codeHist)
                 indices256, choppedCodeHist256 = self.chopLowCodes(256,codeHist)
+                indices400, choppedCodeHist400 = self.chopLowCodes(400,codeHist)
                 indices512, choppedCodeHist512 = self.chopLowCodes(512,codeHist)
                 dnl, inl = self.makeLinearityHistograms(indices,choppedCodeHist)
                 dnl256, inl256 = self.makeLinearityHistograms(indices256,choppedCodeHist256)
+                dnl400, inl400 = self.makeLinearityHistograms(indices400,choppedCodeHist400)
                 dnl512, inl512 = self.makeLinearityHistograms(indices512,choppedCodeHist512)
                 dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(indices,choppedCodeHist,True)
                 stuckCodeFraction, stuckCodeFractionShouldBe = self.getStuckCodeFraction(indices,choppedCodeHist)
@@ -87,6 +89,8 @@ class STATIC_TESTS(object):
                 INLabs75perc = numpy.percentile(abs(inl),75)
                 DNL75perc256 = numpy.percentile(dnl256,75)
                 INLabs75perc256 = numpy.percentile(abs(inl256),75)
+                DNL75perc400 = numpy.percentile(dnl400,75)
+                INLabs75perc400 = numpy.percentile(abs(inl400),75)
                 DNL75perc512 = numpy.percentile(dnl512,75)
                 INLabs75perc512 = numpy.percentile(abs(inl512),75)
 
@@ -94,6 +98,8 @@ class STATIC_TESTS(object):
                 chanStats["INLabsMax"] = max(abs(inl))
                 chanStats["DNLmax256"] = max(dnl256)
                 chanStats["INLabsMax256"] = max(abs(inl256))
+                chanStats["DNLmax400"] = max(dnl400)
+                chanStats["INLabsMax400"] = max(abs(inl400))
                 chanStats["DNLmax512"] = max(dnl512)
                 chanStats["INLabsMax512"] = max(abs(inl512))
                 chanStats["DNLmaxNoStuck"] = max(dnlKillStuckCodes)
@@ -102,11 +108,13 @@ class STATIC_TESTS(object):
                 chanStats["stuckCodeFracShouldBe"] = stuckCodeFractionShouldBe
                 chanStats["DNL75perc"] = DNL75perc
                 chanStats["DNL75perc256"] = DNL75perc256
+                chanStats["DNL75perc400"] = DNL75perc400
                 chanStats["DNL75perc512"] = DNL75perc512
                 chanStats["DNL75percNoStuck"] = DNL75percNoStuck
                 chanStats["DNL75percStuck"] = DNL75percStuck
                 chanStats["INLabs75perc"] = INLabs75perc
                 chanStats["INLabs75perc256"] = INLabs75perc256
+                chanStats["INLabs75perc400"] = INLabs75perc400
                 chanStats["INLabs75perc512"] = INLabs75perc512
                 chanStats["minCode"] = minCodes[iChan]
                 chanStats["minCodeV"] = minCodeVs[iChan]
@@ -165,12 +173,14 @@ class STATIC_TESTS(object):
                     axRight.cla()
                     
                     ### On to INL
-                    ax.plot(indices,inl,"k-",label="All Codes")
+                    #ax.plot(indices,inl,"k-",label="All Codes")
                     ax.plot(indices256,inl256,"b-",label="All Codes$\geq$256")
+                    ax.plot(indices400,inl400,"b-",label="All Codes$\geq$400")
                     ax.plot(indices512,inl512,"c-",label="All Codes$\geq$512")
-                    manyaxesINL[iChan].plot(indices,inl,"k-",label="All Codes")
-                    manyaxesINL[iChan].plot(indices256,inl256,"b-",label="All Codes$\geq$256")
-                    manyaxesINL[iChan].plot(indices512,inl512,"c-",label="All Codes$\geq$512")
+                    #manyaxesINL[iChan].plot(indices,inl,"k-",label="All Codes")
+                    #manyaxesINL[iChan].plot(indices256,inl256,"b-",label="All Codes$\geq$256")
+                    #manyaxesINL[iChan].plot(indices512,inl512,"c-",label="All Codes$\geq$512")
+                    manyaxesINL[iChan].plot(indices400,inl400,"b-",label="All Codes$\geq$400")
                     #ax.plot(indices,inlKillStuckCodes,"b-",label="No LSBs: 000000 or 111111")
                     ax.set_xlabel("ADC Code")
                     ax.set_ylabel("INL [Least Significant Bits]")
