@@ -149,7 +149,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             i = 0
             for regNum in range(self.REG_ADCSPI_BASE,self.REG_ADCSPI_BASE+len(Adcasic_regs),1):
                     #print("{:032b}".format(Adcasic_regs[i]))
-                    print("{:08x}".format(Adcasic_regs[i]))
+                    #print("{:08x}".format(Adcasic_regs[i]))
                     self.femb.write_reg ( regNum, Adcasic_regs[i])
                     time.sleep(0.05)
                     i = i + 1
@@ -416,28 +416,28 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         if enable:
             clock = 1./self.FPGA_FREQ_MHZ * 1000. # clock now in ns
-            print("FPGA Clock freq: {} MHz period: {} ns".format(self.FPGA_FREQ_MHZ,clock))
-            print("ExtClock option mult: {}".format(mult))
-            print("ExtClock option period: {} ns".format(period))
-            print("ExtClock option offset_read: {} ns".format(offset_read))
-            print("ExtClock option offset_rst: {} ns".format(offset_rst))
-            print("ExtClock option offset_msb: {} ns".format(offset_msb))
-            print("ExtClock option offset_lsb: {} ns".format(offset_lsb))
-            print("ExtClock option offset_lsb_1st_1: {} ns".format(offset_lsb_1st_1))
-            print("ExtClock option offset_lsb_1st_2: {} ns".format(offset_lsb_1st_2))
-            print("ExtClock option width_read: {} ns".format(width_read))
-            print("ExtClock option width_rst: {} ns".format(width_rst))
-            print("ExtClock option width_msb: {} ns".format(width_msb))
-            print("ExtClock option width_lsb: {} ns".format(width_lsb))
-            print("ExtClock option width_lsb_1st_1: {} ns".format(width_lsb_1st_1))
-            print("ExtClock option width_lsb_1st_2: {} ns".format(width_lsb_1st_2))
-            print("ExtClock option inv_rst: {}".format(inv_rst))
-            print("ExtClock option inv_read: {}".format(inv_read))
-            print("ExtClock option inv_msb: {}".format(inv_msb))
-            print("ExtClock option inv_lsb: {}".format(inv_lsb))
-            print("ExtClock option inv_lsb_1st: {}".format(inv_lsb_1st))
+            #print("FPGA Clock freq: {} MHz period: {} ns".format(self.FPGA_FREQ_MHZ,clock))
+            #print("ExtClock option mult: {}".format(mult))
+            #print("ExtClock option period: {} ns".format(period))
+            #print("ExtClock option offset_read: {} ns".format(offset_read))
+            #print("ExtClock option offset_rst: {} ns".format(offset_rst))
+            #print("ExtClock option offset_msb: {} ns".format(offset_msb))
+            #print("ExtClock option offset_lsb: {} ns".format(offset_lsb))
+            #print("ExtClock option offset_lsb_1st_1: {} ns".format(offset_lsb_1st_1))
+            #print("ExtClock option offset_lsb_1st_2: {} ns".format(offset_lsb_1st_2))
+            #print("ExtClock option width_read: {} ns".format(width_read))
+            #print("ExtClock option width_rst: {} ns".format(width_rst))
+            #print("ExtClock option width_msb: {} ns".format(width_msb))
+            #print("ExtClock option width_lsb: {} ns".format(width_lsb))
+            #print("ExtClock option width_lsb_1st_1: {} ns".format(width_lsb_1st_1))
+            #print("ExtClock option width_lsb_1st_2: {} ns".format(width_lsb_1st_2))
+            #print("ExtClock option inv_rst: {}".format(inv_rst))
+            #print("ExtClock option inv_read: {}".format(inv_read))
+            #print("ExtClock option inv_msb: {}".format(inv_msb))
+            #print("ExtClock option inv_lsb: {}".format(inv_lsb))
+            #print("ExtClock option inv_lsb_1st: {}".format(inv_lsb_1st))
             denominator = clock/mult
-            print("ExtClock denominator: {} ns".format(denominator))
+            #print("ExtClock denominator: {} ns".format(denominator))
             period_val = period // denominator
             rd_en_off =  offset_read // denominator
             adc_off =  offset_rst // denominator
@@ -481,6 +481,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         ]
         for name,reg,val in regsValsToWrite:
             val = int(val) & 0xFFFF # only 16 bits for some reason
-            print("ExtClock Register {0:12} number {1:3} set to {2:5} = {2:#06x}".format(name,reg,val))
+            #print("ExtClock Register {0:12} number {1:3} set to {2:5} = {2:#06x}".format(name,reg,val))
             self.femb.write_reg(reg,val)
             

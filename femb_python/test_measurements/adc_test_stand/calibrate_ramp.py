@@ -84,7 +84,7 @@ class CALIBRATE_RAMP(object):
         for iTryPeak in range(int(numpy.ceil(iFirstPeak)),len(waveform),int(numpy.floor(nSamplesPeriod))):
             iStartLook = int(iTryPeak - 0.3*nSamplesPeriod)
             iStopLook = int(iTryPeak + 0.3*nSamplesPeriod)
-            iStopLook = max(iStopLook,len(waveform))
+            iStopLook = min(iStopLook,len(waveform))
             maxCode = numpy.max(waveform[iStartLook:iStopLook])
             iStart = None
             iStop = None
@@ -95,6 +95,10 @@ class CALIBRATE_RAMP(object):
                     iStart = iLook
                 elif not (iStart is None) and (iStop is None) and waveform[iLook] != maxCode:
                     iStop = iLook
+            if iStart is None:
+                continue
+            if iStop is None:
+                continue
             iPeak = 0.5*(iStart + iStop)
             iPeaks.append(iPeak)
         iPeaks = numpy.array(iPeaks)

@@ -135,23 +135,27 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
                                     clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
                                     clockExternal=clockExternal)
             for iChip in range(config.NASICS):
+                print("Collecting data for clock: {} offset: {} chip: {} ...".format(clock, offset, iChip))
                 chipStats = {}
                 fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
                 collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
+                print("Processing...")
                 static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
                 assert(len(static_fns)==1)
                 static_fn = static_fns[0]
-                COLLECT_DATA(static_fn).write_calibrate_tree()
+                CALIBRATE_RAMP(static_fn).write_calibrate_tree()
                 staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
                 dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
                 chipStats["static"] = staticStats
                 chipStats["dynamic"] = dynamicStats
                 configStats[adcSerialNumbers[iChip]] = chipStats
             allStatsRaw[clock][offset] = configStats
+    print("Summarizing all data...")
     summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime)
     summary.write_jsons("adcTest_{}".format(startDateTime))
     for serial in summary.get_serials():
       SUMMARY_PLOTS(summary.get_summary(serial),"adcTest_{}_{}".format(startDateTime,serial),plotAll=True)
+    print("Checking if chips pass..")
     chipsPass = []
     for serial in adcSerialNumbers:
         thisSummary = summary.get_summary(serial)

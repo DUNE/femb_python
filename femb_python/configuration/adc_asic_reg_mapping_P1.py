@@ -59,7 +59,7 @@ class ADC_ASIC_REG_MAPPING(object):
     def set_chip_global(self, chip, clk0 = 0, clk1 = 0, frqc = 0, en_gr = 0,
                         f0=0, f1=0, f2=0,f3=0, f4=0, f5=0,
                         slsb=0, res0=0, res1=0, res2=0, res3=0, res4=0):
-        print("globals: clk0: {} clk1: {} frqc: {} en_gr: {} \n     f0: {} f1: {} f2: {} f3: {} f4: {} f5: {} \n     res0: {} res1: {} res2: {} res3: {} res4: {}".format(clk0, clk1, frqc, en_gr, f0, f1, f2, f3, f4,  f5, res0, res1, res2, res3, res4))
+        #print("globals: clk0: {} clk1: {} frqc: {} en_gr: {} \n     f0: {} f1: {} f2: {} f3: {} f4: {} f5: {} \n     res0: {} res1: {} res2: {} res3: {} res4: {}".format(clk0, clk1, frqc, en_gr, f0, f1, f2, f3, f4,  f5, res0, res1, res2, res3, res4))
         global_reg = [False]*16
         global_reg[0] = (bool(res4)) 
         global_reg[1] = (bool(res3))
