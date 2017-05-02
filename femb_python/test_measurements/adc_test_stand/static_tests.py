@@ -29,7 +29,7 @@ class STATIC_TESTS(object):
         self.samplingFreq = 2e6
 
     def analyzeLinearity(self,infile,diagnosticPlots=True):
-        codeHists, bitHists, minCodes, minCodeVs, iChip, metadata = self.doHistograms(infile)
+        codeHists, bitHists, minCodes, minCodeVs, maxCodes, maxCodeVs, iChip, metadata = self.doHistograms(infile)
         allStats = []
         figmanyDNL = None
         figmanyINL = None
@@ -119,8 +119,10 @@ class STATIC_TESTS(object):
                 chanStats["INLabs75perc256"] = INLabs75perc256
                 chanStats["INLabs75perc400"] = INLabs75perc400
                 chanStats["INLabs75perc512"] = INLabs75perc512
-                chanStats["minCode"] = minCodes[iChan]
-                chanStats["minCodeV"] = minCodeVs[iChan]
+                chanStats["minCode"] = int(minCodes[iChan])
+                chanStats["minCodeV"] = float(minCodeVs[iChan])
+                chanStats["maxCode"] = int(maxCodes[iChan])
+                chanStats["maxCodeV"] = float(maxCodeVs[iChan])
                 allStats.append(chanStats)
 
                 if diagnosticPlots:
@@ -255,12 +257,16 @@ class STATIC_TESTS(object):
         bitHists = []
         minCodes = []
         minCodeVs = []
+        maxCodes = []
+        maxCodeVs = []
         iChip = -1
         metadata = None
         for iChan in range(16):
-           hist, minCode, minCodeV, iChip, metadata = self.makeRampHist(iChan,infilename)
+           hist, minCode, minCodeV, maxCode, maxCodeV, iChip, metadata = self.makeRampHist(iChan,infilename)
            minCodes.append(minCode)
            minCodeVs.append(minCodeV)
+           maxCodes.append(maxCode)
+           maxCodeVs.append(maxCodeV)
            codeHists.append(hist)
            #ax.plot(range(len(hist)),hist,"ko")
            #ax.set_xlabel("ADC Code")
@@ -289,7 +295,7 @@ class STATIC_TESTS(object):
            ##fig.savefig(filename+".pdf")
            #ax.cla()
         #plt.close(fig)
-        return codeHists, bitHists, minCodes, minCodeVs, iChip, metadata
+        return codeHists, bitHists, minCodes, minCodeVs, maxCodes, maxCodeVs, iChip, metadata
 
     def makeRampHist(self,iChan,infilename):
         """
@@ -299,10 +305,10 @@ class STATIC_TESTS(object):
         #print("makeRampHist: ",iChip,iChan,xLow,xHigh,nSamples)
 
         samples, iChip, metadata = self.loadWaveform(iChan,infilename)
-        cleanedSamples, minCode, minCodeV = self.cleanWaveform(samples,metadata)
+        cleanedSamples, minCode, minCodeV, maxCode, maxCodeV = self.cleanWaveform(samples,metadata)
         binning = [i-0.5 for i in range(2**self.nBits+1)]
         hist, bin_edges = numpy.histogram(cleanedSamples,bins=binning)
-        return hist, minCode, minCodeV, iChip, metadata
+        return hist, minCode, minCodeV, maxCode, maxCodeV, iChip, metadata
 
     def makeCodeModXHistogram(self,counts,modNumber):
         """
@@ -455,6 +461,15 @@ class STATIC_TESTS(object):
         counts in an array of counts correspoinding to the codes in indices
 
         """
+        #print("first and last indices:",indices[0:10],indices[-10:])
+        indices = numpy.array(indices)
+        counts = numpy.array(counts)
+        if indices[0] == 0:
+            indices = indices[1:]
+            counts = counts[1:]
+        if indices[-1] == 4095:
+            indices = indices[:-1]
+            counts = counts[:-1]
         sumAll = counts.sum()
         sumStuckCodes = 0
         nStuckCodes = 0
@@ -492,15 +507,22 @@ class STATIC_TESTS(object):
     def cleanWaveform(self,waveform,metadata):
         freq = metadata["funcFreq"]
         nSamplesPeriod = self.samplingFreq/freq
+        #print("nSamplesPeriod: ",nSamplesPeriod)
         iFirstPeak = None
-        for iSample in range(int(numpy.floor(nSamplesPeriod/2.)),len(waveform)-1):
+        firstMax = numpy.max(waveform[int(nSamplesPeriod//2.):min(int(3*nSamplesPeriod//2.),len(waveform)-1)])
+        #print("firstMax: ",firstMax)
+        maxCodeV = None
+        for iSample in range(int(nSamplesPeriod//2.),min(int(3*nSamplesPeriod//2.),len(waveform)-1)):
             if not (iFirstPeak is None):
                 break
-            if waveform[iSample] == 4095 and waveform[iSample+1] < 4095:
+            if waveform[iSample] >= firstMax and waveform[iSample+1] < firstMax:
                 for jSample in range(iSample,-1,-1):
-                    if waveform[jSample-1] < 4095:
+                    if waveform[jSample-1] < firstMax:
                         iFirstPeak = 0.5*(iSample + jSample)
+                        maxCodeV = metadata["funcOffset"]+metadata["funcAmp"]-(iSample-jSample)/nSamplesPeriod*metadata["funcAmp"]*2
                         break
+        #print("iFirstPeak: ",iFirstPeak)
+        #print("maxCodeV: ",maxCodeV)
         # Get rid of spurious jumps upward for very low voltage inputs
         # Also find the min ADC code and the time from the peak to it
         cleanWaveform = []
@@ -546,7 +568,7 @@ class STATIC_TESTS(object):
         #ax.plot(cleanWaveform)
         #plt.show()
 
-        return numpy.array(cleanWaveform), minCode, minCodeV
+        return numpy.array(cleanWaveform), minCode, minCodeV, firstMax, maxCodeV
 
     def loadWaveform(self,iChan,infilename):
         f = ROOT.TFile(infilename)

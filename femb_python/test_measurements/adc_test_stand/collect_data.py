@@ -48,6 +48,11 @@ class COLLECT_DATA(object):
         self.funcgen.startRamp(freq,xLow,xHigh)
         time.sleep(self.settlingTime)
         self.dumpWaveformRootFile(iChip,outPrefix,3,freq,offsetV,amplitudeV,self.femb.MAX_NUM_PACKETS,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock)
+        ## DC
+        for offsetV in [0.5,1.]:
+          self.funcgen.startDC(offsetV)
+          time.sleep(self.settlingTime)
+          self.dumpWaveformRootFile(iChip,outPrefix,1,0.,offsetV,0.,self.femb.MAX_NUM_PACKETS,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock)
         ## Sin
         amplitudeV *= 0.6
         for freq in freqList:
