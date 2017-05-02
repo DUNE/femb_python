@@ -138,6 +138,8 @@ void Analyze::doAnalysis(){
 void Analyze::analyzeChannel(){
 
 	 //skip known bad channels here
+	if(wf->size() == 0)
+		return;
 
 	//calculate mean
 	double mean = 0;
@@ -191,7 +193,7 @@ void Analyze::analyzeChannel(){
 	}
 
 	//draw waveform if wanted
-	if( 0 ){
+	if( 1 ){
 		gCh->Set(0);
 		for( int s = 0 ; s < wf->size() ; s++ )
 			gCh->SetPoint(gCh->GetN() , gCh->GetN() , wf->at(s) );
@@ -201,7 +203,7 @@ void Analyze::analyzeChannel(){
 		gCh->SetTitle( title.c_str() );
 		gCh->GetXaxis()->SetTitle("Sample Number");
 		gCh->GetYaxis()->SetTitle("Sample Value (ADC counts)");
-		//gCh->GetXaxis()->SetRangeUser(0,128);
+		gCh->GetXaxis()->SetRangeUser(0,512);
 		//gCh->GetXaxis()->SetRangeUser(0,num);
 		//gCh->GetYaxis()->SetRangeUser(500,1000);
 		gCh->Draw("ALP");
@@ -242,7 +244,7 @@ int main(int argc, char *argv[]){
   std::cout << "inputFileName " << inputFileName << std::endl;
 
   //define ROOT application object
-  gROOT->SetBatch(true);
+  //gROOT->SetBatch(true);
   theApp = new TApplication("App", &argc, argv);
   processNtuple(inputFileName); 
 
