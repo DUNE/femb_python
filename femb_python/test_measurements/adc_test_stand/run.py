@@ -17,6 +17,7 @@ import numpy
 import matplotlib.pyplot as plt
 import ROOT
 from .collect_data import COLLECT_DATA 
+from .calibrate_ramp import CALIBRATE_RAMP
 from .static_tests import STATIC_TESTS
 from .dynamic_tests import DYNAMIC_TESTS
 from .summary_plots import SUMMARY_PLOTS
@@ -140,6 +141,7 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
                 static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
                 assert(len(static_fns)==1)
                 static_fn = static_fns[0]
+                COLLECT_DATA(static_fn).write_calibrate_tree()
                 staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
                 dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
                 chipStats["static"] = staticStats
