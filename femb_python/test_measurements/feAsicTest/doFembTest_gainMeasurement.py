@@ -58,9 +58,13 @@ class FEMB_TEST(object):
 
         #check local directory structure, available space
         if os.path.isdir("./data") == False:
-            print("Error running doFembTest - data directory not found.")
-            print(" Please check that femb_python package directory structure is intact.")
-            return
+            print("Error running doFembTest - data directory not found, making now.")
+            os.makedirs("./data")
+
+            #check if directory was created sucessfully
+            if os.path.isdir("./data") == False:
+                print(" Please check that femb_python package directory structure is intact.")
+                return
 
         #check if register interface is working
         print("Checking register interface")

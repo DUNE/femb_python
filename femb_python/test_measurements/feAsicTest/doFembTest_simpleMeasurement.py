@@ -49,9 +49,20 @@ class FEMB_TEST(object):
 
         #check local directory structure, available space
         if os.path.isdir("./data") == False:
-            print("Error running doFembTest - data directory not found.")
-            print(" Please check that femb_python package directory structure is intact.")
-            return
+            print("Error running doFembTest - data directory not found, making now.")
+            os.makedirs("./data")
+
+            #check if directory was created sucessfully
+            if os.path.isdir("./data") == False:
+                print(" Please check that femb_python package directory structure is intact.")
+                return
+
+        #create data-taking directory
+        #print("doFembTest - creating data-taking directory : " + str( self.write_data.filedir ) )
+        #os.makedirs( str( self.write_data.filedir ) )
+        #if os.path.isdir( str( self.write_data.filedir ) ) == False:
+        #    print("Error creating data-taking directory.")
+        #    return
 
         #check if register interface is working
         print("Checking register interface")
@@ -105,12 +116,13 @@ class FEMB_TEST(object):
         print("SIMPLE MEASUREMENT - RECORDING DATA")
 
         #initialize FEMB configuration to known state
-        #self.femb_config.configFeAsic(2,1,0)
+        self.femb_config.configFeAsic()
         #self.femb_config.setInternalPulser(1,0x400)
-        self.femb_config.configFeAsic(0,0,0)
+        #self.femb_config.configFeAsic(0,0,0)
         #self.femb_config.setDacPulser(0,0x0000)
         #self.femb_config.setDacPulser(1,0xFF00)
-        self.femb_config.setInternalPulser(0,0x0)
+        #self.femb_config.setInternalPulser(0,0x0)
+        #self.femb_config.setInternalPulser(1,0x3f)
 
         #wait to make sure HS link is back on
         #sleep(0.5)

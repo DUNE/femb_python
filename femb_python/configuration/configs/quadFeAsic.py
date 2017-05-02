@@ -50,6 +50,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_FRAME_SIZE = 40
         self.REG_DAC_ADC_EN = 60
 
+        self.feasicEnableTestInput = 1 #0 = disabled, 1 = enabled
+        self.feasicBaseline = 0 #0 = 900mV, 1 = 200mV
+        self.feasicGain = 0 #4.7,7.8,14,25
+        self.feasicShape = 1 #0.5,1,2,3
+        self.feasicAcdc = 0 #AC = 0, DC = 1
+        self.feasicBuf = 1 #0 = OFF, 1 = ON
+
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
 
@@ -88,6 +95,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #configure ASICs to default
         print("Config FE ASIC SPI")
+        self.configFeAsic()
+        """
+        print("Config FE ASIC SPI")
         for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+20,1):
           self.femb.write_reg( regNum, 0x81818181)
         self.femb.write_reg( self.REG_FESPI_BASE+4, 0xA00 )
@@ -98,6 +108,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
+        """
     
     def selectChannel(self,asic,chan,hsmode=None):
         asicVal = int(asic)
@@ -117,31 +128,17 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         regVal = (asicVal << 8 ) + chVal
         self.femb.write_reg( self.REG_SEL_CH, regVal)
 
-    def configFeAsic(self,gain,shape,base):
+    def configFeAsic(self):
         print("CONFIG ASICs")
         #configure ASICs to default
-        """
-        print("Config FE ASIC SPI")
-        for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+20,1):
-          self.femb.write_reg( regNum, 0x81818181)
-        self.femb.write_reg( self.REG_FESPI_BASE+4, 0xA00 )
-        self.femb.write_reg( self.REG_FESPI_BASE+9, 0xA00 )
-        self.femb.write_reg( self.REG_FESPI_BASE+14, 0xA00 )
-        self.femb.write_reg( self.REG_FESPI_BASE+19, 0xA00 )
-
-        #do configuration
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
-        """
 
         #channel specific variables
-        testVal = 1
-        baseVal = 1 #0 = 900mV, 1 = 200mV
-        gainVal = 2 
-        shapeVal = 1
-        acdcVal = 0 #AC = 0, DC = 1
-        bufVal = 1 #0 = OFF, 1 = ON
+        testVal = int( self.feasicEnableTestInput )
+        baseVal = int( self.feasicBaseline ) #0 = 900mV, 1 = 200mV
+        gainVal = int( self.feasicGain )
+        shapeVal = int( self.feasicShape )
+        acdcVal = int( self.feasicAcdc ) #AC = 0, DC = 1
+        bufVal = int( self.feasicBuf ) #0 = OFF, 1 = ON
 
         if (testVal < 0 ) or (testVal > 1):
                 return
@@ -180,7 +177,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #construct the channel word
         chWord = (chReg << 24 ) + (chReg << 16) + (chReg << 8 ) + chReg
 
-        asicReg = 0
+        asicReg = int(0)
+        #asicReg = int(0x0A00)
         
         #leakage control 1, bit 0
  
@@ -192,40 +190,22 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #external DAC enable, bit 9
 
-        #DAC OUTPUT??? bits 8-9 , 0xA00 = external DAC
-
-        #DAC value, bits 12-15, might be 10-15
+        #DAC OUTPUT bits 8-9 , 0xA00 = external DAC
  
         #write ASIC SPI registers, note all ASICs+channels configured the same
         for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+20,1):
           #print( str(regNum) + "\t" + str(hex(chWord)) )
           self.femb.write_reg( regNum, chWord)
+        self.femb.write_reg( self.REG_FESPI_BASE+4, asicReg )
+        self.femb.write_reg( self.REG_FESPI_BASE+9, asicReg )
+        self.femb.write_reg( self.REG_FESPI_BASE+14, asicReg )
+        self.femb.write_reg( self.REG_FESPI_BASE+19, asicReg )
 
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
 
-        """
-        self.femb.write_reg( self.REG_TP_MODE, 0x9) #pulser enabled
-        asicWord = 0xF90
-
-        #reconfigure ASICs
-        self.femb.write_reg( self.REG_FESPI_BASE+4, asicWord )
-        self.femb.write_reg( self.REG_FESPI_BASE+9, asicWord )
-        self.femb.write_reg( self.REG_FESPI_BASE+14, asicWord )
-        self.femb.write_reg( self.REG_FESPI_BASE+19, asicWord )
-
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
-
-        #disable old DAC
-        self.femb.write_reg( self.REG_TP_PERIOD_P, 0x01000100)
-        self.femb.write_reg( self.REG_DAC_VALUE , 0 )
-        self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
-        self.femb.write_reg( self.REG_SET_DAC , 0x1 ) #not necessary?
-        self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
-        """
+        print("DONE CONFIG")
 
     def setInternalPulser(self,enable,dac):
         enableVal = int(enable)
