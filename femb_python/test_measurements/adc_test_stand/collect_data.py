@@ -18,7 +18,7 @@ class COLLECT_DATA(object):
     Collect data for ADC tests
     """
 
-    def __init__(self,config,nPackets):
+    def __init__(self,config,nPackets=None):
         """
         config is a femb_python.configuration.CONFIG object
         """

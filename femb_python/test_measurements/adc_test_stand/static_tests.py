@@ -82,6 +82,7 @@ class STATIC_TESTS(object):
                 dnl512, inl512 = self.makeLinearityHistograms(indices512,choppedCodeHist512)
                 dnlKillStuckCodes, inlKillStuckCodes = self.makeLinearityHistograms(indices,choppedCodeHist,True)
                 stuckCodeFraction, stuckCodeFractionShouldBe = self.getStuckCodeFraction(indices,choppedCodeHist)
+                stuckCodeFraction400, stuckCodeFractionShouldBe400 = self.getStuckCodeFraction(indices400,choppedCodeHist400)
                 stuckCodeDNL, stuckCodeDNL0, stuckCodeDNL1 = self.getStuckCodeDNLs(indices,dnl)
                 DNL75perc = numpy.percentile(dnl,75)
                 DNL75percNoStuck = numpy.percentile(dnlKillStuckCodes,75)
@@ -106,6 +107,8 @@ class STATIC_TESTS(object):
                 chanStats["INLabsNoStuck"] = max(abs(inlKillStuckCodes))
                 chanStats["stuckCodeFrac"] = stuckCodeFraction
                 chanStats["stuckCodeFracShouldBe"] = stuckCodeFractionShouldBe
+                chanStats["stuckCodeFrac400"] = stuckCodeFraction400
+                chanStats["stuckCodeFracShouldBe400"] = stuckCodeFractionShouldBe400
                 chanStats["DNL75perc"] = DNL75perc
                 chanStats["DNL75perc256"] = DNL75perc256
                 chanStats["DNL75perc400"] = DNL75perc400

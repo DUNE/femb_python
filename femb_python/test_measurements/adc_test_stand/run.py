@@ -85,25 +85,20 @@ class ADC_TEST_SUMMARY(object):
             with open(filename,"w") as f:
                 json.dump(data,f)
 
-def main():
-    from ...configuration.argument_parser import ArgumentParser
-    from ...configuration import CONFIG
-    ROOT.gROOT.SetBatch(True)
-    parser = ArgumentParser(description="Runs ADC tests")
-    parser.addNPacketsArgs(False,100)
-    parser.add_argument("-s", "--singleConfig",help="Only run a single configuration (normally runs all clocks and offsets)",action='store_true')
-    args = parser.parse_args()
-  
-    config = CONFIG()
+def runTests(config,adcSerialNumbers,username,singleConfig=True):
+    """
+    adcCodes is a list of a serial numbers for the ADCs
+    username is the operator user name
+    """
 
-    collect_data = COLLECT_DATA(config,args.nPackets)
+    collect_data = COLLECT_DATA(config,100)
     static_tests = STATIC_TESTS(config)
     dynamic_tests = DYNAMIC_TESTS(config)
     startDateTime = datetime.datetime.now().replace(microsecond=0).isoformat()
 
     clocks = [0,1] # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
     offsets = range(-1,16)
-    if args.singleConfig:
+    if singleConfig:
         clocks = [0]
         offsets = [-1]
 
@@ -131,8 +126,8 @@ def main():
                                     clockExternal=clockExternal)
             for iChip in range(config.NASICS):
                 chipStats = {}
-                fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}".format(startDateTime,iChip,clock,offset)
-                collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset)
+                fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
+                collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
                 static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
                 assert(len(static_fns)==1)
                 static_fn = static_fns[0]
@@ -140,10 +135,46 @@ def main():
                 dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
                 chipStats["static"] = staticStats
                 chipStats["dynamic"] = dynamicStats
-                configStats[iChip] = chipStats
+                configStats[adcSerialNumbers[iChip]] = chipStats
             allStatsRaw[clock][offset] = configStats
     summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime)
     summary.write_jsons("adcTest_{}".format(startDateTime))
     for serial in summary.get_serials():
       SUMMARY_PLOTS(summary.get_summary(serial),"adcTest_{}_{}".format(startDateTime,serial),plotAll=True)
-    
+    chipsPass = []
+    for serial in adcSerialNumbers:
+        thisSummary = summary.get_summary(serial)
+        thisPass = True
+        for clock in thisSummary['static']:
+            for offset in thisSummary['static'][clock]:
+                for channel in range(len(thisSummary['static'][clock][offset]["DNLmax"])):
+                    if thisSummary['static'][clock][offset]["DNLmax400"][channel] > 50.:
+                        thisPass = False
+                    if thisSummary['static'][clock][offset]["stuckCodeFrac400"][channel] > 0.5:
+                        thisPass = False
+                        break
+                    if thisSummary['static'][clock][offset]["INLabsMax400"][channel] > 50.:
+                        thisPass = False
+                        break
+                    if thisSummary['static'][clock][offset]["minCode"][channel] > 300.:
+                        thisPass = False
+                        break
+                if not thisPass:
+                    break
+            if not thisPass:
+                break
+        chipsPass.append(thisPass)
+    return chipsPass
+
+def main():
+    from ...configuration.argument_parser import ArgumentParser
+    from ...configuration import CONFIG
+    ROOT.gROOT.SetBatch(True)
+    parser = ArgumentParser(description="Runs ADC tests")
+    parser.add_argument("-s", "--singleConfig",help="Only run a single configuration (normally runs all clocks and offsets)",action='store_true')
+    args = parser.parse_args()
+  
+    config = CONFIG()
+    serialNumbers = list(range(-1,-(config.NASICS+1),-1))
+    chipsPass = runTests(config,serialNumbers,"Command-line user",singleConfig=args.singleConfig)
+    print("Chips Pass: ",chipsPass)

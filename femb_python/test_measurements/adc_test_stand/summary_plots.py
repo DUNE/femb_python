@@ -70,7 +70,9 @@ class SUMMARY_PLOTS(object):
                 colorDict[offset] = color
                 for stat in sorted(data[offset]):
                   if stat[:13] == "stuckCodeFrac":
-                    if stat == "stuckCodeFracShouldBe":
+                    if not ("400" in stat):
+                        continue
+                    if stat[:21] == "stuckCodeFracShouldBe":
                       ax2.plot(data[offset][stat],label=stat,c='k',ls="dotted")
                       legendDict2[stat] = ("dotted",None)
                     else:
