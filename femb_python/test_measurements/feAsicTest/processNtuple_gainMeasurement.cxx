@@ -246,7 +246,8 @@ void Analyze::outputResults(){
 
 	//make summary plot
 	c0->Clear();
-	c0->Divide(2,3);
+	//c0->Divide(2,3);
+        c0->Divide(2,2);
 	
 	c0->cd(1);
 	pMeanVsChan->Draw();
@@ -260,11 +261,11 @@ void Analyze::outputResults(){
 	c0->cd(4);
 	hEncVsChan->Draw();
 
-        c0->cd(5);
-	hGain->Draw();
+        //c0->cd(5);
+	//hGain->Draw();
 	  
-	c0->cd(6);
-	hEnc->Draw();
+	//c0->cd(6);
+	//hEnc->Draw();
 
 	c0->Update();
 
@@ -738,9 +739,11 @@ void Analyze::measureGain(){
 		double gain_ePerAdc = 0;
 		if( gain_AdcPerE > 0 )
 			gain_ePerAdc = 1./ gain_AdcPerE;
+                gain_ePerAdc = gain_ePerAdc / 20000.;
 		hGainVsChan->SetBinContent(ch+1, gain_ePerAdc);
 
 		double enc = pRmsVsChan->GetBinContent(ch+1)*gain_ePerAdc;
+                enc = enc / 500000.*12.*100000.;
 		hEncVsChan->SetBinContent(ch+1, enc);
 
 		hGain->Fill(gain_ePerAdc);
@@ -779,7 +782,7 @@ int main(int argc, char *argv[]){
   std::string inputFileName = argv[1];
   std::cout << "inputFileName " << inputFileName << std::endl;
 
-  //gROOT->SetBatch(true);
+  gROOT->SetBatch(true);
   //define ROOT application object
   theApp = new TApplication("App", &argc, argv);
   processNtuple(inputFileName); 

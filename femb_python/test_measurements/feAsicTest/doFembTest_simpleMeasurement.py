@@ -25,7 +25,7 @@ from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
 #specify location of femb_udp package
 
-class FEMB_TEST(object):
+class FEMB_TEST_SIMPLE(object):
 
     def __init__(self):
 
@@ -199,7 +199,7 @@ class FEMB_TEST(object):
 
 def main():
 
-    femb_test = FEMB_TEST()
+    femb_test = FEMB_TEST_SIMPLE()
     femb_test.check_setup()
     femb_test.record_data()
     femb_test.do_analysis()

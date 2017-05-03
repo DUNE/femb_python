@@ -22,7 +22,7 @@ from femb_python.configuration import CONFIG
 from femb_python.write_data import WRITE_DATA
 from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
-class FEMB_TEST(object):
+class FEMB_TEST_GAIN(object):
 
     def __init__(self):
 
@@ -118,7 +118,9 @@ class FEMB_TEST(object):
         print("GAIN MEASUREMENT - RECORDING DATA")
 
         #initialize FEMB configuration to known state
-        #self.femb_config.configFeAsic(0,0,0)
+        self.femb_config.feasicGain = self.gain
+        self.femb_config.feasicShape = self.shape
+        self.femb_config.configFeAsic()
 
         #wait to make sure HS link is back on
         sleep(0.5)
@@ -215,20 +217,20 @@ class FEMB_TEST(object):
         print("GAIN MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
-        self.cppfr.run("test_measurements/example_femb_test/parseBinaryFile", [str( self.write_data.filedir ) + str( self.write_data.filename ) ])
+        self.cppfr.run("test_measurements/feAsicTest/parseBinaryFile", [str( self.write_data.filedir ) + str( self.write_data.filename ) ])
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
-        self.cppfr.run("test_measurements/example_femb_test/processNtuple_gainMeasurement",  [str( self.write_data.filedir ) + str(newName) ])
+        self.cppfr.run("test_measurements/feAsicTest/processNtuple_gainMeasurement",  [str( self.write_data.filedir ) + str(newName) ])
         newName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".root"
         call(["mv", "output_processNtuple_gainMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
         newName = "summaryPlot_" + self.write_data.filename + ".png"
         call(["mv", "summaryPlot_gainMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
 
         #summary plot
-        #print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
-        #call(["display",str( self.write_data.filedir ) + str(newName) ])
+        print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
+        call(["display",str( self.write_data.filedir ) + str(newName) ])
 
         print("GAIN MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
@@ -247,7 +249,7 @@ class FEMB_TEST(object):
         self.status_archive_results = 1
 
 def main():
-    femb_test = FEMB_TEST()
+    femb_test = FEMB_TEST_GAIN()
     for g in range(2,3,1):
       for s in range(1,2,1):
         for b in range(0,1,1):
@@ -259,7 +261,7 @@ def main():
 
           femb_test.check_setup()
           femb_test.record_data()
-          #femb_test.do_analysis()
+          femb_test.do_analysis()
 
 if __name__ == '__main__':
     main()

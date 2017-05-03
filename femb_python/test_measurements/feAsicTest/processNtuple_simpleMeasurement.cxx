@@ -44,7 +44,7 @@ class Analyze {
 	std::vector<unsigned short> *wfIn = 0;
 
 	//Constants
-	const int numChan = 128;// 35t
+	const int numChan = 64;// 35t
 	const float SAMP_PERIOD = 0.5; //us
 	const int numSubrun = 1;
 
