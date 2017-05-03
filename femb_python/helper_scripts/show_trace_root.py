@@ -31,6 +31,13 @@ def loadWaveform(filename):
 	'feSerial' : metadataTree.feSerial,
         }
     
+    #####
+    voltageGood = bool(tree.GetBranch("voltage"))
+    calibrationTree = f.Get("calibration")
+    voltages = {}
+    calibSlopes = {}
+    calibInters = {}
+    #####
     result = {}
     for iEntry in range(tree.GetEntries()):
         tree.GetEntry(iEntry)
@@ -42,14 +49,29 @@ def loadWaveform(filename):
           result[iChannel].extend(adccodes)
         except KeyError:
           result[iChannel] = adccodes
-    return result, metadata
+        if voltageGood:
+          voltagesTmp = list(tree.voltage)
+          try:
+            voltages[iChannel].extend(voltagesTmp)
+          except KeyError:
+            voltages[iChannel] = voltagesTmp
+        if calibrationTree:
+          calibrationTree.GetEntry(iEntry)
+          calibSlopes[iChannel] = calibrationTree.voltsPerADC
+          calibInters[iChannel] = calibrationTree.voltsIntercept
+    if not voltageGood:
+        voltages = None
+    if not calibrationTree:
+        calibSlopes = None
+        calibInters = None
+    return result, metadata, voltages, calibSlopes, calibInters
 
 def main():
     from ..configuration.argument_parser import ArgumentParser
     parser = ArgumentParser(description="Displays a trace from a root file")
     parser.add_argument("infilename",help="file name to read the waveform from")
     args = parser.parse_args()
-    waveforms, metadata = loadWaveform(args.infilename)
+    waveforms, metadata, voltages, calibSlopes, calibInters = loadWaveform(args.infilename)
 
     fig, axs = plt.subplots(4,4)
     fig2, axs2 = plt.subplots(4,4)
@@ -59,7 +81,12 @@ def main():
       ax = axs[iChan // 4][iChan % 4]
       ax2 = axs2[iChan // 4][iChan % 4]
       waveform = waveforms[iChan]
-      ax.plot(waveform)
+      if not (voltages is None):
+        if not (calibSlopes is None):
+            ax.plot(numpy.array(voltages[iChan])/calibSlopes[iChan]-calibInters[iChan]/calibSlopes[iChan],"-g")
+        else:
+            ax.plot(voltages[iChan],"-g")
+      ax.plot(waveform,"-b")
       ax.set_title("Channel: {}".format(iChan))
 
       N = len(waveform)
