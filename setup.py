@@ -128,6 +128,8 @@ setup(
             'femb_sync_adc=femb_python.helper_scripts.sync_adc:main',
             'femb_config_adc=femb_python.helper_scripts.config_adc:main',
             'femb_config_fe=femb_python.helper_scripts.config_fe:main',
+            'femb_lock=femb_python.helper_scripts.locking:lock',
+            'femb_unlock=femb_python.helper_scripts.locking:unlock',
 
             'femb_instrument_rigol_dp800=femb_python.test_instrument_interface.rigol_dp800:main',
             'femb_instrument_rigol_dg4000=femb_python.test_instrument_interface.rigol_dg4000:main',
