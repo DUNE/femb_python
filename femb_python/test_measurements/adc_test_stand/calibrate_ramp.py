@@ -8,6 +8,7 @@ standard_library.install_aliases()
 import sys
 import os.path
 import glob
+import array
 import numpy
 import numpy.linalg
 import ROOT
@@ -46,20 +47,21 @@ class CALIBRATE_RAMP(object):
         voltage = ROOT.std.vector( float )()
         voltageBranch = outtree.Branch( 'voltage', voltage )
 
+        calibrationTree = ROOT.TTree("calibration","calibration information")
+        voltsPerADCArray = array.array('d',[0.])
+        voltsInterceptArray = array.array('d',[0.])
+        calibrationTree.Branch( 'voltsPerADC', voltsPerADCArray, 'voltsPerADC/D')
+        calibrationTree.Branch( 'voltsIntercept', voltsInterceptArray, 'voltsIntercept/D')
+
         for iEntry in range(outtree.GetEntries()):
             outtree.GetEntry(iEntry)
             waveform = numpy.array(list(outtree.wf))
             voltage.resize(len(waveform))
             slope, intercept = self.doCalibration(waveform,voltage,frequency,offset,amplitude)
             voltageBranch.Fill()
-            #for iSample in range(outtree.wf.size()):
-            #    #print(outtree.wf[iSample])
-            #    voltage.push_back(iSample)
-            #voltageBranch.Fill()
-            #    if iSample > 10:
-            #        break
-            #if iEntry > 10:
-            #    break
+            voltsPerADCArray[0] = slope
+            voltsInterceptArray[0] = intercept
+            calibrationTree.Fill()
 
         fout.Write()
         fout.Close()
