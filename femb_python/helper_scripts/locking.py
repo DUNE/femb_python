@@ -31,13 +31,19 @@ class FEMB_LOCK(object):
         """
         Lock the lock file and check the manual lock
         """
-        if os.path.exists(MANUAL_LOCK_PATH):
-            userid = os.stat(MANUAL_LOCK_PATH).st_uid
-            myuserid = os.getuid()
-            if userid != myuserid:
+        try:
+            print("About to check manual lock env var...")
+            val = os.environ["FEMB_MANUAL_LOCK_OVERRIDE"] # KeyError if variable not defined
+            print("env var found, skipping other checks.")
+        except KeyError:
+            print("env var not found, doing other checks...")
+            try:
+                userid = os.stat(MANUAL_LOCK_PATH).st_uid
                 username = pwd.getpwuid(userid).pw_name
-                print("Error: Another user has set the manual lock. User: '{}'. Exiting.".format(username))
+                print("Error: The manual lock file exists, {} created by user: '{}'. Exiting.".format(MANUAL_LOCK_PATH,username))
                 sys.exit(1)
+            except FileNotFoundError:
+                pass
         if not (self.fp is None):
             self.unlock()
         self.fp = open(AUTOMATIC_LOCK_PATH,"w")
@@ -96,6 +102,10 @@ def lock():
     #print(command)
     try:
         subprocess.check_call(command,shell=True)
+        try:
+            os.remove(MANUAL_LOCK_PATH)
+        except:
+            pass
     except subprocess.CalledProcessError as e:
         print("Error getting lock: Somebody else probably has the lock already.\n  Run lslocks and identify the user locking {}".format(MANUAL_LOCK_PATH))
         sys.exit(1)
