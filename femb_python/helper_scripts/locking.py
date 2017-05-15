@@ -13,6 +13,7 @@ import pwd
 
 MANUAL_LOCK_PATH="/tmp/femb_python_manual_lock"
 AUTOMATIC_LOCK_PATH="/tmp/femb_python_auto_lock"
+WRAPPER_LOCATION="helper_scripts/lock_wrapper.sh"
 
 class NoLockError(Exception):
     pass
@@ -84,32 +85,20 @@ def lock():
     """
     Lock the manual per user lock
     """
-    
-    try:
-        f = open(MANUAL_LOCK_PATH,"x")
-    except FileExistsError as e:
-        userid = os.stat(MANUAL_LOCK_PATH).st_uid
-        myuserid = os.getuid()
-        if myuserid != userid:
-          username = pwd.getpwuid(userid).pw_name
-          print("Error: Another user has set the manual lock. User: '{}'. Exiting.".format(username))
-          sys.exit(1)
 
-def unlock():
-    """
-    Unlock the manual per user lock
-    """
+    import subprocess
+    from ..configuration.cppfilerunner import CPP_FILE_RUNNER
+
+    wrapperFileName = CPP_FILE_RUNNER().filename(WRAPPER_LOCATION)
+    command = ['flock','--nonblock',MANUAL_LOCK_PATH,'-c','"/bin/bash --rcfile {}"'.format(wrapperFileName)]
+    command = " ".join(command)
+    #print(WRAPPER_LOCATION,wrapperFileName)
+    #print(command)
     try:
-        userid = os.stat(MANUAL_LOCK_PATH).st_uid
-        myuserid = os.getuid()
-        if myuserid == userid:
-            os.remove(MANUAL_LOCK_PATH)
-        else:
-            username = pwd.getpwuid(userid).pw_name
-            print("Error: Another user has set the manual lock. User: '{}'. Exiting.".format(username))
-            sys.exit(1)
-    except FileNotFoundError as e:
-        print("Warning in unlock: lock file doesn't exist")
+        subprocess.check_call(command,shell=True)
+    except subprocess.CalledProcessError as e:
+        print("Error getting lock: Somebody else probably has the lock already.\n  Run lslocks and identify the user locking {}".format(MANUAL_LOCK_PATH))
+        sys.exit(1)
 
 # Just for testing
 if __name__ == "__main__":
