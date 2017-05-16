@@ -37,40 +37,48 @@ class FEMB_LOCK(object):
             try:
                 userid = os.stat(MANUAL_LOCK_PATH).st_uid
                 username = pwd.getpwuid(userid).pw_name
-                print("Error: The manual lock file exists, {} created by user: '{}'. Exiting.".format(MANUAL_LOCK_PATH,username))
+                print("Error: The manual lock file exists, {} created by user: '{}'. Exiting. You may set the env var FEMB_MANUAL_LOCK_OVERRIDE to override".format(MANUAL_LOCK_PATH,username))
                 sys.exit(1)
             except FileNotFoundError:
                 pass
-        if not (self.fp is None):
-            self.unlock()
-        # checking pid and username in case somebody else has the lock
-        pid = None
-        username = None
         try:
-            with open(AUTOMATIC_LOCK_PATH) as pidf:
-                pid = str(pidf.read(100))
-            userid = os.stat(AUTOMATIC_LOCK_PATH).st_uid
-            username = pwd.getpwuid(userid).pw_name
-        except FileNotFoundError:
-            pass
-        # now actually locking
-        self.fp = open(AUTOMATIC_LOCK_PATH,"a+")
-        try:
-            fcntl.flock(self.fp, fcntl.LOCK_EX|fcntl.LOCK_NB)
-            self.fp.truncate(0) # delete content if somehow already exists
-            self.fp.write(str(os.getpid()))
-            self.fp.flush()
-            os.fsync(self.fp.fileno())
-        except BlockingIOError as e:
-            print("Error: FEMB automatic lock user: '{}' pid: {}. Exiting.".format(username,pid))
-            sys.exit(1)
+            val = os.environ["FEMB_AUTOMATIC_LOCK_OVERRIDE"] # KeyError if variable not defined
+        except KeyError:
+            if not (self.fp is None):
+                self.unlock()
+            # checking pid and username in case somebody else has the lock
+            pid = None
+            username = None
+            try:
+                with open(AUTOMATIC_LOCK_PATH) as pidf:
+                    pid = str(pidf.read(100))
+                userid = os.stat(AUTOMATIC_LOCK_PATH).st_uid
+                username = pwd.getpwuid(userid).pw_name
+            except FileNotFoundError:
+                pass
+            # now actually locking
+            self.fp = open(AUTOMATIC_LOCK_PATH,"a+")
+            try:
+                fcntl.flock(self.fp, fcntl.LOCK_EX|fcntl.LOCK_NB)
+                self.fp.truncate(0) # delete content if somehow already exists
+                self.fp.write(str(os.getpid()))
+                self.fp.flush()
+                os.fsync(self.fp.fileno())
+            except BlockingIOError as e:
+                print("Error: FEMB automatic lock user: '{}' pid: {}. Exiting. You may set the env var FEMB_AUTOMATIC_LOCK_OVERRIDE to override".format(username,pid))
+                sys.exit(1)
 
     def unlock(self):
         """
         Unlock (close) the lock file
         """
         if self.fp is None:
-            raise NoLockError("No lock to unlock, try locking first")
+            try:
+                val = os.environ["FEMB_AUTOMATIC_LOCK_OVERRIDE"] # KeyError if variable not defined
+            except KeyError:
+                raise NoLockError("No lock to unlock, try locking first")
+            else:
+                return
         self.fp.close()
         self.fp = None
         try:
