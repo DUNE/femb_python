@@ -32,11 +32,8 @@ class FEMB_LOCK(object):
         Lock the lock file and check the manual lock
         """
         try:
-            print("About to check manual lock env var...")
             val = os.environ["FEMB_MANUAL_LOCK_OVERRIDE"] # KeyError if variable not defined
-            print("env var found, skipping other checks.")
         except KeyError:
-            print("env var not found, doing other checks...")
             try:
                 userid = os.stat(MANUAL_LOCK_PATH).st_uid
                 username = pwd.getpwuid(userid).pw_name
@@ -46,19 +43,25 @@ class FEMB_LOCK(object):
                 pass
         if not (self.fp is None):
             self.unlock()
-        self.fp = open(AUTOMATIC_LOCK_PATH,"w")
+        # checking pid and username in case somebody else has the lock
+        pid = None
+        username = None
         try:
-            fcntl.flock(self.fp, fcntl.LOCK_EX|fcntl.LOCK_NB)
-            self.fp.write(str(os.getpid()))
-            self.fp.flush()
-            os.fsync(self.fp.fileno())
-        except BlockingIOError as e:
-            self.fp.close()
-            pid = None
             with open(AUTOMATIC_LOCK_PATH) as pidf:
                 pid = str(pidf.read(100))
             userid = os.stat(AUTOMATIC_LOCK_PATH).st_uid
             username = pwd.getpwuid(userid).pw_name
+        except FileNotFoundError:
+            pass
+        # now actually locking
+        self.fp = open(AUTOMATIC_LOCK_PATH,"a+")
+        try:
+            fcntl.flock(self.fp, fcntl.LOCK_EX|fcntl.LOCK_NB)
+            self.fp.truncate(0) # delete content if somehow already exists
+            self.fp.write(str(os.getpid()))
+            self.fp.flush()
+            os.fsync(self.fp.fileno())
+        except BlockingIOError as e:
             print("Error: FEMB automatic lock user: '{}' pid: {}. Exiting.".format(username,pid))
             sys.exit(1)
 
@@ -70,6 +73,10 @@ class FEMB_LOCK(object):
             raise NoLockError("No lock to unlock, try locking first")
         self.fp.close()
         self.fp = None
+        try:
+            os.remove(AUTOMATIC_LOCK_PATH)
+        except:
+            pass
 
     def __enter__(self):
         """
