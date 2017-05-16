@@ -17,6 +17,7 @@ import socket
 import time
 from socket import AF_INET, SOCK_DGRAM
 import binascii
+from .helper_scripts.locking import FEMB_LOCK
 
 class FEMB_UDP(object):
     """
@@ -46,12 +47,13 @@ class FEMB_UDP(object):
                 socket.htons(dataValLSB),socket.htons( self.FOOTER  ), 0x0, 0x0, 0x0  )
         
         #send packet to board, don't do any checks
-        sock_write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
-        sock_write.setblocking(0)
-        sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.UDP_PORT_WREG ))
-        sock_write.close()
-        #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,data)
-        time.sleep(0.05)
+        with FEMB_LOCK() as lock:
+            sock_write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
+            sock_write.setblocking(0)
+            sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.UDP_PORT_WREG ))
+            sock_write.close()
+            #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,data)
+            time.sleep(0.05)
 
     def write_reg_bits(self, reg , pos, mask, data ):
         try:
@@ -116,11 +118,12 @@ class FEMB_UDP(object):
                 socket.htons(dataValLSB),socket.htons( self.FOOTER  ), 0x0, 0x0, 0x0  )
 
         #send packet to board, don't do any checks
-        sock_write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
-        sock_write.setblocking(0)
-        sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.UDP_PORT_WREG ))
-        sock_write.close()
-        time.sleep(0.05)
+        with FEMB_LOCK() as lock:
+            sock_write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
+            sock_write.setblocking(0)
+            sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.UDP_PORT_WREG ))
+            sock_write.close()
+            time.sleep(0.05)
 
     def read_reg(self, reg ):
         try:
@@ -131,47 +134,48 @@ class FEMB_UDP(object):
             #print "FEMB_UDP--> Error read_reg: Invalid register number"
             return None
 
-        #set up listening socket, do before sending read request
-        sock_readresp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
-        sock_readresp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock_readresp.bind(('', self.UDP_PORT_RREGRESP ))
-        sock_readresp.settimeout(2)
+        with FEMB_LOCK() as lock:
+            #set up listening socket, do before sending read request
+            sock_readresp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
+            sock_readresp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock_readresp.bind(('', self.UDP_PORT_RREGRESP ))
+            sock_readresp.settimeout(2)
 
-        #crazy packet structure require for UDP interface
-        READ_MESSAGE = struct.pack('HHHHHHHHH',socket.htons(self.KEY1), socket.htons(self.KEY2),socket.htons(regVal),0,0,socket.htons(self.FOOTER),0,0,0)
-        sock_read = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
-        sock_read.setblocking(0)
-        sock_read.sendto(READ_MESSAGE,(self.UDP_IP,self.UDP_PORT_RREG))
-        sock_read.close()
+            #crazy packet structure require for UDP interface
+            READ_MESSAGE = struct.pack('HHHHHHHHH',socket.htons(self.KEY1), socket.htons(self.KEY2),socket.htons(regVal),0,0,socket.htons(self.FOOTER),0,0,0)
+            sock_read = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
+            sock_read.setblocking(0)
+            sock_read.sendto(READ_MESSAGE,(self.UDP_IP,self.UDP_PORT_RREG))
+            sock_read.close()
 
-        #try to receive response packet from board, store in hex
-        data = []
-        try:
-            data = sock_readresp.recv(self.MAX_PACKET_SIZE)
-        except socket.timeout:
-            print("FEMB_UDP--> Error read_reg: No read packet received from board, quitting")
+            #try to receive response packet from board, store in hex
+            data = []
+            try:
+                data = sock_readresp.recv(self.MAX_PACKET_SIZE)
+            except socket.timeout:
+                print("FEMB_UDP--> Error read_reg: No read packet received from board, quitting")
+                sock_readresp.close()
+                return None       
+            dataHex = binascii.hexlify( data ) 
             sock_readresp.close()
-            return None       
-        dataHex = binascii.hexlify( data ) 
-        sock_readresp.close()
 
-        #extract register value from response packet
-        try:
-            packetRegVal = int(dataHex[0:4],16)
-        except TypeError:
-            return None
-        if packetRegVal != regVal :
-            print("FEMB_UDP--> Error read_reg: Invalid response packet")
-            return None
+            #extract register value from response packet
+            try:
+                packetRegVal = int(dataHex[0:4],16)
+            except TypeError:
+                return None
+            if packetRegVal != regVal :
+                print("FEMB_UDP--> Error read_reg: Invalid response packet")
+                return None
 
-        try:
-            dataHexVal = int(dataHex[4:12],16)
-        except TypeError:
-            return None
+            try:
+                dataHexVal = int(dataHex[4:12],16)
+            except TypeError:
+                return None
         
-        #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,dataHexVal)
-        time.sleep(0.05)
-        return dataHexVal
+            #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,dataHexVal)
+            time.sleep(0.05)
+            return dataHexVal
 
     def get_data_packets(self, num):
         try:
@@ -182,27 +186,28 @@ class FEMB_UDP(object):
             #print "FEMB_UDP--> Error record_hs_data: Invalid number of data packets requested"
             return None
 
-        #set up listening socket
-        sock_data = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
-        sock_data.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock_data.bind(('',self.UDP_PORT_HSDATA))
-        sock_data.settimeout(2)
+        with FEMB_LOCK() as lock:
+            #set up listening socket
+            sock_data = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Internet, UDP
+            sock_data.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock_data.bind(('',self.UDP_PORT_HSDATA))
+            sock_data.settimeout(2)
 
-        #get N data packets
-        rawdataPackets = []
-        for packet in range(0,numVal,1):
-            data = None
-            try:
-                data = sock_data.recv(self.MAX_PACKET_SIZE)
-            except socket.timeout:
-                #print("FEMB_UDP--> Error get_data_packets: No data packet received from board, quitting")
-                sock_data.close()
-                return None
-            if data != None:
-                rawdataPackets.append(data)
-        sock_data.close()
+            #get N data packets
+            rawdataPackets = []
+            for packet in range(0,numVal,1):
+                data = None
+                try:
+                    data = sock_data.recv(self.MAX_PACKET_SIZE)
+                except socket.timeout:
+                    #print("FEMB_UDP--> Error get_data_packets: No data packet received from board, quitting")
+                    sock_data.close()
+                    return None
+                if data != None:
+                    rawdataPackets.append(data)
+            sock_data.close()
 
-        return rawdataPackets
+            return rawdataPackets
 
     def get_data_samples(self, rawdataPackets):
         if rawdataPackets == None:
