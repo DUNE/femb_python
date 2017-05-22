@@ -20,6 +20,7 @@ from .collect_data import COLLECT_DATA
 from .calibrate_ramp import CALIBRATE_RAMP
 from .static_tests import STATIC_TESTS
 from .dynamic_tests import DYNAMIC_TESTS
+from .baseline_rms import BASELINE_RMS
 from .summary_plots import SUMMARY_PLOTS
 
 class ADC_TEST_SUMMARY(object):
@@ -104,6 +105,7 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
     collect_data = COLLECT_DATA(config,100)
     static_tests = STATIC_TESTS(config)
     dynamic_tests = DYNAMIC_TESTS(config)
+    baseline_rms = BASELINE_RMS()
     startDateTime = datetime.datetime.now().replace(microsecond=0).isoformat()
 
     clocks = [0,1] # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
@@ -164,6 +166,11 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
             print("Collecting input pin data for chip: {} ...".format(iChip))
             fileprefix = "adcTestData_{}_inputPinTest_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
             collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,config.femb.MAX_NUM_PACKETS,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
+            static_fns = list(glob.glob(fileprefix+"_*.root"))
+            assert(len(static_fns)==1)
+            static_fn = static_fns[0]
+            baselineRmsStats = baseline_rms.analyze(static_fn)
+            allStatsRaw[clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
     print("Summarizing all data...")
     summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime)
     summary.write_jsons("adcTest_{}".format(startDateTime))
