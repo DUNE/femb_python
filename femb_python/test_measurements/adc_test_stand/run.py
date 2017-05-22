@@ -150,6 +150,20 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
                 chipStats["dynamic"] = dynamicStats
                 configStats[adcSerialNumbers[iChip]] = chipStats
             allStatsRaw[clock][offset] = configStats
+    # check the input pin works
+    if not singleConfig:
+        clock=0
+        offset = -1
+        clockMonostable=False
+        clockFromFIFO=False
+        clockExternal=True
+        config.configAdcAsic(enableOffsetCurrent=0,offsetCurrent=0,
+                            clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
+                            clockExternal=clockExternal,testInput=0)
+        for iChip in range(config.NASICS):
+            print("Collecting input pin data for chip: {} ...".format(iChip))
+            fileprefix = "adcTestData_{}_inputPinTest_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
+            collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,config.femb.MAX_NUM_PACKETS,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
     print("Summarizing all data...")
     summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime)
     summary.write_jsons("adcTest_{}".format(startDateTime))
