@@ -1,5 +1,18 @@
 #!/usr/bin/env python3
+'''
+$ sudo apt-get install python3-dev python3-numpy python3-matplotlib
+$ virtualenv -p python3 --system-site-packages venv
+$ source venv/bin/activate
 
+$ python setup.py develop
+
+# fixme: this needs to be added to setup.py
+$ pip install sumatra gitpython
+
+$ python3 test/test_runpolicy.py 
+
+
+'''
 
 
 from femb_python.runpolicy import Runner, DirectRunner, SumatraRunner
