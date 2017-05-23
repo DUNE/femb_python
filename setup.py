@@ -22,7 +22,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.3',
+    version='0.0.2',
 
     description='DUNE/SBND Cold Electronics Testing Package',
     long_description=long_description,
@@ -128,18 +128,13 @@ setup(
             'femb_sync_adc=femb_python.helper_scripts.sync_adc:main',
             'femb_config_adc=femb_python.helper_scripts.config_adc:main',
             'femb_config_fe=femb_python.helper_scripts.config_fe:main',
-            'femb_lock=femb_python.helper_scripts.locking:lock',
 
-            'femb_instrument_rigol_dp800=femb_python.test_instrument_interface.rigol_dp800:main',
             'femb_instrument_rigol_dg4000=femb_python.test_instrument_interface.rigol_dg4000:main',
-            'femb_instrument_keysight_33600A=femb_python.test_instrument_interface.keysight_33600A:main',
 
             'femb_adc_static_tests=femb_python.test_measurements.adc_test_stand.static_tests:main',
             'femb_adc_dynamic_tests=femb_python.test_measurements.adc_test_stand.dynamic_tests:main',
             'femb_adc_collect_data=femb_python.test_measurements.adc_test_stand.collect_data:main',
-            'femb_adc_calibrate_ramp=femb_python.test_measurements.adc_test_stand.calibrate_ramp:main',
             'femb_adc_run=femb_python.test_measurements.adc_test_stand.run:main',
-            'femb_adc_summary_plots=femb_python.test_measurements.adc_test_stand.summary_plots:main',
 
             'femb_example_measure_simple=femb_python.test_measurements.example_femb_test.doFembTest_simpleMeasurement:main',
             'femb_example_measure_gain=femb_python.test_measurements.example_femb_test.doFembTest_gainMeasurement:main',
@@ -149,6 +144,7 @@ setup(
             'femb_wib_setup_protodune=femb_python.test_measurements.wibTestStand.setup_wib_protodune:main',
             'femb_wib_gui=femb_python.test_measurements.wibTestStand.wib_configuration_window:main',
             'femb_wib_trace_fft=femb_python.test_measurements.wibTestStand.trace_fft_window_wib:main',
+            'femb_wib_allchan_trace_fft=femb_python.test_measurements.wibTestStand.wib_trace_fft_allchan_window:main',
             'femb_wib_measure_gain=femb_python.test_measurements.wibTestStand.doFembTest_gainMeasurement:main',
             'femb_wib_measure_noise=femb_python.test_measurements.wibTestStand.doFembTest_noiseMeasurement:main',
             'femb_wib_measure_simple=femb_python.test_measurements.wibTestStand.doFembTest_simpleMeasurement:main',
