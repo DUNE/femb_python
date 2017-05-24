@@ -128,13 +128,18 @@ setup(
             'femb_sync_adc=femb_python.helper_scripts.sync_adc:main',
             'femb_config_adc=femb_python.helper_scripts.config_adc:main',
             'femb_config_fe=femb_python.helper_scripts.config_fe:main',
+            'femb_lock=femb_python.helper_scripts.locking:lock',
 
+            'femb_instrument_rigol_dp800=femb_python.test_instrument_interface.rigol_dp800:main',
             'femb_instrument_rigol_dg4000=femb_python.test_instrument_interface.rigol_dg4000:main',
+            'femb_instrument_keysight_33600A=femb_python.test_instrument_interface.keysight_33600A:main',
 
             'femb_adc_static_tests=femb_python.test_measurements.adc_test_stand.static_tests:main',
             'femb_adc_dynamic_tests=femb_python.test_measurements.adc_test_stand.dynamic_tests:main',
             'femb_adc_collect_data=femb_python.test_measurements.adc_test_stand.collect_data:main',
+            'femb_adc_calibrate_ramp=femb_python.test_measurements.adc_test_stand.calibrate_ramp:main',
             'femb_adc_run=femb_python.test_measurements.adc_test_stand.run:main',
+            'femb_adc_summary_plots=femb_python.test_measurements.adc_test_stand.summary_plots:main',
 
             'femb_example_measure_simple=femb_python.test_measurements.example_femb_test.doFembTest_simpleMeasurement:main',
             'femb_example_measure_gain=femb_python.test_measurements.example_femb_test.doFembTest_gainMeasurement:main',
