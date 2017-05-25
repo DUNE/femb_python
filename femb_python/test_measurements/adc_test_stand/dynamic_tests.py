@@ -47,12 +47,8 @@ class DYNAMIC_TESTS(object):
             chanstats = {}
             for amp in amplitudes:
                 chanstats[amp] = {}
-                #chanstats[amp]['thds'] = []
-                #chanstats[amp]['snrs'] = []
-                chanstats[amp]['sinads'] = []
-                #chanstats[amp]['enobs'] = []
-                chanstats[amp]['freqs'] = []
                 for freq in frequencies:
+                    chanstats[amp][freq] = {}
                     waveform = waveforms[freq][amp][iChan]
                     if diagnosticPlots:
                         print("Chip: {}, Chan: {}, Freq: {} Hz, Amp: {} V".format(adcSerial,iChan,freq,amp))
@@ -65,19 +61,17 @@ class DYNAMIC_TESTS(object):
                     deltaFreqRel = (maxAmpFreq*1e6 - freq)/freq
                     if abs(deltaFreqRel) > 1e-2:
                         print("Warning: Chip: {} Channel: {} Frequency: {:.2g} Hz Amplitude: {:.2f} V FFT peak doesn't match input frequency, skipping. fft freq - input freq relative error: {:.2%}".format(adcSerial,iChan,freq,amp,deltaFreqRel))
-                        #chanstats[amp]['thds'].append(float('nan'))
-                        #chanstats[amp]['snrs'].append(float('nan'))
-                        chanstats[amp]['sinads'].append(float('nan'))
-                        #chanstats[amp]['enobs'].append(float('nan'))
-                        chanstats[amp]['freqs'].append(freq)
+                        #chanstats[amp][freq]['thds'] = float('nan')
+                        #chanstats[amp][freq]['snrs'] = float('nan')
+                        chanstats[amp][freq]['sinads'] = float('nan')
+                        #chanstats[amp][freq]['enobs'] = float('nan')
                     else:
                         if diagnosticPlots:
                             print("  THD: {:4.1f} SNR: {:4.1f} SINAD: {:4.1f} ENOB: {:4.2f}".format(thd,snr,sinad,enob))
-                        #chanstats[amp]['thds'].append(thd)
-                        #chanstats[amp]['snrs'].append(snr)
-                        chanstats[amp]['sinads'].append(sinad)
-                        #chanstats[amp]['enobs'].append(enob)
-                        chanstats[amp]['freqs'].append(freq)
+                        #chanstats[amp][freq]['thds'] = thd
+                        #chanstats[amp][freq]['snrs'] = snr
+                        chanstats[amp][freq]['sinads'] = sinad
+                        #chanstats[amp][freq]['enobs'] = enob
             chipstats[iChan] = chanstats
         allstats = chipstats
 

@@ -29,12 +29,17 @@ class ADC_TEST_SUMMARY(object):
         self.allStatsRaw = allStatsRaw
         self.testTime = testTime
         self.allStats = None
+        self.staticSummary = None
+        self.dynamicSummary = None
+        self.inputPinSummary = None
         self.makeSummaries()
 
     def makeSummaries(self):
         """
         makes keys:
         self.staticSummary[chipSerial][clock][offset][statistic][channel]
+        self.dynamicSummary[chipSerial][clock][offset][statistic][amp][freq][channel]
+        self.inputPinSummary[chipSerial][clock][offset][statistic][channel]
 
         from:
         self.allStatsRaw[clock][offset][chipSerial]
@@ -50,13 +55,30 @@ class ADC_TEST_SUMMARY(object):
                 break
             break
         staticSummary = {}
+        dynamicSummary = {}
         for chipSerial in chipSerials:
             staticSummary[chipSerial]={}
+            dynamicSummary[chipSerial]={}
             for clock in clocks:
                 staticSummary[chipSerial][clock]={}
+                dynamicSummary[chipSerial][clock]={}
                 for offset in offsets:
                     staticSummary[chipSerial][clock][offset] = self.makeStaticSummary(allStatsRaw[clock][offset][chipSerial]["static"])
+                    dynamicSummary[chipSerial][clock][offset] = self.makeDynamicSummary(allStatsRaw[clock][offset][chipSerial]["dynamic"])
         self.staticSummary = staticSummary
+        self.dynamicSummary = dynamicSummary
+
+        try:
+            inputPinSummary = {}
+            for chipSerial in chipSerials:
+                inputPinSummary[chipSerial]={}
+                for clock in clocks:
+                    inputPinSummary[chipSerial][clock]={}
+                    for offset in offsets:
+                        inputPinSummary[chipSerial][clock][offset] = self.makeStaticSummary(allStatsRaw[clock][offset][chipSerial]["inputPin"])
+            self.inputPinSummary = inputPinSummary
+        except KeyError:
+            pass
 
     def makeStaticSummary(self,stats):
         """
@@ -74,11 +96,46 @@ class ADC_TEST_SUMMARY(object):
                 result[statName].append(stats[iChan][statName])
         return result
 
+    def makeDynamicSummary(self,stats):
+        """
+        returns:
+        result[statistic][amp][freq][channel]
+
+        from:
+        stats[channel][amp][freq][statistic]
+        """
+        amps = stats[0].keys()
+        freqs = None
+        statNames = None
+        for amp in amps:
+            freqs = stats[0][amp].keys()
+            for freq in freqs:
+                statNames = stats[0][amp][freq].keys()
+                break
+            break
+        result = {}
+        for statName in statNames:
+            result[statName] = {}
+            for amp in amps:
+                result[statName][amp] = {}
+                for freq in freqs:
+                    result[statName][amp][freq] = []
+                    for iChan in range(16):
+                        result[statName][amp][freq].append(stats[iChan][amp][freq][statName])
+        return result
+
     def get_serials(self):
         return self.staticSummary.keys()
 
     def get_summary(self,serial):
-        return {"static":self.staticSummary[serial],"serial":serial,"time":self.testTime}
+        result =  {"static":self.staticSummary[serial],
+                "dynamic":self.dynamicSummary[serial],
+                "serial":serial,"time":self.testTime}
+        try:
+            result["inputPin"] = self.inputPinSummary[serial]
+        except:
+            pass
+        return result
 
     def write_jsons(self,fileprefix):
         for serial in self.staticSummary:
@@ -151,6 +208,8 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
                 chipStats["static"] = staticStats
                 chipStats["dynamic"] = dynamicStats
                 configStats[adcSerialNumbers[iChip]] = chipStats
+                with open(fileprefix+"_statsRaw.json","w") as f:
+                    json.dump(chipStats,f)
             allStatsRaw[clock][offset] = configStats
     # check the input pin works
     if not singleConfig:
@@ -171,6 +230,8 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
             static_fn = static_fns[0]
             baselineRmsStats = baseline_rms.analyze(static_fn)
             allStatsRaw[clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
+            with open(fileprefix+"_statsRaw.json","w") as f:
+                json.dump(baselineRmsStats,f)
     print("Summarizing all data...")
     summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime)
     summary.write_jsons("adcTest_{}".format(startDateTime))
@@ -208,9 +269,18 @@ def main():
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Runs ADC tests")
     parser.add_argument("-s", "--singleConfig",help="Only run a single configuration (normally runs all clocks and offsets)",action='store_true')
+    parser.add_argument("-p", "--profiler",help="Enable python timing profiler and save to given file name",type=str,default=None)
     args = parser.parse_args()
   
     config = CONFIG()
     serialNumbers = list(range(-1,-(config.NASICS+1),-1))
-    chipsPass = runTests(config,serialNumbers,"Command-line user",singleConfig=args.singleConfig)
+    chipsPass = None
+    startTime = datetime.datetime.now()
+    if args.profiler:
+        import cProfile
+        cProfile.runctx('chipsPass = runTests(config,serialNumbers,"Command-line user",singleConfig=args.singleConfig)',globals(),locals(),args.profiler)
+    else:
+        chipsPass = runTests(config,serialNumbers,"Command-line user",singleConfig=args.singleConfig)
+    runTime = datetime.datetime.now() - startTime
+    print("Test took: {:.0f} min {:.1f} s".format(runTime.total_seconds() // 60, runTime.total_seconds() % 60.))
     print("Chips Pass: ",chipsPass)
