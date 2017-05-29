@@ -52,9 +52,13 @@ class SUMMARY_PLOTS(object):
             self.colorDict = {}
             for i, offset in enumerate(self.offsets):
                 self.colorDict[offset] = colors[i]
-            fig, ((ax1,ax2),(ax3,ax4),(ax5,ax6)) = plt.subplots(3,2,figsize=(12,12))
-            fig.suptitle("ADC {}, {}, Test Time: {}".format(self.serial,clockLabel,self.time))
-            self.staticSummary(iClock,ax1,ax2,ax3,ax4)
+            fig, ((ax1,ax2,ax3),(ax4,ax5,ax6),(ax7,ax8,ax9)) = plt.subplots(3,3,figsize=(12,12))
+            if plotAll:
+                fig.subplots_adjust(left=0.07,right=0.85,bottom=0.05,top=0.92,wspace=0.27)
+            else:
+                fig.subplots_adjust(left=0.07,right=0.93,bottom=0.05,top=0.92,wspace=0.27)
+            fig.suptitle("ADC {}, {}, \nTest Time: {}".format(self.serial,clockLabel,self.time),fontsize='x-large')
+            self.staticSummary(iClock,ax1,ax3,ax2,ax9)
             self.dynamicSummary(iClock,ax5,ax6)
             self.doLegend(fig,self.colorDict,patches=True,offsets=True)
             fig.savefig(self.outfileprefix + "_"+clockFn+".png")
@@ -73,6 +77,7 @@ class SUMMARY_PLOTS(object):
         ax2.set_ylabel("Stuck Code Fraction")
         ax3.set_ylabel("INL [LSB]")
         ax4.set_ylabel("Min ADC Code or Max ADC Code - 4095")
+        ax4.set_ylim(-50,400)
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
         markerstyle = ['o','s','*','p','^']*10
         legendDict1 = {}
@@ -128,7 +133,7 @@ class SUMMARY_PLOTS(object):
         ax1.set_yscale("log")
         ax3.set_yscale("log")
         self.doLegend(ax1,legendDict1)
-        self.doLegend(ax2,legendDict2)
+        #self.doLegend(ax2,legendDict2)
         self.doLegend(ax3,legendDict3)
         self.doLegend(ax4,legendDict4)
         ax4Right = ax4.twinx()
@@ -186,9 +191,9 @@ class SUMMARY_PLOTS(object):
                 legendHandles.append(line)
         self.legendHandles = legendHandles
         if isinstance(ax,Figure):
-            ax.legend(self.legendHandles,legendLabels,loc="upper right")
+            ax.legend(self.legendHandles,legendLabels,loc="upper right",fontsize="medium")
         else:
-            ax.legend(handles=self.legendHandles,loc="best")
+            ax.legend(handles=self.legendHandles,loc="best",fontsize="medium")
 
 
 
