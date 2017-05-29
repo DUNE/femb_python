@@ -55,10 +55,10 @@ class SUMMARY_PLOTS(object):
             fig, ((ax1,ax2),(ax3,ax4),(ax5,ax6)) = plt.subplots(3,2,figsize=(12,12))
             fig.suptitle("ADC {}, {}, Test Time: {}".format(self.serial,clockLabel,self.time))
             self.staticSummary(iClock,ax1,ax2,ax3,ax4)
-            self.dynamicSummary(iClock,ax5)
+            self.dynamicSummary(iClock,ax5,ax6)
             self.doLegend(fig,self.colorDict,patches=True,offsets=True)
-            fig.savefig(self.outfileprefix + "_static_"+clockFn+".png")
-            fig.savefig(self.outfileprefix + "_static_"+clockFn+".pdf")
+            fig.savefig(self.outfileprefix + "_"+clockFn+".png")
+            fig.savefig(self.outfileprefix + "_"+clockFn+".pdf")
             plt.close(fig)
             if not plotAll:
                 break
@@ -135,26 +135,33 @@ class SUMMARY_PLOTS(object):
         ax4Right.set_ylim(0.010*numpy.array(ax4.get_ylim()))
         ax4Right.set_ylabel("Min/Max ADC Code Voltage [V]")
 
-    def dynamicSummary(self,iClock,ax1):
+    def dynamicSummary(self,iClock,ax1,ax2):
         data = self.stats["dynamic"][iClock]
-        ax1.set_xlabel("Channel")
-        ax1.set_ylabel("SINAD [dBc]")
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
         markerstyle = ['o','s','*','p','^']*10
-        legendDict1 = {}
+        freq1 = 0.
+        freq2 = 0.
         for offset in self.offsets:
             color = self.colorDict[offset]
             i1 = 0
+            i2 = 0
             for stat in sorted(data[offset]):
               if stat.lower() == "sinads":
                 for amp in reversed(sorted(data[offset][stat])): # largest amp
-                  for freq in data[offset][stat][amp]:
+                  freqs = sorted(data[offset][stat][amp],key=lambda x: float(x))
+                  for freq in freqs[:1]:
                     ax1.plot(data[offset][stat][amp][freq],label=stat,c=color,ls=linestyle[i1])
-                    legendDict1[float(freq)] = (linestyle[i1],None)
                     i1 += 1
+                    freq1 = float(freq)/1000.
+                  for freq in freqs[-1:]:
+                    ax2.plot(data[offset][stat][amp][freq],label=stat,c=color,ls=linestyle[i2])
+                    i2 += 1
+                    freq2 = float(freq)/1000.
                   break
-        #ax1.set_yscale("log")
-        self.doLegend(ax1,legendDict1)
+        ax1.set_xlabel("Channel")
+        ax1.set_ylabel("SINAD for {:.1f} kHz [dBc]".format(freq1))
+        ax2.set_xlabel("Channel")
+        ax2.set_ylabel("SINAD for {:.1f} kHz [dBc]".format(freq2))
 
     def doLegend(self,ax,legendDict,patches=False,offsets=False):
         legendHandles = []
