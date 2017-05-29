@@ -54,7 +54,7 @@ class SUMMARY_PLOTS(object):
                 self.colorDict[offset] = colors[i]
             fig, ((ax1,ax2,ax3),(ax4,ax5,ax6),(ax7,ax8,ax9)) = plt.subplots(3,3,figsize=(12,12))
             if plotAll:
-                fig.subplots_adjust(left=0.07,right=0.85,bottom=0.05,top=0.92,wspace=0.27)
+                fig.subplots_adjust(left=0.07,right=0.91,bottom=0.05,top=0.92,wspace=0.27)
             else:
                 fig.subplots_adjust(left=0.07,right=0.93,bottom=0.05,top=0.92,wspace=0.27)
             fig.suptitle("ADC {}, {}, \nTest Time: {}".format(self.serial,clockLabel,self.time),fontsize='x-large')
@@ -176,9 +176,9 @@ class SUMMARY_PLOTS(object):
                 color = legendDict[title]
                 if offsets:
                     if title == "-1":
-                        title = "Offset Off"
+                        title = "Off"
                     else:
-                        title = "Offset: "+str(title)
+                        title = str(title)
                 patch = mpatches.Patch(color=color, label=title)
                 legendLabels.append(title)
                 legendHandles.append(patch)
@@ -191,9 +191,10 @@ class SUMMARY_PLOTS(object):
                 legendHandles.append(line)
         self.legendHandles = legendHandles
         if isinstance(ax,Figure):
-            ax.legend(self.legendHandles,legendLabels,loc="upper right",fontsize="medium")
+            ax.legend(self.legendHandles,legendLabels,loc="upper right",fontsize="medium",frameon=False)
+            ax.text(0.87,0.978,"Offset:")
         else:
-            ax.legend(handles=self.legendHandles,loc="best",fontsize="medium")
+            ax.legend(handles=self.legendHandles,loc="best",fontsize="medium",frameon=False)
 
 
 
