@@ -29,9 +29,10 @@ class SUMMARY_PLOTS(object):
         self.outfileprefix = outfileprefix
         colors = ["grey","m","plum","darkorchid","firebrick","red","sienna","sandybrown","gold","olivedrab","chartreuse","seagreen","paleturquoise","deepskyblue","navy","blue"]*2
         colors.reverse()
-        for iClock in sorted(stats["static"]):
+        clocks = [-1,0,1,2] # clock int: -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
+        clocks = [str(i) for i in clocks]
+        for iClock in clocks:
             self.legendHandles = []
-            # clock int: -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
             clockFn = "extClock"
             clockLabel="External Clock"
             if int(iClock) == -1:
@@ -46,7 +47,13 @@ class SUMMARY_PLOTS(object):
             elif int(iClock) == 2:
               clockFn = "fifoClock"
               clockLabel="FIFO Clock"
-            self.offsets = sorted(self.stats["static"][iClock])
+            try:
+                self.offsets = sorted(self.stats["static"][iClock])
+            except KeyError:
+                try:
+                    self.offsets = sorted(self.stats["dynamic"][iClock])
+                except KeyError:
+                    continue  # skip this iClock if no data for it
             if not plotAll:
                 self.offsets = self.offsets[:1]
             self.colorDict = {}
@@ -60,6 +67,7 @@ class SUMMARY_PLOTS(object):
             fig.suptitle("ADC {}, {}, \nTest Time: {}".format(self.serial,clockLabel,self.time),fontsize='x-large')
             self.staticSummary(iClock,ax1,ax3,ax2,ax9)
             self.dynamicSummary(iClock,ax5,ax6)
+            self.baselineSummary(iClock,ax7,ax8)
             self.doLegend(fig,self.colorDict,patches=True,offsets=True)
             fig.savefig(self.outfileprefix + "_"+clockFn+".png")
             fig.savefig(self.outfileprefix + "_"+clockFn+".pdf")
@@ -68,7 +76,11 @@ class SUMMARY_PLOTS(object):
                 break
 
     def staticSummary(self,iClock,ax1,ax2,ax3,ax4):
-        data = self.stats["static"][iClock]
+        data = None
+        try:
+            data = self.stats["static"][iClock]
+        except KeyError:
+            return
         ax1.set_xlabel("Channel")
         ax2.set_xlabel("Channel")
         ax3.set_xlabel("Channel")
@@ -141,7 +153,11 @@ class SUMMARY_PLOTS(object):
         ax4Right.set_ylabel("Min/Max ADC Code Voltage [V]")
 
     def dynamicSummary(self,iClock,ax1,ax2):
-        data = self.stats["dynamic"][iClock]
+        data = None
+        try:
+            data = self.stats["dynamic"][iClock]
+        except KeyError:
+            return
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
         markerstyle = ['o','s','*','p','^']*10
         freq1 = 0.
@@ -167,6 +183,36 @@ class SUMMARY_PLOTS(object):
         ax1.set_ylabel("SINAD for {:.1f} kHz [dBc]".format(freq1))
         ax2.set_xlabel("Channel")
         ax2.set_ylabel("SINAD for {:.1f} kHz [dBc]".format(freq2))
+
+    def baselineSummary(self,iClock,ax1,ax2):
+        data = None
+        try:
+            data = self.stats["inputPin"][iClock]
+        except KeyError:
+            return
+        ax1.set_xlabel("Channel")
+        ax2.set_xlabel("Channel")
+        ax1.set_ylabel("Input Pin Mean [ADC]")
+        ax2.set_ylabel("Input Pin RMS [ADC]")
+        linestyle = ['solid',"dashed","dashdot","dotted"]*10
+        markerstyle = ['o','s','*','p','^']*10
+        legendDict1 = {}
+        legendDict2 = {}
+        for offset in self.offsets:
+            color = self.colorDict[offset]
+            i1 = 0
+            i2 = 0
+            for stat in sorted(data[offset]):
+              if stat.lower() == "mean":
+                ax1.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i1])
+                legendDict1[stat] = (linestyle[i1],None)
+                i1 += 1
+              elif stat.lower() == "rms":
+                ax2.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i2])
+                legendDict2[stat] = (linestyle[i2],None)
+                i2 += 1
+        #self.doLegend(ax1,legendDict1)
+        #self.doLegend(ax2,legendDict2)
 
     def doLegend(self,ax,legendDict,patches=False,offsets=False):
         legendHandles = []
@@ -195,8 +241,6 @@ class SUMMARY_PLOTS(object):
             ax.text(0.87,0.978,"Offset:")
         else:
             ax.legend(handles=self.legendHandles,loc="best",fontsize="medium",frameon=False)
-
-
 
 def main():
     from ...configuration.argument_parser import ArgumentParser
