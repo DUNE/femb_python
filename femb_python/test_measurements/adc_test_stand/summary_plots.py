@@ -31,29 +31,39 @@ class SUMMARY_PLOTS(object):
         colors.reverse()
         for iClock in sorted(stats["static"]):
             self.legendHandles = []
+            # clock int: -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
             clockFn = "extClock"
             clockLabel="External Clock"
-            if iClock == 1:
+            if int(iClock) == -1:
+              clockFn = "undefClock"
+              clockLabel="Undefined Clock"
+            elif int(iClock) == 0:
+              clockFn = "extClock"
+              clockLabel="External Clock"
+            elif int(iClock) == 1:
               clockFn = "intClock"
               clockLabel="Internal Clock"
-            elif iClock == 2:
+            elif int(iClock) == 2:
               clockFn = "fifoClock"
               clockLabel="FIFO Clock"
             self.offsets = sorted(self.stats["static"][iClock])
+            if not plotAll:
+                self.offsets = self.offsets[:1]
             self.colorDict = {}
             for i, offset in enumerate(self.offsets):
                 self.colorDict[offset] = colors[i]
-                if not plotAll:
-                    break
-            fig, ((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2,figsize=(12,12))
+            fig, ((ax1,ax2),(ax3,ax4),(ax5,ax6)) = plt.subplots(3,2,figsize=(12,12))
             fig.suptitle("ADC {}, {}, Test Time: {}".format(self.serial,clockLabel,self.time))
-            self.staticSummary(iClock,ax1,ax2,ax3,ax4,plotAll)
+            self.staticSummary(iClock,ax1,ax2,ax3,ax4)
+            self.dynamicSummary(iClock,ax5)
             self.doLegend(fig,self.colorDict,patches=True,offsets=True)
             fig.savefig(self.outfileprefix + "_static_"+clockFn+".png")
             fig.savefig(self.outfileprefix + "_static_"+clockFn+".pdf")
             plt.close(fig)
+            if not plotAll:
+                break
 
-    def staticSummary(self,iClock,ax1,ax2,ax3,ax4,plotAll):
+    def staticSummary(self,iClock,ax1,ax2,ax3,ax4):
         data = self.stats["static"][iClock]
         ax1.set_xlabel("Channel")
         ax2.set_xlabel("Channel")
@@ -115,8 +125,6 @@ class SUMMARY_PLOTS(object):
                 ax4.plot(data4,label=stat,c=color,ls=linestyle[i4])
                 legendDict4[stat] = (linestyle[i4],None)
                 i4 += 1
-            if not plotAll:
-                break
         ax1.set_yscale("log")
         ax3.set_yscale("log")
         self.doLegend(ax1,legendDict1)
@@ -126,6 +134,27 @@ class SUMMARY_PLOTS(object):
         ax4Right = ax4.twinx()
         ax4Right.set_ylim(0.010*numpy.array(ax4.get_ylim()))
         ax4Right.set_ylabel("Min/Max ADC Code Voltage [V]")
+
+    def dynamicSummary(self,iClock,ax1):
+        data = self.stats["dynamic"][iClock]
+        ax1.set_xlabel("Channel")
+        ax1.set_ylabel("SINAD [dBc]")
+        linestyle = ['solid',"dashed","dashdot","dotted"]*10
+        markerstyle = ['o','s','*','p','^']*10
+        legendDict1 = {}
+        for offset in self.offsets:
+            color = self.colorDict[offset]
+            i1 = 0
+            for stat in sorted(data[offset]):
+              if stat.lower() == "sinads":
+                for amp in reversed(sorted(data[offset][stat])): # largest amp
+                  for freq in data[offset][stat][amp]:
+                    ax1.plot(data[offset][stat][amp][freq],label=stat,c=color,ls=linestyle[i1])
+                    legendDict1[float(freq)] = (linestyle[i1],None)
+                    i1 += 1
+                  break
+        #ax1.set_yscale("log")
+        self.doLegend(ax1,legendDict1)
 
     def doLegend(self,ax,legendDict,patches=False,offsets=False):
         legendHandles = []
