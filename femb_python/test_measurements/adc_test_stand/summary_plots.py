@@ -35,7 +35,7 @@ class SUMMARY_PLOTS(object):
         self.time = stats['time']
         self.serial = stats['serial']
         self.outfileprefix = outfileprefix
-        colors = ["grey","m","plum","darkorchid","firebrick","red","sienna","sandybrown","gold","olivedrab","chartreuse","seagreen","paleturquoise","deepskyblue","navy","blue"]*2
+        colors = ["grey","m","plum","darkorchid","firebrick","red","sienna","sandybrown","gold","y","olivedrab","chartreuse","seagreen","paleturquoise","deepskyblue","navy","blue"]*2
         colors.reverse()
         clocks = [-1,0,1,2] # clock int: -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
         for iClock in clocks:
@@ -97,8 +97,11 @@ class SUMMARY_PLOTS(object):
         try:
             data = self.stats["static"][iClock]
         except KeyError:
-            print("No staticSummary for iClock: ",iClock)
-            return
+            try:
+                data = self.stats["static"][str(iClock)]
+            except KeyError:
+                print("No staticSummary for iClock: ",iClock)
+                return
         ax1.set_xlabel("Channel")
         ax2.set_xlabel("Channel")
         ax3.set_xlabel("Channel")
@@ -175,8 +178,11 @@ class SUMMARY_PLOTS(object):
         try:
             data = self.stats["dynamic"][iClock]
         except KeyError:
-            print("No dynamicSummary for iClock: ",iClock)
-            return
+            try:
+                data = self.stats["dynamic"][str(iClock)]
+            except KeyError:
+                print("No dynamicSummary for iClock: ",iClock)
+                return
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
         markerstyle = ['o','s','*','p','^']*10
         freq1 = 0.
@@ -208,8 +214,11 @@ class SUMMARY_PLOTS(object):
         try:
             data = self.stats["inputPin"][iClock]
         except KeyError:
-            print("No baselineSummary for iClock: ",iClock)
-            return
+            try:
+                data = self.stats["inputPin"][str(iClock)]
+            except KeyError:
+                print("No inputPinSummary for iClock: ",iClock)
+                return
         ax1.set_xlabel("Channel")
         ax2.set_xlabel("Channel")
         ax1.set_ylabel("Input Pin Mean [ADC]")

@@ -8,6 +8,7 @@ standard_library.install_aliases()
 from ...femb_udp import FEMB_UDP
 from ...test_instrument_interface import RigolDG4000
 from ...write_root_tree import WRITE_ROOT_TREE
+import sys
 import time
 import datetime
 import glob
@@ -77,8 +78,8 @@ class ADC_TEST_SUMMARY(object):
                     for offset in offsets:
                         inputPinSummary[chipSerial][clock][offset] = self.makeStaticSummary(allStatsRaw[clock][offset][chipSerial]["inputPin"])
             self.inputPinSummary = inputPinSummary
-        except KeyError:
-            pass
+        except KeyError as e:
+            print("Warning: inputPinSummary KeyError: ",e)
 
     def makeStaticSummary(self,stats):
         """
@@ -134,6 +135,7 @@ class ADC_TEST_SUMMARY(object):
         try:
             result["inputPin"] = self.inputPinSummary[serial]
         except:
+            print("get_summary: no inputPin key")
             pass
         return result
 
@@ -195,6 +197,7 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
                                     clockExternal=clockExternal)
             for iChip in range(config.NASICS):
                 print("Collecting data for clock: {} offset: {} chip: {} ...".format(clock, offset, iChip))
+                sys.stdout.flush()
                 chipStats = {}
                 fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
                 collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
@@ -212,7 +215,7 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
                     json.dump(chipStats,f)
             allStatsRaw[clock][offset] = configStats
     # check the input pin works
-    if not singleConfig:
+    if True:
         clock=0
         offset = -1
         clockMonostable=False
@@ -223,8 +226,9 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
                             clockExternal=clockExternal,testInput=0)
         for iChip in range(config.NASICS):
             print("Collecting input pin data for chip: {} ...".format(iChip))
+            sys.stdout.flush()
             fileprefix = "adcTestData_{}_inputPinTest_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
-            collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,config.femb.MAX_NUM_PACKETS,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
+            collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,50,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
             static_fns = list(glob.glob(fileprefix+"_*.root"))
             assert(len(static_fns)==1)
             static_fn = static_fns[0]
@@ -233,11 +237,14 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
             with open(fileprefix+"_statsRaw.json","w") as f:
                 json.dump(baselineRmsStats,f)
     print("Summarizing all data...")
+    sys.stdout.flush()
     summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime)
     summary.write_jsons("adcTest_{}".format(startDateTime))
+    print("Making summary plots...")
     for serial in summary.get_serials():
       SUMMARY_PLOTS(summary.get_summary(serial),"adcTest_{}_{}".format(startDateTime,serial),plotAll=True)
     print("Checking if chips pass..")
+    sys.stdout.flush()
     chipsPass = []
     for serial in adcSerialNumbers:
         thisSummary = summary.get_summary(serial)
