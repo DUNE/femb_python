@@ -72,8 +72,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         ##################################
 
         self.NASICS = 1
-        self.FUNCGENINTER = RigolDG4000("/dev/usbtmc1",1)
-        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc0",["CH1"])
+        self.FUNCGENINTER = RigolDG4000("/dev/usbtmc0",1)
+        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc1",["CH1"])
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
 
