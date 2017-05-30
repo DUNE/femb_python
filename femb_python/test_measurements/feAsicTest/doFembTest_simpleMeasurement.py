@@ -128,7 +128,8 @@ class FEMB_TEST_SIMPLE(object):
         #sleep(0.5)
 
         #set output file
-        self.write_data.filedir = "data/"
+        #self.write_data.filedir = "data/"
+        self.write_data.filedir = "data/simpleMeasurement_" + str(self.write_data.date) + "/"
         self.write_data.filename = "rawdata_simpleMeasurement_" + str(self.write_data.date) + ".bin"
         print("Recording " + self.write_data.filename )
         self.write_data.numpacketsrecord = 10
@@ -137,7 +138,9 @@ class FEMB_TEST_SIMPLE(object):
         self.write_data.runversion = 0
 
         #setup output file and record data
-        self.write_data.open_file()
+        isOpen = self.write_data.open_file()
+        if isOpen == 0 :
+            print( "Error running doFembTest - Could not open output data file for writing, ending test" )
         subrun = 0
 
         asicCh = 0

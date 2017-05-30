@@ -37,6 +37,18 @@ class GUI_WINDOW(Frame):
         #define test result variable
         self.test_result = 0
 
+        #define required variables
+        self.operator_name = ""
+        self.test_stand = ""
+        self.traveller = ""
+        self.run = ""
+        self.boardid = ""
+        self.asic0id = ""
+        self.asic1id = ""
+        self.asic2id = ""
+        self.asic3id = ""
+        self.test_version = "1"
+
     def define_test_details_column(self):
         columnbase=0
 
@@ -58,7 +70,7 @@ class GUI_WINDOW(Frame):
         self.test_stand_entry.grid(sticky=W,row=2,column=columnbase+1)
 
         # Adding electronics ID and read entry box
-        label = Label(self,text="Chip/Board ID:",width=25)
+        label = Label(self,text="Test Board ID:",width=25)
         label.grid(sticky=W,row=3,column=columnbase+0)
 
         self.boardid_entry = Entry(self,width=25)
@@ -77,6 +89,34 @@ class GUI_WINDOW(Frame):
 
         self.run_entry = Entry(self,width=25)
         self.run_entry.grid(sticky=W,row=5,column=columnbase+1)
+
+        # ASIC 0 ID
+        label = Label(self,text="ASIC 0 ID:",width=25)
+        label.grid(sticky=W,row=6,column=columnbase+0)
+
+        self.asic0_entry = Entry(self,width=25)
+        self.asic0_entry.grid(sticky=W,row=6,column=columnbase+1)
+
+        # ASIC 1 ID
+        label = Label(self,text="ASIC 1 ID:",width=25)
+        label.grid(sticky=W,row=7,column=columnbase+0)
+
+        self.asic1_entry = Entry(self,width=25)
+        self.asic1_entry.grid(sticky=W,row=7,column=columnbase+1)
+
+        # ASIC 2 ID
+        label = Label(self,text="ASIC 2 ID:",width=25)
+        label.grid(sticky=W,row=8,column=columnbase+0)
+
+        self.asic2_entry = Entry(self,width=25)
+        self.asic2_entry.grid(sticky=W,row=8,column=columnbase+1)
+
+        # ASIC 3 ID
+        label = Label(self,text="ASIC 3 ID:",width=25)
+        label.grid(sticky=W,row=9,column=columnbase+0)
+
+        self.asic3_entry = Entry(self,width=25)
+        self.asic3_entry.grid(sticky=W,row=9,column=columnbase+1)
 
 
     def define_general_commands_column(self):
@@ -122,16 +162,24 @@ class GUI_WINDOW(Frame):
         """
 
     def start_measurements(self):
-        operator_name = self.operator_entry.get()
-        test_stand = self.test_stand_entry.get()
-        boardid = self.boardid_entry.get()
-        traveller = self.traveller_entry.get()
-        run = self.run_entry.get()
+        self.operator_name = self.operator_entry.get()
+        self.test_stand = self.test_stand_entry.get()
+        self.traveller = self.traveller_entry.get()
+        self.run = self.run_entry.get()
+        self.boardid = self.boardid_entry.get()
+        self.asic0id = self.asic0_entry.get()
+        self.asic1id = self.asic1_entry.get()
+        self.asic2id = self.asic2_entry.get()
+        self.asic3id = self.asic3_entry.get()
         print("Operator Name: " + str( operator_name ) )
         print("Test Stand # : " + str( test_stand ) )
-        print("Board/Chip ID: " + str( boardid ) )
         print("Traveller #  : " + str( traveller ) )
         print("Run #  : " + str( run ) )
+        print("Test Board ID: " + str( boardid ) )
+        print("ASIC 0 ID: " + str(asic0id ) )
+        print("ASIC 1 ID: " + str(asic1id ) )
+        print("ASIC 2 ID: " + str(asic2id ) )
+        print("ASIC 3 ID: " + str(asic3id ) )
 
         if operator_name == "" :
             print("ENTER REQUIRED INFO")

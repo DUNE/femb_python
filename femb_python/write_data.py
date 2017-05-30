@@ -15,6 +15,7 @@ import uuid
 import datetime
 import time
 import struct
+import os
 
 class WRITE_DATA(object):
 
@@ -27,11 +28,23 @@ class WRITE_DATA(object):
         self.runversion = 0
         self.date = int( datetime.datetime.today().strftime('%Y%m%d%H%M%S') )
         self.filedir = "data/"
-        #self.filedir = "data/data_" + str( self.date )
+        #self.filedir = "data/data_" + str( self.date ) + "/"
 
     def open_file(self):
         print("write_data: Open file")
+
+        #check local directory structure, available space
+        if os.path.isdir( str(self.filedir) ) == False:
+            print("write_data: Data directory not found, making now.")
+            os.makedirs( str(self.filedir) )
+
+            #check if directory was created sucessfully
+            if os.path.isdir( str(self.filedir) ) == False:
+                print("write_data:  Please check that femb_python package directory structure is intact.")
+                return 0
+
         self.data_file=open(str(self.filedir)+str(self.filename),'wb')
+        return 1
 
     def record_data(self,subrun, asic, asicCh):
         subrunVal = int(subrun)

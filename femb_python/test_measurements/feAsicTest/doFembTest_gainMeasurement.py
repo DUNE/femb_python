@@ -129,7 +129,8 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.setInternalPulser(1,0x0)
 
         #set output file
-        self.write_data.filedir = "data/"
+        #self.write_data.filedir = "data/"
+        self.write_data.filedir = "data/gainMeasurement_" + str(self.write_data.date) + "/"
         #self.write_data.filename = "rawdata_gainMeasurement_" + str(self.write_data.date) + ".bin"
         self.write_data.filename = "rawdata_gainMeasurement_" + str(self.write_data.date) + "_femb_" \
                                    + str(self.fembNum) + "_g_" + str(self.gain) + "_s_" + str(self.shape) + "_b_" + str(self.base) + ".bin"
@@ -252,7 +253,7 @@ def main():
     
 
     for g in range(2,3,1):
-      for s in range(1,2,1):
+      for s in range(1,3,1):
         for b in range(0,1,1):
           femb_test = FEMB_TEST_GAIN()
           femb_test.fembNum = int(0)
