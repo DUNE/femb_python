@@ -1,7 +1,8 @@
 #!/usr/bin/env python33
 
 """
-Configuration for P1 ADC single-chip board
+Configuration for P1 ADC single-chip board on hothdaq3
+Mainly uses the Rigol signal generator for now
 """
 
 from __future__ import print_function
@@ -23,7 +24,7 @@ import copy
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.configuration.adc_asic_reg_mapping_P1 import ADC_ASIC_REG_MAPPING
-from femb_python.test_insturment_interface.keysight_33600A import Keysight_33600A
+from femb_python.test_insturment_interface.rigol_dg4000 import RigolDG4000
 from femb_python.test_insturment_interface.rigol_dp800 import RigolDP800
 
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
@@ -46,7 +47,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_CLKPHASE = 6
         self.REG_LATCHLOC1_4_data = 0x000006
         self.REG_LATCHLOC5_8_data = 0x0
-        self.REG_CLKPHASE_data = 0xffff0000
+        self.REG_CLKPHASE_data = 0xfffc0000
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
 
         ##################################
@@ -71,7 +72,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         ##################################
 
         self.NASICS = 1
-	self.FUNCGENINTER = Keysight_33600A("/dev/usbtmc1",1)
+	self.FUNCGENINTER = RigolDG4000("/dev/usbtmc1",1)
 	self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc0",["CH1"])
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"

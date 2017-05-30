@@ -24,8 +24,7 @@ class COLLECT_DATA(object):
         """
         self.config = config
         self.femb = FEMB_UDP()
-        #self.funcgen = RigolDG4000(config.FUNCGENPATH,config.FUNCGENSOURCE)
-        self.funcgen = Keysight_33600A(config.FUNCGENPATH,config.FUNCGENSOURCE)
+        self.funcgen = self.config.FUNCGENINTER
         self.settlingTime = 0.1 # second
         self.maxTries = 1000
         self.nPackets = nPackets

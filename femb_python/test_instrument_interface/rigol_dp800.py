@@ -22,12 +22,11 @@ class RigolDP800(object):
     Interface to Rigol DP800 Power Supply
     """
 
-    def __init__(self,config):
+    def __init__(self,filename,channelNumbers):
         """
-        config is a CONFIG object. It must have a config.POWERSUPPLYPATH variable 
-        set to a usbtmc object like /dev/usbtmc0.
+        filename is a the path to a usbtmc object like /dev/usbtmc0.
 
-        config should also have config.POWERSUPPLYCHANNELS which is a list of
+        channelNumbers is a list of
         the channels to turn on e.g. ["CH1","CH2","CH3"]. All three channels
         are turned off no matter what POWERSUPPLYCHANNELS is set to.
         """
