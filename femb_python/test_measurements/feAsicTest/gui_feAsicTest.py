@@ -171,17 +171,17 @@ class GUI_WINDOW(Frame):
         self.asic1id = self.asic1_entry.get()
         self.asic2id = self.asic2_entry.get()
         self.asic3id = self.asic3_entry.get()
-        print("Operator Name: " + str( operator_name ) )
-        print("Test Stand # : " + str( test_stand ) )
-        print("Traveller #  : " + str( traveller ) )
-        print("Run #  : " + str( run ) )
-        print("Test Board ID: " + str( boardid ) )
-        print("ASIC 0 ID: " + str(asic0id ) )
-        print("ASIC 1 ID: " + str(asic1id ) )
-        print("ASIC 2 ID: " + str(asic2id ) )
-        print("ASIC 3 ID: " + str(asic3id ) )
+        print("Operator Name: " + str( self.operator_name ) )
+        print("Test Stand # : " + str( self.test_stand ) )
+        print("Traveller #  : " + str( self.traveller ) )
+        print("Run #  : " + str( self.run ) )
+        print("Test Board ID: " + str( self.boardid ) )
+        print("ASIC 0 ID: " + str(self.asic0id ) )
+        print("ASIC 1 ID: " + str(self.asic1id ) )
+        print("ASIC 2 ID: " + str(self.asic2id ) )
+        print("ASIC 3 ID: " + str(self.asic3id ) )
 
-        if operator_name == "" :
+        if self.operator_name == "" :
             print("ENTER REQUIRED INFO")
             self.start_button_result["text"] = "ENTER REQUIRED INFO"
             return
