@@ -23,6 +23,14 @@ from matplotlib.figure import Figure
 class SUMMARY_PLOTS(object):
 
     def __init__(self,stats,outfileprefix,plotAll=False):
+        try:
+            print("static keys: ",stats["static"].keys())
+        except KeyError:
+            print("No static")
+        try:
+            print("dynamic keys: ",stats["dynamic"].keys())
+        except KeyError:
+            print("No dynamic")
         self.stats = stats
         self.time = stats['time']
         self.serial = stats['serial']
@@ -30,7 +38,6 @@ class SUMMARY_PLOTS(object):
         colors = ["grey","m","plum","darkorchid","firebrick","red","sienna","sandybrown","gold","olivedrab","chartreuse","seagreen","paleturquoise","deepskyblue","navy","blue"]*2
         colors.reverse()
         clocks = [-1,0,1,2] # clock int: -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
-        clocks = [str(i) for i in clocks]
         for iClock in clocks:
             self.legendHandles = []
             clockFn = "extClock"
@@ -47,13 +54,23 @@ class SUMMARY_PLOTS(object):
             elif int(iClock) == 2:
               clockFn = "fifoClock"
               clockLabel="FIFO Clock"
+            ## json dict keys must be strings, so these keys are strings when read from json
             try:
-                self.offsets = sorted(self.stats["static"][iClock])
+                self.offsets = self.stats["static"][iClock]
             except KeyError:
                 try:
-                    self.offsets = sorted(self.stats["dynamic"][iClock])
+                    self.offsets = self.stats["static"][str(iClock)]
                 except KeyError:
-                    continue  # skip this iClock if no data for it
+                    try:
+                        self.offsets = self.stats["dynamic"][iClock]
+                    except KeyError:
+                        try:
+                            self.offsets = self.stats["dynamic"][str(iClock)]
+                        except KeyError:
+                            print("Not using iClock: ",iClock)
+                            continue  # skip this iClock if no data for it
+            self.offsets = list(self.offsets.keys())
+            self.offsets.sort(key=lambda x: int(x))
             if not plotAll:
                 self.offsets = self.offsets[:1]
             self.colorDict = {}
@@ -80,6 +97,7 @@ class SUMMARY_PLOTS(object):
         try:
             data = self.stats["static"][iClock]
         except KeyError:
+            print("No staticSummary for iClock: ",iClock)
             return
         ax1.set_xlabel("Channel")
         ax2.set_xlabel("Channel")
@@ -157,6 +175,7 @@ class SUMMARY_PLOTS(object):
         try:
             data = self.stats["dynamic"][iClock]
         except KeyError:
+            print("No dynamicSummary for iClock: ",iClock)
             return
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
         markerstyle = ['o','s','*','p','^']*10
@@ -189,6 +208,7 @@ class SUMMARY_PLOTS(object):
         try:
             data = self.stats["inputPin"][iClock]
         except KeyError:
+            print("No baselineSummary for iClock: ",iClock)
             return
         ax1.set_xlabel("Channel")
         ax2.set_xlabel("Channel")
