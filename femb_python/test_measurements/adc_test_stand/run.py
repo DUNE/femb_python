@@ -211,8 +211,8 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
                 chipStats["static"] = staticStats
                 chipStats["dynamic"] = dynamicStats
                 configStats[adcSerialNumbers[iChip]] = chipStats
-                with open(fileprefix+"_statsRaw.json","w") as f:
-                    json.dump(chipStats,f)
+                #with open(fileprefix+"_statsRaw.json","w") as f:
+                #    json.dump(chipStats,f)
             allStatsRaw[clock][offset] = configStats
     # check the input pin works
     if True:
@@ -228,14 +228,14 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
             print("Collecting input pin data for chip: {} ...".format(iChip))
             sys.stdout.flush()
             fileprefix = "adcTestData_{}_inputPinTest_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
-            collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,50,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
+            collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,10,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
             static_fns = list(glob.glob(fileprefix+"_*.root"))
             assert(len(static_fns)==1)
             static_fn = static_fns[0]
             baselineRmsStats = baseline_rms.analyze(static_fn)
             allStatsRaw[clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
-            with open(fileprefix+"_statsRaw.json","w") as f:
-                json.dump(baselineRmsStats,f)
+            #with open(fileprefix+"_statsRaw.json","w") as f:
+            #    json.dump(baselineRmsStats,f)
     print("Summarizing all data...")
     sys.stdout.flush()
     summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime)
