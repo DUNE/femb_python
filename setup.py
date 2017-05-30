@@ -130,9 +130,8 @@ setup(
             'femb_config_fe=femb_python.helper_scripts.config_fe:main',
             'femb_lock=femb_python.helper_scripts.locking:lock',
 
-            'femb_instrument_rigol_dp800=femb_python.test_instrument_interface.rigol_dp800:main',
-            'femb_instrument_rigol_dg4000=femb_python.test_instrument_interface.rigol_dg4000:main',
-            'femb_instrument_keysight_33600A=femb_python.test_instrument_interface.keysight_33600A:main',
+            'femb_power_supply=femb_python.helper_scripts.test_instruments:powersupply',
+            'femb_function_generator=femb_python.helper_scripts.test_instruments:funcgen',
 
             'femb_adc_static_tests=femb_python.test_measurements.adc_test_stand.static_tests:main',
             'femb_adc_dynamic_tests=femb_python.test_measurements.adc_test_stand.dynamic_tests:main',

@@ -31,18 +31,12 @@ class RigolDP800(object):
         are turned off no matter what POWERSUPPLYCHANNELS is set to.
         """
 
-        self.filename = None
-        try:
-            self.filename = config.POWERSUPPLYPATH
-        except AttributeError:
-            print("Error setting up RigolDP800: config.POWERSUPPLYPATH doesn't exist. Exiting.")
-            sys.exit(1)
+        self.filename = filename
         print("Using Rigol DP800 at {}".format(self.filename))
-        self.channels = []
-        try:
-            self.channels = config.POWERSUPPLYCHANNELS
-        except AttributeError:
-            print("Warning setting up RigolDP800: config.POWERSUPPLYCHANNELS doesn't exist")
+        if type(channelNumbers) != list:
+            print("Error: RigolDP800 channelNumbers argument is not list: '{}', exiting.".format(channelNumbers))
+            sys.exit(1)
+        self.channels = channelNumbers
         print("Configured to turn on these power supply channels: {}".format(self.channels))
 
     def writeCommand(self,command):

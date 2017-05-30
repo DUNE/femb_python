@@ -23,8 +23,8 @@ import copy
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.configuration.adc_asic_reg_mapping_P1 import ADC_ASIC_REG_MAPPING
-from femb_python.test_insturment_interface.keysight_33600A import Keysight_33600A
-from femb_python.test_insturment_interface.rigol_dp800 import RigolDP800
+from femb_python.test_instrument_interface.keysight_33600A import Keysight_33600A
+from femb_python.test_instrument_interface.rigol_dp800 import RigolDP800
 
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
@@ -71,8 +71,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         ##################################
 
         self.NASICS = 1
-	self.FUNCGENINTER = Keysight_33600A("/dev/usbtmc1",1)
-	self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc0",["CH1"])
+        self.FUNCGENINTER = Keysight_33600A("/dev/usbtmc1",1)
+        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc0",["CH1"])
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
 
