@@ -22,7 +22,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.0.3',
+    version='0.0.2',
 
     description='DUNE/SBND Cold Electronics Testing Package',
     long_description=long_description,
@@ -149,10 +149,13 @@ setup(
             'femb_wib_setup_protodune=femb_python.test_measurements.wibTestStand.setup_wib_protodune:main',
             'femb_wib_gui=femb_python.test_measurements.wibTestStand.wib_configuration_window:main',
             'femb_wib_trace_fft=femb_python.test_measurements.wibTestStand.trace_fft_window_wib:main',
+            'femb_wib_allchan_trace_fft=femb_python.test_measurements.wibTestStand.wib_trace_fft_allchan_window:main',
             'femb_wib_measure_gain=femb_python.test_measurements.wibTestStand.doFembTest_gainMeasurement:main',
             'femb_wib_measure_noise=femb_python.test_measurements.wibTestStand.doFembTest_noiseMeasurement:main',
             'femb_wib_measure_simple=femb_python.test_measurements.wibTestStand.doFembTest_simpleMeasurement:main',
             'femb_wib_test_simpleCheck=femb_python.test_measurements.wibTestStand.doWibTest_simpleCheck:main',
+
+            'femb_feasic_testgui=femb_python.test_measurements.feAsicTest.gui_feAsicTest:main',
 
         ],
         #'gui_scripts': [

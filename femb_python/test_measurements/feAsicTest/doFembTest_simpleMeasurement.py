@@ -128,7 +128,8 @@ class FEMB_TEST_SIMPLE(object):
         #sleep(0.5)
 
         #set output file
-        self.write_data.filedir = "data/"
+        #self.write_data.filedir = "data/"
+        self.write_data.filedir = "data/simpleMeasurement_" + str(self.write_data.date) + "/"
         self.write_data.filename = "rawdata_simpleMeasurement_" + str(self.write_data.date) + ".bin"
         print("Recording " + self.write_data.filename )
         self.write_data.numpacketsrecord = 10
@@ -137,11 +138,13 @@ class FEMB_TEST_SIMPLE(object):
         self.write_data.runversion = 0
 
         #setup output file and record data
-        self.write_data.open_file()
+        isOpen = self.write_data.open_file()
+        if isOpen == 0 :
+            print( "Error running doFembTest - Could not open output data file for writing, ending test" )
         subrun = 0
 
         asicCh = 0
-        for asic in range(2,3,1):
+        for asic in range(0,4,1):
           for asicCh in range(0,16,1):
             self.femb_config.selectChannel(asic,asicCh)
             self.write_data.record_data(subrun, asic, asicCh)
@@ -178,8 +181,8 @@ class FEMB_TEST_SIMPLE(object):
         call(["mv", "summaryPlot_simpleMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
 
         #summary plot
-        print("SIMPLE MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
-        call(["display",str( self.write_data.filedir ) + str(newName) ])
+        #print("SIMPLE MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
+        #call(["display",str( self.write_data.filedir ) + str(newName) ])
 
         print("SIMPLE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
