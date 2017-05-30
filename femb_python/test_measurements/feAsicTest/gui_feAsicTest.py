@@ -99,11 +99,11 @@ class GUI_WINDOW(Frame):
         self.check_setup_result = Label(self, text="CHECK SETUP - NOT STARTED",width=50)
         self.check_setup_result.grid(sticky=W,row=2,column=columnbase,columnspan=50)
 
-        self.gain_1_result = Label(self, text="GAIN+ENC 4.7mV/fC,1us,200mV - NOT STARTED",width=50)
-        self.gain_1_result.grid(sticky=W,row=3,column=columnbase,columnspan=50)
+        self.test_1_result = Label(self, text="GAIN+ENC ALL SETTINGS - NOT STARTED",width=50)
+        self.test_1_result.grid(sticky=W,row=3,column=columnbase,columnspan=50)
 
-        self.gain_2_result = Label(self, text="GAIN+ENC 4.7mV/fC,2us,200mV - NOT STARTED",width=50)
-        self.gain_2_result.grid(sticky=W,row=4,column=columnbase,columnspan=50)
+        #self.test_2_result = Label(self, text="CROSSTALK ALL SETTINGS - NOT STARTED",width=50)
+        #self.test_2_result.grid(sticky=W,row=4,column=columnbase,columnspan=50)
 
         """
         #Adding the record data button
@@ -147,13 +147,13 @@ class GUI_WINDOW(Frame):
         if self.test_result == 0:
             self.start_button_result["text"] = "FAILED"
 
-        self.do_gain_1()
+        self.do_test_1()
         if self.test_result == 0:
-            self.gain_1_result["text"] = "FAILED"
+            self.test_1_result["text"] = "FAILED"
 
-        self.do_gain_2()
-        if self.test_result == 0:
-            self.gain_2_result["text"] = "FAILED"
+        #self.do_test_2()
+        #if self.test_result == 0:
+        #    self.test_2_result["text"] = "FAILED"
 
         self.start_button_result["text"] = "DONE"
 
@@ -162,6 +162,8 @@ class GUI_WINDOW(Frame):
         self.boardid_entry.delete(0,1000)
         self.traveller_entry.delete(0,1000)
         self.run_entry.delete(0,1000)
+
+        print("FINISHED TEST - GUI RESET")
 
         #self.femb_test.check_setup()
         #if self.femb_test.status_check_setup == 0:
@@ -194,60 +196,67 @@ class GUI_WINDOW(Frame):
         self.check_setup_result["text"] = "CHECK SETUP - DONE"
         self.test_result = 1
 
-    def do_gain_1(self):
-        print("GAIN+ENC 4.7mV/fC,1us,200mV")
-        self.gain_2_result["text"] = "GAIN+ENC 4.7mV/fC,1us,200mV - IN PROGRESS"
+    def do_test_1(self):
+        testName = str("GAIN+ENC ALL SETTINGS")
+        print(str(testName))
+        self.test_1_result["text"] = str(testName) + " - IN PROGRESS"
         self.test_result = 0
         
-        femb_test = FEMB_TEST_GAIN()
+        #put loop here, but equivalently can go in script itself
+        for g in range(2,3,1):
+          for s in range(0,4,1):
+            for b in range(0,1,1):
+              femb_test = FEMB_TEST_GAIN()
 
-        femb_test.gain = 0
-        femb_test.gain = 1
+              femb_test.gain = int(g)
+              femb_test.shape = int(s)
+              femb_test.base = int(b)
 
-        femb_test.check_setup()
-        if femb_test.status_check_setup == 0:
-            self.gain_1_result["text"] = "GAIN+ENC 4.7mV/fC,1us,200mV - FAILED"
-            return
+              femb_test.check_setup()
+              if femb_test.status_check_setup == 0:
+                self.test_1_result["text"] = str(testName) + " - FAILED"
+                return
 
-        femb_test.record_data()
-        if femb_test.status_record_data == 0:
-            self.gain_1_result["text"] = "GAIN+ENC 4.7mV/fC,1us,200mV - FAILED"
-            return
+              femb_test.record_data()
+              if femb_test.status_record_data == 0:
+                self.test_1_result["text"] = str(testName) + " - FAILED"
+                return
 
-        femb_test.do_analysis()
-        if femb_test.status_do_analysis == 0:
-            self.gain_1_result["text"] = "GAIN+ENC 4.7mV/fC,1us,200mV - FAILED"
-            return
+              femb_test.do_analysis()
+              if femb_test.status_do_analysis == 0:
+                self.test_1_result["text"] = str(testName) + " - FAILED"
+                return
         
-        self.gain_1_result["text"] = "GAIN+ENC 4.7mV/fC,1us,200mV - DONE"
+        self.test_1_result["text"] = str(testName) + " - DONE"
         self.test_result = 1
 
-    def do_gain_2(self):
-        print("GAIN+ENC 4.7mV/fC,2us,200mV")
-        self.gain_2_result["text"] = "GAIN+ENC 4.7mV/fC,2us,200mV - IN PROGRESS"
+    def do_test_2(self):
+        testName = str("CROSSTALK ALL SETTINGS")
+        print(str(testName))
+        self.test_2_result["text"] = str(testName) + " - IN PROGRESS"
         self.test_result = 0
         
         femb_test = FEMB_TEST_GAIN()
 
-        femb_test.gain = 0
-        femb_test.gain = 2
+        femb_test.test = 0
+        femb_test.test = 2
 
         femb_test.check_setup()
         if femb_test.status_check_setup == 0:
-            self.gain_2_result["text"] = "GAIN+ENC 4.7mV/fC,2us,200mV - FAILED"
+            self.test_2_result["text"] = str(testName) + " - FAILED"
             return
 
         femb_test.record_data()
         if femb_test.status_record_data == 0:
-            self.gain_2_result["text"] = "GAIN+ENC 4.7mV/fC,2us,200mV - FAILED"
+            self.test_2_result["text"] = str(testName) + " - FAILED"
             return
 
         femb_test.do_analysis()
         if femb_test.status_do_analysis == 0:
-            self.gain_2_result["text"] = "GAIN+ENC 4.7mV/fC,2us,200mV - FAILED"
+            self.test_2_result["text"] = str(testName) + " - FAILED"
             return
         
-        self.gain_2_result["text"] = "GAIN+ENC 4.7mV/fC,2us,200mV - DONE"
+        self.test_2_result["text"] = str(testName) + " - DONE"
         self.test_result = 1
 
 def main():

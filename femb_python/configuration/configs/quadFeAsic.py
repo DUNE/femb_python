@@ -120,7 +120,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 print("femb_config_femb : selectChan - invalid channel number, only 0 to 15 allowed")
                 return
 
-        print( "Selecting ASIC " + str(asicVal) + ", channel " + str(chVal))
+        #print( "Selecting ASIC " + str(asicVal) + ", channel " + str(chVal))
 
         #note need to add 1 to asicVal
         asicVal = asicVal + 1
@@ -158,6 +158,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         chReg = chReg + ((testVal & 0x01)<<7)
 
         #baseline control, bit 6
+        baseVal = 1 - baseVal #assign 0 = 200mV, 1 = 900mV
         chReg = chReg +  ((baseVal & 0x01)<<6)
  
         #gain control, bits 4-5
