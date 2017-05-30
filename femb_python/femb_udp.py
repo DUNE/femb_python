@@ -53,7 +53,7 @@ class FEMB_UDP(object):
             sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.UDP_PORT_WREG ))
             sock_write.close()
             #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,data)
-            time.sleep(0.05)
+            time.sleep(self.REG_SLEEP)
 
     def write_reg_bits(self, reg , pos, mask, data ):
         try:
@@ -123,7 +123,7 @@ class FEMB_UDP(object):
             sock_write.setblocking(0)
             sock_write.sendto(WRITE_MESSAGE,(self.UDP_IP, self.UDP_PORT_WREG ))
             sock_write.close()
-            time.sleep(0.05)
+            time.sleep(self.REG_SLEEP)
 
     def read_reg(self, reg ):
         try:
@@ -174,7 +174,7 @@ class FEMB_UDP(object):
                 return None
         
             #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,dataHexVal)
-            time.sleep(0.05)
+            time.sleep(self.REG_SLEEP)
             return dataHexVal
 
     def get_data_packets(self, num):
@@ -256,3 +256,4 @@ class FEMB_UDP(object):
         self.MAX_REG_VAL = 0xFFFFFFFF
         self.MAX_NUM_PACKETS = 1000
         self.MAX_PACKET_SIZE = 1024
+        self.REG_SLEEP = 0.005

@@ -141,7 +141,7 @@ class FEMB_TEST_SIMPLE(object):
         subrun = 0
 
         asicCh = 0
-        for asic in range(2,3,1):
+        for asic in range(0,4,1):
           for asicCh in range(0,16,1):
             self.femb_config.selectChannel(asic,asicCh)
             self.write_data.record_data(subrun, asic, asicCh)

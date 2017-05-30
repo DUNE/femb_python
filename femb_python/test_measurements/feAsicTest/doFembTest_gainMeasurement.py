@@ -181,7 +181,7 @@ class FEMB_TEST_GAIN(object):
                 print("Pulse amplitude " + str(pVal) )
 
             #loop over channels
-            for asic in range(2,3,1):
+            for asic in range(0,4,1):
                 for asicCh in range(0,16,1):
                     self.femb_config.selectChannel(asic,asicCh)
                     self.write_data.record_data(subrun, asic, asicCh)
@@ -249,11 +249,12 @@ class FEMB_TEST_GAIN(object):
         self.status_archive_results = 1
 
 def main():
-    femb_test = FEMB_TEST_GAIN()
+    
+
     for g in range(2,3,1):
       for s in range(1,2,1):
         for b in range(0,1,1):
-          femb_test.reset()
+          femb_test = FEMB_TEST_GAIN()
           femb_test.fembNum = int(0)
           femb_test.gain = int(g)
           femb_test.shape = int(s)
@@ -262,6 +263,21 @@ def main():
           femb_test.check_setup()
           femb_test.record_data()
           femb_test.do_analysis()
+
+    """
+    for g in range(2,3,1):
+      for s in range(1,2,1):
+        for b in range(0,1,1):
+          femb_test = FEMB_TEST_GAIN()
+          femb_test.fembNum = int(0)
+          femb_test.gain = int(g)
+          femb_test.shape = int(s)
+          femb_test.base = int(b)
+
+          femb_test.check_setup()
+          femb_test.record_data()
+          femb_test.do_analysis()
+    """
 
 if __name__ == '__main__':
     main()
