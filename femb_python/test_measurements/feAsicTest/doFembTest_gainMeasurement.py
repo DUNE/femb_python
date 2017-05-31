@@ -152,6 +152,7 @@ class FEMB_TEST_GAIN(object):
 
         #disable pulser
         self.femb_config.setInternalPulser(0,0x0)
+        self.femb_config.setInternalPulser(0,0x0)
 
         #take initial noise data run
         for asic in range(0,4,1):
@@ -161,6 +162,7 @@ class FEMB_TEST_GAIN(object):
                 self.write_data.record_data(subrun, asic, asicCh)
             
         #turn ASICs back on, start pulser section
+        self.femb_config.feasicEnableTestInput = 1
         self.femb_config.turnOnAsics()
         subrun = 1
         #loop over pulser configurations, each configuration is it's own subrun

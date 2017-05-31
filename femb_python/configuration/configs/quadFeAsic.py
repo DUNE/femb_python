@@ -50,7 +50,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_FRAME_SIZE = 40
         self.REG_DAC_ADC_EN = 60
 
-        self.feasicEnableTestInput = 1 #0 = disabled, 1 = enabled
+        self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
         self.feasicBaseline = 0 #0 = 900mV, 1 = 200mV
         self.feasicGain = 0 #4.7,7.8,14,25
         self.feasicShape = 1 #0.5,1,2,3
