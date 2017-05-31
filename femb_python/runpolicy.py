@@ -60,13 +60,25 @@ class Runner(object):
         pass
 
     def __call__(self, **user_params):
-        '''
-        Execute `cmdline` with parameters in the run directory.
+        '''Execute `cmdline` with parameters in the run directory.
 
         The `user_params` dictionary is merged into any defaults given
         to the constructor and then resolved.
+
+        If 'paramfile' is a parameter, the parameters will be saved to
+        it as JSON.
         '''
         params = self.resolve(**user_params)
+
+        # prepare param file if its wanted.
+        paramfile = params.get('paramfile')
+        if paramfile:
+            print ("Running with parameter file pattern: %s" % paramfile)
+            pdir = os.path.dirname(paramfile)
+            self.assuredir(pdir)
+            with open(paramfile, 'w') as fp:
+                fp.write(json.dumps(params, indent=4));
+
         cmd = self.cmdline(**params)
         self.run(cmd, **params)
 
@@ -102,12 +114,25 @@ class Runner(object):
         params = self.default_params.copy()
         params.update(user_params)
 
-        # "wash" the canonical parameters, applying defaults and resolving.
+        # make sure canonical reserved params are there
         for name, default in self.canonical:
             val = params.get(name, default)
-            if type(val) == str:
-                val = val.format(**params)
             params[name] = val
+
+        while True:             # warning: cycles will loop 
+            newparams = dict()
+            changes = 0
+            for var, val in sorted(params.items()):
+                if type(val) != str:
+                    newparams[var] = val
+                    continue
+                newval = val.format(**params)
+                if val != newval:
+                    changes += 1
+                newparams[var] = newval
+            if not changes:
+                return newparams
+            params = newparams  # around again
 
         return params
 
@@ -136,9 +161,9 @@ class DirectRunner(Runner):
         redirect output if `stdout` or `stderr` is given.
         '''
         cmd = "{executable} {argstr}"
-        if 'stdout' in params:
+        if params.get('stdout'):
             cmd += ' >{stdout}'
-        if 'stderr' in params:
+        if params.get('stderr'):
             cmd += ' 2>{stderr}'
         return cmd.format(**params)
 
@@ -152,13 +177,6 @@ class DirectRunner(Runner):
         if not cmd:
             raise ValueError('No executable')
         params['cmdline'] = cmd
-
-        # prepare param file if its wanted.
-        if 'paramfile' in params:
-            paramfile = params['paramfile']
-            self.assuredir(os.path.dirname(paramfile))
-            with open(paramfile, 'w') as fp:
-                fp.write(json.dumps(params, indent=4));
 
         self.exec(cmd)
         
@@ -239,7 +257,7 @@ class SumatraRunner(Runner):
         # 'smt run' as we allow data directory to change between calls.
 
         cfgcmd = "smt configure -d {datadir}".format(**params)
-        self.exec(cfgcmd, params['rundir'])   #fixme: move to run()
+        self.exec(cfgcmd, params['rundir'])
             
         self.exec(cmd, params['rundir'])
             
@@ -247,18 +265,17 @@ class SumatraRunner(Runner):
         '''
         Return a command line from the parameters
         '''
-        smtname = params.get('smtname',None)
 
         # Embed nominal command line in Sumatra command line.
         cmd = 'smt run '
-        if 'smtlabel' in params:
+        if params.get('smtlabel'):
             cmd += " -l {smtlabel}"
-        if 'smtreason' in params:
+        if params.get('smtreason'):
             cmd += " -r {smtreason}"
         cmd += ' -e {executable} {argstr}'
-        if 'stdout' in params:
+        if params.get('stdout'):
             cmd+= ' >{stdout}'
-        if 'stderr' in params:
+        if params.get('stderr'):
             cmd += ' 2>{stderr}'
 
         return cmd.format(**params)

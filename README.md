@@ -2,6 +2,26 @@
 
 DUNE/SBND cold electronics UDP readout (python version)
 
+## Developing on the BNL `hothdaq` systems
+
+The operator will use a release.  Developing the test code can make
+use of the installation of ROOT that the release uses.  Set up your
+development environment like:
+
+```
+virtualenv --system-site-packages -p python3 venv
+source venv/bin/activate
+source /opt/sw/root-6.09.02/bin/thisroot.sh
+
+git clone git@github.com:DUNE/femb_python.git
+cd femb_python/
+python3 setup.py develop
+./setup.sh
+```
+
+Thereafter, repeat just the two `source` commands.
+
+
 ## Installing on Scientific Linux 7 and Recent Ubuntu/Fedora
 
 femb_python requires ROOT, git, and a set of python packages provided by
