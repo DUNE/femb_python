@@ -226,28 +226,6 @@ void Analyze::outputResults(){
 
 	//output to file here:
   	std::string outputFileName = "output_processNtuple_gainMeasurement.list";
-        /*
-        ofstream jsonfile;
-        jsonfile.open (outputFileName);
-  	jsonfile << "{\n";
-  	jsonfile << "\t\"gainmeasurement\": [\n";
-	//jsonfile << "[\n";
-	for(int ch = 0 ; ch < numChan ; ch++ ){
-		jsonfile << "\t\t{\n";
-		jsonfile << "\t\t\t\"chan\": " << ch << ",\n";
-		jsonfile << "\t\t\t\"isbad\": " << badChannelMask[ch] << ",\n";
-		jsonfile << "\t\t\t\"rms\": " << pRmsVsChan->GetBinContent(ch+1) << ",\n";
-		jsonfile << "\t\t\t\"mean\": " << pMeanVsChan->GetBinContent(ch+1) << ",\n";
-		jsonfile << "\t\t\t\"gain\": " << hGainVsChan->GetBinContent(ch+1) << ",\n";
-		jsonfile << "\t\t}";
-		if( ch < numChan - 1)
-			jsonfile << ",";
-		jsonfile << "\n";
-	}
-        jsonfile << "\t]\n";
-  	jsonfile << "}\n";
-	//jsonfile << "]\n";
-        jsonfile.close();*/
 
         //do final selection cuts, should put in indiviudl function
         int numBadChannels = 0;
@@ -288,10 +266,10 @@ void Analyze::outputResults(){
 	ofstream listfile;
         listfile.open (outputFileName);
   	//ASIC results
-        listfile << "asic0_fail " << asic0_fail << std::endl;
-        listfile << "asic1_fail " << asic1_fail << std::endl;
-        listfile << "asic2_fail " << asic2_fail << std::endl;
-        listfile << "asic3_fail " << asic3_fail << std::endl;
+        listfile << "asic " << "0" << "," << "fail " << asic0_fail << std::endl;
+        listfile << "asic " << "1" << "," << "fail " << asic1_fail << std::endl;
+        listfile << "asic " << "2" << "," << "fail " << asic2_fail << std::endl;
+        listfile << "asic " << "3" << "," << "fail " << asic3_fail << std::endl;
   	//channel results
 	for(int ch = 0 ; ch < numChan ; ch++ ){
 		listfile << "ch " << ch << ",";

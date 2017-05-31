@@ -47,9 +47,9 @@ class FEMB_TEST_GAIN(object):
         self.base = 0
 
         #json output, note version number defined here
-        self.jsonlist = [('type','quadFeAsic_gain')]
-        self.jsonlist.append( ('version','1.0') )
-        self.jsonlist.append( ('timestamp',str(self.write_data.date)) )
+        self.jsonlist = {'type':'quadFeAsic_gain'}
+        self.jsonlist['version'] = '1.0'
+        self.jsonlist['timestamp']  = str(self.write_data.date)
 
     def reset(self):
         self.status_check_setup = 0
@@ -168,7 +168,6 @@ class FEMB_TEST_GAIN(object):
         #loop over pulser configurations, each configuration is it's own subrun
         #loop over signal sizes
         for p in range(1,64,1):
-        #for p in range(0,15,1):
         #for p in [0x0,0x1,0x3,0x7,0xF,0x1F]:
             pVal = int(p)
             #pVal = 1024 + int(p)*256
@@ -210,7 +209,7 @@ class FEMB_TEST_GAIN(object):
         #parse binary
         self.cppfr.run("test_measurements/feAsicTest/parseBinaryFile", [str( self.write_data.filedir ) + str( self.write_data.filename ) ])
 
-        #run analysis program
+        #run analysis programs in sequence
         parsedName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
         call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(parsedName) ])
         self.cppfr.run("test_measurements/feAsicTest/processNtuple_gainMeasurement",  [str( self.write_data.filedir ) + str(parsedName) ])
@@ -238,23 +237,31 @@ class FEMB_TEST_GAIN(object):
         #ARCHIVE SECTION
         print("GAIN MEASUREMENT - ARCHIVE")
 
-        self.jsonlist.append( ('check_setup',self.status_check_setup) )
-        self.jsonlist.append( ('record_data',self.status_record_data) )
-        self.jsonlist.append( ('do_analysis',self.status_do_analysis) )
-        self.jsonlist.append( ('filedir', str( self.write_data.filedir ) ) )
-        self.jsonlist.append( ('config_gain', self.gain ) )
-        self.jsonlist.append( ('config_shape', self.shape ) )
-        self.jsonlist.append( ('config_base', self.base ) )
+        #add summary variables to output
+        self.jsonlist['check_setup'] = str( self.status_check_setup )
+        self.jsonlist['record_data'] = str( self.status_record_data )
+        self.jsonlist['do_analysis'] = str( self.status_do_analysis )
+        self.jsonlist['filedir'] = str( self.write_data.filedir )
+        self.jsonlist['config_gain'] = str( self.gain )
+        self.jsonlist['config_shape'] = str( self.shape )
+        self.jsonlist['config_base'] = str( self.base )
 
+        #parse the output results, kind of messy
         lines = []
         outputListName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".list"
         with open( str( self.write_data.filedir ) + str(outputListName) ) as infile:
           for line in infile:
-            line = line.strip('\n') #or some other preprocessing
-            line = line.split(',')
-            lines.append(line)
-        self.jsonlist.append( lines )
-        jsonoutput = json.dumps(self.jsonlist, indent=4)
+            line = line.strip('\n')
+            line = line.split(',') #measurements separated by commas
+            parseline = {}
+            for n in range(0,len(line),1):
+              word = line[n].split(' ')
+              if( len(word) != 2 ):
+                continue
+              parseline[ str(word[0]) ] = str(word[1])
+            lines.append(parseline)
+        self.jsonlist['results'] = lines
+        jsonoutput = json.dumps(self.jsonlist, indent=4, sort_keys=True)
         print( jsonoutput )
  
         #dump results into json
@@ -263,24 +270,33 @@ class FEMB_TEST_GAIN(object):
           json.dump(jsonoutput, outfile)
         call(["mv", str(jsonName) , str( self.write_data.filedir ) + str(jsonName) ])
 
+        #get required results from dict to propagate to GUI
+        asicStatus = []
+        if "results" in self.jsonlist:
+          results = self.jsonlist["results"]
+          for d in results:
+            if "asic" in d:
+              asicNum = d["asic"]
+              fail = d["fail"]
+              asicStatus.append( [asicNum,fail] )
+        #print("ASIC STATUS")
+        #print(asicStatus)
+
         #placeholder
         print("GAIN MEASUREMENT - DONE ARCHIVING" + "\n")
         self.status_archive_results = 1
 
 def main():
-    for g in range(2,3,1):
-      for s in range(1,2,1):
-        for b in range(0,1,1):
-          femb_test = FEMB_TEST_GAIN()
-          femb_test.fembNum = int(0)
-          femb_test.gain = int(g)
-          femb_test.shape = int(s)
-          femb_test.base = int(b)
+    femb_test = FEMB_TEST_GAIN()
+    femb_test.fembNum = int(0)
+    femb_test.gain = int(2)
+    femb_test.shape = int(1)
+    femb_test.base = int(0)
 
-          femb_test.check_setup()
-          femb_test.record_data()
-          femb_test.do_analysis()
-          femb_test.archive_results()
+    femb_test.check_setup()
+    femb_test.record_data()
+    femb_test.do_analysis()
+    femb_test.archive_results()
 
 if __name__ == '__main__':
     main()
