@@ -227,7 +227,7 @@ class SUMMARY_PLOTS(object):
         markerstyle = ['o','s','*','p','^']*10
         legendDict1 = {}
         legendDict2 = {}
-        for offset in self.offsets:
+        for offset in data:
             color = self.colorDict[offset]
             i1 = 0
             i2 = 0

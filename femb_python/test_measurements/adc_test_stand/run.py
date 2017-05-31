@@ -14,6 +14,7 @@ import datetime
 import glob
 from uuid import uuid1 as uuid
 import json
+import socket
 import numpy
 import matplotlib.pyplot as plt
 import ROOT
@@ -26,9 +27,11 @@ from .summary_plots import SUMMARY_PLOTS
 
 class ADC_TEST_SUMMARY(object):
 
-    def __init__(self,allStatsRaw,testTime):
+    def __init__(self,allStatsRaw,testTime,hostname,board_id):
         self.allStatsRaw = allStatsRaw
         self.testTime = testTime
+        self.hostname = hostname
+        self.board_id = board_id
         self.allStats = None
         self.staticSummary = None
         self.dynamicSummary = None
@@ -69,17 +72,19 @@ class ADC_TEST_SUMMARY(object):
         self.staticSummary = staticSummary
         self.dynamicSummary = dynamicSummary
 
-        try:
-            inputPinSummary = {}
-            for chipSerial in chipSerials:
-                inputPinSummary[chipSerial]={}
-                for clock in clocks:
-                    inputPinSummary[chipSerial][clock]={}
-                    for offset in offsets:
+        inputPinSummary = {}
+        for chipSerial in chipSerials:
+            inputPinSummary[chipSerial]={}
+            for clock in clocks:
+                inputPinSummary[chipSerial][clock]={}
+                for offset in offsets:
+                    try:
                         inputPinSummary[chipSerial][clock][offset] = self.makeStaticSummary(allStatsRaw[clock][offset][chipSerial]["inputPin"])
-            self.inputPinSummary = inputPinSummary
-        except KeyError as e:
-            print("Warning: inputPinSummary KeyError: ",e)
+                    except KeyError:
+                        pass
+                if len(inputPinSummary[chipSerial][clock]) == 0:
+                    inputPinSummary[chipSerial].pop(clock)
+        self.inputPinSummary = inputPinSummary
 
     def makeStaticSummary(self,stats):
         """
@@ -131,7 +136,9 @@ class ADC_TEST_SUMMARY(object):
     def get_summary(self,serial):
         result =  {"static":self.staticSummary[serial],
                 "dynamic":self.dynamicSummary[serial],
-                "serial":serial,"time":self.testTime}
+                "serial":serial,"time":self.testTime,
+                "hostname":self.hostname,"board_id":self.board_id,
+                }
         try:
             result["inputPin"] = self.inputPinSummary[serial]
         except:
@@ -146,13 +153,14 @@ class ADC_TEST_SUMMARY(object):
             with open(filename,"w") as f:
                 json.dump(data,f)
 
-def runTests(config,adcSerialNumbers,username,singleConfig=True):
+def runTests(config,adcSerialNumbers,username,board_id,singleConfig=True):
     """
     Runs the ADC tests for all chips on the ADC test board.
 
     config is the CONFIG object for the test board.
     adcSerialNumbers is a list of a serial numbers for the ADC ASICS
     username is the operator user name string
+    board_id is the ID number of the test board
     singleConfig is a boolean. If True only test the ASICS with the external clock
         and no offset current. If False test both clocks and all offset current
         settings.
@@ -166,6 +174,7 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
     dynamic_tests = DYNAMIC_TESTS(config)
     baseline_rms = BASELINE_RMS()
     startDateTime = datetime.datetime.now().replace(microsecond=0).isoformat()
+    hostname = socket.gethostname() 
 
     clocks = [0,1] # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
     offsets = range(-1,16)
@@ -228,7 +237,7 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
             print("Collecting input pin data for chip: {} ...".format(iChip))
             sys.stdout.flush()
             fileprefix = "adcTestData_{}_inputPinTest_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
-            collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,10,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
+            collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,100,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
             static_fns = list(glob.glob(fileprefix+"_*.root"))
             assert(len(static_fns)==1)
             static_fn = static_fns[0]
@@ -236,9 +245,11 @@ def runTests(config,adcSerialNumbers,username,singleConfig=True):
             allStatsRaw[clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
             #with open(fileprefix+"_statsRaw.json","w") as f:
             #    json.dump(baselineRmsStats,f)
+    with open("adcTestData_{}_statsRaw.json".format(startDateTime),"w") as f:
+        json.dump(baselineRmsStats,f)
     print("Summarizing all data...")
     sys.stdout.flush()
-    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime)
+    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id)
     summary.write_jsons("adcTest_{}".format(startDateTime))
     print("Making summary plots...")
     for serial in summary.get_serials():
@@ -285,9 +296,9 @@ def main():
     startTime = datetime.datetime.now()
     if args.profiler:
         import cProfile
-        cProfile.runctx('chipsPass = runTests(config,serialNumbers,"Command-line user",singleConfig=args.singleConfig)',globals(),locals(),args.profiler)
+        cProfile.runctx('chipsPass = runTests(config,serialNumbers,"Command-line user",None,singleConfig=args.singleConfig)',globals(),locals(),args.profiler)
     else:
-        chipsPass = runTests(config,serialNumbers,"Command-line user",singleConfig=args.singleConfig)
+        chipsPass = runTests(config,serialNumbers,"Command-line user",None,singleConfig=args.singleConfig)
     runTime = datetime.datetime.now() - startTime
     print("Test took: {:.0f} min {:.1f} s".format(runTime.total_seconds() // 60, runTime.total_seconds() % 60.))
     print("Chips Pass: ",chipsPass)

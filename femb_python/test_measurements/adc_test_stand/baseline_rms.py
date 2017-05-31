@@ -20,7 +20,7 @@ class BASELINE_RMS(object):
     def __init__(self):
         self.nBits = 12
 
-    def analyze(self,infile,diagnosticPlots=True):
+    def analyze(self,infile,diagnosticPlots=False):
         allStats = []
         for iChan in range(16):
                 data, adcSerial, metadata, = self.loadWaveform(iChan,infile)
