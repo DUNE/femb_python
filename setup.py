@@ -140,6 +140,7 @@ setup(
             'femb_adc_baseline_rms=femb_python.test_measurements.adc_test_stand.baseline_rms:main',
             'femb_adc_run=femb_python.test_measurements.adc_test_stand.run:main',
             'femb_adc_summary_plots=femb_python.test_measurements.adc_test_stand.summary_plots:main',
+            'femb_adc_gui=femb_python.test_measurements.adc_test_stand.gui:main',
 
             'femb_example_measure_simple=femb_python.test_measurements.example_femb_test.doFembTest_simpleMeasurement:main',
             'femb_example_measure_gain=femb_python.test_measurements.example_femb_test.doFembTest_gainMeasurement:main',
