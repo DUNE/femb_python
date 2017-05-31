@@ -79,8 +79,11 @@ class GUI_WINDOW(Frame):
         self.reset_button = Button(self, text="Reset & Power-off", command=self.reset,width=25,bg="#FF8000")
         self.reset_button.grid(row=24,column=columnbase,columnspan=25)
 
-        self.status_text = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
-        self.status_text.grid(row=26,column=columnbase,columnspan=2)
+        self.runid_label = Label(self, text="")
+        self.runid_label.grid(row=25,column=columnbase,columnspan=2)
+
+        self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
+        self.status_label.grid(row=26,column=columnbase,columnspan=2)
 
     def get_options(self,getCurrent=False):
         operator = self.operator_entry.get()
@@ -118,12 +121,19 @@ class GUI_WINDOW(Frame):
         # need serialnumber list, operator, board_id, timestamp, hostname
         timestamp = datetime.datetime.now().replace(microsecond=0).isoformat()
         hostname = socket.gethostname() 
+        chipidstr = ""
+        for i in asic_ids:
+            chipidstr += str(i) + ","
+        chipidstr = chipidstr[:-1]
+        runid = "{} {} chip: {}".format(hostname,timestamp, chipidstr)
+        print("runid: '{}'".format(runid))
         inputOptions = {
             "operator": operator,
             "board_id": boardid,
             "serials": asic_ids,
             "timestamp": timestamp,
             "hostname": hostname,
+            "runid": runid,
         }
         if getCurrent:
             inputOptions["current"] = current
@@ -132,8 +142,9 @@ class GUI_WINDOW(Frame):
 
     def reset(self):
         self.power_down()
-        self.status_text["text"] = "NOT STARTED"
-        self.status_text["fg"] = "#000000"
+        self.status_label["text"] = "NOT STARTED"
+        self.status_label["fg"] = "#000000"
+        self.runid_label["text"] = ""
         self.prepare_button["state"] = "normal"
         self.start_button["state"] = "disabled"
         self.operator_label["state"] = "normal"
@@ -157,12 +168,13 @@ class GUI_WINDOW(Frame):
         inputOptions = self.get_options()
         if inputOptions is None:
             print("ENTER REQUIRED INFO")
-            self.status_text["text"] = "ENTER REQUIRED INFO"
-            self.status_text["fg"] = "#FF0000"
+            self.status_label["text"] = "ENTER REQUIRED INFO"
+            self.status_label["fg"] = "#FF0000"
             return
         print("BEGIN PREPARE")
-        self.status_text["text"] = "POWERING UP BOARD..."
-        self.status_text["fg"] = "#000000"
+        self.status_label["text"] = "POWERING UP BOARD..."
+        self.status_label["fg"] = "#000000"
+        self.runid_label["text"] = "Run ID: "+ inputOptions["runid"]
 
         self.update_idletasks()
         sleep(1)
@@ -172,16 +184,16 @@ class GUI_WINDOW(Frame):
         inputOptions = self.get_options(getCurrent=True)
         if inputOptions is None:
             print("ENTER REQUIRED INFO")
-            self.status_text["text"] = "ENTER FLOAT FOR CURRENT"
-            self.status_text["fg"] = "#FF0000"
+            self.status_label["text"] = "ENTER FLOAT FOR CURRENT"
+            self.status_label["fg"] = "#FF0000"
             return
         self.current_label["state"] = "disabled"
         self.current_entry["state"] = "disabled"
         self.start_button["state"] = "disabled"
 
         print("BEGIN TESTS")
-        self.status_text["text"] = "TESTS IN PROGRESS..."
-        self.status_text["fg"] = "#000000"
+        self.status_label["text"] = "TESTS IN PROGRESS..."
+        self.status_label["fg"] = "#000000"
         self.update_idletasks()
 
         data_base_dir = "/dsk/1"
@@ -189,13 +201,15 @@ class GUI_WINDOW(Frame):
             data_base_dir = os.environ["FEMB_DATA_DIR"]
         except KeyError:
             pass
+
         runnerSetup = {
                                 "executable": "femb_adc_run",
                                 "basedir": data_base_dir,
                                 "rundir": "{basedir}/adc/{hostname}/{timestamp}",
                                 "datadir": "{rundir}",
                                 "paramfile": "{rundir}/options.json",
-                                "argstr": "-q -j {paramfile}",
+                                #"argstr": "-q -j {paramfile}",
+                                "argstr": "-j {paramfile}",
                                 "stdout": "{rundir}/stdout.log",
                                 "stderr": "{rundir}/stderr.log",
                             }
@@ -209,8 +223,8 @@ class GUI_WINDOW(Frame):
         print("BOARD POWERED UP & INITIALIZED")
         self.current_label["state"] = "normal"
         self.current_entry["state"] = "normal"
-        self.status_text["text"] = "Power up success, enter CH2 Current"
-        self.status_text["fg"] = "#000000"
+        self.status_label["text"] = "Power up success, enter CH2 Current"
+        self.status_label["fg"] = "#000000"
         self.prepare_button["state"] = "disabled"
         self.start_button["state"] = "normal"
         self.operator_label["state"] = "disabled"
@@ -223,7 +237,7 @@ class GUI_WINDOW(Frame):
 
     def done_measuring(self):
         print("TESTS COMPLETE")
-        self.status_text["text"] = "Tests done"
+        self.status_label["text"] = "Tests done"
         self.reset_button["bg"] ="#00CC00"
         self.reset_button["activebackground"] = "#A3CCA3"
 
