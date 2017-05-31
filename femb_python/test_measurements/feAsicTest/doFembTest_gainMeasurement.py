@@ -25,11 +25,11 @@ from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
 class FEMB_TEST_GAIN(object):
 
-    def __init__(self):
+    def __init__(self, datadir="data"):
 
         #import femb_udp modules from femb_udp package
         self.femb_config = CONFIG()
-        self.write_data = WRITE_DATA()
+        self.write_data = WRITE_DATA(datadir)
         #set appropriate packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000
 
@@ -47,9 +47,9 @@ class FEMB_TEST_GAIN(object):
         self.base = 0
 
         #json output, note version number defined here
-        self.jsonlist = [('type','quadFeAsic_gain')]
-        self.jsonlist.append( ('version','1.0') )
-        self.jsonlist.append( ('timestamp',str(self.write_data.date)) )
+        self.jsonlist = {'type':'quadFeAsic_gain'}
+        self.jsonlist['version'] = '1.0'
+        self.jsonlist['timestamp']  = str(self.write_data.date)
 
     def reset(self):
         self.status_check_setup = 0
@@ -62,15 +62,7 @@ class FEMB_TEST_GAIN(object):
         print("GAIN MEASUREMENT - CHECKING READOUT STATUS")
         self.status_check_setup = 0
 
-        #check local directory structure, available space
-        if os.path.isdir("./data") == False:
-            print("Error running doFembTest - data directory not found, making now.")
-            os.makedirs("./data")
-
-            #check if directory was created sucessfully
-            if os.path.isdir("./data") == False:
-                print(" Please check that femb_python package directory structure is intact.")
-                return
+        self.write_data.assure_filedir()
 
         #check if register interface is working
         print("Checking register interface")
@@ -134,11 +126,8 @@ class FEMB_TEST_GAIN(object):
         sleep(0.5)
 
         #set output file
-        #self.write_data.filedir = "data/"
-        self.write_data.filedir = "data/gainMeasurement_" + str(self.write_data.date) + "/"
-        #self.write_data.filename = "rawdata_gainMeasurement_" + str(self.write_data.date) + ".bin"
-        self.write_data.filename = "rawdata_gainMeasurement_" + str(self.write_data.date) + "_femb_" \
-                                   + str(self.fembNum) + "_g_" + str(self.gain) + "_s_" + str(self.shape) + "_b_" + str(self.base) + ".bin"
+        self.write_data.filename = "rawdata_gainMeasurement_%s_femb_%d_g_%d_s_%d_b_%d.bin" % \
+                                   (self.write_data.date, self.fembNum, self.gain, self.shape, self.base)
 
         print("Recording " + self.write_data.filename )
         self.write_data.numpacketsrecord = 50
@@ -168,7 +157,6 @@ class FEMB_TEST_GAIN(object):
         #loop over pulser configurations, each configuration is it's own subrun
         #loop over signal sizes
         for p in range(1,64,1):
-        #for p in range(0,15,1):
         #for p in [0x0,0x1,0x3,0x7,0xF,0x1F]:
             pVal = int(p)
             #pVal = 1024 + int(p)*256
@@ -208,22 +196,25 @@ class FEMB_TEST_GAIN(object):
         print("GAIN MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
-        self.cppfr.run("test_measurements/feAsicTest/parseBinaryFile", [str( self.write_data.filedir ) + str( self.write_data.filename ) ])
+        self.cppfr.run("test_measurements/feAsicTest/parseBinaryFile", [self.write_data.data_file_path])
 
         #run analysis program
-        parsedName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
-        call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(parsedName) ])
-        self.cppfr.run("test_measurements/feAsicTest/processNtuple_gainMeasurement",  [str( self.write_data.filedir ) + str(parsedName) ])
-        resultName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".root"
-        call(["mv", "output_processNtuple_gainMeasurement.root" , str( self.write_data.filedir ) + str(resultName) ])
-        plotName = "summaryPlot_" + self.write_data.filename + ".png"
-        call(["mv", "summaryPlot_gainMeasurement.png" , str( self.write_data.filedir ) + str(plotName) ])
-        outputListName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".list"
-        call(["mv", "output_processNtuple_gainMeasurement.list" , str( self.write_data.filedir ) + str(outputListName) ])
+        newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
+        newPath = os.path.join(self.write_data.filedir, newName)
+        call(["mv", "output_parseBinaryFile.root" , newPath])
+        self.cppfr.run("test_measurements/feAsicTest/processNtuple_gainMeasurement",  [newPath])
+
+        newName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".root"
+        newPath = os.path.join(self.write_data.filedir, newName)
+        call(["mv", "output_processNtuple_gainMeasurement.root" , newPath])
+        
+        newName = "summaryPlot_" + self.write_data.filename + ".png"
+        newPath = os.path.join(self.write_data.filedir, newName)
+        call(["mv", "summaryPlot_gainMeasurement.png" , newPath])
 
         #summary plot
         print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
-        call(["display",str( self.write_data.filedir ) + str(plotName) ])
+        call(["display", newPath])
 
         print("GAIN MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
@@ -238,23 +229,31 @@ class FEMB_TEST_GAIN(object):
         #ARCHIVE SECTION
         print("GAIN MEASUREMENT - ARCHIVE")
 
-        self.jsonlist.append( ('check_setup',self.status_check_setup) )
-        self.jsonlist.append( ('record_data',self.status_record_data) )
-        self.jsonlist.append( ('do_analysis',self.status_do_analysis) )
-        self.jsonlist.append( ('filedir', str( self.write_data.filedir ) ) )
-        self.jsonlist.append( ('config_gain', self.gain ) )
-        self.jsonlist.append( ('config_shape', self.shape ) )
-        self.jsonlist.append( ('config_base', self.base ) )
+        #add summary variables to output
+        self.jsonlist['check_setup'] = str( self.status_check_setup )
+        self.jsonlist['record_data'] = str( self.status_record_data )
+        self.jsonlist['do_analysis'] = str( self.status_do_analysis )
+        self.jsonlist['filedir'] = str( self.write_data.filedir )
+        self.jsonlist['config_gain'] = str( self.gain )
+        self.jsonlist['config_shape'] = str( self.shape )
+        self.jsonlist['config_base'] = str( self.base )
 
+        #parse the output results, kind of messy
         lines = []
         outputListName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".list"
         with open( str( self.write_data.filedir ) + str(outputListName) ) as infile:
           for line in infile:
-            line = line.strip('\n') #or some other preprocessing
-            line = line.split(',')
-            lines.append(line)
-        self.jsonlist.append( lines )
-        jsonoutput = json.dumps(self.jsonlist, indent=4)
+            line = line.strip('\n')
+            line = line.split(',') #measurements separated by commas
+            parseline = {}
+            for n in range(0,len(line),1):
+              word = line[n].split(' ')
+              if( len(word) != 2 ):
+                continue
+              parseline[ str(word[0]) ] = str(word[1])
+            lines.append(parseline)
+        self.jsonlist['results'] = lines
+        jsonoutput = json.dumps(self.jsonlist, indent=4, sort_keys=True)
         print( jsonoutput )
  
         #dump results into json
@@ -263,24 +262,39 @@ class FEMB_TEST_GAIN(object):
           json.dump(jsonoutput, outfile)
         call(["mv", str(jsonName) , str( self.write_data.filedir ) + str(jsonName) ])
 
+        #get required results from dict to propagate to GUI
+        asicStatus = []
+        if "results" in self.jsonlist:
+          results = self.jsonlist["results"]
+          for d in results:
+            if "asic" in d:
+              asicNum = d["asic"]
+              fail = d["fail"]
+              asicStatus.append( [asicNum,fail] )
+        #print("ASIC STATUS")
+        #print(asicStatus)
+
         #placeholder
         print("GAIN MEASUREMENT - DONE ARCHIVING" + "\n")
         self.status_archive_results = 1
 
 def main():
-    for g in range(2,3,1):
-      for s in range(1,2,1):
-        for b in range(0,1,1):
-          femb_test = FEMB_TEST_GAIN()
-          femb_test.fembNum = int(0)
-          femb_test.gain = int(g)
-          femb_test.shape = int(s)
-          femb_test.base = int(b)
+    '''Create a FEMB_TEST_GAIN and run check/record/ana with given gain,
+    shape and base indicides and femb number taken from parameter set
+    stored in JSON file as only argument.
+    '''
+    import json
+    params = json.loads(open(sys.argv[1]).read())
 
-          femb_test.check_setup()
-          femb_test.record_data()
-          femb_test.do_analysis()
-          femb_test.archive_results()
+    datadir = params['datadir']
+    ftg = FEMB_TEST_GAIN(datadir)
+    ftg.gain = params['gain_ind']
+    ftg.shape = params['shape_ind']
+    ftg.base = params['base_ind']
+    ftg.fembNum = params.get('femb_num', 0)
+    ftg.check_setup()
+    ftg.record_data()
+    ftg.do_analysis()
 
 if __name__ == '__main__':
     main()
