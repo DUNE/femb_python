@@ -165,6 +165,27 @@ class SUMMARY_PLOTS(object):
                 i4 += 1
         ax1.set_yscale("log")
         ax3.set_yscale("log")
+        ylim = ax1.get_ylim()
+        newylim = [x for x in ylim]
+        if ylim[0] > 1:
+            newylim[0] = 1 
+        if ylim[1] < 100:
+            newylim[1] = 100
+        ax1.set_ylim(*newylim)
+        ylim = ax2.get_ylim()
+        newylim = [x for x in ylim]
+        if ylim[0] > 0:
+            newylim[0] = 0
+        if ylim[1] < 0.1:
+            newylim[1] = 0.1
+        ax2.set_ylim(*newylim)
+        ylim = ax3.get_ylim()
+        newylim = [x for x in ylim]
+        if ylim[0] > 10:
+            newylim[0] = 10
+        if ylim[1] < 100:
+            newylim[1] = 100
+        ax3.set_ylim(*newylim)
         self.doLegend(ax1,legendDict1)
         #self.doLegend(ax2,legendDict2)
         self.doLegend(ax3,legendDict3)
@@ -204,6 +225,20 @@ class SUMMARY_PLOTS(object):
                     i2 += 1
                     freq2 = float(freq)/1000.
                   break
+        ylim = ax1.get_ylim()
+        newylim = [x for x in ylim]
+        if ylim[0] > 0:
+            newylim[0] = 0
+        if ylim[1] < 70:
+            newylim[1] = 70
+        ax1.set_ylim(*newylim)
+        ylim = ax2.get_ylim()
+        newylim = [x for x in ylim]
+        if ylim[0] > 0:
+            newylim[0] = 0
+        if ylim[1] < 70:
+            newylim[1] = 70
+        ax2.set_ylim(*newylim)
         ax1.set_xlabel("Channel")
         ax1.set_ylabel("SINAD for {:.1f} kHz [dBc]".format(freq1))
         ax2.set_xlabel("Channel")
@@ -240,6 +275,20 @@ class SUMMARY_PLOTS(object):
                 ax2.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i2])
                 legendDict2[stat] = (linestyle[i2],None)
                 i2 += 1
+        ylim = ax1.get_ylim()
+        newylim = [x for x in ylim]
+        if ylim[0] > 0:
+            newylim[0] = 0
+        if ylim[1] < 4000:
+            newylim[1] = 4000
+        ax1.set_ylim(*newylim)
+        ylim = ax2.get_ylim()
+        newylim = [x for x in ylim]
+        if ylim[0] > 0:
+            newylim[0] = 0
+        if ylim[1] < 70:
+            newylim[1] = 10
+        ax2.set_ylim(*newylim)
         #self.doLegend(ax1,legendDict1)
         #self.doLegend(ax2,legendDict2)
 
