@@ -139,6 +139,40 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_START, 1)
         self.configFeAsic()
 
+    def powerCycle(self,asic,pass=1):
+        print( "Repeat ASIC",asic,"power cycles" )
+
+        if (asic == 0):
+            mask = 0x10000
+        elif (asic == 1):
+            mask = 0x20000
+        elif (asic == 2):
+            mask = 0x40000
+        else (asic == 3):
+            mask = 0x80000
+                
+        for cycle in range(0,6,1): # 5 cycles
+            self.turnOffAsics()
+            self.turnOnAsic(asic)
+            #check that the SPO bit is set
+            regVal = self.femb.read_reg(5)
+            print( regVal ) 
+            if(!(mask & regVal)) pass=0
+
+        return(pass)
+
+    def checkCurrent(self,asic,pass=1):
+        print( "Check LV current on ASIC",asic )
+
+        regVal = self.femb.read_reg(56)
+        print( regVal )
+        regVal = self.femb.read_reg(57)
+        print( regVal )
+        regVal = self.femb.read_reg(58)
+        print( regVal ) 
+        
+        return(pass)
+        
     def selectChannel(self,asic,chan,hsmode=None):
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :

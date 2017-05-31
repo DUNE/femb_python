@@ -189,16 +189,16 @@ class GUI_WINDOW(Frame):
         #if self.test_result == 0:
         #    self.test_2_result["text"] = "FAILED"
 
-        self.start_button_result["text"] = "DONE"
+        self.start_button_result["text"] = "PASSED"
         self.update_idletasks()
 
         self.operator_entry.delete(0,1000)
         self.test_stand_entry.delete(0,1000)
         self.boardid_entry.delete(0,1000)
-        self.asic0id_entry.delete(0,1000)
-        self.asic1id_entry.delete(0,1000)
-        self.asic2id_entry.delete(0,1000)
-        self.asic3id_entry.delete(0,1000)
+        self.asic0_entry.delete(0,1000)
+        self.asic1_entry.delete(0,1000)
+        self.asic2_entry.delete(0,1000)
+        self.asic3_entry.delete(0,1000)
 
         print("FINISHED TEST - GUI RESET")
 
@@ -234,7 +234,7 @@ class GUI_WINDOW(Frame):
             self.update_idletasks()
             return
         
-        self.check_setup_result["text"] = "CHECK SETUP - DONE"
+        self.check_setup_result["text"] = "CHECK SETUP - PASSED"
         self.update_idletasks()
         self.test_result = 1
 
@@ -246,9 +246,9 @@ class GUI_WINDOW(Frame):
         self.test_result = 0
         
         #put loop here, but equivalently can go in script itself
-        for g in range(0,4,1):
-          for s in range(0,4,1):
-            for b in range(0,2,1):
+        for g in range(2,3,1):
+          for s in range(2,3,1):
+            for b in range(0,1,1):
               femb_test = FEMB_TEST_GAIN()
 
               femb_test.gain = int(g)
