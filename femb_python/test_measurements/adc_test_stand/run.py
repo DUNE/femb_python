@@ -27,11 +27,12 @@ from .summary_plots import SUMMARY_PLOTS
 
 class ADC_TEST_SUMMARY(object):
 
-    def __init__(self,allStatsRaw,testTime,hostname,board_id):
+    def __init__(self,allStatsRaw,testTime,hostname,board_id,operator):
         self.allStatsRaw = allStatsRaw
         self.testTime = testTime
         self.hostname = hostname
         self.board_id = board_id
+        self.operator = operator
         self.allStats = None
         self.staticSummary = None
         self.dynamicSummary = None
@@ -138,11 +139,12 @@ class ADC_TEST_SUMMARY(object):
                 "dynamic":self.dynamicSummary[serial],
                 "serial":serial,"time":self.testTime,
                 "hostname":self.hostname,"board_id":self.board_id,
+                "operator":self.operator,
                 }
         try:
             result["inputPin"] = self.inputPinSummary[serial]
         except:
-            print("get_summary: no inputPin key")
+            print("Error get_summary: no inputPin key")
             pass
         return result
 
@@ -153,13 +155,13 @@ class ADC_TEST_SUMMARY(object):
             with open(filename,"w") as f:
                 json.dump(data,f)
 
-def runTests(config,adcSerialNumbers,username,board_id,singleConfig=True):
+def runTests(config,adcSerialNumbers,operator,board_id,singleConfig=True):
     """
     Runs the ADC tests for all chips on the ADC test board.
 
     config is the CONFIG object for the test board.
     adcSerialNumbers is a list of a serial numbers for the ADC ASICS
-    username is the operator user name string
+    operator is the operator user name string
     board_id is the ID number of the test board
     singleConfig is a boolean. If True only test the ASICS with the external clock
         and no offset current. If False test both clocks and all offset current
@@ -249,7 +251,7 @@ def runTests(config,adcSerialNumbers,username,board_id,singleConfig=True):
         json.dump(baselineRmsStats,f)
     print("Summarizing all data...")
     sys.stdout.flush()
-    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id)
+    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id,operator)
     summary.write_jsons("adcTest_{}".format(startDateTime))
     print("Making summary plots...")
     for serial in summary.get_serials():

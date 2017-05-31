@@ -92,10 +92,15 @@ class GUI_WINDOW(Frame):
             asic_ids.append(self.asic_entries[i].get())
 
         variables = [operator,boardid]+asic_ids
-        if getCurrent:
-            variables.append(current)
         for var in variables:
             if var == "" :
+                return
+        if getCurrent:
+            if current == "":
+                return
+            try:
+                current = float(current)
+            except:
                 return
 
         print("Operator Name: '{}'".format(operator))
@@ -138,6 +143,8 @@ class GUI_WINDOW(Frame):
             self.asic_labels[i]["state"] = "normal"
             self.asic_entries[i]["state"] = "normal"
             self.asic_entries[i].delete(0,END)
+        self.reset_button["bg"] ="#FF9900"
+        self.reset_button["activebackground"] ="#FFCF87"
 
     def prepare_board(self):
         inputOptions = self.get_options()
@@ -147,13 +154,36 @@ class GUI_WINDOW(Frame):
             self.status_text["fg"] = "#FF0000"
             return
         print("BEGIN PREPARE")
-        self.status_text["text"] = "POWERING UP BOARD"
+        self.status_text["text"] = "POWERING UP BOARD..."
         self.status_text["fg"] = "#000000"
 
+        sleep(1)
+        self.done_preparing_board()
+
+    def start_measurements(self):
+        inputOptions = self.get_options(getCurrent=True)
+        if inputOptions is None:
+            print("ENTER REQUIRED INFO")
+            self.status_text["text"] = "ENTER FLOAT FOR CURRENT"
+            self.status_text["fg"] = "#FF0000"
+            return
+        self.current_label["state"] = "disabled"
+        self.current_entry["state"] = "disabled"
+        self.start_button["state"] = "disabled"
+
+        print("BEGIN TESTS")
+        self.status_text["text"] = "TESTS IN PROGRESS..."
+        self.status_text["fg"] = "#000000"
+
+        sleep(1)
+        self.done_measuring()
+
+    def done_preparing_board(self):
         ## once prepared....
+        print("BOARD POWERED UP & INITIALIZED")
         self.current_label["state"] = "normal"
         self.current_entry["state"] = "normal"
-        self.status_text["text"] = "Enter CH2 Current"
+        self.status_text["text"] = "Power up success, enter CH2 Current"
         self.status_text["fg"] = "#000000"
         self.prepare_button["state"] = "disabled"
         self.start_button["state"] = "normal"
@@ -165,20 +195,11 @@ class GUI_WINDOW(Frame):
             self.asic_labels[i]["state"] = "disabled"
             self.asic_entries[i]["state"] = "disabled"
 
-    def start_measurements(self):
-        inputOptions = self.get_options(getCurrent=True)
-        if inputOptions is None:
-            print("ENTER REQUIRED INFO")
-            self.status_text["text"] = "ENTER REQUIRED INFO"
-            self.status_text["fg"] = "#FF0000"
-            return
-        self.current_label["state"] = "disabled"
-        self.current_entry["state"] = "disabled"
-        self.start_button["state"] = "disabled"
-
-        print("BEGIN TESTS")
-        self.status_text["text"] = "IN PROGRESS"
-        self.status_text["fg"] = "#000000"
+    def done_measuring(self):
+        print("TESTS COMPLETE")
+        self.status_text["text"] = "Tests done"
+        self.reset_button["bg"] ="#00CC00"
+        self.reset_button["activebackground"] = "#A3CCA3"
 
     def power_down(self):
         print("POWER DOWN")
