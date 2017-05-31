@@ -133,9 +133,6 @@ class FEMB_TEST_GAIN(object):
         #wait to make sure HS link is back on
         sleep(0.5)
 
-        #initialize pulser
-        self.femb_config.setInternalPulser(1,0x0)
-
         #set output file
         #self.write_data.filedir = "data/"
         self.write_data.filedir = "data/gainMeasurement_" + str(self.write_data.date) + "/"
@@ -153,19 +150,29 @@ class FEMB_TEST_GAIN(object):
         self.write_data.open_file()
         subrun = 0
 
+        #disable pulser
+        self.femb_config.setInternalPulser(0,0x0)
+
+        #take initial noise data run
+        for asic in range(0,4,1):
+            self.femb_config.turnOnAsic(asic)
+            for asicCh in range(0,16,1):
+                self.femb_config.selectChannel(asic,asicCh)
+                self.write_data.record_data(subrun, asic, asicCh)
+            
+        #turn ASICs back on, start pulser section
+        self.femb_config.turnOnAsics()
+        subrun = 1
         #loop over pulser configurations, each configuration is it's own subrun
         #loop over signal sizes
-        for p in range(0,64,1):
+        for p in range(1,64,1):
         #for p in range(0,15,1):
         #for p in [0x0,0x1,0x3,0x7,0xF,0x1F]:
             pVal = int(p)
             #pVal = 1024 + int(p)*256
             #self.femb_config.femb.write_reg_bits( 5, 0,0x3F,pVal) #test pulse amplitude
-            if p == 0 :
-                self.femb_config.setInternalPulser(0,0)
-            else :
-                self.femb_config.setInternalPulser(1,pVal)
-                print("Pulse amplitude " + str(pVal) )
+            self.femb_config.setInternalPulser(1,pVal)
+            print("Pulse amplitude " + str(pVal) )
 
             #loop over channels
             for asic in range(0,4,1):

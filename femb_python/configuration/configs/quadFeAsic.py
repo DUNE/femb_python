@@ -117,6 +117,28 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def turnOffAsics(self):
         self.femb.write_reg( self.REG_TST_SW, 0xF)
 
+    def turnOnAsic(self,asic):
+        asicVal = int(asic)
+        if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
+                print( "femb_config_femb : turnOnAsics - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
+                return
+        print( "turnOnAsic " + str(asicVal) )
+        self.femb.write_reg( self.REG_TST_SW, 0xF) #turn off all
+        self.femb.write_reg_bits( self.REG_TST_SW , asicVal, 0x1, 0x0 )
+        time.sleep(5) #pause after turn on
+
+        #start ASICs
+        self.femb.write_reg( self.REG_START, 1)
+        self.configFeAsic()
+
+    def turnOnAsics(self):
+        print( "Turn On Asics" )
+        self.femb.write_reg( self.REG_TST_SW, 0x0)
+        time.sleep(5) #pause after turn on
+        #start ASICs
+        self.femb.write_reg( self.REG_START, 1)
+        self.configFeAsic()
+
     def selectChannel(self,asic,chan,hsmode=None):
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
