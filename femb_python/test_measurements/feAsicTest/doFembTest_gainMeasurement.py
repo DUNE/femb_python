@@ -218,8 +218,8 @@ class FEMB_TEST_GAIN(object):
         call(["mv", "output_processNtuple_gainMeasurement.root" , str( self.write_data.filedir ) + str(resultName) ])
         plotName = "summaryPlot_" + self.write_data.filename + ".png"
         call(["mv", "summaryPlot_gainMeasurement.png" , str( self.write_data.filedir ) + str(plotName) ])
-        jsonName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".json"
-        call(["mv", "output_processNtuple_gainMeasurement.json" , str( self.write_data.filedir ) + str(jsonName) ])
+        outputListName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".list"
+        call(["mv", "output_processNtuple_gainMeasurement.list" , str( self.write_data.filedir ) + str(outputListName) ])
 
         #summary plot
         print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
@@ -245,8 +245,15 @@ class FEMB_TEST_GAIN(object):
         self.jsonlist.append( ('config_gain', self.gain ) )
         self.jsonlist.append( ('config_shape', self.shape ) )
         self.jsonlist.append( ('config_base', self.base ) )
-       
-        #print( self.jsonlist )
+
+        lines = []
+        outputListName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".list"
+        with open( str( self.write_data.filedir ) + str(outputListName) ) as infile:
+          for line in infile:
+            line = line.strip('\n') #or some other preprocessing
+            line = line.split(',')
+            lines.append(line)
+        self.jsonlist.append( lines )
         jsonoutput = json.dumps(self.jsonlist, indent=4)
         print( jsonoutput )
  

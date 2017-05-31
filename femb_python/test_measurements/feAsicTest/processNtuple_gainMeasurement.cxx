@@ -225,7 +225,8 @@ void Analyze::doAnalysis(){
 void Analyze::outputResults(){
 
 	//output to file here:
-  	std::string outputFileName = "output_processNtuple_gainMeasurement.json";
+  	std::string outputFileName = "output_processNtuple_gainMeasurement.list";
+        /*
         ofstream jsonfile;
         jsonfile.open (outputFileName);
   	jsonfile << "{\n";
@@ -246,7 +247,18 @@ void Analyze::outputResults(){
         jsonfile << "\t]\n";
   	jsonfile << "}\n";
 	//jsonfile << "]\n";
-        jsonfile.close();
+        jsonfile.close();*/
+
+	ofstream listfile;
+        listfile.open (outputFileName);
+	for(int ch = 0 ; ch < numChan ; ch++ ){
+		listfile << "ch " << ch << ",";
+		listfile << "rms " << pRmsVsChan->GetBinContent(ch+1) << ",";
+		listfile << "mean " << pMeanVsChan->GetBinContent(ch+1) << ",";
+		listfile << "gain " << hGainVsChan->GetBinContent(ch+1) << ",";
+		listfile << "enc " << hEncVsChan->GetBinContent(ch+1);
+		listfile << std::endl;
+	}
 
 	pMeanVsChan->SetStats(kFALSE);
 	pMeanVsChan->GetXaxis()->SetTitle("FEMB Channel #");
