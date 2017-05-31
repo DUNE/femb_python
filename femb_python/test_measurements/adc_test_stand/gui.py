@@ -141,7 +141,8 @@ class GUI_WINDOW(Frame):
         return inputOptions
 
     def reset(self):
-        self.power_down()
+        print("POWER DOWN")
+        self.config.POWERSUPPLYINTER.off()
         self.status_label["text"] = "NOT STARTED"
         self.status_label["fg"] = "#000000"
         self.runid_label["text"] = ""
@@ -177,7 +178,11 @@ class GUI_WINDOW(Frame):
         self.runid_label["text"] = "Run ID: "+ inputOptions["runid"]
 
         self.update_idletasks()
+        self.config.POWERSUPPLYINTER.on()
         sleep(1)
+        self.config.resetBoard()
+        self.config.initBoard()
+        self.config.syncADC()
         self.done_preparing_board()
 
     def start_measurements(self):
@@ -240,9 +245,6 @@ class GUI_WINDOW(Frame):
         self.status_label["text"] = "Tests done"
         self.reset_button["bg"] ="#00CC00"
         self.reset_button["activebackground"] = "#A3CCA3"
-
-    def power_down(self):
-        print("POWER DOWN")
 
 def main():
     root = Tk()
