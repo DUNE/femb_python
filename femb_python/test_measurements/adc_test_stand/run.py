@@ -137,7 +137,7 @@ class ADC_TEST_SUMMARY(object):
     def get_summary(self,serial):
         result =  {"static":self.staticSummary[serial],
                 "dynamic":self.dynamicSummary[serial],
-                "serial":serial,"time":self.testTime,
+                "serial":serial,"timestamp":self.testTime,
                 "hostname":self.hostname,"board_id":self.board_id,
                 "operator":self.operator,
                 }
@@ -286,6 +286,7 @@ def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,si
 def main():
     from ...configuration.argument_parser import ArgumentParser
     from ...configuration import CONFIG
+    import json
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Runs ADC tests")
     parser.add_argument("-t", "--timestamp",help="Timestamp string to use for this test",type=str,default=datetime.datetime.now().replace(microsecond=0).isoformat())
@@ -306,6 +307,19 @@ def main():
     operator = args.operator
     boardid = args.board
     serialNumbers = args.serial
+
+    if args.jsonfile:
+        with open(args.jsonfile) as jsonfile:
+            options = json.load(jsonfile)
+            try:
+                hostname = options["hostname"]
+                timestamp = options["timestamp"]
+                operator = options["operator"]
+                boardid = options["board_id"]
+                serialNumbers = options["serials"]
+            except KeyError as e:
+                print("Error while parsing json input options: ",e)
+                sys.exit(1)
 
     if len(serialNumbers) == 0:
         serialNumbers = list(range(-1,-(config.NASICS+1),-1))

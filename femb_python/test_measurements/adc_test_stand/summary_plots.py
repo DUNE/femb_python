@@ -32,7 +32,7 @@ class SUMMARY_PLOTS(object):
         except KeyError:
             print("No dynamic")
         self.stats = stats
-        self.time = stats['time']
+        self.time = stats['timestamp']
         self.serial = stats['serial']
         self.outfileprefix = outfileprefix
         colors = ["grey","m","plum","darkorchid","firebrick","red","sienna","sandybrown","gold","y","olivedrab","chartreuse","seagreen","paleturquoise","deepskyblue","navy","blue"]*2
