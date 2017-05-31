@@ -166,26 +166,31 @@ class GUI_WINDOW(Frame):
         if self.operator_name == "" :
             print("ENTER REQUIRED INFO")
             self.start_button_result["text"] = "ENTER REQUIRED INFO"
+            self.update_idletasks()
             return
 
         print("BEGIN TESTS")
         self.start_button_result["text"] = "IN PROGRESS"
+        self.update_idletasks()
 
         self.test_result = 0
 
         self.do_check_setup()
         if self.test_result == 0:
             self.start_button_result["text"] = "FAILED"
+            self.update_idletasks()
 
         self.do_test_1()
         if self.test_result == 0:
             self.test_1_result["text"] = "FAILED"
+            self.update_idletasks()
 
         #self.do_test_2()
         #if self.test_result == 0:
         #    self.test_2_result["text"] = "FAILED"
 
         self.start_button_result["text"] = "DONE"
+        self.update_idletasks()
 
         self.operator_entry.delete(0,1000)
         self.test_stand_entry.delete(0,1000)
@@ -206,6 +211,7 @@ class GUI_WINDOW(Frame):
     def do_check_setup(self):
         print("CHECK SETUP")
         self.check_setup_result["text"] = "CHECK SETUP - IN PROGRESS"
+        self.update_idletasks()
         self.test_result = 0
         
         femb_test = FEMB_TEST_SIMPLE()
@@ -213,25 +219,30 @@ class GUI_WINDOW(Frame):
         femb_test.check_setup()
         if femb_test.status_check_setup == 0:
             self.check_setup_result["text"] = "CHECK SETUP - FAILED"
+            self.update_idletasks()
             return
 
         femb_test.record_data()
         if femb_test.status_record_data == 0:
             self.check_setup_result["text"] = "CHECK SETUP - FAILED"
+            self.update_idletasks()
             return
 
         femb_test.do_analysis()
         if femb_test.status_do_analysis == 0:
             self.check_setup_result["text"] = "CHECK SETUP - FAILED"
+            self.update_idletasks()
             return
         
         self.check_setup_result["text"] = "CHECK SETUP - DONE"
+        self.update_idletasks()
         self.test_result = 1
 
     def do_test_1(self):
         testName = str("GAIN+ENC ALL SETTINGS")
         print(str(testName))
         self.test_1_result["text"] = str(testName) + " - IN PROGRESS"
+        self.update_idletasks()
         self.test_result = 0
         
         #put loop here, but equivalently can go in script itself
@@ -247,25 +258,30 @@ class GUI_WINDOW(Frame):
               femb_test.check_setup()
               if femb_test.status_check_setup == 0:
                 self.test_1_result["text"] = str(testName) + " - FAILED"
+                self.update_idletasks()
                 return
 
               femb_test.record_data()
               if femb_test.status_record_data == 0:
                 self.test_1_result["text"] = str(testName) + " - FAILED"
+                self.update_idletasks()
                 return
 
               femb_test.do_analysis()
               if femb_test.status_do_analysis == 0:
                 self.test_1_result["text"] = str(testName) + " - FAILED"
+                self.update_idletasks()
                 return
         
         self.test_1_result["text"] = str(testName) + " - DONE"
+        self.update_idletasks()
         self.test_result = 1
 
     def do_test_2(self):
         testName = str("CROSSTALK ALL SETTINGS")
         print(str(testName))
         self.test_2_result["text"] = str(testName) + " - IN PROGRESS"
+        self.update_idletasks()
         self.test_result = 0
         
         femb_test = FEMB_TEST_GAIN()
@@ -276,19 +292,23 @@ class GUI_WINDOW(Frame):
         femb_test.check_setup()
         if femb_test.status_check_setup == 0:
             self.test_2_result["text"] = str(testName) + " - FAILED"
+            self.update_idletasks()
             return
 
         femb_test.record_data()
         if femb_test.status_record_data == 0:
             self.test_2_result["text"] = str(testName) + " - FAILED"
+            self.update_idletasks()
             return
 
         femb_test.do_analysis()
         if femb_test.status_do_analysis == 0:
             self.test_2_result["text"] = str(testName) + " - FAILED"
+            self.update_idletasks()
             return
         
         self.test_2_result["text"] = str(testName) + " - DONE"
+        self.update_idletasks()
         self.test_result = 1
 
 def main():
