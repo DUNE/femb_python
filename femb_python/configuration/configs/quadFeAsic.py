@@ -69,6 +69,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def initBoard(self):
         print("Initialize board")
 
+        #turn on ASICs
+        self.femb.write_reg( self.REG_TST_SW, 0x0)
+        #pause after turning on ASICs
+        time.sleep(5)
+
         #Set DAC to 0
         self.femb.write_reg( self.REG_SET_DAC , 0x0 )
         self.femb.write_reg( self.REG_DAC_ADC_EN , 0 )
@@ -86,8 +91,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_TP_PERIOD_P , 0 )
         self.femb.write_reg( self.REG_TP_MODE , 0 )
 
-        #turn on ASICs
-        self.femb.write_reg( self.REG_TST_SW, 0x0)
+        #start ASICs
         self.femb.write_reg( self.REG_START, 1)
 
         #reset ASICs
@@ -110,6 +114,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
         """
     
+    def turnOffAsics(self):
+        self.femb.write_reg( self.REG_TST_SW, 0xF)
+
     def selectChannel(self,asic,chan,hsmode=None):
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :

@@ -172,8 +172,10 @@ Analyze::Analyze(std::string inputFileName){
 	hGainVsChan = new TH1F("hGainVsChan","",numChan,0-0.5,numChan-0.5);
 	hEncVsChan = new TH1F("hEncVsChan","",numChan,0-0.5,numChan-0.5);
 
-	for(int sr = 0 ; sr < 64 ; sr++ )
-		signalSizes[sr] = 1024+256*sr;
+	for(int sr = 0 ; sr < 64 ; sr++ ){
+		signalSizes[sr] = sr*0.01875;//internal pulser, V
+  		signalSizes[sr] = signalSizes[sr]*183*6241;//test capacitor, convert to e-
+        }
 }
 
 int Analyze::processFileName(std::string inputFileName, std::string &baseFileName){
@@ -757,12 +759,12 @@ void Analyze::measureGain(){
 		//gPulseVsSignal[ch]->SetPoint(gPulseVsSignal[ch]->GetN(),0,0);
 
 		//TF1 *f1 = new TF1("f1","pol1",-50*1000.,700*1000.);
-		//TF1 *f1 = new TF1("f1","pol1",0,4500.E+6);
-		TF1 *f1 = new TF1("f1","pol1");
+		TF1 *f1 = new TF1("f1","pol1",0,500.E+3);
+		//TF1 *f1 = new TF1("f1","pol1");
 		//f1->SetParameter(0,0);
 		//f1->SetParameter(1,2/1000.);
-		//gPulseVsSignal[ch]->Fit("f1","QR");
-		gPulseVsSignal[ch]->Fit("f1","Q");
+		gPulseVsSignal[ch]->Fit("f1","QR");
+		//gPulseVsSignal[ch]->Fit("f1","Q");
 
 		double gain_AdcPerE = f1->GetParameter(1);
 		double gain_ePerAdc = 0;
@@ -811,7 +813,7 @@ int main(int argc, char *argv[]){
   std::string inputFileName = argv[1];
   std::cout << "inputFileName " << inputFileName << std::endl;
 
-  //gROOT->SetBatch(true);
+  gROOT->SetBatch(true);
   //define ROOT application object
   theApp = new TApplication("App", &argc, argv);
   processNtuple(inputFileName); 
