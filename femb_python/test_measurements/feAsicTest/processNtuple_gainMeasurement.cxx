@@ -249,14 +249,57 @@ void Analyze::outputResults(){
 	//jsonfile << "]\n";
         jsonfile.close();*/
 
+        //do final selection cuts, should put in indiviudl function
+        int numBadChannels = 0;
+	int numBadAsic0Channels = 0;
+	int numBadAsic1Channels = 0;
+	int numBadAsic2Channels = 0;
+	int numBadAsic3Channels = 0;
+        for(int ch = 0 ; ch < numChan ; ch++ ){
+		if( badChannelMask[ch] == 1 ){
+			numBadChannels++;
+			if( ch >= 0 && ch < 16 ){
+				numBadAsic0Channels++;
+			}
+			if( ch >= 16 && ch < 32 ){
+				numBadAsic1Channels++;
+			}
+			if( ch >= 32 && ch < 48 ){
+				numBadAsic2Channels++;
+			}
+			if( ch >= 48 && ch < 64 ){
+				numBadAsic3Channels++;
+			}
+		}
+	}
+	bool asic0_fail = 0;
+	bool asic1_fail = 0;
+	bool asic2_fail = 0;
+	bool asic3_fail = 0;
+	if( numBadAsic0Channels > 0 )
+		asic0_fail = 1;
+	if( numBadAsic1Channels > 0 )
+		asic1_fail = 1;
+	if( numBadAsic2Channels > 0 )
+		asic2_fail = 1;
+	if( numBadAsic3Channels > 0 )
+		asic3_fail = 1;
+
 	ofstream listfile;
         listfile.open (outputFileName);
+  	//ASIC results
+        listfile << "asic0_fail " << asic0_fail << std::endl;
+        listfile << "asic1_fail " << asic1_fail << std::endl;
+        listfile << "asic2_fail " << asic2_fail << std::endl;
+        listfile << "asic3_fail " << asic3_fail << std::endl;
+  	//channel results
 	for(int ch = 0 ; ch < numChan ; ch++ ){
 		listfile << "ch " << ch << ",";
 		listfile << "rms " << pRmsVsChan->GetBinContent(ch+1) << ",";
 		listfile << "mean " << pMeanVsChan->GetBinContent(ch+1) << ",";
 		listfile << "gain " << hGainVsChan->GetBinContent(ch+1) << ",";
-		listfile << "enc " << hEncVsChan->GetBinContent(ch+1);
+		listfile << "enc " << hEncVsChan->GetBinContent(ch+1) << ",";
+		listfile << "fail " << badChannelMask[ch];
 		listfile << std::endl;
 	}
 
