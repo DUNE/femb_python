@@ -83,7 +83,7 @@ class SUMMARY_PLOTS(object):
                 fig.subplots_adjust(left=0.07,right=0.93,bottom=0.05,top=0.92,wspace=0.27)
             fig.suptitle("ADC {}, {}, \nTest Time: {}".format(self.serial,clockLabel,self.time),fontsize='x-large')
             self.staticSummary(iClock,ax1,ax3,ax2,ax9)
-            self.dynamicSummary(iClock,ax5,ax6)
+            self.dynamicSummary(iClock,ax4,ax5)
             self.baselineSummary(iClock,ax7,ax8)
             self.doLegend(fig,self.colorDict,patches=True,offsets=True)
             fig.savefig(self.outfileprefix + "_"+clockFn+".png")
@@ -167,8 +167,8 @@ class SUMMARY_PLOTS(object):
         ax3.set_yscale("log")
         ylim = ax1.get_ylim()
         newylim = [x for x in ylim]
-        if ylim[0] > 1:
-            newylim[0] = 1 
+        if ylim[0] > 0.1:
+            newylim[0] = 0.1
         if ylim[1] < 100:
             newylim[1] = 100
         ax1.set_ylim(*newylim)
@@ -181,10 +181,10 @@ class SUMMARY_PLOTS(object):
         ax2.set_ylim(*newylim)
         ylim = ax3.get_ylim()
         newylim = [x for x in ylim]
-        if ylim[0] > 10:
-            newylim[0] = 10
-        if ylim[1] < 100:
-            newylim[1] = 100
+        if ylim[0] > 1:
+            newylim[0] = 1
+        if ylim[1] < 1000:
+            newylim[1] = 1000
         ax3.set_ylim(*newylim)
         self.doLegend(ax1,legendDict1)
         #self.doLegend(ax2,legendDict2)
@@ -286,7 +286,7 @@ class SUMMARY_PLOTS(object):
         newylim = [x for x in ylim]
         if ylim[0] > 0:
             newylim[0] = 0
-        if ylim[1] < 70:
+        if ylim[1] < 10:
             newylim[1] = 10
         ax2.set_ylim(*newylim)
         #self.doLegend(ax1,legendDict1)
