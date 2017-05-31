@@ -12,12 +12,14 @@ from future import standard_library
 standard_library.install_aliases()
 import datetime
 import socket
+import os
 from time import sleep
 from tkinter import *
 
 #import the test module
 from ...configuration import CONFIG
 from .run import runTests
+from ...runpolicy import DirectRunner, SumatraRunner
 
 class GUI_WINDOW(Frame):
 
@@ -113,8 +115,8 @@ class GUI_WINDOW(Frame):
         hostname = socket.gethostname() 
         inputOptions = {
             "operator": operator,
-            "boardid": boardid,
-            "asic_ids":asic_ids,
+            "board_id": boardid,
+            "serials": asic_ids,
             "timestamp": timestamp,
             "hostname": hostname,
         }
@@ -175,9 +177,26 @@ class GUI_WINDOW(Frame):
         print("BEGIN TESTS")
         self.status_text["text"] = "TESTS IN PROGRESS..."
         self.status_text["fg"] = "#000000"
-
         self.update_idletasks()
-        sleep(1)
+
+        data_base_dir = "/dsk/1"
+        try:
+            data_base_dir = os.environ["FEMB_DATA_DIR"]
+        except KeyError:
+            pass
+        runnerSetup = {
+                                "executable": "femb_adc_run",
+                                "basedir": data_base_dir,
+                                "rundir": "{basedir}/adc/{hostname}/{timestamp}",
+                                "datadir": "{rundir}",
+                                "paramfile": "{rundir}/options.json",
+                                "argstr": "-q -j {paramfile}",
+                                "stdout": "{rundir}/stdout.log",
+                                "stderr": "{rundir}/stderr.log",
+                            }
+        runner = DirectRunner(**runnerSetup)
+        #runner = SumatraRunner(**runnerSetup)
+        runner(**inputOptions)
         self.done_measuring()
 
     def done_preparing_board(self):

@@ -160,7 +160,7 @@ class DirectRunner(Runner):
             with open(paramfile, 'w') as fp:
                 fp.write(json.dumps(params, indent=4));
 
-        self.exec(cmd)
+        self.exec(cmd, params['rundir'])
         
 
         
