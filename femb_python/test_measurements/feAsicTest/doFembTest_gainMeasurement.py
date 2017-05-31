@@ -249,36 +249,21 @@ class FEMB_TEST_GAIN(object):
         print("GAIN MEASUREMENT - DONE STORING RESULTS IN DATABASE" + "\n")
         self.status_archive_results = 1
 
-def main():
-    
-
-    for g in range(2,3,1):
-      for s in range(1,3,1):
-        for b in range(0,1,1):
-          femb_test = FEMB_TEST_GAIN()
-          femb_test.fembNum = int(0)
-          femb_test.gain = int(g)
-          femb_test.shape = int(s)
-          femb_test.base = int(b)
-
-          femb_test.check_setup()
-          femb_test.record_data()
-          femb_test.do_analysis()
-
-    """
-    for g in range(2,3,1):
-      for s in range(1,2,1):
-        for b in range(0,1,1):
-          femb_test = FEMB_TEST_GAIN()
-          femb_test.fembNum = int(0)
-          femb_test.gain = int(g)
-          femb_test.shape = int(s)
-          femb_test.base = int(b)
-
-          femb_test.check_setup()
-          femb_test.record_data()
-          femb_test.do_analysis()
-    """
+def main(gain, shape, base, femb=0):
+    '''
+    Create a FEMB_TEST_GAIN and run through the sequence of
+    check/record/ana with given gain, shape and base indicides and
+    femb number (defaults to 0).
+    '''
+    ftg = FEMB_TEST_GAIN()
+    ftg.gain = gain
+    ftg.shape = shape
+    ftg.base = base
+    ftg.fembNum = femb
+    femb_test.check_setup()
+    femb_test.record_data()
+    femb_test.do_analysis()
 
 if __name__ == '__main__':
-    main()
+    args = map(int, sys.argv[1:])
+    main(*args)
