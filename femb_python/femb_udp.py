@@ -256,4 +256,4 @@ class FEMB_UDP(object):
         self.MAX_REG_VAL = 0xFFFFFFFF
         self.MAX_NUM_PACKETS = 1000
         self.MAX_PACKET_SIZE = 1024
-        self.REG_SLEEP = 0.005
+        self.REG_SLEEP = 0.001

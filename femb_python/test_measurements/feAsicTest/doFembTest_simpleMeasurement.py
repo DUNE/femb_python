@@ -109,12 +109,6 @@ class FEMB_TEST_SIMPLE(object):
 
         #initialize FEMB configuration to known state
         self.femb_config.configFeAsic()
-        #self.femb_config.setInternalPulser(1,0x400)
-        #self.femb_config.configFeAsic(0,0,0)
-        #self.femb_config.setDacPulser(0,0x0000)
-        #self.femb_config.setDacPulser(1,0xFF00)
-        #self.femb_config.setInternalPulser(0,0x0)
-        #self.femb_config.setInternalPulser(1,0x3f)
 
         #wait to make sure HS link is back on
         #sleep(0.5)
@@ -140,8 +134,8 @@ class FEMB_TEST_SIMPLE(object):
             self.write_data.record_data(subrun, asic, asicCh)
         self.write_data.close_file()
 
-        #reset configuration to known state
-        #self.femb_config.configFeAsic(0,0,0)
+        #turn off ASICs
+        self.femb_config.turnOffAsics()
 
         print("SIMPLE MEASUREMENT - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1
