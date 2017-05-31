@@ -16,7 +16,8 @@ from time import sleep
 from tkinter import *
 
 import os                                 # for statv
-import getpass                            # for username
+import time
+import getpass                            # for getuser
 
 #import the test module
 #from femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement import FEMB_TEST_SIMPLE
@@ -28,16 +29,16 @@ class GUI_WINDOW(Frame):
 
     # defaults
     use_sumatra = True
-    datadisks = ["/dsk/1/data", "/dsk/2/data"]
+    datadisks = ["/dsk/1", "/dsk/2"]
     femb_config = "quadFeAsic"               # aka FEMB_CONFIG env var
 
     #GUI window defined entirely in init function
     def __init__(self, master=None):
+
+        femb_config = os.environ['FEMB_CONFIG']
+
         Frame.__init__(self,master)
         self.pack()
-
-        #define test object
-        #self.femb_test = FEMB_TEST()
 
         #Define general commands column
         self.define_test_details_column()
@@ -47,6 +48,7 @@ class GUI_WINDOW(Frame):
 
 
         #define required variables
+
         self.params = dict(
             operator_name = "",
             test_stand = "",
@@ -58,31 +60,36 @@ class GUI_WINDOW(Frame):
             asic2id = "",
             asic3id = "",
             test_category = "feasic",
-            test_version = "1")
+            test_version = "1",
+            femb_config = femb_config
+        )
 
         # Check out the data disk situation and find the most available disk
         freedisks = list()
         for dd in self.datadisks:
             stat = os.statvfs(dd)
             MB = stat.f_bavail * stat.f_frsize >> 20
-            self.params["free:"+dd] = MB
             freedisks.append((MB, dd))
         freedisks.sort()
-        self.params["lo_disk"] = freedisks[0]
-        self.params["hi_disk"] = freedisks[-1]
+        self.params["lo_disk"] = freedisks[0][1]
+        self.params["hi_disk"] = freedisks[-1][1]
 
         now = time.time()
         self.params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
         self.params["session_start_unix"] = now
 
+        # some hothdaq disk policy, only "oper" gets to write to /dsk/N/data/
+        username = getpass.getuser()
+        if username == "oper":
+            datadisk = "{lo_disk}/data"
+        else:
+            datadisk = "{lo_disk}/tmp"
 
-        # used for locating measurement scripts
-        self.params["guimodsrcdir"] = so.path.dirname(os.path.realpath(__file__))
-        
         # these are needed for runpolicy Runner
         self.params.update(
 
-            user = getpass.username(),
+            user = username,
+            datadisk = datadisk,
 
             # The rundir is where each individual job starts and should be
             # shared by all jobs.  For Sumatra controlled running this
@@ -91,11 +98,18 @@ class GUI_WINDOW(Frame):
             
             # The data dir is where the output of each job should go.  This
             # should be made unique every job.
-            datadir = "{lo_disk}/{test_category}/{femb_config}/{session_start_time}/{datasubdir}",
+            datadir = "{datadisk}/{user}/{test_category}/{femb_config}/{session_start_time}/{datasubdir}",
+
+            # This is the file where all these parameters get written
+            # after variables are resovled.  This file is made
+            # available to the measurement script.  It's a JSON file.
+            paramfile = "{datadir}/params.json",
 
             # This is some "project" name needed by Sumatra
             smtname = "{test_category}",
             );
+
+
 
         # make a runner to enforce consistent run policy for each time an
         # actual measurement scripts is executed.  Prime with parameters as
@@ -229,14 +243,14 @@ class GUI_WINDOW(Frame):
         print("""\
 Operator Name: {operator_name}
 Test Stand # : {test_stand}
-Traveller #  : {self.traveller}
+Traveller #  : {traveller}
 Run #  : {run}
 Test Board ID: {boardid}
 ASIC 0 ID: {asic0id}
 ASIC 1 ID: {asic1id}
 ASIC 2 ID: {asic2id}
 ASIC 3 ID: {asic3id}
-""")
+        """.format(**self.params))
 
         if not self.params['operator_name']:
             print("ENTER REQUIRED INFO")
@@ -246,17 +260,16 @@ ASIC 3 ID: {asic3id}
         print("BEGIN TESTS")
         self.start_button_result["text"] = "IN PROGRESS"
 
-        for method in ["check_setup",
-                           "gain_enc_sequence",
-                           ]:
+        for method in ["check_setup", "gain_enc_sequence", ]:
             LOUD = method.replace("_"," ").upper()
             print(LOUD)
-            self.check_setup_result["text"] = LOUD + " - IN PROGRESS"
             methname = "do_" + method
             meth = getattr(self, methname)
+            self.check_setup_result["text"] = LOUD + " - IN PROGRESS"
             try:
                 meth()
-            except RuntimeError:
+            except RuntimeError as err:
+                print("failed: %s\n%s" % (LOUD, err)) 
                 self.start_button_result["text"] = LOUD + " - FAILED"
                 getattr(self, method + "_result")["text"] = LOUD + " - FAILED"
                 # anything else?
@@ -291,7 +304,8 @@ ASIC 3 ID: {asic3id}
         self.check_setup_result["text"] = "CHECK SETUP - IN PROGRESS"
         self.test_result = 0
         self.runner(datasubdir="check_setup",
-                        executable="{guimodsrcdir}/doFembTest_simpleMeasurement.py")
+                    executable="femb_feasic_simple",
+                    argstr="{paramfile}")
 
     def do_gain_enc_sequence(self):
         '''
@@ -309,9 +323,10 @@ ASIC 3 ID: {asic3id}
 
                     # this raises RuntimeError if measurement script fails
                     self.runner(datasubdir="gain_enc_sequence-g{gain_ind}s{shape_ind}b{base_ind}",
-                                    gain_ind = g, shape_ind = s, base_ind = b,
-                                    executable="{guimodsrcdir}/doFembTest_gainMeasurement.py",
-                                    )
+                                gain_ind = g, shape_ind = s, base_ind = b, femb_num = 0,
+                                executable="femb_feasic_gain",
+                                argstr="{paramfile}",
+                    )
 
                     continue
                 continue

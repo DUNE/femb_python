@@ -19,7 +19,7 @@ import os
 
 class WRITE_DATA(object):
 
-    def __init__(self):
+    def __init__(self, filedir="data"):
         self.femb = FEMB_UDP()
         self.filename = "output_write_data.bin"
         self.numpacketsrecord = 100
@@ -27,23 +27,25 @@ class WRITE_DATA(object):
         self.runtype = 0
         self.runversion = 0
         self.date = int( datetime.datetime.today().strftime('%Y%m%d%H%M%S') )
-        self.filedir = "data/"
-        #self.filedir = "data/data_" + str( self.date ) + "/"
+        self.filedir = filedir
 
-    def open_file(self):
-        print("write_data: Open file")
+        
+    @property
+    def data_file_path(self):
+        return os.path.join(self.filedir,self.filename)
 
+    def assure_filedir(self):
         #check local directory structure, available space
         if os.path.isdir( str(self.filedir) ) == False:
             print("write_data: Data directory not found, making now.")
             os.makedirs( str(self.filedir) )
 
-            #check if directory was created sucessfully
-            if os.path.isdir( str(self.filedir) ) == False:
-                print("write_data:  Please check that femb_python package directory structure is intact.")
-                return 0
+    def open_file(self):
+        print("write_data: Open file: %s" % self.data_file_path )
 
-        self.data_file=open(str(self.filedir)+str(self.filename),'wb')
+        self.assure_filedir()
+
+        self.data_file=open(self.data_file_path,'wb')
         return 1
 
     def record_data(self,subrun, asic, asicCh):

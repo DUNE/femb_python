@@ -27,11 +27,11 @@ from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
 class FEMB_TEST_SIMPLE(object):
 
-    def __init__(self):
+    def __init__(self, datadir="data"):
 
         #import femb_udp modules from femb_udp package
         self.femb_config = CONFIG()
-        self.write_data = WRITE_DATA()
+        self.write_data = WRITE_DATA(datadir)
         #set appropriate packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000
 	
@@ -47,15 +47,7 @@ class FEMB_TEST_SIMPLE(object):
         print("SIMPLE MEASUREMENT - CHECKING READOUT STATUS")
         self.status_check_setup = 0
 
-        #check local directory structure, available space
-        if os.path.isdir("./data") == False:
-            print("Error running doFembTest - data directory not found, making now.")
-            os.makedirs("./data")
-
-            #check if directory was created sucessfully
-            if os.path.isdir("./data") == False:
-                print(" Please check that femb_python package directory structure is intact.")
-                return
+        self.write_data.assure_filedir()
 
         #create data-taking directory
         #print("doFembTest - creating data-taking directory : " + str( self.write_data.filedir ) )
@@ -128,8 +120,6 @@ class FEMB_TEST_SIMPLE(object):
         #sleep(0.5)
 
         #set output file
-        #self.write_data.filedir = "data/"
-        self.write_data.filedir = "data/simpleMeasurement_" + str(self.write_data.date) + "/"
         self.write_data.filename = "rawdata_simpleMeasurement_" + str(self.write_data.date) + ".bin"
         print("Recording " + self.write_data.filename )
         self.write_data.numpacketsrecord = 10
@@ -167,18 +157,21 @@ class FEMB_TEST_SIMPLE(object):
         print("SIMPLE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
-        self.cppfr.run("test_measurements/feAsicTest/parseBinaryFile", [str( self.write_data.filedir ) + str( self.write_data.filename ) ])
+        self.cppfr.run("test_measurements/feAsicTest/parseBinaryFile", [self.write_data.data_file_path])
 
         #run analysis program
         newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
-        call(["mv", "output_parseBinaryFile.root" , str( self.write_data.filedir ) + str(newName) ])
-        self.cppfr.run("test_measurements/feAsicTest/processNtuple_simpleMeasurement",  [str( self.write_data.filedir ) + str(newName) ])
+        newPath = os.path.join(self.write_data.filedir, newName)
+        call(["mv", "output_parseBinaryFile.root" , newPath])
+        self.cppfr.run("test_measurements/feAsicTest/processNtuple_simpleMeasurement",  [newPath])
 
         #move result to data directory
         newName = "output_processNtuple_simpleMeasurement_" + self.write_data.filename + ".root"
-        call(["mv", "output_processNtuple_simpleMeasurement.root" , str( self.write_data.filedir ) + str(newName) ])
+        newPath = os.path.join(self.write_data.filedir, newName)
+        call(["mv", "output_processNtuple_simpleMeasurement.root" , newPath ])
         newName = "summaryPlot_" + self.write_data.filename + ".png"
-        call(["mv", "summaryPlot_simpleMeasurement.png" , str( self.write_data.filedir ) + str(newName) ])
+        newPath = os.path.join(self.write_data.filedir, newName)
+        call(["mv", "summaryPlot_simpleMeasurement.png" , newPath])
 
         #summary plot
         #print("SIMPLE MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
@@ -200,9 +193,17 @@ class FEMB_TEST_SIMPLE(object):
         print("SIMPLE MEASUREMENT - DONE STORING RESULTS IN DATABASE" + "\n")
         self.status_archive_results = 1
 
-def main():
 
-    femb_test = FEMB_TEST_SIMPLE()
+def main():
+    '''
+    Run a simple FEMB measurement.
+    '''
+    import json
+    params = json.loads(open(sys.argv[1]).read())
+
+    datadir = params['datadir']
+
+    femb_test = FEMB_TEST_SIMPLE(datadir)
     femb_test.check_setup()
     femb_test.record_data()
     femb_test.do_analysis()
