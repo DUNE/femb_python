@@ -157,6 +157,7 @@ class GUI_WINDOW(Frame):
         self.status_text["text"] = "POWERING UP BOARD..."
         self.status_text["fg"] = "#000000"
 
+        self.update_idletasks()
         sleep(1)
         self.done_preparing_board()
 
@@ -175,6 +176,7 @@ class GUI_WINDOW(Frame):
         self.status_text["text"] = "TESTS IN PROGRESS..."
         self.status_text["fg"] = "#000000"
 
+        self.update_idletasks()
         sleep(1)
         self.done_measuring()
 

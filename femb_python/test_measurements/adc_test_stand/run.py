@@ -155,14 +155,16 @@ class ADC_TEST_SUMMARY(object):
             with open(filename,"w") as f:
                 json.dump(data,f)
 
-def runTests(config,adcSerialNumbers,operator,board_id,singleConfig=True):
+def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,singleConfig=True,timestamp=None):
     """
     Runs the ADC tests for all chips on the ADC test board.
 
     config is the CONFIG object for the test board.
     adcSerialNumbers is a list of a serial numbers for the ADC ASICS
+    startDateTime string identifying the time the tests are started
     operator is the operator user name string
     board_id is the ID number of the test board
+    hostname is the current computer name
     singleConfig is a boolean. If True only test the ASICS with the external clock
         and no offset current. If False test both clocks and all offset current
         settings.
@@ -175,8 +177,6 @@ def runTests(config,adcSerialNumbers,operator,board_id,singleConfig=True):
     static_tests = STATIC_TESTS(config)
     dynamic_tests = DYNAMIC_TESTS(config)
     baseline_rms = BASELINE_RMS()
-    startDateTime = datetime.datetime.now().replace(microsecond=0).isoformat()
-    hostname = socket.gethostname() 
 
     clocks = [0,1] # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
     offsets = range(-1,16)
@@ -288,19 +288,41 @@ def main():
     from ...configuration import CONFIG
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Runs ADC tests")
-    parser.add_argument("-s", "--singleConfig",help="Only run a single configuration (normally runs all clocks and offsets)",action='store_true')
+    parser.add_argument("-t", "--timestamp",help="Timestamp string to use for this test",type=str,default=datetime.datetime.now().replace(microsecond=0).isoformat())
+    parser.add_argument("-o", "--operator",help="Test operator name",type=str,default="Command-line Operator")
+    parser.add_argument("-s", "--serial",help="Chip serial number, use multiple times for multiple chips, e.g. -s 1 -s 2 -s 3 -s 4",action='append',default=[])
+    parser.add_argument("-b", "--board",help="Test board serial number",default=None)
+    parser.add_argument("-q", "--quick",help="Only run a single configuration (normally runs all clocks and offsets)",action='store_true')
     parser.add_argument("-p", "--profiler",help="Enable python timing profiler and save to given file name",type=str,default=None)
+    parser.add_argument("-j", "--jsonfile",help="json options file location",default=None)
     args = parser.parse_args()
   
     config = CONFIG()
-    serialNumbers = list(range(-1,-(config.NASICS+1),-1))
     chipsPass = None
     startTime = datetime.datetime.now()
+
+    hostname = socket.gethostname()
+    timestamp = args.timestamp
+    operator = args.operator
+    boardid = args.board
+    serialNumbers = args.serial
+
+    if len(serialNumbers) == 0:
+        serialNumbers = list(range(-1,-(config.NASICS+1),-1))
+    elif len(serialNumbers) != config.NASICS:
+        print("Error: number of serial numbers ({}) doesn't equal number of ASICs in configuration ({}), exiting.".format(len(serialNumbers),config.NASICS))
+        sys.exit(1)
+    try:
+        serialNumbers = [int(i) for i in serialNumbers]
+    except ValueError as e:
+        print("Error, serial number must be an int: ",e)
+        sys.exit(1)
+
     if args.profiler:
         import cProfile
-        cProfile.runctx('chipsPass = runTests(config,serialNumbers,"Command-line user",None,singleConfig=args.singleConfig)',globals(),locals(),args.profiler)
+        cProfile.runctx('chipsPass = runTests(config,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick)',globals(),locals(),args.profiler)
     else:
-        chipsPass = runTests(config,serialNumbers,"Command-line user",None,singleConfig=args.singleConfig)
+        chipsPass = runTests(config,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick)
     runTime = datetime.datetime.now() - startTime
     print("Test took: {:.0f} min {:.1f} s".format(runTime.total_seconds() // 60, runTime.total_seconds() % 60.))
     print("Chips Pass: ",chipsPass)
