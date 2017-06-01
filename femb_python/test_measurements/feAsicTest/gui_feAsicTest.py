@@ -230,6 +230,7 @@ ASIC 2 ID: {asic2id}
 ASIC 3 ID: {asic3id}
         """.format(**self.params))
 
+        
         if not self.params['operator_name']:
             print("ENTER REQUIRED INFO")
             self.start_button_result["text"] = "ENTER REQUIRED INFO"
@@ -269,10 +270,10 @@ ASIC 3 ID: {asic3id}
         self.operator_entry.delete(0,1000)
         self.test_stand_entry.delete(0,1000)
         self.boardid_entry.delete(0,1000)
-        self.asic0_entry.delete(0,1000)
-        self.asic1_entry.delete(0,1000)
-        self.asic2_entry.delete(0,1000)
-        self.asic3_entry.delete(0,1000)
+        #self.asic0_entry.delete(0,1000)
+        #self.asic1_entry.delete(0,1000)
+        #self.asic2_entry.delete(0,1000)
+        #self.asic3_entry.delete(0,1000)
 
         print("FINISHED TEST - GUI RESET")
 
@@ -306,9 +307,9 @@ ASIC 3 ID: {asic3id}
         self.test_result = 0
         
         #put loop here, but equivalently can go in script itself
-        for g in range(2,3,1):
+        for g in range(0,4,1):
             for s in range(0,4,1):
-                for b in range(0,1,1):
+                for b in range(0,2,1):
 
                     # this raises RuntimeError if measurement script fails
                     self.runner(datasubdir="gain_enc_sequence-g{gain_ind}s{shape_ind}b{base_ind}",
