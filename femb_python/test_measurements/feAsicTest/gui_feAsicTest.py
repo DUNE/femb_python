@@ -57,7 +57,11 @@ class GUI_WINDOW(Frame):
             asic3id = "",
             test_category = "feasic",
             test_version = "1",
-            femb_config = femb_config
+            femb_config = femb_config,
+            asic0_pass = 1,
+            asic1_pass = 1,
+            asic2_pass = 1,
+            asic3_pass = 1
         )
 
         # Check out the data disk situation and find the most available disk
@@ -169,7 +173,7 @@ class GUI_WINDOW(Frame):
         label.grid(sticky=W,row=9,column=columnbase+0)
 
         self.asic3_entry = Entry(self,width=25)
-        self.asic3_entry.grid(sticky=W,row=9,column=columnbase+1)
+        self.asic3_entry.grid(sticky=W,row=9,column=columnbase+1)                      
 
 
     def define_general_commands_column(self):
@@ -198,6 +202,23 @@ class GUI_WINDOW(Frame):
         self.gain_enc_sequence_fpgadac_result = Label(self, text="GAIN+ENC FPGA DAC ALL SETTINGS - NOT STARTED",width=50)
         self.gain_enc_sequence_fpgadac_result.grid(sticky=W,row=4,column=columnbase,columnspan=50)
 
+        self.asic0_result = Label(self, text="ASIC 0 Result: TBD", width=25)
+        self.asic0_result.grid(sticky=W,row=6,column=columnbase+2)
+
+        self.asic1_result = Label(self, text="ASIC 1 Result: TBD", width=25)
+        self.asic1_result.grid(sticky=W,row=7,column=columnbase+2)
+
+        self.asic2_result = Label(self, text="ASIC 2 Result: TBD", width=25)
+        self.asic2_result.grid(sticky=W,row=8,column=columnbase+2)
+
+        self.asic3_result = Label(self, text="ASIC 3 Result: TBD", width=25)
+        self.asic3_result.grid(sticky=W,row=9,column=columnbase+2)
+
+        #Finish/reset button
+        finish_button = Button(self, text="Finish and Reset",command=self.reset_gui,width=25)
+        finish_button.grid(row=10,column=columnbase,columnspan=25)
+        
+        
         """
         #Adding the record data button
         analyze_data_button = Button(self, text="Analyze Data", command=self.analyze_data,width=25)
@@ -271,15 +292,44 @@ ASIC 3 ID: {asic3id}
             continue
 
         self.start_button_result["text"] = "DONE"
-        self.update_idletasks()
 
+
+        if (self.params['asic0_pass']):
+            self.asic0_result["text"] = "ASIC 0 Result: Pass"
+            self.asic0_result["fg"] = "green"
+        else:
+            self.asic0_result["text"] = "ASIC 0 Result: Fail"
+            self.asic0_result["fg"] = "red"
+        if (self.params['asic1_pass']):
+            self.asic1_result["text"] = "ASIC 1 Result: Pass"
+            self.asic1_result["fg"] = "green"
+        else:
+            self.asic1_result["text"] = "ASIC 1 Result: Fail"
+            self.asic1_result["fg"] = "red"
+        if (self.params['asic2_pass']):
+            self.asic2_result["text"] = "ASIC 2 Result: Pass"
+            self.asic2_result["fg"] = "green"            
+        else:
+            self.asic2_result["text"] = "ASIC 2 Result: Fail"
+            self.asic2_result["fg"] = "red"            
+        if (self.params['asic3_pass']):
+            self.asic3_result["text"] = "ASIC 3 Result: Pass"
+            self.asic3_result["fg"] = "green"            
+        else:
+            self.asic3_result["text"] = "ASIC 3 Result: Fail"
+            self.asic3_result["fg"] = "red"            
+
+        self.update_idletasks()            
+
+
+    def reset_gui(self):
         self.operator_entry.delete(0,1000)
         self.test_stand_entry.delete(0,1000)
         self.boardid_entry.delete(0,1000)
-        #self.asic0_entry.delete(0,1000)
-        #self.asic1_entry.delete(0,1000)
-        #self.asic2_entry.delete(0,1000)
-        #self.asic3_entry.delete(0,1000)
+        self.asic0_entry.delete(0,1000)
+        self.asic1_entry.delete(0,1000)
+        self.asic2_entry.delete(0,1000)
+        self.asic3_entry.delete(0,1000)
 
         print("FINISHED TEST - GUI RESET")
 
@@ -323,6 +373,12 @@ ASIC 3 ID: {asic3id}
                                 executable="femb_feasic_gain",
                                 argstr="{paramfile}",
                     )
+
+                    #Check pass/fail for each test
+                    #output_file = [f for f in os.listdir(self.params['datadir']) if ".list" in f]
+                    #print("ETW TEST>>>>>>"+output_file)
+                    #ETW - not actually reading anything yet, just to test!!!
+                    self.params['asic1_pass'] = 0
 
                     continue
                 continue
