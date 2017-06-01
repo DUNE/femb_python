@@ -161,7 +161,7 @@ setup(
             'femb_feasic_testgui=femb_python.test_measurements.feAsicTest.gui_feAsicTest:main',
             'femb_feasic_simple=femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement:main',
             'femb_feasic_gain=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement:main',
-
+            'femb_feasic_gain_fpgadac=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement_fpgaDac:main',
 
         ],
         #'gui_scripts': [

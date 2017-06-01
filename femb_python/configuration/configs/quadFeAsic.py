@@ -139,6 +139,42 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_START, 1)
         self.configFeAsic()
 
+        """
+    def powerCycle(self,asic):
+        print( "Repeat ASIC",asic,"power cycles" )
+        
+        if (asic == 0):
+            mask = 0x10000
+        elif (asic == 1):
+            mask = 0x20000
+        elif (asic == 2):
+            mask = 0x40000
+        else (asic == 3):
+            mask = 0x80000
+                
+        for cycle in range(0,6,1): # 5 cycles
+            self.turnOffAsics()
+            self.turnOnAsic(asic)
+            #check that the SPO bit is set
+            regVal = self.femb.read_reg(5)
+            print( regVal ) 
+            if(!(mask & regVal)) pass=0
+
+        return
+
+    def checkCurrent(self,asic):
+        print( "Check LV current on ASIC",asic )
+
+        regVal = self.femb.read_reg(56)
+        print( regVal )
+        regVal = self.femb.read_reg(57)
+        print( regVal )
+        regVal = self.femb.read_reg(58)
+        print( regVal ) 
+        
+        return
+        """
+        
     def selectChannel(self,asic,chan,hsmode=None):
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
@@ -301,3 +337,30 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
         self.femb.write_reg( self.REG_SET_DAC , 0x1 ) #not necessary?
         self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
+
+    def setFpgaPulser(self,enable,dac):
+        enableVal = int(enable)
+        if (enableVal < 0 ) or (enableVal > 1 ) :
+                print( "femb_config_femb : setDacPulser - invalid enable value")
+                return
+        dacVal = int(dac)
+        if ( dacVal < 0 ) or ( dacVal > 0x3F ) :
+                print( "femb_config_femb : setDacPulser - invalid dac value")
+                return
+
+        if enableVal == 1 :
+                self.femb.write_reg( self.REG_TP_MODE, 0x7) #pulser enabled
+                self.femb.write_reg( 18, 0x1) #pulser enabled
+        else :
+                self.femb.write_reg( self.REG_TP_MODE, 0x0) #pulser disabled
+                self.femb.write_reg( 18, 0x0) #pulser enabled
+
+        #self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
+        #self.femb.write_reg( self.REG_SET_DAC , 0x1 ) #not necessary?
+        #self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
+
+        self.femb.write_reg_bits( 17 , 6, 0x1, 0x0 ) #ASIC test pulse enable/disable
+        self.femb.write_reg_bits( 17 , 7, 0x1, enableVal ) #FPGA test pulse enable/disable
+        self.femb.write_reg_bits( 17 , 0, 0x3F, dacVal ) #TP Amplitude
+        self.femb.write_reg_bits( 17 , 8, 0xFF, 219 ) #DLY
+        self.femb.write_reg_bits( 17 , 16, 0xFFFF, 500 ) #FREQ
