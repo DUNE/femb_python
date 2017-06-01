@@ -11,7 +11,7 @@ standard_library.install_aliases()
 from builtins import object
 import sys
 import string
-from subprocess import callg
+from subprocess import call
 from time import sleep
 import os
 import ntpath
@@ -189,22 +189,22 @@ class FEMB_TEST_GAIN_FPGADAC(object):
         self.cppfr.run("test_measurements/feAsicTest/parseBinaryFile", [self.write_data.data_file_path])
 
         #run analysis program
-        newName = "output_parseBinaryFile_gainMeasurement_fpgadac_" + self.write_data.date + ".root"
+        newName = "output_parseBinaryFile_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".root"
         newPath = os.path.join(self.write_data.filedir, newName)
         call(["mv", "output_parseBinaryFile.root" , newPath])
         self.cppfr.run("test_measurements/feAsicTest/processNtuple_gainMeasurement_fpgadac",  [newPath])
 
-        newName = "output_processNtuple_gainMeasurement_fpgadac_" + self.write_data.date + ".root"
+        newName = "output_processNtuple_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".root"
         newPath = os.path.join(self.write_data.filedir, newName)
-        call(["mv", "output_processNtuple_gainMeasurement.root" , newPath])
+        call(["mv", "output_processNtuple_gainMeasurement_fpgadac.root" , newPath])
         
-        newName = "summaryPlot_gainMeasurement_fpgadac_" + self.write_data.date + ".png"
+        newName = "summaryPlot_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".png"
         newPath = os.path.join(self.write_data.filedir, newName)
-        call(["mv", "summaryPlot_gainMeasurement.png" , newPath])
+        call(["mv", "summaryPlot_gainMeasurement_fpgadac.png" , newPath])
 
-        newName = "results_gainMeasurement_fpgadac_" + self.write_data.date + ".list"
+        newName = "results_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".list"
         newPath = os.path.join(self.write_data.filedir, newName)
-        call(["mv", "output_processNtuple_gainMeasurement.list" , newPath])
+        call(["mv", "output_processNtuple_gainMeasurement_fpgadac.list" , newPath])
 
         #summary plot
         #print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
@@ -233,7 +233,7 @@ class FEMB_TEST_GAIN_FPGADAC(object):
         self.jsondict['config_base'] = str( self.base )
 
         #parse the output results, kind of messy
-        newName = "results_gainMeasurement_fpgadac_" + self.write_data.date + ".list"
+        newName = "results_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".list"
         newPath = os.path.join(self.write_data.filedir, newName)
 
         lines = []
@@ -253,7 +253,7 @@ class FEMB_TEST_GAIN_FPGADAC(object):
         print( jsonoutput )
  
         #dump results into json
-        newName = "results_gainMeasurement_fpgadac_" + self.write_data.date + ".json"
+        newName = "results_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".json"
         newPath = os.path.join(self.write_data.filedir, newName)
         with open( newName , 'w') as outfile:
           json.dump(jsonoutput, outfile)
