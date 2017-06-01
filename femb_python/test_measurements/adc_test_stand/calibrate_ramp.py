@@ -37,7 +37,7 @@ class CALIBRATE_RAMP(object):
             print("Calibration error: file not ramp data",file=sys.stderr)
             sys.exit(1)
         intree = f.Get("femb_wfdata")
-        print("Creating file: ",self.outfilename,file=sys.stderr)
+        #print("Creating file: ",self.outfilename,file=sys.stderr)
         fout = ROOT.TFile( self.outfilename, 'recreate' )
         fout.cd()
         outmetadataTree = metadataTree.CloneTree()

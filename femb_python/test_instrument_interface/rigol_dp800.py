@@ -22,28 +22,21 @@ class RigolDP800(object):
     Interface to Rigol DP800 Power Supply
     """
 
-    def __init__(self,config):
+    def __init__(self,filename,channelNumbers):
         """
-        config is a CONFIG object. It must have a config.POWERSUPPLYPATH variable 
-        set to a usbtmc object like /dev/usbtmc0.
+        filename is a the path to a usbtmc object like /dev/usbtmc0.
 
-        config should also have config.POWERSUPPLYCHANNELS which is a list of
+        channelNumbers is a list of
         the channels to turn on e.g. ["CH1","CH2","CH3"]. All three channels
         are turned off no matter what POWERSUPPLYCHANNELS is set to.
         """
 
-        self.filename = None
-        try:
-            self.filename = config.POWERSUPPLYPATH
-        except AttributeError:
-            print("Error setting up RigolDP800: config.POWERSUPPLYPATH doesn't exist. Exiting.")
-            sys.exit(1)
+        self.filename = filename
         print("Using Rigol DP800 at {}".format(self.filename))
-        self.channels = []
-        try:
-            self.channels = config.POWERSUPPLYCHANNELS
-        except AttributeError:
-            print("Warning setting up RigolDP800: config.POWERSUPPLYCHANNELS doesn't exist")
+        if type(channelNumbers) != list:
+            print("Error: RigolDP800 channelNumbers argument is not list: '{}', exiting.".format(channelNumbers))
+            sys.exit(1)
+        self.channels = channelNumbers
         print("Configured to turn on these power supply channels: {}".format(self.channels))
 
     def writeCommand(self,command):

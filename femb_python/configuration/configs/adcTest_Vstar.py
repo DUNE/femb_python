@@ -23,6 +23,8 @@ import copy
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.configuration.adc_asic_reg_mapping_V import ADC_ASIC_REG_MAPPING
+from femb_python.test_instrument_interface.rigol_dg4000 import RigolDG4000
+from femb_python.test_instrument_interface.rigol_dp800 import RigolDP800
 
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
@@ -45,10 +47,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Latch latency 0x6666666f    Phase 0xffff0055
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
         self.NASICS = 1
-        self.POWERSUPPLYPATH = "/dev/usbtmc0"
-        self.FUNCGENPATH = "/dev/usbtmc1"
-        self.POWERSUPPLYCHANNELS = ["CH1"]
-        self.FUNCGENSOURCE = 1
+        self.FUNCGENINTER = RigolDG4000("/dev/usbtmc1",1)
+        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc0",["CH1"])
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
 

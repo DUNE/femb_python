@@ -23,7 +23,7 @@ from femb_python.configuration import CONFIG
 from femb_python.write_data import WRITE_DATA
 from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
-class FEMB_TEST_GAIN(object):
+class FEMB_TEST_GAIN_EXTERNALDAC(object):
 
     def __init__(self, datadir="data"):
 
@@ -46,7 +46,7 @@ class FEMB_TEST_GAIN(object):
         self.base = 0
 
         #json output, note module version number defined here
-        self.jsondict = {'type':'quadFeAsic_gain'}
+        self.jsondict = {'type':'quadFeAsic_gain_externaldac'}
         self.jsondict['version'] = '1.0'
         self.jsondict['timestamp']  = str(self.write_data.date)
 
@@ -58,7 +58,7 @@ class FEMB_TEST_GAIN(object):
 
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
-        print("GAIN MEASUREMENT - CHECKING READOUT STATUS")
+        print("GAIN MEASUREMENT EXTERNAL DAC - CHECKING READOUT STATUS")
         self.status_check_setup = 0
 
         self.write_data.assure_filedir()
@@ -100,7 +100,7 @@ class FEMB_TEST_GAIN(object):
             #sys.exit(0)
             return
 
-        print("GAIN MEASUREMENT - READOUT STATUS OK" + "\n")
+        print("GAIN MEASUREMENT EXTERNAL DAC - READOUT STATUS OK" + "\n")
         self.status_check_setup = 1
 
     def record_data(self):
@@ -111,7 +111,7 @@ class FEMB_TEST_GAIN(object):
             print("Data already recorded. Reset/restat GUI to begin a new measurement")
             return
         #MEASUREMENT SECTION
-        print("GAIN MEASUREMENT - RECORDING DATA")
+        print("GAIN MEASUREMENT EXTERNAL DAC - RECORDING DATA")
 
         #initialize FEMB configuration to known state
         print("FE ASIC Settings: Gain " + str(self.gain) + ", Shaping Time " + str(self.shape) + ", Baseline " + str(self.base) )
@@ -126,7 +126,7 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.setFpgaPulser(0,0x0)
 
         #setup output file and record data
-        self.write_data.filename = "rawdata_gainMeasurement_%s_g_%d_s_%d_b_%d.bin" % \
+        self.write_data.filename = "rawdata_gainMeasurement_externaldac_%s_g_%d_s_%d_b_%d.bin" % \
                                    (self.write_data.date, self.gain, self.shape, self.base)
 
         print("Recording " + self.write_data.filename )
@@ -149,10 +149,9 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.turnOnAsics()
         subrun = 1
         #loop over pulser configurations, each configuration is it's own subrun
-        for p in range(1,64,1):
-            pVal = int(p)
-            #pVal = 1024 + int(p)*256
-            self.femb_config.setInternalPulser(1,pVal)
+        for p in range(1,10,1):
+            pVal = 1024 + int(p)*256
+            self.femb_config.setDacPulser(1,pVal)
             print("Pulse amplitude " + str(pVal) )
 
             #loop over channels
@@ -168,12 +167,12 @@ class FEMB_TEST_GAIN(object):
         self.write_data.close_file()
 
         #turn off pulser
-        self.femb_config.setInternalPulser(0,0)
+        self.femb_config.setDacPulser(0,0)
 
         #turn off ASICs
         self.femb_config.turnOffAsics()
 
-        print("GAIN MEASUREMENT - DONE RECORDING DATA" + "\n")
+        print("GAIN MEASUREMENT EXTERNAL DAC - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1
 
     def do_analysis(self):
@@ -184,34 +183,34 @@ class FEMB_TEST_GAIN(object):
             print("Analysis already complete")
             return
         #ANALYSIS SECTION
-        print("GAIN MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
+        print("GAIN MEASUREMENT EXTERNAL DAC - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
         self.cppfr.run("test_measurements/feAsicTest/parseBinaryFile", [self.write_data.data_file_path])
 
         #run analysis program
-        newName = "output_parseBinaryFile_gainMeasurement_" + str(self.write_data.date) + ".root"
+        newName = "output_parseBinaryFile_gainMeasurement_externaldac_" + str(self.write_data.date) + ".root"
         newPath = os.path.join(self.write_data.filedir, newName)
         call(["mv", "output_parseBinaryFile.root" , newPath])
-        self.cppfr.run("test_measurements/feAsicTest/processNtuple_gainMeasurement",  [newPath])
+        self.cppfr.run("test_measurements/feAsicTest/processNtuple_gainMeasurement_externaldac",  [newPath])
 
-        newName = "output_processNtuple_gainMeasurement_" + str(self.write_data.date) + ".root"
+        newName = "output_processNtuple_gainMeasurement_externaldac_" + str(self.write_data.date) + ".root"
         newPath = os.path.join(self.write_data.filedir, newName)
         call(["mv", "output_processNtuple_gainMeasurement.root" , newPath])
         
-        newName = "summaryPlot_gainMeasurement_" + str(self.write_data.date) + ".png"
+        newName = "summaryPlot_gainMeasurement_externaldac_" + str(self.write_data.date) + ".png"
         newPath = os.path.join(self.write_data.filedir, newName)
-        call(["mv", "summaryPlot_gainMeasurement.png" , newPath])
+        call(["mv", "summaryPlot_gainMeasurement_externaldac.png" , newPath])
+
+        newName = "results_gainMeasurement_externaldac_" + str(self.write_data.date) + ".list"
+        newPath = os.path.join(self.write_data.filedir, newName)
+        call(["mv", "output_processNtuple_gainMeasurement_externaldac.list" , newPath])
 
         #summary plot
         #print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
         #call(["display", newPath])
 
-        newName = "results_gainMeasurement_" + str(self.write_data.date) + ".list"
-        newPath = os.path.join(self.write_data.filedir, newName)
-        call(["mv", "output_processNtuple_gainMeasurement.list" , newPath])
-
-        print("GAIN MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
+        print("GAIN MEASUREMENT EXTERNAL DAC - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
 
     def archive_results(self):
@@ -222,7 +221,7 @@ class FEMB_TEST_GAIN(object):
         #    print("Results already archived")
         #    return
         #ARCHIVE SECTION
-        print("GAIN MEASUREMENT - ARCHIVE")
+        print("GAIN MEASUREMENT EXTERNAL DAC - ARCHIVE")
 
         #add summary variables to output
         self.jsondict['status_check_setup'] = str( self.status_check_setup )
@@ -234,7 +233,7 @@ class FEMB_TEST_GAIN(object):
         self.jsondict['config_base'] = str( self.base )
 
         #parse the output results, kind of messy
-        newName = "results_gainMeasurement_" + str(self.write_data.date) + ".list"
+        newName = "results_gainMeasurement_externaldac_" + str(self.write_data.date) + ".list"
         newPath = os.path.join(self.write_data.filedir, newName)
 
         lines = []
@@ -254,7 +253,7 @@ class FEMB_TEST_GAIN(object):
         print( jsonoutput )
  
         #dump results into json
-        newName = "results_gainMeasurement_" + str(self.write_data.date) + ".json"
+        newName = "results_gainMeasurement_externaldac_" + str(self.write_data.date) + ".json"
         newPath = os.path.join(self.write_data.filedir, newName)
         with open( newName , 'w') as outfile:
           json.dump(jsonoutput, outfile)
@@ -284,7 +283,7 @@ def main():
     params = json.loads(open(sys.argv[1]).read())
 
     datadir = params['datadir']
-    ftg = FEMB_TEST_GAIN(datadir)
+    ftg = FEMB_TEST_GAIN_EXTERNALDAC(datadir)
     ftg.gain = params['gain_ind']
     ftg.shape = params['shape_ind']
     ftg.base = params['base_ind']

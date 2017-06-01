@@ -82,6 +82,8 @@ setup(
         'matplotlib>=1.2.1',
 	'future>=0.15.2',
 	'configparser>=3.5.0',
+        'sumatra>=0.5.1',
+        'gitpython>=2.1.3',
     ],
 
     # List additional groups of dependencies here (e.g. development
@@ -130,16 +132,17 @@ setup(
             'femb_config_fe=femb_python.helper_scripts.config_fe:main',
             'femb_lock=femb_python.helper_scripts.locking:lock',
 
-            'femb_instrument_rigol_dp800=femb_python.test_instrument_interface.rigol_dp800:main',
-            'femb_instrument_rigol_dg4000=femb_python.test_instrument_interface.rigol_dg4000:main',
-            'femb_instrument_keysight_33600A=femb_python.test_instrument_interface.keysight_33600A:main',
+            'femb_power_supply=femb_python.helper_scripts.test_instruments:powersupply',
+            'femb_function_generator=femb_python.helper_scripts.test_instruments:funcgen',
 
             'femb_adc_static_tests=femb_python.test_measurements.adc_test_stand.static_tests:main',
             'femb_adc_dynamic_tests=femb_python.test_measurements.adc_test_stand.dynamic_tests:main',
             'femb_adc_collect_data=femb_python.test_measurements.adc_test_stand.collect_data:main',
             'femb_adc_calibrate_ramp=femb_python.test_measurements.adc_test_stand.calibrate_ramp:main',
+            'femb_adc_baseline_rms=femb_python.test_measurements.adc_test_stand.baseline_rms:main',
             'femb_adc_run=femb_python.test_measurements.adc_test_stand.run:main',
             'femb_adc_summary_plots=femb_python.test_measurements.adc_test_stand.summary_plots:main',
+            'femb_adc_gui=femb_python.test_measurements.adc_test_stand.gui:main',
 
             'femb_example_measure_simple=femb_python.test_measurements.example_femb_test.doFembTest_simpleMeasurement:main',
             'femb_example_measure_gain=femb_python.test_measurements.example_femb_test.doFembTest_gainMeasurement:main',
@@ -158,7 +161,8 @@ setup(
             'femb_feasic_testgui=femb_python.test_measurements.feAsicTest.gui_feAsicTest:main',
             'femb_feasic_simple=femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement:main',
             'femb_feasic_gain=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement:main',
-
+            'femb_feasic_gain_fpgadac=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement_fpgaDac:main',
+            'femb_feasic_gain_externaldac=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement_externalDac:main',
 
         ],
         #'gui_scripts': [
