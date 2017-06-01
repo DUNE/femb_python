@@ -38,7 +38,9 @@ class ADC_TEST_SUMMARY(object):
         self.staticSummary = None
         self.dynamicSummary = None
         self.inputPinSummary = None
+        self.testResults = None
         self.makeSummaries()
+        self.checkPass()
 
     def makeSummaries(self):
         """
@@ -50,6 +52,8 @@ class ADC_TEST_SUMMARY(object):
         from:
         self.allStatsRaw[clock][offset][chipSerial]
         """
+        print("Summarizing all data...")
+        sys.stdout.flush()
         allStatsRaw = self.allStatsRaw
         clocks = sorted(allStatsRaw.keys())
         offsets = []
@@ -148,6 +152,10 @@ class ADC_TEST_SUMMARY(object):
         except:
             print("Error get_summary: no inputPin key")
             pass
+        try:
+            result["testResults"] = self.testResults[serial]
+        except:
+            pass
         return result
 
     def write_jsons(self,fileprefix):
@@ -156,6 +164,101 @@ class ADC_TEST_SUMMARY(object):
             data = self.get_summary(serial)
             with open(filename,"w") as f:
                 json.dump(data,f)
+
+    def checkPass(self):
+        print("Checking if chip passes tests...")
+        sys.stdout.flush()
+        self.testResults = {}
+        for serial in self.get_serials():
+            thisSummary = self.get_summary(serial)
+            thisPass = True
+            results = {}
+            staticChecks = {
+                'DNLmax400': ["lt",50.],
+                'DNL75perc400': ["lt",2.],
+                'stuckCodeFrac400': ["lt",0.1],
+                'INLabsMax400': ["lt",100.],
+                'INLabs75perc400': ["lt",50.],
+                'minCode': ["lt",300.],
+                'minCodeV': ["lt",0.5],
+            }
+            dynamicChecks = {
+                'sinads': ["gt",10.],
+            }
+            inputPinChecks = {
+                'mean': ["lt",3000.],
+            }
+            for stat in staticChecks:
+                check = staticChecks[stat]
+                statPass = True
+                for clock in thisSummary['static']:
+                    for offset in thisSummary['static'][clock]:
+                        for channel in range(16):
+                            if check[0] == "lt":
+                                if thisSummary['static'][clock][offset][stat][channel] >= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                            if check[0] == "gt":
+                                if thisSummary['static'][clock][offset][stat][channel] <= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                        if not statPass:
+                            break
+                    if not statPass:
+                        break
+                results[stat] = statPass
+            for stat in dynamicChecks:
+                check = dynamicChecks[stat]
+                statPass = True
+                for clock in thisSummary['dynamic']:
+                    for offset in thisSummary['dynamic'][clock]:
+                        for amp in thisSummary['dynamic'][clock][offset][stat]:
+                            for freq in thisSummary['dynamic'][clock][offset][stat][amp]:
+                                for channel in range(16):
+                                    if check[0] == "lt":
+                                        if thisSummary['dynamic'][clock][offset][stat][amp][freq][channel] >= check[1]:
+                                            statPass = False
+                                            thisPass = False
+                                            break
+                                    if check[0] == "gt":
+                                        if thisSummary['dynamic'][clock][offset][stat][amp][freq][channel] <= check[1]:
+                                            statPass = False
+                                            thisPass = False
+                                            break
+                                if not statPass:
+                                    break
+                            if not statPass:
+                                break
+                        if not statPass:
+                            break
+                    if not statPass:
+                        break
+                results[stat] = statPass
+            for stat in inputPinChecks:
+                check = inputPinChecks[stat]
+                statPass = True
+                for clock in thisSummary['inputPin']:
+                    for offset in thisSummary['inputPin'][clock]:
+                        for channel in range(16):
+                            if check[0] == "lt":
+                                if thisSummary['inputPin'][clock][offset][stat][channel] >= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                            if check[0] == "gt":
+                                if thisSummary['inputPin'][clock][offset][stat][channel] <= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                        if not statPass:
+                            break
+                    if not statPass:
+                        break
+                results["inputPin_"+stat] = statPass
+            results["pass"] = thisPass
+            self.testResults[serial] = results
 
 def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,singleConfig=True,timestamp=None,sumatradict=None):
     """
@@ -251,40 +354,13 @@ def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,si
             #with open(fileprefix+"_statsRaw.json","w") as f:
             #    json.dump(baselineRmsStats,f)
     with open("adcTestData_{}_statsRaw.json".format(startDateTime),"w") as f:
-        json.dump(baselineRmsStats,f)
-    print("Summarizing all data...")
-    sys.stdout.flush()
+        json.dump(allStatsRaw,f)
     summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id,operator,sumatradict=sumatradict)
     summary.write_jsons("adcTest_{}".format(startDateTime))
     print("Making summary plots...")
+    sys.stdout.flush()
     for serial in summary.get_serials():
       SUMMARY_PLOTS(summary.get_summary(serial),"adcTest_{}_{}".format(startDateTime,serial),plotAll=True)
-    print("Checking if chips pass..")
-    sys.stdout.flush()
-    chipsPass = []
-    for serial in adcSerialNumbers:
-        thisSummary = summary.get_summary(serial)
-        thisPass = True
-        for clock in thisSummary['static']:
-            for offset in thisSummary['static'][clock]:
-                for channel in range(len(thisSummary['static'][clock][offset]["DNLmax"])):
-                    if thisSummary['static'][clock][offset]["DNLmax400"][channel] > 50.:
-                        thisPass = False
-                    if thisSummary['static'][clock][offset]["stuckCodeFrac400"][channel] > 0.5:
-                        thisPass = False
-                        break
-                    if thisSummary['static'][clock][offset]["INLabsMax400"][channel] > 50.:
-                        thisPass = False
-                        break
-                    if thisSummary['static'][clock][offset]["minCode"][channel] > 300.:
-                        thisPass = False
-                        break
-                if not thisPass:
-                    break
-            if not thisPass:
-                break
-        chipsPass.append(thisPass)
-    return chipsPass
 
 def main():
     from ...configuration.argument_parser import ArgumentParser
