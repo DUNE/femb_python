@@ -279,19 +279,10 @@ ASIC 3 ID: {asic3id}
             LOUD = method.replace("_"," ").upper()
             methname = "do_" + method
             meth = getattr(self, methname)
-            if(LOUD == "CHECK SETUP"):
-                self.check_setup_result["text"] = LOUD + " - IN PROGRESS"
-                
-            if(LOUD == "GAIN ENC SEQUENCE"):
-                self.gain_enc_sequence_result["text"] = LOUD + " - IN PROGRESS"
 
-            if(LOUD == "GAIN ENC SEQUENCE FPGA DAC"):
-                self.gain_enc_sequence_fpgadac_result["text"] = LOUD + " - IN PROGRESS"
-
-            if(LOUD == "GAIN ENC SEQUENCE EXTERNAL DAC"):
-                self.gain_enc_sequence_externaldac_result["text"] = LOUD + " - IN PROGRESS"
-                    
+            getattr(self, method+"_result")["text"] = LOUD + " - IN PROGRESS"
             self.update_idletasks()
+
             try:
                 meth()
             except RuntimeError as err:
@@ -384,91 +375,77 @@ ASIC 3 ID: {asic3id}
                     executable="femb_feasic_simple",
                     argstr="{paramfile}")
 
-    def do_gain_enc_sequence(self):
-        '''
-        Run a gain and ENC test sequence against all gain, shaping and baselines.
-        '''
-        testName = str("GAIN ENC SEQUENCE")
-        print(str(testName))
-        self.gain_enc_sequence_result["text"] = str(testName) + " - IN PROGRESS"
-        self.update_idletasks()
-        self.test_result = 0
-        
-        #put loop here, but equivalently can go in script itself
-        for g in range(0,4,1):
-            for s in range(0,4,1):
-                for b in range(0,2,1):
 
+    def generic_sequence_handler(self, **params):
+        '''Generically handle results after an executable runs.  The params
+        are the resolved input parameters'''
+        button = getattr(self, params['method']+"_result")
+        button["text"] = title + " - DONE"
+        self.update_idletasks()        
+
+
+    def generic_sequence(self, method, executable, gains, shapes, bases, handler=None):
+
+        '''
+        Generically, run an executable through a sequence of gains/shape/bases
+        '''
+
+        datasubdir="{method}-g{gain_ind}s{shape_ind}b{base_ind}"
+        outlabel="{datasubdir}-{execute_start_time}"
+
+        title = method.upper().replace("_", " ")
+        print (title)
+        button = getattr(self, method+"_result")
+        button["text"] = title + " - IN PROGRESS"
+        self.update_idletasks()        
+        for gain in gains:
+            for shape in shapes:
+                for base in bases:
                     # this raises RuntimeError if measurement script fails
-                    self.runner(**self.params, datasubdir="gain_enc_sequence-g{gain_ind}s{shape_ind}b{base_ind}",
-                                gain_ind = g, shape_ind = s, base_ind = b, femb_num = 0,
-                                executable="femb_feasic_gain",
-                                argstr="{paramfile}",
+                    now = time.strftime("%Y%m%dT%H%M%S", time.localtime(time.time()))
+                    resolved = self.runner(**self.params,
+                                           datasubdir="{method}-g{gain_ind}s{shape_ind}b{base_ind}",
+                                           outlabel = outlabel,
+                                           execute_start_time = now,
+                                           executable=executable,
+                                           method=method,
+                                           argstr="{paramfile}",
+                                           gain_ind = gain, 
+                                           shape_ind = shape, 
+                                           base_ind = base,
+                                           femb_num = 0,
                     )
+                    if handler:
+                        handler(**resolved)
+                    else:
+                        self.generic_sequence_handler(**resolved)
 
-                    #Check pass/fail for each test
-                    #output_file = [f for f in os.listdir(self.params['datadir']) if ".list" in f]
-                    #print("ETW TEST>>>>>>"+output_file)
-                    #ETW - not actually reading anything yet, just to test!!!
-                    self.params['asic1_pass'] = 0
 
-                    continue
-                continue
-            continue
+    def handle_gain_result(self, **params):
+        # ETW: fill this in
+        #Check pass/fail for each test
+        #output_file = [f for f in os.listdir(self.params['datadir']) if ".list" in f]
+        #print("ETW TEST>>>>>>"+output_file)
+        #ETW - not actually reading anything yet, just to test!!!
+        self.params['asic1_pass'] = 0
+
+
+    def do_gain_enc_sequence(self):
+        self.generic_sequence("gain_enc_sequence", "femb_feasic_gain",
+                              range(4), range(4), range(2),
+                              handler=self.handle_gain_result)
         return
 
     def do_gain_enc_sequence_fpgadac(self):
-        '''
-        Run a gain and ENC test sequence against all gain, shaping and baselines.
-        '''
-        testName = str("GAIN ENC SEQUENCE FPGA DAC")
-        print(str(testName))
-        self.gain_enc_sequence_fpgadac_result["text"] = str(testName) + " - IN PROGRESS"
-        self.update_idletasks()
-        self.test_result = 0
-        
-        #put loop here, but equivalently can go in script itself
-        for g in range(0,4,1):
-            for s in range(2,3,1):
-                for b in range(0,1,1):
-
-                    # this raises RuntimeError if measurement script fails
-                    self.runner(**self.params, datasubdir="gain_enc_sequence_fpgadac-g{gain_ind}s{shape_ind}b{base_ind}",
-                                gain_ind = g, shape_ind = s, base_ind = b, femb_num = 0,
-                                executable="femb_feasic_gain_fpgadac",
-                                argstr="{paramfile}",
-                    )
-
-                    continue
-                continue
-            continue
+        self.generic_sequence("gain_enc_sequence", "femb_feasic_gain_fpgadac",
+                              range(4), [1], [0],
+                              handler=self.handle_gain_result)
         return
 
     def do_gain_enc_sequence_externaldac(self):
-        '''
-        Run a gain and ENC test sequence against all gain, shaping and baselines.
-        '''
-        testName = str("GAIN ENC SEQUENCE EXTERNAL DAC")
-        print(str(testName))
-        self.gain_enc_sequence_externaldac_result["text"] = str(testName) + " - IN PROGRESS"
-        self.update_idletasks()
-        self.test_result = 0
-        
-        #put loop here, but equivalently can go in script itself
-        for g in range(2,3,1):
-            for s in range(1,2,1):
-                for b in range(0,1,1):
-
-                    # this raises RuntimeError if measurement script fails
-                    self.runner(**self.params, datasubdir="gain_enc_sequence_externaldac-g{gain_ind}s{shape_ind}b{base_ind}",
-                                gain_ind = g, shape_ind = s, base_ind = b, femb_num = 0,
-                                executable="femb_feasic_gain_externaldac",
-                                argstr="{paramfile}",
-                    )
-
-                    continue
-                continue
-            continue
+        self.generic_sequence("gain_enc_sequence_externaldac", "femb_feasic_gain_exterandac",
+                              [2], [1], [0],
+                              handler=self.handle_gain_result)
         return
 
     # Can add additional testing sequences like as above with a method name
