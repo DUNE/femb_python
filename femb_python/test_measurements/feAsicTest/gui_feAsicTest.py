@@ -46,7 +46,6 @@ class GUI_WINDOW(Frame):
         #Define general commands column
         self.define_general_commands_column()
 
-
         #define required variables
         self.params = dict(
             operator_name = "",
@@ -270,7 +269,7 @@ ASIC 3 ID: {asic3id}
             getattr(self, method + "_result")["text"] = LOUD + " - DONE"
             continue
 
-        self.start_button_result["text"] = "PASSED"
+        self.start_button_result["text"] = "DONE"
         self.update_idletasks()
 
         self.operator_entry.delete(0,1000)
@@ -298,7 +297,7 @@ ASIC 3 ID: {asic3id}
         self.check_setup_result["text"] = "CHECK SETUP - IN PROGRESS"
         self.update_idletasks()
         self.test_result = 0
-        self.runner(datasubdir="check_setup",
+        self.runner(**self.params, datasubdir="check_setup",
                     executable="femb_feasic_simple",
                     argstr="{paramfile}")
 
@@ -318,7 +317,7 @@ ASIC 3 ID: {asic3id}
                 for b in range(0,2,1):
 
                     # this raises RuntimeError if measurement script fails
-                    self.runner(datasubdir="gain_enc_sequence-g{gain_ind}s{shape_ind}b{base_ind}",
+                    self.runner(**self.params, datasubdir="gain_enc_sequence-g{gain_ind}s{shape_ind}b{base_ind}",
                                 gain_ind = g, shape_ind = s, base_ind = b, femb_num = 0,
                                 executable="femb_feasic_gain",
                                 argstr="{paramfile}",
@@ -345,7 +344,7 @@ ASIC 3 ID: {asic3id}
                 for b in range(0,1,1):
 
                     # this raises RuntimeError if measurement script fails
-                    self.runner(datasubdir="gain_enc_sequence_fpgadac-g{gain_ind}s{shape_ind}b{base_ind}",
+                    self.runner(**self.params, datasubdir="gain_enc_sequence_fpgadac-g{gain_ind}s{shape_ind}b{base_ind}",
                                 gain_ind = g, shape_ind = s, base_ind = b, femb_num = 0,
                                 executable="femb_feasic_gain_fpgadac",
                                 argstr="{paramfile}",
