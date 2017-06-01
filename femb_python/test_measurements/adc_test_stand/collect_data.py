@@ -24,8 +24,7 @@ class COLLECT_DATA(object):
         """
         self.config = config
         self.femb = FEMB_UDP()
-        #self.funcgen = RigolDG4000(config.FUNCGENPATH,config.FUNCGENSOURCE)
-        self.funcgen = Keysight_33600A(config.FUNCGENPATH,config.FUNCGENSOURCE)
+        self.funcgen = self.config.FUNCGENINTER
         self.settlingTime = 0.1 # second
         self.maxTries = 1000
         self.nPackets = nPackets
@@ -38,28 +37,35 @@ class COLLECT_DATA(object):
 
         codeHists = []
         bitHists = []
-        freqList = [6.2365e4,1.234e5,5.13587e5,9.515125e5]
         xLow =-0.3
         xHigh = 1.7
-        freq = 734
         offsetV = (xLow + xHigh)*0.5
         amplitudeV = (xHigh - xLow)*0.5
-        ## Ramp
+        ## Created functions to ease profiling
+        self.getRamp(outPrefix,iChip,adcSerial,adcOffset,adcClock,xLow,xHigh,amplitudeV,offsetV)
+        self.getDC(outPrefix,iChip,adcSerial,adcOffset,adcClock)
+        amplitudeV *= 0.6
+        self.getSin(outPrefix,iChip,adcSerial,adcOffset,adcClock,amplitudeV,offsetV)
+        self.funcgen.stop()
+
+    def getRamp(self,outPrefix,iChip,adcSerial,adcOffset,adcClock,xLow,xHigh,amplitudeV,offsetV):
+        freq = 734
         self.funcgen.startRamp(freq,xLow,xHigh)
         time.sleep(self.settlingTime)
         self.dumpWaveformRootFile(iChip,outPrefix,3,freq,offsetV,amplitudeV,self.femb.MAX_NUM_PACKETS,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock)
-        ## DC
-        for offsetV in [0.5,1.]:
-          self.funcgen.startDC(offsetV)
+
+    def getDC(self,outPrefix,iChip,adcSerial,adcOffset,adcClock):
+        for dc in [0.5,1.]:
+          self.funcgen.startDC(dc)
           time.sleep(self.settlingTime)
-          self.dumpWaveformRootFile(iChip,outPrefix,1,0.,offsetV,0.,self.femb.MAX_NUM_PACKETS,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock)
-        ## Sin
-        amplitudeV *= 0.6
+          self.dumpWaveformRootFile(iChip,outPrefix,1,0.,dc,0.,10,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock)
+
+    def getSin(self,outPrefix,iChip,adcSerial,adcOffset,adcClock,amplitudeV,offsetV):
+        freqList = [6.2365e4,5.13587e5,9.515125e5]
         for freq in freqList:
           self.funcgen.startSin(freq,amplitudeV,offsetV)
           time.sleep(self.settlingTime)
-          self.dumpWaveformRootFile(iChip,outPrefix,2,freq,offsetV,amplitudeV,self.femb.MAX_NUM_PACKETS,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock)
-        self.funcgen.stop()
+          self.dumpWaveformRootFile(iChip,outPrefix,2,freq,offsetV,amplitudeV,100,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock)
 
     def dumpWaveformRootFile(self,iChip,fileprefix,functype,freq,offsetV,amplitudeV,nPackets=None,adcSerial=-1,adcOffset=-2,adcClock=-1):
         filename = "{}_functype{}_freq{:.3f}_offset{:.3f}_amplitude{:.3f}.root".format(fileprefix,functype,freq,offsetV,amplitudeV)
