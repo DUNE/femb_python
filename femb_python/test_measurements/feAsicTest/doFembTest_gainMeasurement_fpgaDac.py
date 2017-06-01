@@ -11,7 +11,7 @@ standard_library.install_aliases()
 from builtins import object
 import sys
 import string
-from subprocess import call
+from subprocess import check_call as call
 from time import sleep
 import os
 import ntpath
@@ -25,7 +25,8 @@ from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
 class FEMB_TEST_GAIN_FPGADAC(object):
 
-    def __init__(self, datadir="data"):
+    def __init__(self, datadir="data", outlabel="gainMeasurement"):
+        self.outpathlabel = os.path.join(datadir, outlabel)
 
         #import femb_udp modules from femb_udp package
         self.femb_config = CONFIG()
@@ -126,8 +127,7 @@ class FEMB_TEST_GAIN_FPGADAC(object):
         self.femb_config.setFpgaPulser(0,0x0)
 
         #setup output file and record data
-        self.write_data.filename = "rawdata_gainMeasurement_fpgadac_%s_g_%d_s_%d_b_%d.bin" % \
-                                   (self.write_data.date, self.gain, self.shape, self.base)
+        self.write_data.filename = self.outpathlabel+".bin"
 
         print("Recording " + self.write_data.filename )
         self.write_data.numpacketsrecord = 50
@@ -190,22 +190,18 @@ class FEMB_TEST_GAIN_FPGADAC(object):
         self.cppfr.run("test_measurements/feAsicTest/parseBinaryFile", [self.write_data.data_file_path])
 
         #run analysis program
-        newName = "output_parseBinaryFile_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".root"
-        newPath = os.path.join(self.write_data.filedir, newName)
-        call(["mv", "output_parseBinaryFile.root" , newPath])
-        self.cppfr.run("test_measurements/feAsicTest/processNtuple_gainMeasurement_fpgadac",  [newPath])
+        parseBinaryFile = self.outpathlabel + "-parseBinaryFile.root"
+        call(["mv", "output_parseBinaryFile.root" , parseBinaryFile])
+        self.cppfr.run("test_measurements/feAsicTest/processNtuple_gainMeasurement_fpgadac",  [parseBinaryFile])
 
-        newName = "output_processNtuple_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".root"
-        newPath = os.path.join(self.write_data.filedir, newName)
-        call(["mv", "output_processNtuple_gainMeasurement_fpgadac.root" , newPath])
-        
-        newName = "summaryPlot_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".png"
-        newPath = os.path.join(self.write_data.filedir, newName)
-        call(["mv", "summaryPlot_gainMeasurement_fpgadac.png" , newPath])
+        processNtupleFile = self.outpathlabel + "-processNtupleFile.root"
+        call(["mv", "output_processNtuple_gainMeasurement_fpgadac.root" , processNtupleFile])
 
-        newName = "results_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".list"
-        newPath = os.path.join(self.write_data.filedir, newName)
-        call(["mv", "output_processNtuple_gainMeasurement_fpgadac.list" , newPath])
+        summaryPlot = self.outpathlabel + "-summaryPlot.png"
+        call(["mv", "summaryPlot_gainMeasurement_fpgadac.png" , summaryPlot])
+
+        resultsFile = self.outpathlabel + "-results.list"
+        call(["mv", "output_processNtuple_gainMeasurement_fpgadac.list" , resultsFile])
 
         #summary plot
         #print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
@@ -234,31 +230,28 @@ class FEMB_TEST_GAIN_FPGADAC(object):
         self.jsondict['config_base'] = str( self.base )
 
         #parse the output results, kind of messy
-        newName = "results_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".list"
-        newPath = os.path.join(self.write_data.filedir, newName)
+        listFile = self.outpathlabel + "-results.list"
 
         lines = []
-        with open( newPath ) as infile:
-          for line in infile:
-            line = line.strip('\n')
-            line = line.split(',') #measurements separated by commas
-            parseline = {}
-            for n in range(0,len(line),1):
-              word = line[n].split(' ')
-              if( len(word) != 2 ):
-                continue
-              parseline[ str(word[0]) ] = str(word[1])
-            lines.append(parseline)
+        with open( listFile ) as infile:
+            for line in infile:
+                line = line.strip('\n')
+                line = line.split(',') #measurements separated by commas
+                parseline = {}
+                for n in range(0,len(line),1):
+                    word = line[n].split(' ')
+                    if( len(word) != 2 ):
+                        continue
+                    parseline[ str(word[0]) ] = str(word[1])
+                lines.append(parseline)
         self.jsondict['results'] = lines
         jsonoutput = json.dumps(self.jsondict, indent=4, sort_keys=True)
         print( jsonoutput )
  
         #dump results into json
-        newName = "results_gainMeasurement_fpgadac_" + str(self.write_data.date) + ".json"
-        newPath = os.path.join(self.write_data.filedir, newName)
-        with open( newName , 'w') as outfile:
-          json.dump(jsonoutput, outfile)
-        call(["mv", newName , newPath ])
+        jsonFile = self.outpathlabel + "-results.json"
+        with open( jsonFile , 'w') as outfile:
+            json.dump(jsonoutput, outfile)
 
         #get required results from dict to propagate to GUI
         """
@@ -284,7 +277,9 @@ def main():
     params = json.loads(open(sys.argv[1]).read())
 
     datadir = params['datadir']
-    ftg = FEMB_TEST_GAIN_FPGADAC(datadir)
+    outlabel = params['outlabel']
+
+    ftg = FEMB_TEST_GAIN_FPGADAC(datadir, outlabel)
     ftg.gain = params['gain_ind']
     ftg.shape = params['shape_ind']
     ftg.base = params['base_ind']
