@@ -181,7 +181,9 @@ class ADC_TEST_SUMMARY(object):
                 'INLabsMax400': ["lt",100.],
                 'INLabs75perc400': ["lt",50.],
                 'minCode': ["lt",300.],
-                'minCodeV': ["lt",0.5],
+                'minCodeV': ["lt",0.3],
+                #'maxCode': ["gt",3000.],
+                'maxCodeV': ["gt",1.7],
             }
             dynamicChecks = {
                 'sinads': ["gt",10.],

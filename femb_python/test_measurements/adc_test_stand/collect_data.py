@@ -55,7 +55,7 @@ class COLLECT_DATA(object):
         self.dumpWaveformRootFile(iChip,outPrefix,3,freq,offsetV,amplitudeV,self.femb.MAX_NUM_PACKETS,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock)
 
     def getDC(self,outPrefix,iChip,adcSerial,adcOffset,adcClock):
-        for dc in [0.5,1.]:
+        for dc in [0.2,0.5,1.,1.6]:
           self.funcgen.startDC(dc)
           time.sleep(self.settlingTime)
           self.dumpWaveformRootFile(iChip,outPrefix,1,0.,dc,0.,10,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock)

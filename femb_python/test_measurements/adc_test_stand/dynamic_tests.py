@@ -8,10 +8,16 @@ standard_library.install_aliases()
 from ...femb_udp import FEMB_UDP
 from ...test_instrument_interface import RigolDG4000
 from ...write_root_tree import WRITE_ROOT_TREE
+import sys
+import os.path
 import time
 import glob
 from uuid import uuid1 as uuid
 import numpy
+import matplotlib
+if os.path.basename(sys.argv[0]) == "femb_adc_dynamic_tests":
+    print("Using matplotlib AGG backend")
+    matplotlib.use("AGG")
 import matplotlib.pyplot as plt
 import ROOT
 

@@ -110,7 +110,6 @@ class SUMMARY_PLOTS(object):
         ax2.set_ylabel("Stuck Code Fraction")
         ax3.set_ylabel("INL [LSB]")
         ax4.set_ylabel("Min ADC Code or Max ADC Code - 4095")
-        ax4.set_ylim(-50,400)
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
         markerstyle = ['o','s','*','p','^']*10
         legendDict1 = {}
@@ -186,6 +185,13 @@ class SUMMARY_PLOTS(object):
         if ylim[1] < 1000:
             newylim[1] = 1000
         ax3.set_ylim(*newylim)
+        ylim = ax4.get_ylim()
+        newylim = [x for x in ylim]
+        if ylim[0] > -50:
+            newylim[0] = 50
+        if ylim[1] < 400:
+            newylim[1] = 400
+        ax4.set_ylim(*newylim)
         self.doLegend(ax1,legendDict1)
         #self.doLegend(ax2,legendDict2)
         self.doLegend(ax3,legendDict3)
