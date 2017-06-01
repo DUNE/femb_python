@@ -149,31 +149,31 @@ class GUI_WINDOW(Frame):
 
         # ASIC 0 ID
         label = Label(self,text="ASIC 0 ID:",width=25)
-        label.grid(sticky=W,row=6,column=columnbase+0)
+        label.grid(sticky=W,row=7,column=columnbase+0)
 
         self.asic0_entry = Entry(self,width=25)
-        self.asic0_entry.grid(sticky=W,row=6,column=columnbase+1)
+        self.asic0_entry.grid(sticky=W,row=7,column=columnbase+1)
 
         # ASIC 1 ID
         label = Label(self,text="ASIC 1 ID:",width=25)
-        label.grid(sticky=W,row=7,column=columnbase+0)
+        label.grid(sticky=W,row=8,column=columnbase+0)
 
         self.asic1_entry = Entry(self,width=25)
-        self.asic1_entry.grid(sticky=W,row=7,column=columnbase+1)
+        self.asic1_entry.grid(sticky=W,row=8,column=columnbase+1)
 
         # ASIC 2 ID
         label = Label(self,text="ASIC 2 ID:",width=25)
-        label.grid(sticky=W,row=8,column=columnbase+0)
+        label.grid(sticky=W,row=9,column=columnbase+0)
 
         self.asic2_entry = Entry(self,width=25)
-        self.asic2_entry.grid(sticky=W,row=8,column=columnbase+1)
+        self.asic2_entry.grid(sticky=W,row=9,column=columnbase+1)
 
         # ASIC 3 ID
         label = Label(self,text="ASIC 3 ID:",width=25)
-        label.grid(sticky=W,row=9,column=columnbase+0)
+        label.grid(sticky=W,row=10,column=columnbase+0)
 
         self.asic3_entry = Entry(self,width=25)
-        self.asic3_entry.grid(sticky=W,row=9,column=columnbase+1)                      
+        self.asic3_entry.grid(sticky=W,row=10,column=columnbase+1)                      
 
 
     def define_general_commands_column(self):
@@ -183,44 +183,51 @@ class GUI_WINDOW(Frame):
         label.grid(row=0,column=columnbase, columnspan=50)
 
         #Adding the check test stand button
+
+        load_button = Button(self, text="Load ASICs", command=self.load_asics,width=25)
+        load_button.grid(row=1,column=columnbase,columnspan=25)
+
+        self.load_button_result = Label(self, text="Press Load ASICs before loading",width=25)
+        self.load_button_result.grid(sticky=W,row=1,column=columnbase+25,columnspan=25)
+        
         start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        start_button.grid(row=1,column=columnbase,columnspan=25)
+        start_button.grid(row=2,column=columnbase,columnspan=25)
 
         self.start_button_result = Label(self, text="NOT STARTED",width=25)
-        self.start_button_result.grid(sticky=W,row=1,column=columnbase+25,columnspan=25)
+        self.start_button_result.grid(sticky=W,row=2,column=columnbase+25,columnspan=25)
 
         #Adding the record data button
         #record_data_button = Button(self, text="Record Data", command=self.record_data,width=25)
         #record_data_button.grid(row=2,column=columnbase,columnspan=25)
 
         self.check_setup_result = Label(self, text="CHECK SETUP - NOT STARTED",width=50)
-        self.check_setup_result.grid(sticky=W,row=2,column=columnbase,columnspan=50)
+        self.check_setup_result.grid(sticky=W,row=3,column=columnbase,columnspan=50)
 
         self.gain_enc_sequence_result = Label(self, text="GAIN+ENC ALL SETTINGS - NOT STARTED",width=50)
-        self.gain_enc_sequence_result.grid(sticky=W,row=3,column=columnbase,columnspan=50)
+        self.gain_enc_sequence_result.grid(sticky=W,row=4,column=columnbase,columnspan=50)
 
         self.gain_enc_sequence_fpgadac_result = Label(self, text="GAIN+ENC FPGA DAC SUBSET OF SETTINGS - NOT STARTED",width=50)
-        self.gain_enc_sequence_fpgadac_result.grid(sticky=W,row=4,column=columnbase,columnspan=50)
+        self.gain_enc_sequence_fpgadac_result.grid(sticky=W,row=5,column=columnbase,columnspan=50)
 
         self.asic0_result = Label(self, text="ASIC 0 Result: TBD", width=25)
-        self.asic0_result.grid(sticky=W,row=6,column=columnbase+2)
+        self.asic0_result.grid(sticky=W,row=7,column=columnbase+2)
 
         self.asic1_result = Label(self, text="ASIC 1 Result: TBD", width=25)
-        self.asic1_result.grid(sticky=W,row=7,column=columnbase+2)
+        self.asic1_result.grid(sticky=W,row=8,column=columnbase+2)
 
         self.asic2_result = Label(self, text="ASIC 2 Result: TBD", width=25)
-        self.asic2_result.grid(sticky=W,row=8,column=columnbase+2)
+        self.asic2_result.grid(sticky=W,row=9,column=columnbase+2)
 
         self.asic3_result = Label(self, text="ASIC 3 Result: TBD", width=25)
-        self.asic3_result.grid(sticky=W,row=9,column=columnbase+2)
+        self.asic3_result.grid(sticky=W,row=10,column=columnbase+2)
 
         #Finish/reset button
-        finish_button = Button(self, text="Finish and Reset",command=self.reset_gui,width=25)
-        finish_button.grid(row=10,column=columnbase,columnspan=25)
+        finish_button = Button(self, text="Reset and Power Down",command=self.reset_gui,width=25)
+        finish_button.grid(row=11,column=columnbase,columnspan=25)
         
         
         self.gain_enc_sequence_externaldac_result = Label(self, text="GAIN+ENC EXTERNAL DAC SUBSET OF SETTINGS - NOT STARTED",width=50)
-        self.gain_enc_sequence_externaldac_result.grid(sticky=W,row=5,column=columnbase,columnspan=50)
+        self.gain_enc_sequence_externaldac_result.grid(sticky=W,row=6,column=columnbase,columnspan=50)
 
         """
         #Adding the record data button
@@ -265,25 +272,17 @@ ASIC 3 ID: {asic3id}
 
         print("BEGIN TESTS")
         self.start_button_result["text"] = "IN PROGRESS"
+        self.load_button_result["text"] = "Testing - do not remove"
         self.update_idletasks()
 
         for method in ["check_setup", "gain_enc_sequence", "gain_enc_sequence_fpgadac",  "gain_enc_sequence_externaldac"]:
             LOUD = method.replace("_"," ").upper()
             methname = "do_" + method
             meth = getattr(self, methname)
-            if(LOUD == "CHECK SETUP"):
-                self.check_setup_result["text"] = LOUD + " - IN PROGRESS"
-                
-            if(LOUD == "GAIN ENC SEQUENCE"):
-                self.gain_enc_sequence_result["text"] = LOUD + " - IN PROGRESS"
 
-            if(LOUD == "GAIN ENC SEQUENCE FPGA DAC"):
-                self.gain_enc_sequence_fpgadac_result["text"] = LOUD + " - IN PROGRESS"
-
-            if(LOUD == "GAIN ENC SEQUENCE EXTERNAL DAC"):
-                self.gain_enc_sequence_externaldac_result["text"] = LOUD + " - IN PROGRESS"
-                    
+            getattr(self, method+"_result")["text"] = LOUD + " - IN PROGRESS"
             self.update_idletasks()
+
             try:
                 meth()
             except RuntimeError as err:
@@ -327,7 +326,17 @@ ASIC 3 ID: {asic3id}
         self.update_idletasks()            
 
 
+    def load_asics(self):
+        #Power down all 4 chips:
+        self.runner(datasubdir="power",executable="femb_control_power", argstr="OFF")
+        self.load_button_result["text"] = "Ok to load new ASICs"
+        self.update_idletasks()
+
     def reset_gui(self):
+        #Power down all 4 chips:
+        self.runner(datasubdir="power",executable="femb_control_power", argstr="OFF")
+
+        #Reset GUI:
         self.operator_entry.delete(0,1000)
         self.test_stand_entry.delete(0,1000)
         self.boardid_entry.delete(0,1000)
@@ -335,6 +344,15 @@ ASIC 3 ID: {asic3id}
         self.asic1_entry.delete(0,1000)
         self.asic2_entry.delete(0,1000)
         self.asic3_entry.delete(0,1000)
+
+        self.load_button_result["text"] = "Press Load ASICs before loading"
+        self.start_button_result["text"] = "NOT STARTED"
+        self.check_setup_result["text"] = "CHECK SETUP - NOT STARTED"
+        self.gain_enc_sequence_result["text"] = "GAIN+ENC ALL SETTINGS - NOT STARTED"
+        self.gain_enc_sequence_fpgadac_result["text"] = "GAIN+ENC FPGA DAC SUBSET OF SETTINGS - NOT STARTED"
+        self.gain_enc_sequence_externaldac_result["text"] = "GAIN+ENC EXTERNAL DAC SUBSET OF SETTINGS - NOT STARTED"
+
+        self.update_idletasks()
 
         print("FINISHED TEST - GUI RESET")
 
@@ -357,91 +375,77 @@ ASIC 3 ID: {asic3id}
                     executable="femb_feasic_simple",
                     argstr="{paramfile}")
 
-    def do_gain_enc_sequence(self):
-        '''
-        Run a gain and ENC test sequence against all gain, shaping and baselines.
-        '''
-        testName = str("GAIN ENC SEQUENCE")
-        print(str(testName))
-        self.gain_enc_sequence_result["text"] = str(testName) + " - IN PROGRESS"
-        self.update_idletasks()
-        self.test_result = 0
-        
-        #put loop here, but equivalently can go in script itself
-        for g in range(0,4,1):
-            for s in range(0,4,1):
-                for b in range(0,2,1):
 
+    def generic_sequence_handler(self, **params):
+        '''Generically handle results after an executable runs.  The params
+        are the resolved input parameters'''
+        button = getattr(self, params['method']+"_result")
+        button["text"] = title + " - DONE"
+        self.update_idletasks()        
+
+
+    def generic_sequence(self, method, executable, gains, shapes, bases, handler=None):
+
+        '''
+        Generically, run an executable through a sequence of gains/shape/bases
+        '''
+
+        datasubdir="{method}-g{gain_ind}s{shape_ind}b{base_ind}"
+        outlabel="{datasubdir}-{execute_start_time}"
+
+        title = method.upper().replace("_", " ")
+        print (title)
+        button = getattr(self, method+"_result")
+        button["text"] = title + " - IN PROGRESS"
+        self.update_idletasks()        
+        for gain in gains:
+            for shape in shapes:
+                for base in bases:
                     # this raises RuntimeError if measurement script fails
-                    self.runner(**self.params, datasubdir="gain_enc_sequence-g{gain_ind}s{shape_ind}b{base_ind}",
-                                gain_ind = g, shape_ind = s, base_ind = b, femb_num = 0,
-                                executable="femb_feasic_gain",
-                                argstr="{paramfile}",
+                    now = time.strftime("%Y%m%dT%H%M%S", time.localtime(time.time()))
+                    resolved = self.runner(**self.params,
+                                           datasubdir="{method}-g{gain_ind}s{shape_ind}b{base_ind}",
+                                           outlabel = outlabel,
+                                           execute_start_time = now,
+                                           executable=executable,
+                                           method=method,
+                                           argstr="{paramfile}",
+                                           gain_ind = gain, 
+                                           shape_ind = shape, 
+                                           base_ind = base,
+                                           femb_num = 0,
                     )
+                    if handler:
+                        handler(**resolved)
+                    else:
+                        self.generic_sequence_handler(**resolved)
 
-                    #Check pass/fail for each test
-                    #output_file = [f for f in os.listdir(self.params['datadir']) if ".list" in f]
-                    #print("ETW TEST>>>>>>"+output_file)
-                    #ETW - not actually reading anything yet, just to test!!!
-                    self.params['asic1_pass'] = 0
 
-                    continue
-                continue
-            continue
+    def handle_gain_result(self, **params):
+        # ETW: fill this in
+        #Check pass/fail for each test
+        #output_file = [f for f in os.listdir(self.params['datadir']) if ".list" in f]
+        #print("ETW TEST>>>>>>"+output_file)
+        #ETW - not actually reading anything yet, just to test!!!
+        self.params['asic1_pass'] = 0
+
+
+    def do_gain_enc_sequence(self):
+        self.generic_sequence("gain_enc_sequence", "femb_feasic_gain",
+                              range(4), range(4), range(2),
+                              handler=self.handle_gain_result)
         return
 
     def do_gain_enc_sequence_fpgadac(self):
-        '''
-        Run a gain and ENC test sequence against all gain, shaping and baselines.
-        '''
-        testName = str("GAIN ENC SEQUENCE FPGA DAC")
-        print(str(testName))
-        self.gain_enc_sequence_fpgadac_result["text"] = str(testName) + " - IN PROGRESS"
-        self.update_idletasks()
-        self.test_result = 0
-        
-        #put loop here, but equivalently can go in script itself
-        for g in range(0,4,1):
-            for s in range(1,2,1):
-                for b in range(0,1,1):
-
-                    # this raises RuntimeError if measurement script fails
-                    self.runner(**self.params, datasubdir="gain_enc_sequence_fpgadac-g{gain_ind}s{shape_ind}b{base_ind}",
-                                gain_ind = g, shape_ind = s, base_ind = b, femb_num = 0,
-                                executable="femb_feasic_gain_fpgadac",
-                                argstr="{paramfile}",
-                    )
-
-                    continue
-                continue
-            continue
+        self.generic_sequence("gain_enc_sequence", "femb_feasic_gain_fpgadac",
+                              range(4), [1], [0],
+                              handler=self.handle_gain_result)
         return
 
     def do_gain_enc_sequence_externaldac(self):
-        '''
-        Run a gain and ENC test sequence against all gain, shaping and baselines.
-        '''
-        testName = str("GAIN ENC SEQUENCE EXTERNAL DAC")
-        print(str(testName))
-        self.gain_enc_sequence_externaldac_result["text"] = str(testName) + " - IN PROGRESS"
-        self.update_idletasks()
-        self.test_result = 0
-        
-        #put loop here, but equivalently can go in script itself
-        for g in range(0,4,1):
-            for s in range(1,2,1):
-                for b in range(0,1,1):
-
-                    # this raises RuntimeError if measurement script fails
-                    self.runner(**self.params, datasubdir="gain_enc_sequence_externaldac-g{gain_ind}s{shape_ind}b{base_ind}",
-                                gain_ind = g, shape_ind = s, base_ind = b, femb_num = 0,
-                                executable="femb_feasic_gain_externaldac",
-                                argstr="{paramfile}",
-                    )
-
-                    continue
-                continue
-            continue
+        self.generic_sequence("gain_enc_sequence_externaldac", "femb_feasic_gain_exterandac",
+                              [2], [1], [0],
+                              handler=self.handle_gain_result)
         return
 
     # Can add additional testing sequences like as above with a method name
