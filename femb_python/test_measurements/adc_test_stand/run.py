@@ -27,12 +27,13 @@ from .summary_plots import SUMMARY_PLOTS
 
 class ADC_TEST_SUMMARY(object):
 
-    def __init__(self,allStatsRaw,testTime,hostname,board_id,operator):
+    def __init__(self,allStatsRaw,testTime,hostname,board_id,operator,sumatradict=None):
         self.allStatsRaw = allStatsRaw
         self.testTime = testTime
         self.hostname = hostname
         self.board_id = board_id
         self.operator = operator
+        self.sumatradict = sumatradict
         self.allStats = None
         self.staticSummary = None
         self.dynamicSummary = None
@@ -140,6 +141,7 @@ class ADC_TEST_SUMMARY(object):
                 "serial":serial,"timestamp":self.testTime,
                 "hostname":self.hostname,"board_id":self.board_id,
                 "operator":self.operator,
+                "sumatra": self.sumatradict,
                 }
         try:
             result["inputPin"] = self.inputPinSummary[serial]
@@ -155,7 +157,7 @@ class ADC_TEST_SUMMARY(object):
             with open(filename,"w") as f:
                 json.dump(data,f)
 
-def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,singleConfig=True,timestamp=None):
+def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,singleConfig=True,timestamp=None,sumatradict=None):
     """
     Runs the ADC tests for all chips on the ADC test board.
 
@@ -168,6 +170,7 @@ def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,si
     singleConfig is a boolean. If True only test the ASICS with the external clock
         and no offset current. If False test both clocks and all offset current
         settings.
+    sumatradict is a dictionary of options that will be written to the summary json
 
     returns a list of bools whether an asic passed the tests. The list
         corresponds to the input serial number list.  
@@ -251,7 +254,7 @@ def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,si
         json.dump(baselineRmsStats,f)
     print("Summarizing all data...")
     sys.stdout.flush()
-    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id,operator)
+    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id,operator,sumatradict=sumatradict)
     summary.write_jsons("adcTest_{}".format(startDateTime))
     print("Making summary plots...")
     for serial in summary.get_serials():
@@ -308,6 +311,8 @@ def main():
     boardid = args.board
     serialNumbers = args.serial
 
+    options = None
+
     if args.jsonfile:
         with open(args.jsonfile) as jsonfile:
             options = json.load(jsonfile)
@@ -334,9 +339,9 @@ def main():
 
     if args.profiler:
         import cProfile
-        cProfile.runctx('chipsPass = runTests(config,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick)',globals(),locals(),args.profiler)
+        cProfile.runctx('chipsPass = runTests(config,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)',globals(),locals(),args.profiler)
     else:
-        chipsPass = runTests(config,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick)
+        chipsPass = runTests(config,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)
     runTime = datetime.datetime.now() - startTime
     print("Test took: {:.0f} min {:.1f} s".format(runTime.total_seconds() // 60, runTime.total_seconds() % 60.))
     print("Chips Pass: ",chipsPass)
