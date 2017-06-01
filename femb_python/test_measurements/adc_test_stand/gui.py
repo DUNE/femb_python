@@ -209,17 +209,15 @@ class GUI_WINDOW(Frame):
 
         runnerSetup = {
                                 "executable": "femb_adc_run",
+                                #"argstr": "-q -j {paramfile}",
+                                "argstr": "-j {paramfile}",
                                 "basedir": data_base_dir,
                                 "rundir": "{basedir}/adc/{hostname}/{timestamp}",
                                 "datadir": "{rundir}",
-                                "paramfile": "{rundir}/options.json",
-                                #"argstr": "-q -j {paramfile}",
-                                "argstr": "-j {paramfile}",
-                                "stdout": "{rundir}/stdout.log",
-                                "stderr": "{rundir}/stderr.log",
+                                "smtname": "adc",
                             }
-        runner = DirectRunner(**runnerSetup)
-        #runner = SumatraRunner(**runnerSetup)
+        #runner = DirectRunner(**runnerSetup)
+        runner = SumatraRunner(**runnerSetup)
         runner(**inputOptions)
         self.done_measuring()
 

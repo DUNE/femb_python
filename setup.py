@@ -83,6 +83,7 @@ setup(
 	'future>=0.15.2',
 	'configparser>=3.5.0',
         'sumatra>=0.5.1',
+        'gitpython>=2.1.3',
     ],
 
     # List additional groups of dependencies here (e.g. development
