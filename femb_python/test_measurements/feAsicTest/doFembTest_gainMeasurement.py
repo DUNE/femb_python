@@ -212,6 +212,10 @@ class FEMB_TEST_GAIN(object):
         newPath = os.path.join(self.write_data.filedir, newName)
         call(["mv", "summaryPlot_gainMeasurement.png" , newPath])
 
+        newName = "results_" + self.write_data.filename + ".list"
+        newPath = os.path.join(self.write_data.filedir, newName)
+        call(["mv", "output_processNtuple_gainMeasurement.list" , newPath])
+
         #summary plot
         print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
         call(["display", newPath])
@@ -239,9 +243,11 @@ class FEMB_TEST_GAIN(object):
         self.jsonlist['config_base'] = str( self.base )
 
         #parse the output results, kind of messy
+        newName = "results_" + self.write_data.filename + ".list"
+        newPath = os.path.join(self.write_data.filedir, newName)
+
         lines = []
-        outputListName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".list"
-        with open( str( self.write_data.filedir ) + str(outputListName) ) as infile:
+        with open( newPath ) as infile:
           for line in infile:
             line = line.strip('\n')
             line = line.split(',') #measurements separated by commas
@@ -257,10 +263,11 @@ class FEMB_TEST_GAIN(object):
         print( jsonoutput )
  
         #dump results into json
-        jsonName = "json_" + str(self.write_data.date) + ".json"
-        with open( str(jsonName) , 'w') as outfile:
+        newName = "results_" + self.write_data.filename + ".json"
+        newPath = os.path.join(self.write_data.filedir, newName)
+        with open( newName , 'w') as outfile:
           json.dump(jsonoutput, outfile)
-        call(["mv", str(jsonName) , str( self.write_data.filedir ) + str(jsonName) ])
+        call(["mv", newName , newPath ])
 
         #get required results from dict to propagate to GUI
         asicStatus = []
@@ -283,6 +290,7 @@ def main():
     shape and base indicides and femb number taken from parameter set
     stored in JSON file as only argument.
     '''
+
     import json
     params = json.loads(open(sys.argv[1]).read())
 
@@ -291,10 +299,11 @@ def main():
     ftg.gain = params['gain_ind']
     ftg.shape = params['shape_ind']
     ftg.base = params['base_ind']
-    ftg.fembNum = params.get('femb_num', 0)
+
     ftg.check_setup()
     ftg.record_data()
     ftg.do_analysis()
+    ftg.archive_results()
 
 if __name__ == '__main__':
     main()
