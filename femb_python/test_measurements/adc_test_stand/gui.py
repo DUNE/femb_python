@@ -216,8 +216,8 @@ class GUI_WINDOW(Frame):
 
         runnerSetup = {
                                 "executable": "femb_adc_run",
-                                "argstr": "-q -j {paramfile}",
-                                #"argstr": "-j {paramfile}",
+                                #"argstr": "-q -j {paramfile}",
+                                "argstr": "-j {paramfile}",
                                 "basedir": data_base_dir,
                                 "rundir": "{basedir}/adc/{hostname}",
                                 "datadir": "{rundir}/Data/{timestamp}",
