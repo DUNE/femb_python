@@ -50,6 +50,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_FRAME_SIZE = 40
         self.REG_DAC_ADC_EN = 60
 
+        self.feasicLeakageLow = 0 #0 = 500pA, 1 = 100pA
+        self.feasicLeakageHi = 0 #0 = pA, 1 = pA*10
+        
         self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
         self.feasicBaseline = 0 #0 = 900mV, 1 = 200mV
         self.feasicGain = 0 #4.7,7.8,14,25
@@ -100,19 +103,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #configure ASICs to default
         print("Config FE ASIC SPI")
         self.configFeAsic()
-        """
-        print("Config FE ASIC SPI")
-        for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+20,1):
-          self.femb.write_reg( regNum, 0x81818181)
-        self.femb.write_reg( self.REG_FESPI_BASE+4, 0xA00 )
-        self.femb.write_reg( self.REG_FESPI_BASE+9, 0xA00 )
-        self.femb.write_reg( self.REG_FESPI_BASE+14, 0xA00 )
-        self.femb.write_reg( self.REG_FESPI_BASE+19, 0xA00 )
-
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
-        """
     
     def turnOffAsics(self):
         self.femb.write_reg( self.REG_TST_SW, 0xF)
@@ -197,6 +187,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("CONFIG ASICs")
         #configure ASICs to default
 
+        #global config varibles
+        slk0Val = int( self.feasicLeakageLow ) # 0 = 500pA, 1 = 100pA
+        slk1Val = int( self.feasicLeakageHi ) # 0 = pA, 1 = pA*10
+
+        if (slk0Val < 0 ) or (slk0Val > 1):
+            return
+        if (slk1Val < 0 ) or (slk1Val > 1):
+            return
+        
         #channel specific variables
         testVal = int( self.feasicEnableTestInput )
         baseVal = int( self.feasicBaseline ) #0 = 900mV, 1 = 200mV
@@ -260,7 +259,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #write ASIC SPI registers, note all ASICs+channels configured the same
         for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+20,1):
-            #print( str(regNum) + "\t" + str(hex(chWord)) )
+            print( str(regNum) + "\t" + str(hex(chWord)) )
             self.femb.write_reg( regNum, chWord)
             self.femb.write_reg( self.REG_FESPI_BASE+4, asicReg )
             self.femb.write_reg( self.REG_FESPI_BASE+9, asicReg )

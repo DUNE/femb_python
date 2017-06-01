@@ -149,7 +149,7 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.turnOnAsics()
         subrun = 1
         #loop over pulser configurations, each configuration is it's own subrun
-        for p in range(1,64,1):
+        for p in range(1,10,1):
             pVal = int(p)
             #pVal = 1024 + int(p)*256
             self.femb_config.setInternalPulser(1,pVal)
@@ -230,11 +230,10 @@ class FEMB_TEST_GAIN(object):
         self.jsondict['config_base'] = str( self.base )
 
         #parse the output results, kind of messy
-        newName = "results_gainMeasurement_" + str(self.write_data.date) + ".list"
-        newPath = os.path.join(self.write_data.filedir, newName)
+        newName = self.outpathlabel + "-results.list"
 
         lines = []
-        with open( newPath ) as infile:
+        with open( newName ) as infile:
           for line in infile:
             line = line.strip('\n')
             line = line.split(',') #measurements separated by commas
@@ -250,11 +249,9 @@ class FEMB_TEST_GAIN(object):
         print( jsonoutput )
  
         #dump results into json
-        newName = "results_gainMeasurement_" + str(self.write_data.date) + ".json"
-        newPath = os.path.join(self.write_data.filedir, newName)
+        newName = self.outpathlabel + "-results.json"
         with open( newName , 'w') as outfile:
           json.dump(jsonoutput, outfile)
-        call(["mv", newName , newPath ])
 
         #get required results from dict to propagate to GUI
         """

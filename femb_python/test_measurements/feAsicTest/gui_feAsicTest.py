@@ -432,18 +432,19 @@ ASIC 3 ID: {asic3id}
 
     def do_gain_enc_sequence(self):
         self.generic_sequence("gain_enc_sequence", "femb_feasic_gain",
-                              range(4), range(4), range(2),
+                              #range(4), range(4), range(2),
+                              [2] , [2] , [0] ,
                               handler=self.handle_gain_result)
         return
 
     def do_gain_enc_sequence_fpgadac(self):
-        self.generic_sequence("gain_enc_sequence", "femb_feasic_gain_fpgadac",
-                              range(4), [1], [0],
+        self.generic_sequence("gain_enc_sequence_fpgadac", "femb_feasic_gain_fpgadac",
+                              [2], [1], [0],
                               handler=self.handle_gain_result)
         return
 
     def do_gain_enc_sequence_externaldac(self):
-        self.generic_sequence("gain_enc_sequence_externaldac", "femb_feasic_gain_exterandac",
+        self.generic_sequence("gain_enc_sequence_externaldac", "femb_feasic_gain_externaldac",
                               [2], [1], [0],
                               handler=self.handle_gain_result)
         return
