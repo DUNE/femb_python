@@ -40,7 +40,8 @@ def main():
     '''
 
     power = FEMB_CONTROL_POWER()
-    onoff = input("Turn ASICs ON or OFF: ")
+    #onoff = input("Turn ASICs ON or OFF: ")
+    onoff = sys.argv[1]
     if (onoff == "ON"):
         power.power_on()
     elif(onoff == "OFF"):
