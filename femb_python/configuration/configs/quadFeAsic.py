@@ -139,9 +139,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_START, 1)
         self.configFeAsic()
 
-    def powerCycle(self,asic,pass=1):
+        """
+    def powerCycle(self,asic):
         print( "Repeat ASIC",asic,"power cycles" )
-
+        
         if (asic == 0):
             mask = 0x10000
         elif (asic == 1):
@@ -159,9 +160,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print( regVal ) 
             if(!(mask & regVal)) pass=0
 
-        return(pass)
+        return
 
-    def checkCurrent(self,asic,pass=1):
+    def checkCurrent(self,asic):
         print( "Check LV current on ASIC",asic )
 
         regVal = self.femb.read_reg(56)
@@ -171,7 +172,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         regVal = self.femb.read_reg(58)
         print( regVal ) 
         
-        return(pass)
+        return
+        """
         
     def selectChannel(self,asic,chan,hsmode=None):
         asicVal = int(asic)
