@@ -13,6 +13,9 @@ standard_library.install_aliases()
 import datetime
 import socket
 import os
+import os.path
+import glob
+import json
 from time import sleep
 from tkinter import *
 
@@ -30,6 +33,7 @@ class GUI_WINDOW(Frame):
 
         self.config = CONFIG()
 
+        self.result_labels = []
         #Define general commands column
         self.define_test_details_column()
         self.reset()
@@ -65,7 +69,7 @@ class GUI_WINDOW(Frame):
             self.asic_entries.append(asic_entry)
 
         self.prepare_button = Button(self, text="Power-up Board", command=self.prepare_board,width=25)
-        self.prepare_button.grid(row=20,column=columnbase,columnspan=25)
+        self.prepare_button.grid(row=20,column=columnbase,columnspan=2)
 
         # Adding electronics ID and read entry box
         self.current_label = Label(self,text="CH2 Current [A]:",width=25,state="disabled")
@@ -75,15 +79,15 @@ class GUI_WINDOW(Frame):
         self.current_entry.grid(sticky=W,row=21,column=columnbase+1)
 
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        self.start_button.grid(row=22,column=columnbase,columnspan=25)
+        self.start_button.grid(row=22,column=columnbase,columnspan=2)
         self.reset_button = Button(self, text="Reset & Power-off", command=self.reset,width=25,bg="#FF8000")
-        self.reset_button.grid(row=24,column=columnbase,columnspan=25)
+        self.reset_button.grid(row=24,column=columnbase,columnspan=2)
 
         self.runid_label = Label(self, text="")
         self.runid_label.grid(row=25,column=columnbase,columnspan=2)
 
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
-        self.status_label.grid(row=26,column=columnbase,columnspan=2)
+        self.status_label.grid(row=100,column=columnbase,columnspan=2)
 
     def get_options(self,getCurrent=False):
         operator = self.operator_entry.get()
@@ -143,6 +147,9 @@ class GUI_WINDOW(Frame):
     def reset(self):
         print("POWER DOWN")
         self.config.POWERSUPPLYINTER.off()
+        for i in reversed(range(len(self.result_labels))):
+            tmp = self.result_labels.pop(i)
+            tmp.destroy()
         self.status_label["text"] = "NOT STARTED"
         self.status_label["fg"] = "#000000"
         self.runid_label["text"] = ""
@@ -209,18 +216,19 @@ class GUI_WINDOW(Frame):
 
         runnerSetup = {
                                 "executable": "femb_adc_run",
-                                #"argstr": "-q -j {paramfile}",
-                                "argstr": "-j {paramfile}",
+                                "argstr": "-q -j {paramfile}",
+                                #"argstr": "-j {paramfile}",
                                 "basedir": data_base_dir,
                                 "rundir": "{basedir}/adc/{hostname}",
                                 "datadir": "{rundir}/Data/{timestamp}",
-                                "paramfile":"{datadir}/params.json",
+                                "paramfile": "{datadir}/params.json",
                                 "smtname": "adc",
                             }
         #runner = DirectRunner(**runnerSetup)
         runner = SumatraRunner(**runnerSetup)
-        runner(**inputOptions)
-        self.done_measuring()
+        params = runner(**inputOptions)
+        #params = runner.resolve(**inputOptions) # use to test GUI w/o running test
+        self.done_measuring(params)
 
     def done_preparing_board(self):
         ## once prepared....
@@ -239,11 +247,58 @@ class GUI_WINDOW(Frame):
             self.asic_labels[i]["state"] = "disabled"
             self.asic_entries[i]["state"] = "disabled"
 
-    def done_measuring(self):
+    def done_measuring(self,params):
         print("TESTS COMPLETE")
         self.status_label["text"] = "Tests done"
         self.reset_button["bg"] ="#00CC00"
         self.reset_button["activebackground"] = "#A3CCA3"
+        datadir = params["datadir"]
+        timestamp = params["timestamp"]
+#        datadir = "/home/jhugon/data/adc/hothdaq4/Data/2017-06-01T17:38:29"
+#        timestamp = "2017-06-01T17:38:29"
+        outfileglob = "adcTest_{}_*.json".format(timestamp)
+        outfileglob = os.path.join(datadir,outfileglob)
+        print(outfileglob)
+        outfilenames = glob.glob(outfileglob)
+        print(outfilenames)
+        if len(outfilenames) != self.config.NASICS:
+            self.status_label["text"] = "Error: Test output not found. Report to shift leader"
+            self.status_label["fg"] = "#FFFFFF"
+            self.status_label["bg"] = "#FF0000"
+            return
+        titles_made = False
+        testNames = None
+        columnbase = 0
+        rowbase = 50
+        for iCol,outfilename in enumerate(sorted(outfilenames)):
+            data = None
+            with open(outfilename) as outfile:
+                data = json.load(outfile)
+            results = data["testResults"]
+            serial = data["serial"]
+            theseTestNames = sorted(list(results.keys()))
+            if titles_made:
+                assert(theseTestNames == testNames)
+            else:
+                testNames = theseTestNames
+                label = Label(self, text="Test",anchor=W)
+                label.grid(row=rowbase,column=columnbase)
+                self.result_labels.append(label)
+            label = Label(self, text=serial)
+            label.grid(row=rowbase,column=columnbase+1+iCol)
+            self.result_labels.append(label)
+            for iTest, test in enumerate(testNames):
+                if not titles_made:
+                    label = Label(self, text=test,anchor=E,justify=LEFT)
+                    label.grid(row=rowbase+iTest+1,column=columnbase)
+                    self.result_labels.append(label)
+                color = "#FF0000"
+                if results[test]:
+                    color = "#00FF00"
+                label = Label(self, text="",width=4,bg=color)
+                label.grid(row=rowbase+iTest+1,column=columnbase+1+iCol)
+                self.result_labels.append(label)
+            titles_made = True
 
 def main():
     root = Tk()
