@@ -311,7 +311,7 @@ void Analyze::parseAsicRawData(unsigned short subrun, unsigned short asic, unsig
 
 		//calculate channel number
 		int chNum = 16*asic + asicCh;
-		if( chNum < 0 || chNum > 127 )
+		if( chNum < 0 || chNum > maxNumChan )
 			continue;
 		wfIn[subrun][chNum].push_back(sample);
 	

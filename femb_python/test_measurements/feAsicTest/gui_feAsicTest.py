@@ -2,6 +2,7 @@
 Module containes an example GUI. The main window configures the FEMB 
 while trace_fft_window provides a second window with live trace and FFT.
 """
+
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -14,19 +15,30 @@ standard_library.install_aliases()
 from time import sleep
 from tkinter import *
 
+import os                                 # for statv
+import time
+import getpass                            # for getuser
+
 #import the test module
-from femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement import FEMB_TEST_SIMPLE
-from femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement import FEMB_TEST_GAIN
+#from femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement import FEMB_TEST_SIMPLE
+#from femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement import FEMB_TEST_GAIN
+
+from femb_python import runpolicy
 
 class GUI_WINDOW(Frame):
 
+    # defaults
+    use_sumatra = True
+    datadisks = ["/dsk/1", "/dsk/2"]
+    femb_config = "quadFeAsic"               # aka FEMB_CONFIG env var
+
     #GUI window defined entirely in init function
     def __init__(self, master=None):
+
+        femb_config = os.environ['FEMB_CONFIG']
+
         Frame.__init__(self,master)
         self.pack()
-
-        #define test object
-        #self.femb_test = FEMB_TEST()
 
         #Define general commands column
         self.define_test_details_column()
@@ -34,20 +46,91 @@ class GUI_WINDOW(Frame):
         #Define general commands column
         self.define_general_commands_column()
 
-        #define test result variable
-        self.test_result = 0
 
         #define required variables
+<<<<<<< HEAD
+
+        self.params = dict(
+            operator_name = "",
+            test_stand = "",
+            traveller = "",
+            run = "",
+            boardid = "",
+            asic0id = "",
+            asic1id = "",
+            asic2id = "",
+            asic3id = "",
+            test_category = "feasic",
+            test_version = "1",
+            femb_config = femb_config
+        )
+
+        # Check out the data disk situation and find the most available disk
+        freedisks = list()
+        for dd in self.datadisks:
+            stat = os.statvfs(dd)
+            MB = stat.f_bavail * stat.f_frsize >> 20
+            freedisks.append((MB, dd))
+        freedisks.sort()
+        self.params["lo_disk"] = freedisks[0][1]
+        self.params["hi_disk"] = freedisks[-1][1]
+
+        now = time.time()
+        self.params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
+        self.params["session_start_unix"] = now
+
+        # some hothdaq disk policy, only "oper" gets to write to /dsk/N/data/
+        username = getpass.getuser()
+        if username == "oper":
+            datadisk = "{lo_disk}/data"
+        else:
+            datadisk = "{lo_disk}/tmp"
+
+        # these are needed for runpolicy Runner
+        self.params.update(
+
+            user = username,
+            datadisk = datadisk,
+
+            # The rundir is where each individual job starts and should be
+            # shared by all jobs.  For Sumatra controlled running this
+            # directory houses the .smt/ subdirectory
+            rundir = "/home/{user}/run",
+            
+            # The data dir is where the output of each job should go.  This
+            # should be made unique every job.
+            datadir = "{datadisk}/{user}/{test_category}/{femb_config}/{session_start_time}/{datasubdir}",
+
+            # This is the file where all these parameters get written
+            # after variables are resovled.  This file is made
+            # available to the measurement script.  It's a JSON file.
+            paramfile = "{datadir}/params.json",
+
+            # This is some "project" name needed by Sumatra
+            smtname = "{test_category}",
+            );
+
+
+
+        # make a runner to enforce consistent run policy for each time an
+        # actual measurement scripts is executed.  Prime with parameters as
+        # they are known up to know.  They will be overridden and augmented
+        # when the runner is called.
+        if self.use_sumatra:
+            self.runner = runpolicy.SumatraRunner(**self.params)
+        self.runner = runpolicy.DirectRunner(**self.params)
+        return
+
+=======
         self.operator_name = ""
         self.test_stand = ""
-        self.traveller = ""
-        self.run = ""
         self.boardid = ""
         self.asic0id = ""
         self.asic1id = ""
         self.asic2id = ""
         self.asic3id = ""
         self.test_version = "1"
+>>>>>>> master
 
     def define_test_details_column(self):
         columnbase=0
@@ -75,20 +158,6 @@ class GUI_WINDOW(Frame):
 
         self.boardid_entry = Entry(self,width=25)
         self.boardid_entry.grid(sticky=W,row=3,column=columnbase+1)
-
-        # Adding traveller # and read entry box
-        label = Label(self,text="Traveller #:",width=25)
-        label.grid(sticky=W,row=4,column=columnbase+0)
-
-        self.traveller_entry = Entry(self,width=25)
-        self.traveller_entry.grid(sticky=W,row=4,column=columnbase+1)
-
-        # Adding run # and read entry box
-        label = Label(self,text="Run #:",width=25)
-        label.grid(sticky=W,row=5,column=columnbase+0)
-
-        self.run_entry = Entry(self,width=25)
-        self.run_entry.grid(sticky=W,row=5,column=columnbase+1)
 
         # ASIC 0 ID
         label = Label(self,text="ASIC 0 ID:",width=25)
@@ -139,11 +208,8 @@ class GUI_WINDOW(Frame):
         self.check_setup_result = Label(self, text="CHECK SETUP - NOT STARTED",width=50)
         self.check_setup_result.grid(sticky=W,row=2,column=columnbase,columnspan=50)
 
-        self.test_1_result = Label(self, text="GAIN+ENC ALL SETTINGS - NOT STARTED",width=50)
-        self.test_1_result.grid(sticky=W,row=3,column=columnbase,columnspan=50)
-
-        #self.test_2_result = Label(self, text="CROSSTALK ALL SETTINGS - NOT STARTED",width=50)
-        #self.test_2_result.grid(sticky=W,row=4,column=columnbase,columnspan=50)
+        self.gain_enc_sequence_result = Label(self, text="GAIN+ENC ALL SETTINGS - NOT STARTED",width=50)
+        self.gain_enc_sequence_result.grid(sticky=W,row=3,column=columnbase,columnspan=50)
 
         """
         #Adding the record data button
@@ -162,10 +228,32 @@ class GUI_WINDOW(Frame):
         """
 
     def start_measurements(self):
+<<<<<<< HEAD
+        self.params['operator_name'] = self.operator_entry.get()
+        self.params['test_stand'] = self.test_stand_entry.get()
+        self.params['traveller'] = self.traveller_entry.get()
+        self.params['run'] = self.run_entry.get()
+        self.params['boardid'] = self.boardid_entry.get()
+        self.params['asic0id'] = self.asic0_entry.get()
+        self.params['asic1id'] = self.asic1_entry.get()
+        self.params['asic2id'] = self.asic2_entry.get()
+        self.params['asic3id'] = self.asic3_entry.get()
+        print("""\
+Operator Name: {operator_name}
+Test Stand # : {test_stand}
+Traveller #  : {traveller}
+Run #  : {run}
+Test Board ID: {boardid}
+ASIC 0 ID: {asic0id}
+ASIC 1 ID: {asic1id}
+ASIC 2 ID: {asic2id}
+ASIC 3 ID: {asic3id}
+        """.format(**self.params))
+
+        if not self.params['operator_name']:
+=======
         self.operator_name = self.operator_entry.get()
         self.test_stand = self.test_stand_entry.get()
-        self.traveller = self.traveller_entry.get()
-        self.run = self.run_entry.get()
         self.boardid = self.boardid_entry.get()
         self.asic0id = self.asic0_entry.get()
         self.asic1id = self.asic1_entry.get()
@@ -173,43 +261,68 @@ class GUI_WINDOW(Frame):
         self.asic3id = self.asic3_entry.get()
         print("Operator Name: " + str( self.operator_name ) )
         print("Test Stand # : " + str( self.test_stand ) )
-        print("Traveller #  : " + str( self.traveller ) )
-        print("Run #  : " + str( self.run ) )
         print("Test Board ID: " + str( self.boardid ) )
-        print("ASIC 0 ID: " + str(self.asic0id ) )
-        print("ASIC 1 ID: " + str(self.asic1id ) )
-        print("ASIC 2 ID: " + str(self.asic2id ) )
-        print("ASIC 3 ID: " + str(self.asic3id ) )
+        print("ASIC 1 ID: " + str(self.asic0id ) )
+        print("ASIC 2 ID: " + str(self.asic1id ) )
+        print("ASIC 3 ID: " + str(self.asic2id ) )
+        print("ASIC 4 ID: " + str(self.asic3id ) )
 
+        # only number 1-4 in the GUI to match the testboard
+        
         if self.operator_name == "" :
+>>>>>>> master
             print("ENTER REQUIRED INFO")
             self.start_button_result["text"] = "ENTER REQUIRED INFO"
+            self.update_idletasks()
             return
 
         print("BEGIN TESTS")
         self.start_button_result["text"] = "IN PROGRESS"
+        self.update_idletasks()
 
+<<<<<<< HEAD
+        for method in ["check_setup", "gain_enc_sequence", ]:
+            LOUD = method.replace("_"," ").upper()
+            print(LOUD)
+            methname = "do_" + method
+            meth = getattr(self, methname)
+            self.check_setup_result["text"] = LOUD + " - IN PROGRESS"
+            try:
+                meth()
+            except RuntimeError as err:
+                print("failed: %s\n%s" % (LOUD, err)) 
+                self.start_button_result["text"] = LOUD + " - FAILED"
+                getattr(self, method + "_result")["text"] = LOUD + " - FAILED"
+                # anything else?
+                return
+            
+            getattr(self, method + "_result")["text"] = LOUD + " - DONE"
+            continue
+=======
         self.test_result = 0
 
         self.do_check_setup()
         if self.test_result == 0:
             self.start_button_result["text"] = "FAILED"
+            self.update_idletasks()
 
         self.do_test_1()
         if self.test_result == 0:
             self.test_1_result["text"] = "FAILED"
+            self.update_idletasks()
+>>>>>>> master
 
-        #self.do_test_2()
-        #if self.test_result == 0:
-        #    self.test_2_result["text"] = "FAILED"
 
         self.start_button_result["text"] = "DONE"
+        self.update_idletasks()
 
         self.operator_entry.delete(0,1000)
         self.test_stand_entry.delete(0,1000)
         self.boardid_entry.delete(0,1000)
-        self.traveller_entry.delete(0,1000)
-        self.run_entry.delete(0,1000)
+        self.asic0id_entry.delete(0,1000)
+        self.asic1id_entry.delete(0,1000)
+        self.asic2id_entry.delete(0,1000)
+        self.asic3id_entry.delete(0,1000)
 
         print("FINISHED TEST - GUI RESET")
 
@@ -219,41 +332,70 @@ class GUI_WINDOW(Frame):
         #else:
         #    self.check_setup_result["text"] = "SUCCESS"
 
+    
     def do_check_setup(self):
+        '''
+        Run simple sanity check sequence.
+        '''
         print("CHECK SETUP")
         self.check_setup_result["text"] = "CHECK SETUP - IN PROGRESS"
+        self.update_idletasks()
         self.test_result = 0
+<<<<<<< HEAD
+        self.runner(datasubdir="check_setup",
+                    executable="femb_feasic_simple",
+                    argstr="{paramfile}")
+
+    def do_gain_enc_sequence(self):
+        '''
+        Run a gain and ENC test sequence against all gain, shaping and baselines.
+        '''
+        testName = str("GAIN+ENC ALL SETTINGS")
+        print(str(testName))
+        self.gain_enc_sequence_result["text"] = str(testName) + " - IN PROGRESS"
+        self.test_result = 0
+        
+        #put loop here, but equivalently can go in script itself
+        for g in range(2,3,1):
+            for s in range(0,4,1):
+                for b in range(0,1,1):
+=======
         
         femb_test = FEMB_TEST_SIMPLE()
 
         femb_test.check_setup()
         if femb_test.status_check_setup == 0:
             self.check_setup_result["text"] = "CHECK SETUP - FAILED"
+            self.update_idletasks()
             return
 
         femb_test.record_data()
         if femb_test.status_record_data == 0:
             self.check_setup_result["text"] = "CHECK SETUP - FAILED"
+            self.update_idletasks()
             return
 
         femb_test.do_analysis()
         if femb_test.status_do_analysis == 0:
             self.check_setup_result["text"] = "CHECK SETUP - FAILED"
+            self.update_idletasks()
             return
         
         self.check_setup_result["text"] = "CHECK SETUP - DONE"
+        self.update_idletasks()
         self.test_result = 1
 
     def do_test_1(self):
         testName = str("GAIN+ENC ALL SETTINGS")
         print(str(testName))
         self.test_1_result["text"] = str(testName) + " - IN PROGRESS"
+        self.update_idletasks()
         self.test_result = 0
         
         #put loop here, but equivalently can go in script itself
-        for g in range(2,3,1):
+        for g in range(0,4,1):
           for s in range(0,4,1):
-            for b in range(0,1,1):
+            for b in range(0,2,1):
               femb_test = FEMB_TEST_GAIN()
 
               femb_test.gain = int(g)
@@ -263,53 +405,78 @@ class GUI_WINDOW(Frame):
               femb_test.check_setup()
               if femb_test.status_check_setup == 0:
                 self.test_1_result["text"] = str(testName) + " - FAILED"
+                self.update_idletasks()
                 return
 
               femb_test.record_data()
               if femb_test.status_record_data == 0:
                 self.test_1_result["text"] = str(testName) + " - FAILED"
+                self.update_idletasks()
                 return
 
               femb_test.do_analysis()
               if femb_test.status_do_analysis == 0:
                 self.test_1_result["text"] = str(testName) + " - FAILED"
+                self.update_idletasks()
                 return
         
         self.test_1_result["text"] = str(testName) + " - DONE"
+        self.update_idletasks()
         self.test_result = 1
 
     def do_test_2(self):
         testName = str("CROSSTALK ALL SETTINGS")
         print(str(testName))
         self.test_2_result["text"] = str(testName) + " - IN PROGRESS"
+        self.update_idletasks()
         self.test_result = 0
         
         femb_test = FEMB_TEST_GAIN()
+>>>>>>> master
 
-        femb_test.test = 0
-        femb_test.test = 2
+                    # this raises RuntimeError if measurement script fails
+                    self.runner(datasubdir="gain_enc_sequence-g{gain_ind}s{shape_ind}b{base_ind}",
+                                gain_ind = g, shape_ind = s, base_ind = b, femb_num = 0,
+                                executable="femb_feasic_gain",
+                                argstr="{paramfile}",
+                    )
 
+<<<<<<< HEAD
+                    continue
+                continue
+            continue
+        return
+
+    # Can add additional testing sequences like as above with a method name
+    # like "do_<semantic_label>".
+
+=======
         femb_test.check_setup()
         if femb_test.status_check_setup == 0:
             self.test_2_result["text"] = str(testName) + " - FAILED"
+            self.update_idletasks()
             return
 
         femb_test.record_data()
         if femb_test.status_record_data == 0:
             self.test_2_result["text"] = str(testName) + " - FAILED"
+            self.update_idletasks()
             return
 
         femb_test.do_analysis()
         if femb_test.status_do_analysis == 0:
             self.test_2_result["text"] = str(testName) + " - FAILED"
+            self.update_idletasks()
             return
         
         self.test_2_result["text"] = str(testName) + " - DONE"
+        self.update_idletasks()
         self.test_result = 1
+>>>>>>> master
 
 def main():
     root = Tk()
-    root.title("Example Test GUI")
+    root.title("Quad FE ASIC Test GUI")
     window = GUI_WINDOW(root)
     root.mainloop() 
 

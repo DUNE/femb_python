@@ -62,6 +62,9 @@ class Analyze {
 	const int numSignalSize = 64;
 	const int preRange = 20;
 	const int postRange = 20;
+	const float minThreshold = 500;
+	const float pulseHeightRange = 500;
+	const int minNumberPulses = 10;
 
 	//data objects
 	TCanvas* c0;
@@ -169,8 +172,10 @@ Analyze::Analyze(std::string inputFileName){
 	hGainVsChan = new TH1F("hGainVsChan","",numChan,0-0.5,numChan-0.5);
 	hEncVsChan = new TH1F("hEncVsChan","",numChan,0-0.5,numChan-0.5);
 
-	for(int sr = 0 ; sr < 64 ; sr++ )
-		signalSizes[sr] = 1024+256*sr;
+	for(int sr = 0 ; sr < 64 ; sr++ ){
+		signalSizes[sr] = sr*0.01875;//internal pulser, V
+  		signalSizes[sr] = signalSizes[sr]*183*6241;//test capacitor, convert to e-
+        }
 }
 
 int Analyze::processFileName(std::string inputFileName, std::string &baseFileName){
@@ -218,6 +223,63 @@ void Analyze::doAnalysis(){
 }
 
 void Analyze::outputResults(){
+
+	//output to file here:
+  	std::string outputFileName = "output_processNtuple_gainMeasurement.list";
+
+        //do final selection cuts, should put in indiviudl function
+        int numBadChannels = 0;
+	int numBadAsic0Channels = 0;
+	int numBadAsic1Channels = 0;
+	int numBadAsic2Channels = 0;
+	int numBadAsic3Channels = 0;
+        for(int ch = 0 ; ch < numChan ; ch++ ){
+		if( badChannelMask[ch] == 1 ){
+			numBadChannels++;
+			if( ch >= 0 && ch < 16 ){
+				numBadAsic0Channels++;
+			}
+			if( ch >= 16 && ch < 32 ){
+				numBadAsic1Channels++;
+			}
+			if( ch >= 32 && ch < 48 ){
+				numBadAsic2Channels++;
+			}
+			if( ch >= 48 && ch < 64 ){
+				numBadAsic3Channels++;
+			}
+		}
+	}
+	bool asic0_fail = 0;
+	bool asic1_fail = 0;
+	bool asic2_fail = 0;
+	bool asic3_fail = 0;
+	if( numBadAsic0Channels > 0 )
+		asic0_fail = 1;
+	if( numBadAsic1Channels > 0 )
+		asic1_fail = 1;
+	if( numBadAsic2Channels > 0 )
+		asic2_fail = 1;
+	if( numBadAsic3Channels > 0 )
+		asic3_fail = 1;
+
+	ofstream listfile;
+        listfile.open (outputFileName);
+  	//ASIC results
+        listfile << "asic " << "0" << "," << "fail " << asic0_fail << std::endl;
+        listfile << "asic " << "1" << "," << "fail " << asic1_fail << std::endl;
+        listfile << "asic " << "2" << "," << "fail " << asic2_fail << std::endl;
+        listfile << "asic " << "3" << "," << "fail " << asic3_fail << std::endl;
+  	//channel results
+	for(int ch = 0 ; ch < numChan ; ch++ ){
+		listfile << "ch " << ch << ",";
+		listfile << "rms " << pRmsVsChan->GetBinContent(ch+1) << ",";
+		listfile << "mean " << pMeanVsChan->GetBinContent(ch+1) << ",";
+		listfile << "gain " << hGainVsChan->GetBinContent(ch+1) << ",";
+		listfile << "enc " << hEncVsChan->GetBinContent(ch+1) << ",";
+		listfile << "fail " << badChannelMask[ch];
+		listfile << std::endl;
+	}
 
 	pMeanVsChan->SetStats(kFALSE);
 	pMeanVsChan->GetXaxis()->SetTitle("FEMB Channel #");
@@ -352,8 +414,8 @@ void Analyze::analyzeSubrun(unsigned int subrun){
 			continue;
 		}
 
-		if( subrun > 15 )
-			continue;
+		//if( subrun > 15 )
+		//	continue;
 
 		//drawWf(ch,wfAll[subrun][ch]);
 		//continue;
@@ -543,8 +605,8 @@ void Analyze::findPulses(unsigned int chan, const std::vector<unsigned short> &w
 	//if( threshold > 50 )
 	//	threshold = 50.;
 	double threshold = 5*rmsSubrun0;
-	if( threshold < 500 )
-		threshold = 500.;
+	if( threshold < minThreshold )
+		threshold = minThreshold;
 	int numPulse = 0;
 	pulseStart.clear();
 	for( int s = 0 + preRange ; s < wf.size() - postRange - 1 ; s++ ){
@@ -660,7 +722,7 @@ void Analyze::analyzePulse(unsigned int chan, int startSampleNum, const std::vec
 	hPulseHeights->Fill(pulseHeight);
 
 	//draw waveform if needed
-	if(0 && chan == 32 && startSampleNum < 500 ){
+	if(0 && chan == 0 && startSampleNum < 500 ){
 		//std::cout << mean << "\t" << maxSampVal << "\t" << pulseHeight << std::endl;
 		std::string title = "Channel " + to_string( chan ) + " Height " + to_string( int(pulseHeight) );
 		//std::string title = " Height " + to_string( int(pulseHeight) );
@@ -683,7 +745,7 @@ void Analyze::analyzePulse(unsigned int chan, int startSampleNum, const std::vec
 
 void Analyze::measurePulseHeights(unsigned int subrun, unsigned int chan){
 
-	if( hPulseHeights->GetEntries() < 10 )
+	if( hPulseHeights->GetEntries() < minNumberPulses )
 		return;
 
 	if( subrun >= numSubrun )
@@ -694,7 +756,7 @@ void Analyze::measurePulseHeights(unsigned int subrun, unsigned int chan){
 
 	//get average pulse height, update plots
 	double mean = hPulseHeights->GetMean();
-	double signalCharge = (signalSizes[subrun]-signalSizes[0])*183*6241;
+	double signalCharge = (signalSizes[subrun]-signalSizes[0]);
 	gPulseVsSignal[chan]->SetPoint( gPulseVsSignal[chan]->GetN() ,signalCharge , mean);
 	
 	if(0){
@@ -705,7 +767,7 @@ void Analyze::measurePulseHeights(unsigned int subrun, unsigned int chan){
 
 		double max = hPulseHeights->GetBinCenter( hPulseHeights->GetMaximumBin() ) ;
 
-		hPulseHeights->GetXaxis()->SetRangeUser( max - 500 , max + 500 );
+		hPulseHeights->GetXaxis()->SetRangeUser( max - pulseHeightRange , max + pulseHeightRange );
 		hPulseHeights->GetXaxis()->SetTitle("Measured Pulse Height (ADC counts)");
 		hPulseHeights->GetYaxis()->SetTitle("Number of Pulses");
 
@@ -730,20 +792,22 @@ void Analyze::measureGain(){
 		//gPulseVsSignal[ch]->SetPoint(gPulseVsSignal[ch]->GetN(),0,0);
 
 		//TF1 *f1 = new TF1("f1","pol1",-50*1000.,700*1000.);
-		TF1 *f1 = new TF1("f1","pol1",0,4500.E+6);
+		TF1 *f1 = new TF1("f1","pol1",0,500.E+3);
+		//TF1 *f1 = new TF1("f1","pol1");
 		//f1->SetParameter(0,0);
 		//f1->SetParameter(1,2/1000.);
 		gPulseVsSignal[ch]->Fit("f1","QR");
+		//gPulseVsSignal[ch]->Fit("f1","Q");
 
 		double gain_AdcPerE = f1->GetParameter(1);
 		double gain_ePerAdc = 0;
 		if( gain_AdcPerE > 0 )
 			gain_ePerAdc = 1./ gain_AdcPerE;
-                gain_ePerAdc = gain_ePerAdc / 20000.;
+                gain_ePerAdc = gain_ePerAdc;
 		hGainVsChan->SetBinContent(ch+1, gain_ePerAdc);
 
 		double enc = pRmsVsChan->GetBinContent(ch+1)*gain_ePerAdc;
-                enc = enc / 500000.*12.*100000.;
+                enc = enc;
 		hEncVsChan->SetBinContent(ch+1, enc);
 
 		hGain->Fill(gain_ePerAdc);

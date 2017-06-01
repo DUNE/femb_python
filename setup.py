@@ -158,6 +158,9 @@ setup(
             'femb_wib_test_simpleCheck=femb_python.test_measurements.wibTestStand.doWibTest_simpleCheck:main',
 
             'femb_feasic_testgui=femb_python.test_measurements.feAsicTest.gui_feAsicTest:main',
+            'femb_feasic_simple=femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement:main',
+            'femb_feasic_gain=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement:main',
+
 
         ],
         #'gui_scripts': [
