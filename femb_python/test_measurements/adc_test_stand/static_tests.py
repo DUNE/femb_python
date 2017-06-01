@@ -126,7 +126,7 @@ class STATIC_TESTS(object):
                 chanStats["INLabs75perc400"] = INLabs75perc400
                 chanStats["INLabs75perc512"] = INLabs75perc512
                 lsbPerV = float(maxCodes[iChan] - minCodes[iChan]) / (maxCodeVs[iChan] - minCodeVs[iChan])
-                codeAtZeroV = maxCode[iChan] - lsbPerV * maxCodeV[iChan]
+                codeAtZeroV = maxCodes[iChan] - lsbPerV * maxCodeVs[iChan]
                 chanStats["lsbPerV"] = lsbPerV
                 chanStats["codeAtZeroV"] = codeAtZeroV
 

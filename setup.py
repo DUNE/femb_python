@@ -140,6 +140,7 @@ setup(
             'femb_adc_collect_data=femb_python.test_measurements.adc_test_stand.collect_data:main',
             'femb_adc_calibrate_ramp=femb_python.test_measurements.adc_test_stand.calibrate_ramp:main',
             'femb_adc_baseline_rms=femb_python.test_measurements.adc_test_stand.baseline_rms:main',
+            'femb_adc_dc_tests=femb_python.test_measurements.adc_test_stand.dc_tests:main',
             'femb_adc_run=femb_python.test_measurements.adc_test_stand.run:main',
             'femb_adc_summary_plots=femb_python.test_measurements.adc_test_stand.summary_plots:main',
             'femb_adc_gui=femb_python.test_measurements.adc_test_stand.gui:main',

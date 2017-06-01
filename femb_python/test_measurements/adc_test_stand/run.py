@@ -24,6 +24,7 @@ from .calibrate_ramp import CALIBRATE_RAMP
 from .static_tests import STATIC_TESTS
 from .dynamic_tests import DYNAMIC_TESTS
 from .baseline_rms import BASELINE_RMS
+from .dc_tests import DC_TESTS
 from .summary_plots import SUMMARY_PLOTS
 
 class ADC_TEST_SUMMARY(object):
@@ -287,6 +288,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     static_tests = STATIC_TESTS(config)
     dynamic_tests = DYNAMIC_TESTS(config)
     baseline_rms = BASELINE_RMS()
+    dc_tests = DC_TESTS(config)
 
     clocks = [0,1] # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
     offsets = range(-1,16)
@@ -327,11 +329,14 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                 static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
                 assert(len(static_fns)==1)
                 static_fn = static_fns[0]
+                dc_fns = list(glob.glob(fileprefix+"_functype1_*.root"))
                 CALIBRATE_RAMP(static_fn).write_calibrate_tree()
                 staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
                 dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
+                dcStats = dc_tests.analyze(dc_fns,verbose=False)
                 chipStats["static"] = staticStats
                 chipStats["dynamic"] = dynamicStats
+                chipStats["dc"] = dcStats
                 configStats[adcSerialNumbers[iChip]] = chipStats
                 #with open(fileprefix+"_statsRaw.json","w") as f:
                 #    json.dump(chipStats,f)
