@@ -337,7 +337,7 @@ void Analyze::outputResults(){
 	TImage *img = TImage::Create();
 	img->FromPad(c0);
   	std::stringstream imgstream;
-	imgstream << "summaryPlot_gainMeasurement.png";
+	imgstream << "summaryPlot_gainMeasurement_fpgadac.png";
 	std::string imgstring( imgstream.str() );
   	img->WriteImage(imgstring.c_str());
 
