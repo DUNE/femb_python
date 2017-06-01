@@ -212,8 +212,9 @@ class GUI_WINDOW(Frame):
                                 #"argstr": "-q -j {paramfile}",
                                 "argstr": "-j {paramfile}",
                                 "basedir": data_base_dir,
-                                "rundir": "{basedir}/adc/{hostname}/{timestamp}",
-                                "datadir": "{rundir}",
+                                "rundir": "{basedir}/adc/{hostname}",
+                                "datadir": "{rundir}/Data/{timestamp}",
+                                "paramfile":"{datadir}/params.json",
                                 "smtname": "adc",
                             }
         #runner = DirectRunner(**runnerSetup)

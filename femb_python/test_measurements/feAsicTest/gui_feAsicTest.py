@@ -149,31 +149,31 @@ class GUI_WINDOW(Frame):
 
         # ASIC 0 ID
         label = Label(self,text="ASIC 0 ID:",width=25)
-        label.grid(sticky=W,row=6,column=columnbase+0)
+        label.grid(sticky=W,row=7,column=columnbase+0)
 
         self.asic0_entry = Entry(self,width=25)
-        self.asic0_entry.grid(sticky=W,row=6,column=columnbase+1)
+        self.asic0_entry.grid(sticky=W,row=7,column=columnbase+1)
 
         # ASIC 1 ID
         label = Label(self,text="ASIC 1 ID:",width=25)
-        label.grid(sticky=W,row=7,column=columnbase+0)
+        label.grid(sticky=W,row=8,column=columnbase+0)
 
         self.asic1_entry = Entry(self,width=25)
-        self.asic1_entry.grid(sticky=W,row=7,column=columnbase+1)
+        self.asic1_entry.grid(sticky=W,row=8,column=columnbase+1)
 
         # ASIC 2 ID
         label = Label(self,text="ASIC 2 ID:",width=25)
-        label.grid(sticky=W,row=8,column=columnbase+0)
+        label.grid(sticky=W,row=9,column=columnbase+0)
 
         self.asic2_entry = Entry(self,width=25)
-        self.asic2_entry.grid(sticky=W,row=8,column=columnbase+1)
+        self.asic2_entry.grid(sticky=W,row=9,column=columnbase+1)
 
         # ASIC 3 ID
         label = Label(self,text="ASIC 3 ID:",width=25)
-        label.grid(sticky=W,row=9,column=columnbase+0)
+        label.grid(sticky=W,row=10,column=columnbase+0)
 
         self.asic3_entry = Entry(self,width=25)
-        self.asic3_entry.grid(sticky=W,row=9,column=columnbase+1)                      
+        self.asic3_entry.grid(sticky=W,row=10,column=columnbase+1)                      
 
 
     def define_general_commands_column(self):
@@ -183,44 +183,51 @@ class GUI_WINDOW(Frame):
         label.grid(row=0,column=columnbase, columnspan=50)
 
         #Adding the check test stand button
+
+        load_button = Button(self, text="Load ASICs", command=self.load_asics,width=25)
+        load_button.grid(row=1,column=columnbase,columnspan=25)
+
+        self.load_button_result = Label(self, text="Press Load ASICs before loading",width=25)
+        self.load_button_result.grid(sticky=W,row=1,column=columnbase+25,columnspan=25)
+        
         start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        start_button.grid(row=1,column=columnbase,columnspan=25)
+        start_button.grid(row=2,column=columnbase,columnspan=25)
 
         self.start_button_result = Label(self, text="NOT STARTED",width=25)
-        self.start_button_result.grid(sticky=W,row=1,column=columnbase+25,columnspan=25)
+        self.start_button_result.grid(sticky=W,row=2,column=columnbase+25,columnspan=25)
 
         #Adding the record data button
         #record_data_button = Button(self, text="Record Data", command=self.record_data,width=25)
         #record_data_button.grid(row=2,column=columnbase,columnspan=25)
 
         self.check_setup_result = Label(self, text="CHECK SETUP - NOT STARTED",width=50)
-        self.check_setup_result.grid(sticky=W,row=2,column=columnbase,columnspan=50)
+        self.check_setup_result.grid(sticky=W,row=3,column=columnbase,columnspan=50)
 
         self.gain_enc_sequence_result = Label(self, text="GAIN+ENC ALL SETTINGS - NOT STARTED",width=50)
-        self.gain_enc_sequence_result.grid(sticky=W,row=3,column=columnbase,columnspan=50)
+        self.gain_enc_sequence_result.grid(sticky=W,row=4,column=columnbase,columnspan=50)
 
         self.gain_enc_sequence_fpgadac_result = Label(self, text="GAIN+ENC FPGA DAC SUBSET OF SETTINGS - NOT STARTED",width=50)
-        self.gain_enc_sequence_fpgadac_result.grid(sticky=W,row=4,column=columnbase,columnspan=50)
+        self.gain_enc_sequence_fpgadac_result.grid(sticky=W,row=5,column=columnbase,columnspan=50)
 
         self.asic0_result = Label(self, text="ASIC 0 Result: TBD", width=25)
-        self.asic0_result.grid(sticky=W,row=6,column=columnbase+2)
+        self.asic0_result.grid(sticky=W,row=7,column=columnbase+2)
 
         self.asic1_result = Label(self, text="ASIC 1 Result: TBD", width=25)
-        self.asic1_result.grid(sticky=W,row=7,column=columnbase+2)
+        self.asic1_result.grid(sticky=W,row=8,column=columnbase+2)
 
         self.asic2_result = Label(self, text="ASIC 2 Result: TBD", width=25)
-        self.asic2_result.grid(sticky=W,row=8,column=columnbase+2)
+        self.asic2_result.grid(sticky=W,row=9,column=columnbase+2)
 
         self.asic3_result = Label(self, text="ASIC 3 Result: TBD", width=25)
-        self.asic3_result.grid(sticky=W,row=9,column=columnbase+2)
+        self.asic3_result.grid(sticky=W,row=10,column=columnbase+2)
 
         #Finish/reset button
-        finish_button = Button(self, text="Finish and Reset",command=self.reset_gui,width=25)
-        finish_button.grid(row=10,column=columnbase,columnspan=25)
+        finish_button = Button(self, text="Reset and Power Down",command=self.reset_gui,width=25)
+        finish_button.grid(row=11,column=columnbase,columnspan=25)
         
         
         self.gain_enc_sequence_externaldac_result = Label(self, text="GAIN+ENC EXTERNAL DAC SUBSET OF SETTINGS - NOT STARTED",width=50)
-        self.gain_enc_sequence_externaldac_result.grid(sticky=W,row=5,column=columnbase,columnspan=50)
+        self.gain_enc_sequence_externaldac_result.grid(sticky=W,row=6,column=columnbase,columnspan=50)
 
         """
         #Adding the record data button
@@ -265,6 +272,7 @@ ASIC 3 ID: {asic3id}
 
         print("BEGIN TESTS")
         self.start_button_result["text"] = "IN PROGRESS"
+        self.load_button_result["text"] = "Testing - do not remove"
         self.update_idletasks()
 
         for method in ["check_setup", "gain_enc_sequence", "gain_enc_sequence_fpgadac",  "gain_enc_sequence_externaldac"]:
@@ -318,7 +326,17 @@ ASIC 3 ID: {asic3id}
         self.update_idletasks()            
 
 
+    def load_asics(self):
+        #Power down all 4 chips:
+        self.runner(datasubdir="power",executable="femb_control_power", argstr="OFF")
+        self.load_button_result["text"] = "Ok to load new ASICs"
+        self.update_idletasks()
+
     def reset_gui(self):
+        #Power down all 4 chips:
+        self.runner(datasubdir="power",executable="femb_control_power", argstr="OFF")
+
+        #Reset GUI:
         self.operator_entry.delete(0,1000)
         self.test_stand_entry.delete(0,1000)
         self.boardid_entry.delete(0,1000)
@@ -326,6 +344,15 @@ ASIC 3 ID: {asic3id}
         self.asic1_entry.delete(0,1000)
         self.asic2_entry.delete(0,1000)
         self.asic3_entry.delete(0,1000)
+
+        self.load_button_result["text"] = "Press Load ASICs before loading"
+        self.start_button_result["text"] = "NOT STARTED"
+        self.check_setup_result["text"] = "CHECK SETUP - NOT STARTED"
+        self.gain_enc_sequence_result["text"] = "GAIN+ENC ALL SETTINGS - NOT STARTED"
+        self.gain_enc_sequence_fpgadac_result["text"] = "GAIN+ENC FPGA DAC SUBSET OF SETTINGS - NOT STARTED"
+        self.gain_enc_sequence_externaldac_result["text"] = "GAIN+ENC EXTERNAL DAC SUBSET OF SETTINGS - NOT STARTED"
+
+        self.update_idletasks()
 
         print("FINISHED TEST - GUI RESET")
 
@@ -394,7 +421,6 @@ ASIC 3 ID: {asic3id}
                         self.generic_sequence_handler(**resolved)
 
 
-
     def handle_gain_result(self, **params):
         # ETW: fill this in
         #Check pass/fail for each test
@@ -418,7 +444,7 @@ ASIC 3 ID: {asic3id}
 
     def do_gain_enc_sequence_externaldac(self):
         self.generic_sequence("gain_enc_sequence_externaldac", "femb_feasic_gain_exterandac",
-                              range(4), [1], [0],
+                              [2], [1], [0],
                               handler=self.handle_gain_result)
         return
 
