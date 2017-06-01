@@ -59,7 +59,8 @@ def check_dicts(d1, d2):
 def test_basic():
     clear()
     r = Runner(cmdline="/bin/pwd")
-    r()
+    p = r()
+    print (p)
 
 def test_direct():
     clear()

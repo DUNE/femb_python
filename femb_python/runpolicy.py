@@ -12,8 +12,7 @@ import time
 import subprocess
 
 class Runner(object):
-    '''
-    A Runner runs a program as governed by a parameter set.
+    '''A Runner runs a program as governed by a parameter set.
 
     Parameters:
     ===========
@@ -38,9 +37,13 @@ class Runner(object):
     canonical parameter is resolved against all the parameters.  The
     method of resolution is to call the `str.format()` method.  Thus,
     any references to parameters like "{name}" will be replaced with
-    the corresponding value.  Canonical parameters are resolved in
-    order of their definition in the list held in the class attribute
-    `canonical`.
+    the corresponding value.  
+
+    When the runner is called, and if the executable returns
+    successfully then the resolved parameter set is returned.
+
+    If the executable does not exit successfully then a RuntimeError
+    is raised.
 
     '''
 
@@ -81,6 +84,7 @@ class Runner(object):
 
         cmd = self.cmdline(**params)
         self.run(cmd, **params)
+        return params;
 
     def cmdline(self, **params):
         return params['cmdline']

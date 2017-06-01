@@ -9,6 +9,7 @@ from ...femb_udp import FEMB_UDP
 from ...test_instrument_interface import RigolDG4000
 from ...write_root_tree import WRITE_ROOT_TREE
 import sys
+import os.path
 import time
 import datetime
 import glob
@@ -27,17 +28,20 @@ from .summary_plots import SUMMARY_PLOTS
 
 class ADC_TEST_SUMMARY(object):
 
-    def __init__(self,allStatsRaw,testTime,hostname,board_id,operator):
+    def __init__(self,allStatsRaw,testTime,hostname,board_id,operator,sumatradict=None):
         self.allStatsRaw = allStatsRaw
         self.testTime = testTime
         self.hostname = hostname
         self.board_id = board_id
         self.operator = operator
+        self.sumatradict = sumatradict
         self.allStats = None
         self.staticSummary = None
         self.dynamicSummary = None
         self.inputPinSummary = None
+        self.testResults = None
         self.makeSummaries()
+        self.checkPass()
 
     def makeSummaries(self):
         """
@@ -49,6 +53,8 @@ class ADC_TEST_SUMMARY(object):
         from:
         self.allStatsRaw[clock][offset][chipSerial]
         """
+        print("Summarizing all data...")
+        sys.stdout.flush()
         allStatsRaw = self.allStatsRaw
         clocks = sorted(allStatsRaw.keys())
         offsets = []
@@ -140,11 +146,16 @@ class ADC_TEST_SUMMARY(object):
                 "serial":serial,"timestamp":self.testTime,
                 "hostname":self.hostname,"board_id":self.board_id,
                 "operator":self.operator,
+                "sumatra": self.sumatradict,
                 }
         try:
             result["inputPin"] = self.inputPinSummary[serial]
         except:
             print("Error get_summary: no inputPin key")
+            pass
+        try:
+            result["testResults"] = self.testResults[serial]
+        except:
             pass
         return result
 
@@ -155,11 +166,107 @@ class ADC_TEST_SUMMARY(object):
             with open(filename,"w") as f:
                 json.dump(data,f)
 
-def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,singleConfig=True,timestamp=None):
+    def checkPass(self):
+        print("Checking if chip passes tests...")
+        sys.stdout.flush()
+        self.testResults = {}
+        for serial in self.get_serials():
+            thisSummary = self.get_summary(serial)
+            thisPass = True
+            results = {}
+            staticChecks = {
+                'DNLmax400': ["lt",50.],
+                'DNL75perc400': ["lt",2.],
+                'stuckCodeFrac400': ["lt",0.1],
+                'INLabsMax400': ["lt",100.],
+                'INLabs75perc400': ["lt",50.],
+                'minCode': ["lt",300.],
+                'minCodeV': ["lt",0.5],
+            }
+            dynamicChecks = {
+                'sinads': ["gt",10.],
+            }
+            inputPinChecks = {
+                'mean': ["lt",3000.],
+            }
+            for stat in staticChecks:
+                check = staticChecks[stat]
+                statPass = True
+                for clock in thisSummary['static']:
+                    for offset in thisSummary['static'][clock]:
+                        for channel in range(16):
+                            if check[0] == "lt":
+                                if thisSummary['static'][clock][offset][stat][channel] >= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                            if check[0] == "gt":
+                                if thisSummary['static'][clock][offset][stat][channel] <= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                        if not statPass:
+                            break
+                    if not statPass:
+                        break
+                results[stat] = statPass
+            for stat in dynamicChecks:
+                check = dynamicChecks[stat]
+                statPass = True
+                for clock in thisSummary['dynamic']:
+                    for offset in thisSummary['dynamic'][clock]:
+                        for amp in thisSummary['dynamic'][clock][offset][stat]:
+                            for freq in thisSummary['dynamic'][clock][offset][stat][amp]:
+                                for channel in range(16):
+                                    if check[0] == "lt":
+                                        if thisSummary['dynamic'][clock][offset][stat][amp][freq][channel] >= check[1]:
+                                            statPass = False
+                                            thisPass = False
+                                            break
+                                    if check[0] == "gt":
+                                        if thisSummary['dynamic'][clock][offset][stat][amp][freq][channel] <= check[1]:
+                                            statPass = False
+                                            thisPass = False
+                                            break
+                                if not statPass:
+                                    break
+                            if not statPass:
+                                break
+                        if not statPass:
+                            break
+                    if not statPass:
+                        break
+                results[stat] = statPass
+            for stat in inputPinChecks:
+                check = inputPinChecks[stat]
+                statPass = True
+                for clock in thisSummary['inputPin']:
+                    for offset in thisSummary['inputPin'][clock]:
+                        for channel in range(16):
+                            if check[0] == "lt":
+                                if thisSummary['inputPin'][clock][offset][stat][channel] >= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                            if check[0] == "gt":
+                                if thisSummary['inputPin'][clock][offset][stat][channel] <= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                        if not statPass:
+                            break
+                    if not statPass:
+                        break
+                results["inputPin_"+stat] = statPass
+            results["pass"] = thisPass
+            self.testResults[serial] = results
+
+def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,singleConfig=True,timestamp=None,sumatradict=None):
     """
     Runs the ADC tests for all chips on the ADC test board.
 
     config is the CONFIG object for the test board.
+    dataDir  is the output directory for data files
     adcSerialNumbers is a list of a serial numbers for the ADC ASICS
     startDateTime string identifying the time the tests are started
     operator is the operator user name string
@@ -168,6 +275,7 @@ def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,si
     singleConfig is a boolean. If True only test the ASICS with the external clock
         and no offset current. If False test both clocks and all offset current
         settings.
+    sumatradict is a dictionary of options that will be written to the summary json
 
     returns a list of bools whether an asic passed the tests. The list
         corresponds to the input serial number list.  
@@ -211,6 +319,7 @@ def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,si
                 sys.stdout.flush()
                 chipStats = {}
                 fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
+                fileprefix = os.path.join(dataDir,fileprefix)
                 collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
                 print("Processing...")
                 static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
@@ -239,6 +348,7 @@ def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,si
             print("Collecting input pin data for chip: {} ...".format(iChip))
             sys.stdout.flush()
             fileprefix = "adcTestData_{}_inputPinTest_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
+            fileprefix = os.path.join(dataDir,fileprefix)
             collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,100,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
             static_fns = list(glob.glob(fileprefix+"_*.root"))
             assert(len(static_fns)==1)
@@ -247,41 +357,18 @@ def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,si
             allStatsRaw[clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
             #with open(fileprefix+"_statsRaw.json","w") as f:
             #    json.dump(baselineRmsStats,f)
-    with open("adcTestData_{}_statsRaw.json".format(startDateTime),"w") as f:
-        json.dump(baselineRmsStats,f)
-    print("Summarizing all data...")
-    sys.stdout.flush()
-    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id,operator)
-    summary.write_jsons("adcTest_{}".format(startDateTime))
+    statsRawJsonFn = "adcTestData_{}_statsRaw.json".format(startDateTime)
+    statsRawJsonFn = os.path.join(dataDir,statsRawJsonFn)
+    with open(statsRawJsonFn,"w") as f:
+        json.dump(allStatsRaw,f)
+    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id,operator,sumatradict=sumatradict)
+    summary.write_jsons(os.path.join(dataDir,"adcTest_{}".format(startDateTime)))
     print("Making summary plots...")
-    for serial in summary.get_serials():
-      SUMMARY_PLOTS(summary.get_summary(serial),"adcTest_{}_{}".format(startDateTime,serial),plotAll=True)
-    print("Checking if chips pass..")
     sys.stdout.flush()
-    chipsPass = []
-    for serial in adcSerialNumbers:
-        thisSummary = summary.get_summary(serial)
-        thisPass = True
-        for clock in thisSummary['static']:
-            for offset in thisSummary['static'][clock]:
-                for channel in range(len(thisSummary['static'][clock][offset]["DNLmax"])):
-                    if thisSummary['static'][clock][offset]["DNLmax400"][channel] > 50.:
-                        thisPass = False
-                    if thisSummary['static'][clock][offset]["stuckCodeFrac400"][channel] > 0.5:
-                        thisPass = False
-                        break
-                    if thisSummary['static'][clock][offset]["INLabsMax400"][channel] > 50.:
-                        thisPass = False
-                        break
-                    if thisSummary['static'][clock][offset]["minCode"][channel] > 300.:
-                        thisPass = False
-                        break
-                if not thisPass:
-                    break
-            if not thisPass:
-                break
-        chipsPass.append(thisPass)
-    return chipsPass
+    for serial in summary.get_serials():
+      SUMMARY_PLOTS(summary.get_summary(serial),
+                os.path.join(dataDir,"adcTest_{}_{}".format(startDateTime,serial)),
+                plotAll=True)
 
 def main():
     from ...configuration.argument_parser import ArgumentParser
@@ -293,6 +380,7 @@ def main():
     parser.add_argument("-o", "--operator",help="Test operator name",type=str,default="Command-line Operator")
     parser.add_argument("-s", "--serial",help="Chip serial number, use multiple times for multiple chips, e.g. -s 1 -s 2 -s 3 -s 4",action='append',default=[])
     parser.add_argument("-b", "--board",help="Test board serial number",default=None)
+    parser.add_argument("-d", "--datadir",help="Directory for output data files",default="")
     parser.add_argument("-q", "--quick",help="Only run a single configuration (normally runs all clocks and offsets)",action='store_true')
     parser.add_argument("-p", "--profiler",help="Enable python timing profiler and save to given file name",type=str,default=None)
     parser.add_argument("-j", "--jsonfile",help="json options file location",default=None)
@@ -307,6 +395,9 @@ def main():
     operator = args.operator
     boardid = args.board
     serialNumbers = args.serial
+    dataDir = args.datadir
+
+    options = None
 
     if args.jsonfile:
         with open(args.jsonfile) as jsonfile:
@@ -317,6 +408,7 @@ def main():
                 operator = options["operator"]
                 boardid = options["board_id"]
                 serialNumbers = options["serials"]
+                dataDir = options["datadir"]
             except KeyError as e:
                 print("Error while parsing json input options: ",e)
                 sys.exit(1)
@@ -334,9 +426,9 @@ def main():
 
     if args.profiler:
         import cProfile
-        cProfile.runctx('chipsPass = runTests(config,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick)',globals(),locals(),args.profiler)
+        cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)',globals(),locals(),args.profiler)
     else:
-        chipsPass = runTests(config,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick)
+        chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)
     runTime = datetime.datetime.now() - startTime
     print("Test took: {:.0f} min {:.1f} s".format(runTime.total_seconds() // 60, runTime.total_seconds() % 60.))
     print("Chips Pass: ",chipsPass)
