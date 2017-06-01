@@ -11,7 +11,7 @@ standard_library.install_aliases()
 from builtins import object
 import sys
 import string
-from subprocess import call
+from subprocess import callg
 from time import sleep
 import os
 import ntpath
@@ -41,15 +41,14 @@ class FEMB_TEST_GAIN(object):
         self.cppfr = CPP_FILE_RUNNER()
 
         #misc variables
-        self.fembNum = 0
         self.gain = 0
         self.shape = 0
         self.base = 0
 
-        #json output, note version number defined here
-        self.jsonlist = {'type':'quadFeAsic_gain'}
-        self.jsonlist['version'] = '1.0'
-        self.jsonlist['timestamp']  = str(self.write_data.date)
+        #json output, note module version number defined here
+        self.jsondict = {'type':'quadFeAsic_gain'}
+        self.jsondict['version'] = '1.0'
+        self.jsondict['timestamp']  = str(self.write_data.date)
 
     def reset(self):
         self.status_check_setup = 0
@@ -76,7 +75,6 @@ class FEMB_TEST_GAIN(object):
         #initialize FEMB to known state
         print("Initializing board")
         self.femb_config.initBoard()
-        #self.femb_config.initFemb(self.femb_config.fembNum)
 
         #check if data streaming is working
         print("Checking data streaming")
@@ -122,28 +120,24 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.feasicBaseline = self.base
         self.femb_config.configFeAsic()
 
-        #wait to make sure HS link is back on
-        sleep(0.5)
+        #disable pulser
+        self.femb_config.setInternalPulser(0,0x0)
+        self.femb_config.setDacPulser(0,0x0)
+        self.femb_config.setFpgaPulser(0,0x0)
 
-        #set output file
-        self.write_data.filename = "rawdata_gainMeasurement_%s_femb_%d_g_%d_s_%d_b_%d.bin" % \
-                                   (self.write_data.date, self.fembNum, self.gain, self.shape, self.base)
+        #setup output file and record data
+        self.write_data.filename = "rawdata_gainMeasurement_%s_g_%d_s_%d_b_%d.bin" % \
+                                   (self.write_data.date, self.gain, self.shape, self.base)
 
         print("Recording " + self.write_data.filename )
         self.write_data.numpacketsrecord = 50
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
-
-        #setup output file and record data
         self.write_data.open_file()
-        subrun = 0
-
-        #disable pulser
-        self.femb_config.setInternalPulser(0,0x0)
-        self.femb_config.setInternalPulser(0,0x0)
 
         #take initial noise data run
+        subrun = 0
         for asic in range(0,4,1):
             self.femb_config.turnOnAsic(asic)
             for asicCh in range(0,16,1):
@@ -155,12 +149,9 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.turnOnAsics()
         subrun = 1
         #loop over pulser configurations, each configuration is it's own subrun
-        #loop over signal sizes
         for p in range(1,64,1):
-        #for p in [0x0,0x1,0x3,0x7,0xF,0x1F]:
             pVal = int(p)
             #pVal = 1024 + int(p)*256
-            #self.femb_config.femb.write_reg_bits( 5, 0,0x3F,pVal) #test pulse amplitude
             self.femb_config.setInternalPulser(1,pVal)
             print("Pulse amplitude " + str(pVal) )
 
@@ -177,7 +168,7 @@ class FEMB_TEST_GAIN(object):
         self.write_data.close_file()
 
         #turn off pulser
-        self.femb_config.setInternalPulser(1,0)
+        self.femb_config.setInternalPulser(0,0)
 
         #turn off ASICs
         self.femb_config.turnOffAsics()
@@ -199,26 +190,26 @@ class FEMB_TEST_GAIN(object):
         self.cppfr.run("test_measurements/feAsicTest/parseBinaryFile", [self.write_data.data_file_path])
 
         #run analysis program
-        newName = "output_parseBinaryFile_" + self.write_data.filename + ".root"
+        newName = "output_parseBinaryFile_" + self.write_data.date + ".root"
         newPath = os.path.join(self.write_data.filedir, newName)
         call(["mv", "output_parseBinaryFile.root" , newPath])
         self.cppfr.run("test_measurements/feAsicTest/processNtuple_gainMeasurement",  [newPath])
 
-        newName = "output_processNtuple_gainMeasurement_" + self.write_data.filename + ".root"
+        newName = "output_processNtuple_gainMeasurement_" + self.write_data.date + ".root"
         newPath = os.path.join(self.write_data.filedir, newName)
         call(["mv", "output_processNtuple_gainMeasurement.root" , newPath])
         
-        newName = "summaryPlot_" + self.write_data.filename + ".png"
+        newName = "summaryPlot_" + self.write_data.date + ".png"
         newPath = os.path.join(self.write_data.filedir, newName)
         call(["mv", "summaryPlot_gainMeasurement.png" , newPath])
 
-        newName = "results_" + self.write_data.filename + ".list"
+        newName = "results_" + self.write_data.date + ".list"
         newPath = os.path.join(self.write_data.filedir, newName)
         call(["mv", "output_processNtuple_gainMeasurement.list" , newPath])
 
         #summary plot
-        print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
-        call(["display", newPath])
+        #print("GAIN MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
+        #call(["display", newPath])
 
         print("GAIN MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
@@ -234,16 +225,16 @@ class FEMB_TEST_GAIN(object):
         print("GAIN MEASUREMENT - ARCHIVE")
 
         #add summary variables to output
-        self.jsonlist['check_setup'] = str( self.status_check_setup )
-        self.jsonlist['record_data'] = str( self.status_record_data )
-        self.jsonlist['do_analysis'] = str( self.status_do_analysis )
-        self.jsonlist['filedir'] = str( self.write_data.filedir )
-        self.jsonlist['config_gain'] = str( self.gain )
-        self.jsonlist['config_shape'] = str( self.shape )
-        self.jsonlist['config_base'] = str( self.base )
+        self.jsondict['status_check_setup'] = str( self.status_check_setup )
+        self.jsondict['status_record_data'] = str( self.status_record_data )
+        self.jsondict['status_do_analysis'] = str( self.status_do_analysis )
+        self.jsondict['filedir'] = str( self.write_data.filedir )
+        self.jsondict['config_gain'] = str( self.gain )
+        self.jsondict['config_shape'] = str( self.shape )
+        self.jsondict['config_base'] = str( self.base )
 
         #parse the output results, kind of messy
-        newName = "results_" + self.write_data.filename + ".list"
+        newName = "results_" + self.write_data.date + ".list"
         newPath = os.path.join(self.write_data.filedir, newName)
 
         lines = []
@@ -258,30 +249,28 @@ class FEMB_TEST_GAIN(object):
                 continue
               parseline[ str(word[0]) ] = str(word[1])
             lines.append(parseline)
-        self.jsonlist['results'] = lines
-        jsonoutput = json.dumps(self.jsonlist, indent=4, sort_keys=True)
+        self.jsondict['results'] = lines
+        jsonoutput = json.dumps(self.jsondict, indent=4, sort_keys=True)
         print( jsonoutput )
  
         #dump results into json
-        newName = "results_" + self.write_data.filename + ".json"
+        newName = "results_" + self.write_data.date + ".json"
         newPath = os.path.join(self.write_data.filedir, newName)
         with open( newName , 'w') as outfile:
           json.dump(jsonoutput, outfile)
         call(["mv", newName , newPath ])
 
         #get required results from dict to propagate to GUI
+        """
         asicStatus = []
-        if "results" in self.jsonlist:
-          results = self.jsonlist["results"]
+        if "results" in self.jsondict:
+          results = self.jsondict["results"]
           for d in results:
             if "asic" in d:
               asicNum = d["asic"]
               fail = d["fail"]
               asicStatus.append( [asicNum,fail] )
-        #print("ASIC STATUS")
-        #print(asicStatus)
-
-        #placeholder
+        """
         print("GAIN MEASUREMENT - DONE ARCHIVING" + "\n")
         self.status_archive_results = 1
 
