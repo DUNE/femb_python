@@ -34,20 +34,20 @@ class DC_TESTS(object):
 
     def analyze(self,infilenames,verbose=False):
         allStats = []
-        for infilename in infilenames:
-            for iChan in range(16):
+        for iChan in range(16):
+            chanStats = {}
+            for infilename in infilenames:
                 data, serial, metadata = self.loadWaveform(iChan,infilename)
                 nData = len(data)
                 mean = numpy.mean(data)
                 std = numpy.std(data)
                 voltage = metadata["funcOffset"]
                 vStr = "CodeFor{:.1f}V".format(voltage)
-                chanStats = {}
                 chanStats["mean"+vStr] = mean
                 chanStats["rms"+vStr] = std
-                allStats.append(chanStats)
                 if verbose:
                     print("{} chan {} {:.1f} {:.2f}".format(vStr,iChan,mean,std))
+            allStats.append(chanStats)
         return allStats
 
     def loadWaveform(self,iChan,infilename):

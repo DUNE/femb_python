@@ -40,6 +40,7 @@ class ADC_TEST_SUMMARY(object):
         self.staticSummary = None
         self.dynamicSummary = None
         self.inputPinSummary = None
+        self.dcSummary = None
         self.testResults = None
         self.makeSummaries()
         self.checkPass()
@@ -50,6 +51,7 @@ class ADC_TEST_SUMMARY(object):
         self.staticSummary[chipSerial][clock][offset][statistic][channel]
         self.dynamicSummary[chipSerial][clock][offset][statistic][amp][freq][channel]
         self.inputPinSummary[chipSerial][clock][offset][statistic][channel]
+        self.dcSummary[chipSerial][clock][offset][statistic][channel]
 
         from:
         self.allStatsRaw[clock][offset][chipSerial]
@@ -93,6 +95,20 @@ class ADC_TEST_SUMMARY(object):
                 if len(inputPinSummary[chipSerial][clock]) == 0:
                     inputPinSummary[chipSerial].pop(clock)
         self.inputPinSummary = inputPinSummary
+
+        dcSummary = {}
+        for chipSerial in chipSerials:
+            dcSummary[chipSerial]={}
+            for clock in clocks:
+                dcSummary[chipSerial][clock]={}
+                for offset in offsets:
+                #    try:
+                        dcSummary[chipSerial][clock][offset] = self.makeStaticSummary(allStatsRaw[clock][offset][chipSerial]["dc"])
+                #    except KeyError:
+                #        pass
+                #if len(dcSummary[chipSerial][clock]) == 0:
+                #    dcSummary[chipSerial].pop(clock)
+        self.dcSummary = dcSummary
 
     def makeStaticSummary(self,stats):
         """
@@ -144,6 +160,7 @@ class ADC_TEST_SUMMARY(object):
     def get_summary(self,serial):
         result =  {"static":self.staticSummary[serial],
                 "dynamic":self.dynamicSummary[serial],
+                "dc":self.dcSummary[serial],
                 "serial":serial,"timestamp":self.testTime,
                 "hostname":self.hostname,"board_id":self.board_id,
                 "operator":self.operator,
@@ -191,6 +208,10 @@ class ADC_TEST_SUMMARY(object):
             }
             inputPinChecks = {
                 'mean': ["lt",3000.],
+            }
+            dcChecks = {
+                "meanCodeFor0.2V": ["lt",400],
+                "meanCodeFor1.6V": ["gt",3500],
             }
             for stat in staticChecks:
                 check = staticChecks[stat]
@@ -261,6 +282,27 @@ class ADC_TEST_SUMMARY(object):
                     if not statPass:
                         break
                 results["inputPin_"+stat] = statPass
+            for stat in dcChecks:
+                check = dcChecks[stat]
+                statPass = True
+                for clock in thisSummary['dc']:
+                    for offset in thisSummary['dc'][clock]:
+                        for channel in range(16):
+                            if check[0] == "lt":
+                                if thisSummary['dc'][clock][offset][stat][channel] >= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                            if check[0] == "gt":
+                                if thisSummary['dc'][clock][offset][stat][channel] <= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                        if not statPass:
+                            break
+                    if not statPass:
+                        break
+                results[stat] = statPass
             results["pass"] = thisPass
             self.testResults[serial] = results
 
