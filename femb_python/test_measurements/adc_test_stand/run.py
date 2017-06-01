@@ -9,6 +9,7 @@ from ...femb_udp import FEMB_UDP
 from ...test_instrument_interface import RigolDG4000
 from ...write_root_tree import WRITE_ROOT_TREE
 import sys
+import os.path
 import time
 import datetime
 import glob
@@ -260,11 +261,12 @@ class ADC_TEST_SUMMARY(object):
             results["pass"] = thisPass
             self.testResults[serial] = results
 
-def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,singleConfig=True,timestamp=None,sumatradict=None):
+def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,singleConfig=True,timestamp=None,sumatradict=None):
     """
     Runs the ADC tests for all chips on the ADC test board.
 
     config is the CONFIG object for the test board.
+    dataDir  is the output directory for data files
     adcSerialNumbers is a list of a serial numbers for the ADC ASICS
     startDateTime string identifying the time the tests are started
     operator is the operator user name string
@@ -317,6 +319,7 @@ def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,si
                 sys.stdout.flush()
                 chipStats = {}
                 fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
+                fileprefix = os.path.join(dataDir,fileprefix)
                 collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
                 print("Processing...")
                 static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
@@ -345,6 +348,7 @@ def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,si
             print("Collecting input pin data for chip: {} ...".format(iChip))
             sys.stdout.flush()
             fileprefix = "adcTestData_{}_inputPinTest_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
+            fileprefix = os.path.join(dataDir,fileprefix)
             collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,100,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
             static_fns = list(glob.glob(fileprefix+"_*.root"))
             assert(len(static_fns)==1)
@@ -353,14 +357,18 @@ def runTests(config,adcSerialNumbers,startDateTime,operator,board_id,hostname,si
             allStatsRaw[clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
             #with open(fileprefix+"_statsRaw.json","w") as f:
             #    json.dump(baselineRmsStats,f)
-    with open("adcTestData_{}_statsRaw.json".format(startDateTime),"w") as f:
+    statsRawJsonFn = "adcTestData_{}_statsRaw.json".format(startDateTime)
+    statsRawJsonFn = os.path.join(dataDir,statsRawJsonFn)
+    with open(statsRawJsonFn,"w") as f:
         json.dump(allStatsRaw,f)
     summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id,operator,sumatradict=sumatradict)
-    summary.write_jsons("adcTest_{}".format(startDateTime))
+    summary.write_jsons(os.path.join(dataDir,"adcTest_{}".format(startDateTime)))
     print("Making summary plots...")
     sys.stdout.flush()
     for serial in summary.get_serials():
-      SUMMARY_PLOTS(summary.get_summary(serial),"adcTest_{}_{}".format(startDateTime,serial),plotAll=True)
+      SUMMARY_PLOTS(summary.get_summary(serial),
+                os.path.join(dataDir,"adcTest_{}_{}".format(startDateTime,serial)),
+                plotAll=True)
 
 def main():
     from ...configuration.argument_parser import ArgumentParser
@@ -372,6 +380,7 @@ def main():
     parser.add_argument("-o", "--operator",help="Test operator name",type=str,default="Command-line Operator")
     parser.add_argument("-s", "--serial",help="Chip serial number, use multiple times for multiple chips, e.g. -s 1 -s 2 -s 3 -s 4",action='append',default=[])
     parser.add_argument("-b", "--board",help="Test board serial number",default=None)
+    parser.add_argument("-d", "--datadir",help="Directory for output data files",default="")
     parser.add_argument("-q", "--quick",help="Only run a single configuration (normally runs all clocks and offsets)",action='store_true')
     parser.add_argument("-p", "--profiler",help="Enable python timing profiler and save to given file name",type=str,default=None)
     parser.add_argument("-j", "--jsonfile",help="json options file location",default=None)
@@ -386,6 +395,7 @@ def main():
     operator = args.operator
     boardid = args.board
     serialNumbers = args.serial
+    dataDir = args.datadir
 
     options = None
 
@@ -398,6 +408,7 @@ def main():
                 operator = options["operator"]
                 boardid = options["board_id"]
                 serialNumbers = options["serials"]
+                dataDir = options["datadir"]
             except KeyError as e:
                 print("Error while parsing json input options: ",e)
                 sys.exit(1)
@@ -415,9 +426,9 @@ def main():
 
     if args.profiler:
         import cProfile
-        cProfile.runctx('chipsPass = runTests(config,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)',globals(),locals(),args.profiler)
+        cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)',globals(),locals(),args.profiler)
     else:
-        chipsPass = runTests(config,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)
+        chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)
     runTime = datetime.datetime.now() - startTime
     print("Test took: {:.0f} min {:.1f} s".format(runTime.total_seconds() // 60, runTime.total_seconds() % 60.))
     print("Chips Pass: ",chipsPass)
