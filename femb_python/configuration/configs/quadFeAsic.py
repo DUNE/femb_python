@@ -250,22 +250,22 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
  
         #leakage control 2, bit 4
 
-        #monitor contronl, bits 1-2
+        #monitor control, bits 1-2
 
         #internal DAC enable, bit 8
 
         #external DAC enable, bit 9
 
         #DAC OUTPUT bits 8-9 , 0xA00 = external DAC
- 
+
         #write ASIC SPI registers, note all ASICs+channels configured the same
         for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+20,1):
-          #print( str(regNum) + "\t" + str(hex(chWord)) )
-          self.femb.write_reg( regNum, chWord)
-        self.femb.write_reg( self.REG_FESPI_BASE+4, asicReg )
-        self.femb.write_reg( self.REG_FESPI_BASE+9, asicReg )
-        self.femb.write_reg( self.REG_FESPI_BASE+14, asicReg )
-        self.femb.write_reg( self.REG_FESPI_BASE+19, asicReg )
+            #print( str(regNum) + "\t" + str(hex(chWord)) )
+            self.femb.write_reg( regNum, chWord)
+            self.femb.write_reg( self.REG_FESPI_BASE+4, asicReg )
+            self.femb.write_reg( self.REG_FESPI_BASE+9, asicReg )
+            self.femb.write_reg( self.REG_FESPI_BASE+14, asicReg )
+            self.femb.write_reg( self.REG_FESPI_BASE+19, asicReg )
 
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
