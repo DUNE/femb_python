@@ -85,6 +85,7 @@ class SUMMARY_PLOTS(object):
             self.staticSummary(iClock,ax1,ax3,ax2,ax9)
             self.dynamicSummary(iClock,ax4,ax5)
             self.baselineSummary(iClock,ax7,ax8)
+            self.dcSummary(iClock,ax6)
             self.doLegend(fig,self.colorDict,patches=True,offsets=True)
             fig.savefig(self.outfileprefix + "_"+clockFn+".png")
             fig.savefig(self.outfileprefix + "_"+clockFn+".pdf")
@@ -110,7 +111,6 @@ class SUMMARY_PLOTS(object):
         ax2.set_ylabel("Stuck Code Fraction")
         ax3.set_ylabel("INL [LSB]")
         ax4.set_ylabel("Min ADC Code or Max ADC Code - 4095")
-        ax4.set_ylim(-50,400)
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
         markerstyle = ['o','s','*','p','^']*10
         legendDict1 = {}
@@ -154,6 +154,8 @@ class SUMMARY_PLOTS(object):
                 ax3.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i3])
                 legendDict3[stat] = (linestyle[i3],None)
                 i3 += 1
+              elif stat == "lsbPerV" or stat == "codeAtZeroV":
+                continue
               else:
                 data4 = numpy.array(data[offset][stat])
                 if stat[-1] == "V":
@@ -186,6 +188,13 @@ class SUMMARY_PLOTS(object):
         if ylim[1] < 1000:
             newylim[1] = 1000
         ax3.set_ylim(*newylim)
+        ylim = ax4.get_ylim()
+        newylim = [x for x in ylim]
+        if ylim[0] > -50:
+            newylim[0] = 50
+        if ylim[1] < 400:
+            newylim[1] = 400
+        ax4.set_ylim(*newylim)
         self.doLegend(ax1,legendDict1)
         #self.doLegend(ax2,legendDict2)
         self.doLegend(ax3,legendDict3)
@@ -291,6 +300,43 @@ class SUMMARY_PLOTS(object):
         ax2.set_ylim(*newylim)
         #self.doLegend(ax1,legendDict1)
         #self.doLegend(ax2,legendDict2)
+
+    def dcSummary(self,iClock,ax1):
+        data = None
+        try:
+            data = self.stats["dc"][iClock]
+        except KeyError:
+            try:
+                data = self.stats["dc"][str(iClock)]
+            except KeyError:
+                print("No dcSummary for iClock: ",iClock)
+                return
+        ax1.set_xlabel("Channel")
+        ax1.set_ylabel("ADC Code")
+        linestyle = ['solid',"dashed","dashdot","dotted"]*10
+        markerstyle = ['o','s','*','p','^']*10
+        legendDict1 = {}
+        for offset in self.offsets:
+            color = self.colorDict[offset]
+            i1 = 0
+            im1 = 0
+            for stat in sorted(data[offset]):
+              if stat == "meanCodeFor1.6V":
+                 ax1.plot(data[offset][stat],label=stat,c=color,marker=markerstyle[im1],ls="")
+                 legendDict1[stat[-4:]] = ("",markerstyle[im1])
+                 im1 += 1
+              elif stat == "meanCodeFor0.2V":
+                 ax1.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i1])
+                 legendDict1[stat[-4:]] = (linestyle[i1],None)
+                 i1 += 1
+        ylim = ax1.get_ylim()
+        newylim = [x for x in ylim]
+        if ylim[0] > -100:
+            newylim[0] = -100
+        if ylim[1] < 5000:
+            newylim[1] = 5000
+        ax1.set_ylim(*newylim)
+        self.doLegend(ax1,legendDict1)
 
     def doLegend(self,ax,legendDict,patches=False,offsets=False):
         legendHandles = []

@@ -24,6 +24,7 @@ from .calibrate_ramp import CALIBRATE_RAMP
 from .static_tests import STATIC_TESTS
 from .dynamic_tests import DYNAMIC_TESTS
 from .baseline_rms import BASELINE_RMS
+from .dc_tests import DC_TESTS
 from .summary_plots import SUMMARY_PLOTS
 
 class ADC_TEST_SUMMARY(object):
@@ -39,6 +40,7 @@ class ADC_TEST_SUMMARY(object):
         self.staticSummary = None
         self.dynamicSummary = None
         self.inputPinSummary = None
+        self.dcSummary = None
         self.testResults = None
         self.makeSummaries()
         self.checkPass()
@@ -49,6 +51,7 @@ class ADC_TEST_SUMMARY(object):
         self.staticSummary[chipSerial][clock][offset][statistic][channel]
         self.dynamicSummary[chipSerial][clock][offset][statistic][amp][freq][channel]
         self.inputPinSummary[chipSerial][clock][offset][statistic][channel]
+        self.dcSummary[chipSerial][clock][offset][statistic][channel]
 
         from:
         self.allStatsRaw[clock][offset][chipSerial]
@@ -92,6 +95,20 @@ class ADC_TEST_SUMMARY(object):
                 if len(inputPinSummary[chipSerial][clock]) == 0:
                     inputPinSummary[chipSerial].pop(clock)
         self.inputPinSummary = inputPinSummary
+
+        dcSummary = {}
+        for chipSerial in chipSerials:
+            dcSummary[chipSerial]={}
+            for clock in clocks:
+                dcSummary[chipSerial][clock]={}
+                for offset in offsets:
+                #    try:
+                        dcSummary[chipSerial][clock][offset] = self.makeStaticSummary(allStatsRaw[clock][offset][chipSerial]["dc"])
+                #    except KeyError:
+                #        pass
+                #if len(dcSummary[chipSerial][clock]) == 0:
+                #    dcSummary[chipSerial].pop(clock)
+        self.dcSummary = dcSummary
 
     def makeStaticSummary(self,stats):
         """
@@ -143,6 +160,7 @@ class ADC_TEST_SUMMARY(object):
     def get_summary(self,serial):
         result =  {"static":self.staticSummary[serial],
                 "dynamic":self.dynamicSummary[serial],
+                "dc":self.dcSummary[serial],
                 "serial":serial,"timestamp":self.testTime,
                 "hostname":self.hostname,"board_id":self.board_id,
                 "operator":self.operator,
@@ -181,13 +199,19 @@ class ADC_TEST_SUMMARY(object):
                 'INLabsMax400': ["lt",100.],
                 'INLabs75perc400': ["lt",50.],
                 'minCode': ["lt",300.],
-                'minCodeV': ["lt",0.5],
+                'minCodeV': ["lt",0.3],
+                #'maxCode': ["gt",3000.],
+                'maxCodeV': ["gt",1.7],
             }
             dynamicChecks = {
                 'sinads': ["gt",10.],
             }
             inputPinChecks = {
                 'mean': ["lt",3000.],
+            }
+            dcChecks = {
+                "meanCodeFor0.2V": ["lt",400],
+                "meanCodeFor1.6V": ["gt",3500],
             }
             for stat in staticChecks:
                 check = staticChecks[stat]
@@ -258,6 +282,27 @@ class ADC_TEST_SUMMARY(object):
                     if not statPass:
                         break
                 results["inputPin_"+stat] = statPass
+            for stat in dcChecks:
+                check = dcChecks[stat]
+                statPass = True
+                for clock in thisSummary['dc']:
+                    for offset in thisSummary['dc'][clock]:
+                        for channel in range(16):
+                            if check[0] == "lt":
+                                if thisSummary['dc'][clock][offset][stat][channel] >= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                            if check[0] == "gt":
+                                if thisSummary['dc'][clock][offset][stat][channel] <= check[1]:
+                                    statPass = False
+                                    thisPass = False
+                                    break
+                        if not statPass:
+                            break
+                    if not statPass:
+                        break
+                results[stat] = statPass
             results["pass"] = thisPass
             self.testResults[serial] = results
 
@@ -285,6 +330,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     static_tests = STATIC_TESTS(config)
     dynamic_tests = DYNAMIC_TESTS(config)
     baseline_rms = BASELINE_RMS()
+    dc_tests = DC_TESTS(config)
 
     clocks = [0,1] # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
     offsets = range(-1,16)
@@ -325,11 +371,14 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                 static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
                 assert(len(static_fns)==1)
                 static_fn = static_fns[0]
+                dc_fns = list(glob.glob(fileprefix+"_functype1_*.root"))
                 CALIBRATE_RAMP(static_fn).write_calibrate_tree()
                 staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
                 dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
+                dcStats = dc_tests.analyze(dc_fns,verbose=False)
                 chipStats["static"] = staticStats
                 chipStats["dynamic"] = dynamicStats
+                chipStats["dc"] = dcStats
                 configStats[adcSerialNumbers[iChip]] = chipStats
                 #with open(fileprefix+"_statsRaw.json","w") as f:
                 #    json.dump(chipStats,f)
