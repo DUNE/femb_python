@@ -332,6 +332,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         else :
                 self.femb.write_reg( self.REG_TP_MODE, 0x0) #pulser disabled
 
+        #reconfigure ASICs
+        self.femb.write_reg( self.REG_FESPI_BASE+4, 0x0 )
+        self.femb.write_reg( self.REG_FESPI_BASE+9, 0x0 )
+        self.femb.write_reg( self.REG_FESPI_BASE+14, 0x0 )
+        self.femb.write_reg( self.REG_FESPI_BASE+19, 0x0 )
+
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
+
         self.femb.write_reg( self.REG_TP_PERIOD_P, 0x01000100)
         self.femb.write_reg( self.REG_DAC_VALUE , dacVal )
         self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
@@ -349,15 +359,24 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 return
 
         if enableVal == 1 :
-                self.femb.write_reg( self.REG_TP_MODE, 0x7) #pulser enabled
+                self.femb.write_reg( self.REG_TP_MODE, 0x1) #pulser enabled
                 self.femb.write_reg( 18, 0x1) #pulser enabled
         else :
                 self.femb.write_reg( self.REG_TP_MODE, 0x0) #pulser disabled
                 self.femb.write_reg( 18, 0x0) #pulser enabled
 
-        #self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
-        #self.femb.write_reg( self.REG_SET_DAC , 0x1 ) #not necessary?
-        #self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
+        asicWord = 0x0
+        if enableVal == 1 :
+                asicWord = asicWord + (0x2 << 8)
+        #reconfigure ASICs
+        self.femb.write_reg( self.REG_FESPI_BASE+4, asicWord )
+        self.femb.write_reg( self.REG_FESPI_BASE+9, asicWord )
+        self.femb.write_reg( self.REG_FESPI_BASE+14, asicWord )
+        self.femb.write_reg( self.REG_FESPI_BASE+19, asicWord )
+
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
 
         self.femb.write_reg_bits( 17 , 6, 0x1, 0x0 ) #ASIC test pulse enable/disable
         self.femb.write_reg_bits( 17 , 7, 0x1, enableVal ) #FPGA test pulse enable/disable
