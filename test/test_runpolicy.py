@@ -25,7 +25,7 @@ import os
 # for real app, this unique jobid would be generated from user input 
 jobid = time.strftime("%Y%m%d-%H%M%S", time.gmtime(time.time()))
 
-basedir = '/tmp/runpolicy-test/'
+basedir = os.path.realpath('./test_runpolicy')
 rundir = os.path.join(basedir,"rundir")
 datadir = os.path.join(basedir,"datadir-%s"%jobid)
 paramfile = os.path.join(datadir,"params.json")
