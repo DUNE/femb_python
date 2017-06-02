@@ -90,6 +90,7 @@ class GUI_WINDOW(Frame):
 
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
         self.status_label.grid(row=100,column=columnbase,columnspan=2)
+        self.bkg_color = self.status_label.cget("background")
 
     def get_options(self,getCurrent=False):
         operator = self.operator_entry.get()
@@ -160,6 +161,7 @@ class GUI_WINDOW(Frame):
             tmp.destroy()
         self.status_label["text"] = "NOT STARTED"
         self.status_label["fg"] = "#000000"
+        self.status_label["bg"] = self.bkg_color
         self.runid_label["text"] = ""
         self.prepare_button["state"] = "normal"
         self.start_button["state"] = "disabled"
@@ -234,8 +236,14 @@ class GUI_WINDOW(Frame):
                             }
         #runner = DirectRunner(**runnerSetup)
         runner = SumatraRunner(**runnerSetup)
-        params = runner(**inputOptions)
-        #params = runner.resolve(**inputOptions) # use to test GUI w/o running test
+        try:
+            params = runner(**inputOptions)
+            #params = runner.resolve(**inputOptions) # use to test GUI w/o running test
+        except RuntimeError:
+            self.status_label["text"] = "Error in test program. Report to shift leader"
+            self.status_label["fg"] = "#FFFFFF"
+            self.status_label["bg"] = "#FF0000"
+            return
         self.done_measuring(params)
 
     def done_preparing_board(self):
