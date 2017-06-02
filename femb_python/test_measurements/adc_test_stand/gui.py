@@ -165,7 +165,7 @@ class GUI_WINDOW(Frame):
             tmp.terminate()
             try:
                 tmp.wait(2)
-            except TimeoutExpires:
+            except subprocess.TimeoutExpired:
                 tmp.kill()
             del tmp
         for i in reversed(range(len(self.result_labels))):
@@ -339,11 +339,11 @@ class GUI_WINDOW(Frame):
         for i in reversed(range(len(self.display_procs))):
             tmp = self.display_procs.pop(i)
             tmp.terminate()
-            del tmp
             try:
                 tmp.wait(4)
-            except TimeoutExpires:
+            except subprocess.TimeoutExpired:
                 tmp.kill()
+            del tmp
         self.destroy()
         self.master.destroy()
 
