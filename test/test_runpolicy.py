@@ -97,6 +97,12 @@ def test_with_sumatra():
     clear()
     r = make_runner(SumatraRunner, smtname="test_with_sumatra")
     r()
+
+def test_with_sumatra_pgsql():
+    clear()
+    r = make_runner(SumatraRunner, smtname="test_with_sumatra",
+                    smtstore="postgres://cetester_bviren@hothstor2.phy.bnl.gov/cetest_bviren")
+    r()
     
 
 if '__main__' == __name__:
