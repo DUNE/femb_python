@@ -14,6 +14,7 @@ import datetime
 import socket
 import os
 import os.path
+import sys
 import glob
 import json
 from time import sleep
@@ -135,6 +136,7 @@ class GUI_WINDOW(Frame):
         chipidstr = chipidstr[:-1]
         runid = "{} {} chip: {}".format(hostname,timestamp, chipidstr)
         print("runid: '{}'".format(runid))
+        femb_config_name = os.environ["FEMB_CONFIG"]
         inputOptions = {
             "operator": operator,
             "board_id": boardid,
@@ -142,6 +144,7 @@ class GUI_WINDOW(Frame):
             "timestamp": timestamp,
             "hostname": hostname,
             "runid": runid,
+            "femb_config_name": femb_config_name
         }
         if getCurrent:
             inputOptions["current"] = current
