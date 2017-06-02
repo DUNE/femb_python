@@ -58,7 +58,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicGain = 0 #4.7,7.8,14,25
         self.feasicShape = 1 #0.5,1,2,3
         self.feasicAcdc = 0 #AC = 0, DC = 1
-        self.feasicBuf = 1 #0 = OFF, 1 = ON
+        self.feasicBuf = 0 #0 = OFF, 1 = ON
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()

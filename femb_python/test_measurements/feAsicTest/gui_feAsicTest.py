@@ -413,6 +413,10 @@ ASIC 3 ID: {asic3id}
                                            gain_ind = gain, 
                                            shape_ind = shape, 
                                            base_ind = base,
+                                           leakage_ind = 0,
+                                           leakagex10_ind = 0,
+                                           buffer_ind = 0,
+                                           acdc_ind = 0,
                                            femb_num = 0,
                     )
                     if handler:
