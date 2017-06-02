@@ -58,7 +58,8 @@ class GUI_WINDOW(Frame):
             test_category = "feasic",
             test_version = "1",
             femb_config = femb_config,
-            asic_pass = [1,1,1,1]
+            asic_pass = [1,1,1,1],
+            power_ready = 0
         )
 
         # Check out the data disk situation and find the most available disk
@@ -105,7 +106,6 @@ class GUI_WINDOW(Frame):
             # This is some "project" name needed by Sumatra
             smtname = "{test_category}",
             );
-
 
 
         # make a runner to enforce consistent run policy for each time an
@@ -180,8 +180,6 @@ class GUI_WINDOW(Frame):
 
         label = Label(self, text="FE ASIC TESTS")
         label.grid(row=0,column=columnbase, columnspan=50)
-
-        #Adding the check test stand button
 
         load_button = Button(self, text="Load ASICs", command=self.load_asics,width=25)
         load_button.grid(row=1,column=columnbase,columnspan=25)
@@ -264,6 +262,11 @@ ASIC 2 ID: {asic2id}
 ASIC 3 ID: {asic3id}
         """.format(**self.params))
 
+        if (not self.params['power_ready']==1):
+            print("PRESS LOAD ASICS FIRST!")
+            self.start_button_result["text"] = "PRESS LOAD ASICS FIRST!"
+            self.update_idletasks()
+            return
         
         if not self.params['operator_name']:
             print("ENTER REQUIRED INFO")
@@ -336,6 +339,7 @@ ASIC 3 ID: {asic3id}
         self.runner(datasubdir="power",executable="femb_control_power", argstr="OFF")
         self.load_button_result["text"] = "Ok to load new ASICs"
         self.update_idletasks()
+        self.params['power_ready'] = 1
 
     def reset_gui(self):
         #Power down all 4 chips:
@@ -357,6 +361,8 @@ ASIC 3 ID: {asic3id}
         self.gain_enc_sequence_fpgadac_result["text"] = "GAIN+ENC FPGA DAC SUBSET OF SETTINGS - NOT STARTED"
         self.gain_enc_sequence_externaldac_result["text"] = "GAIN+ENC EXTERNAL DAC SUBSET OF SETTINGS - NOT STARTED"
         self.gain_enc_sequence_check_configs_result["text"] = "GAIN+ENC FOR ALTERNATE SETTINGS - NOT STARTED"
+
+        self.power_ready = 0
 
         self.update_idletasks()
 
