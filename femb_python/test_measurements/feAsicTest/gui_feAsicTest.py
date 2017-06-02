@@ -277,8 +277,7 @@ ASIC 3 ID: {asic3id}
         self.load_button_result["text"] = "Testing - do not remove"
         self.update_idletasks()
 
-        #for method in ["check_setup", "gain_enc_sequence", "gain_enc_sequence_fpgadac",  "gain_enc_sequence_externaldac", "check_configs"]:
-        for method in ["gain_enc_sequence_check_configs"]:
+        for method in ["check_setup", "gain_enc_sequence", "gain_enc_sequence_fpgadac",  "gain_enc_sequence_externaldac", "check_configs"]:
             LOUD = method.replace("_"," ").upper()
             methname = "do_" + method
             meth = getattr(self, methname)
@@ -456,19 +455,21 @@ ASIC 3 ID: {asic3id}
     
     def do_gain_enc_sequence(self):
         self.generic_sequence("gain_enc_sequence", "femb_feasic_gain",
-                              #range(4), range(4), range(2),
+                              #range(4), range(4), range(2), 0 , 0 , 0 , 0 ,
                               [2] , [2] , [0] , 0 , 0 , 0 , 0 ,
                               handler=self.handle_gain_result)
         return
 
     def do_gain_enc_sequence_fpgadac(self):
         self.generic_sequence("gain_enc_sequence_fpgadac", "femb_feasic_gain_fpgadac",
+                              #range(4), [1], [0] , 0 , 0 , 0 , 0 ,
                               [2], [1], [0] , 0 , 0 , 0 , 0 ,
                               handler=self.handle_gain_result)
         return
 
     def do_gain_enc_sequence_externaldac(self):
         self.generic_sequence("gain_enc_sequence_externaldac", "femb_feasic_gain_externaldac",
+                              #range(4), [1], [0] , 0 , 0 , 0 , 0 ,
                               [2], [1], [0] , 0 , 0 , 0 , 0 ,
                               handler=self.handle_gain_result)
         return
@@ -484,12 +485,10 @@ ASIC 3 ID: {asic3id}
         self.generic_sequence("gain_enc_sequence_check_configs", "femb_feasic_gain",
                               [2], [1], [0] , 1 , 1 , 0 , 0 ,
                               handler=self.handle_gain_result)
-
         #buffer test
         self.generic_sequence("gain_enc_sequence_check_configs", "femb_feasic_gain",
                               [2], [1], [0] , 0 , 0 , 1 , 0 ,
                               handler=self.handle_gain_result)
-
         #acdc test
         self.generic_sequence("gain_enc_sequence_check_configs", "femb_feasic_gain",
                               [2], [1], [0] , 0 , 0 , 0 , 1 ,
