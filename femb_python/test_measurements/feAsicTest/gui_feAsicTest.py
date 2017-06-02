@@ -113,8 +113,10 @@ class GUI_WINDOW(Frame):
         # they are known up to know.  They will be overridden and augmented
         # when the runner is called.
         if self.use_sumatra:
+            print ("Using Sumatra")
             self.runner = runpolicy.SumatraRunner(**self.params)
-        self.runner = runpolicy.DirectRunner(**self.params)
+        else:
+            self.runner = runpolicy.DirectRunner(**self.params)
         return
 
     def define_test_details_column(self):
@@ -277,7 +279,11 @@ ASIC 3 ID: {asic3id}
         self.load_button_result["text"] = "Testing - do not remove"
         self.update_idletasks()
 
-        for method in ["check_setup", "gain_enc_sequence", "gain_enc_sequence_fpgadac",  "gain_enc_sequence_externaldac", "gain_enc_sequence_check_configs"]:
+        for method in ["check_setup",
+                       "gain_enc_sequence",
+                       "gain_enc_sequence_fpgadac",
+                       "gain_enc_sequence_externaldac",
+                       "gain_enc_sequence_check_configs"]:
             LOUD = method.replace("_"," ").upper()
             methname = "do_" + method
             meth = getattr(self, methname)
