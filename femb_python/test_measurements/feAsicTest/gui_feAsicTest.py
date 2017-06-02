@@ -58,10 +58,7 @@ class GUI_WINDOW(Frame):
             test_category = "feasic",
             test_version = "1",
             femb_config = femb_config,
-            asic0_pass = 1,
-            asic1_pass = 1,
-            asic2_pass = 1,
-            asic3_pass = 1
+            asic_pass = [1,1,1,1]
         )
 
         # Check out the data disk situation and find the most available disk
@@ -298,25 +295,25 @@ ASIC 3 ID: {asic3id}
         self.start_button_result["text"] = "DONE"
 
 
-        if (self.params['asic0_pass']):
+        if (self.params['asic_pass'][0]):
             self.asic0_result["text"] = "ASIC 0 Result: Pass"
             self.asic0_result["fg"] = "green"
         else:
             self.asic0_result["text"] = "ASIC 0 Result: Fail"
             self.asic0_result["fg"] = "red"
-        if (self.params['asic1_pass']):
+        if (self.params['asic_pass'][1]):
             self.asic1_result["text"] = "ASIC 1 Result: Pass"
             self.asic1_result["fg"] = "green"
         else:
             self.asic1_result["text"] = "ASIC 1 Result: Fail"
             self.asic1_result["fg"] = "red"
-        if (self.params['asic2_pass']):
+        if (self.params['asic_pass'][2]):
             self.asic2_result["text"] = "ASIC 2 Result: Pass"
             self.asic2_result["fg"] = "green"            
         else:
             self.asic2_result["text"] = "ASIC 2 Result: Fail"
             self.asic2_result["fg"] = "red"            
-        if (self.params['asic3_pass']):
+        if (self.params['asic_pass'][3]):
             self.asic3_result["text"] = "ASIC 3 Result: Pass"
             self.asic3_result["fg"] = "green"            
         else:
@@ -432,22 +429,18 @@ ASIC 3 ID: {asic3id}
         output_file = [f for f in os.listdir(params['datadir']) if ".list" in f]
         file_name = params['datadir'] + "/" + output_file[0]
         print("From "+file_name)
-        file = open(file_name)
-        for line in file:
-            if ( line[0:4] == "asic" ):
-                print("ASIC",line[5],"fail",line[12])
-                if ( line[12] == 1 ):
-                    if ( line[5] == 0 ):
-                        params['asic0_pass'] = 0
-                    if ( line[5] == 1 ):
-                        params['asic1_pass'] = 0
-                    if ( line[5] == 2 ):
-                        params['asic2_pass'] = 0
-                    if ( line[5] == 3 ):
-                        params['asic3_pass'] = 0
-
-        print('\n')
-        
+        myfile = open(file_name)
+        asic = -99
+        for line in myfile.readlines():
+            if "asic" in line:
+                cols = line.split(',')
+                asic = int(cols[0][-1:])
+                failvar = int(cols[1].strip()[-1:])
+                if (failvar==1):
+                    self.params['asic_pass'][asic] = 0
+                if (asic>3):
+                    break
+        myfile.close()
         return
     
     def do_gain_enc_sequence(self):
