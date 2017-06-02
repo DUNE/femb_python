@@ -50,8 +50,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_FRAME_SIZE = 40
         self.REG_DAC_ADC_EN = 60
 
-        self.feasicLeakageLow = 0 #0 = 500pA, 1 = 100pA
-        self.feasicLeakageHi = 0 #0 = pA, 1 = pA*10
+        self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
+        self.feasicLeakagex10 = 0 #0 = pA, 1 = pA*10
         
         self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
         self.feasicBaseline = 0 #0 = 900mV, 1 = 200mV
@@ -188,13 +188,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #configure ASICs to default
 
         #global config varibles
-        slk0Val = int( self.feasicLeakageLow ) # 0 = 500pA, 1 = 100pA
-        slk1Val = int( self.feasicLeakageHi ) # 0 = pA, 1 = pA*10
-
-        if (slk0Val < 0 ) or (slk0Val > 1):
-            return
-        if (slk1Val < 0 ) or (slk1Val > 1):
-            return
+        feasicLeakageVal = int( self.feasicLeakage ) #0 = 500pA, 1 = 100pA
+        feasicLeakagex10Val = int( self.feasicLeakagex10 ) #0 = x1, 1 = x10
         
         #channel specific variables
         testVal = int( self.feasicEnableTestInput )
@@ -215,6 +210,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if (acdcVal < 0 ) or (acdcVal > 1):
                 return
         if (bufVal < 0 ) or (bufVal > 1):
+                return
+        if (feasicLeakageVal < 0 ) or (feasicLeakageVal > 1 ):
+                return
+        if (feasicLeakagex10Val < 0) or (feasicLeakagex10Val > 1):
                 return
 
         chReg = 0
@@ -246,8 +245,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #asicReg = int(0x0A00)
         
         #leakage control 1, bit 0
+        asicReg = asicReg + ((feasicLeakageVal & 0x01)<<0)
  
         #leakage control 2, bit 4
+        asicReg = asicReg + ((feasicLeakagex10Val & 0x01)<<4)
 
         #monitor control, bits 1-2
 
@@ -261,10 +262,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+20,1):
             #print( str(regNum) + "\t" + str(hex(chWord)) )
             self.femb.write_reg( regNum, chWord)
-            self.femb.write_reg( self.REG_FESPI_BASE+4, asicReg )
-            self.femb.write_reg( self.REG_FESPI_BASE+9, asicReg )
-            self.femb.write_reg( self.REG_FESPI_BASE+14, asicReg )
-            self.femb.write_reg( self.REG_FESPI_BASE+19, asicReg )
+        self.femb.write_reg( self.REG_FESPI_BASE+4, asicReg )
+        self.femb.write_reg( self.REG_FESPI_BASE+9, asicReg )
+        self.femb.write_reg( self.REG_FESPI_BASE+14, asicReg )
+        self.femb.write_reg( self.REG_FESPI_BASE+19, asicReg )
 
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
@@ -331,6 +332,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         else :
                 self.femb.write_reg( self.REG_TP_MODE, 0x0) #pulser disabled
 
+        #reconfigure ASICs
+        self.femb.write_reg( self.REG_FESPI_BASE+4, 0x0 )
+        self.femb.write_reg( self.REG_FESPI_BASE+9, 0x0 )
+        self.femb.write_reg( self.REG_FESPI_BASE+14, 0x0 )
+        self.femb.write_reg( self.REG_FESPI_BASE+19, 0x0 )
+
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
+
         self.femb.write_reg( self.REG_TP_PERIOD_P, 0x01000100)
         self.femb.write_reg( self.REG_DAC_VALUE , dacVal )
         self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
@@ -348,15 +359,24 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 return
 
         if enableVal == 1 :
-                self.femb.write_reg( self.REG_TP_MODE, 0x7) #pulser enabled
+                self.femb.write_reg( self.REG_TP_MODE, 0x1) #pulser enabled
                 self.femb.write_reg( 18, 0x1) #pulser enabled
         else :
                 self.femb.write_reg( self.REG_TP_MODE, 0x0) #pulser disabled
                 self.femb.write_reg( 18, 0x0) #pulser enabled
 
-        #self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
-        #self.femb.write_reg( self.REG_SET_DAC , 0x1 ) #not necessary?
-        #self.femb.write_reg( self.REG_SET_DAC , 0x0 ) #not necessary?
+        asicWord = 0x0
+        if enableVal == 1 :
+                asicWord = asicWord + (0x2 << 8)
+        #reconfigure ASICs
+        self.femb.write_reg( self.REG_FESPI_BASE+4, asicWord )
+        self.femb.write_reg( self.REG_FESPI_BASE+9, asicWord )
+        self.femb.write_reg( self.REG_FESPI_BASE+14, asicWord )
+        self.femb.write_reg( self.REG_FESPI_BASE+19, asicWord )
+
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
 
         self.femb.write_reg_bits( 17 , 6, 0x1, 0x0 ) #ASIC test pulse enable/disable
         self.femb.write_reg_bits( 17 , 7, 0x1, enableVal ) #FPGA test pulse enable/disable

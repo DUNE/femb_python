@@ -175,8 +175,10 @@ Analyze::Analyze(std::string inputFileName){
 	hGainVsChan = new TH1F("hGainVsChan","",numChan,0-0.5,numChan-0.5);
 	hEncVsChan = new TH1F("hEncVsChan","",numChan,0-0.5,numChan-0.5);
 
-	for(int sr = 0 ; sr < 64 ; sr++ ){
-  		signalSizes[sr] = signalSizes[sr]*183*6241;//test capacitor, convert to e-
+        double initVal = signalSizes[0];
+        signalSizes[0] = 0;
+	for(int sr = 1 ; sr < 64 ; sr++ ){
+  		signalSizes[sr] = (signalSizes[sr]-initVal)*183*6241;//test capacitor, convert to e-
         }
 }
 
