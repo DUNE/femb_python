@@ -19,6 +19,7 @@ import glob
 import json
 from time import sleep
 from tkinter import *
+import subprocess
 
 #import the test module
 from ...configuration import CONFIG
@@ -36,6 +37,7 @@ class GUI_WINDOW(Frame):
 
         self.timestamp = None
         self.result_labels = []
+        self.display_procs = []
         #Define general commands column
         self.define_test_details_column()
         self.reset()
@@ -156,6 +158,10 @@ class GUI_WINDOW(Frame):
         print("POWER DOWN")
         self.config.POWERSUPPLYINTER.off()
         self.timestamp = None
+        for i in reversed(range(len(self.display_procs))):
+            tmp = self.display_procs.pop(i)
+            tmp.terminate()
+            del tmp
         for i in reversed(range(len(self.result_labels))):
             tmp = self.result_labels.pop(i)
             tmp.destroy()
@@ -226,8 +232,8 @@ class GUI_WINDOW(Frame):
 
         runnerSetup = {
                                 "executable": "femb_adc_run",
-                                #"argstr": "-q -j {paramfile}",
-                                "argstr": "-j {paramfile}",
+                                "argstr": "-q -j {paramfile}",
+                                #"argstr": "-j {paramfile}",
                                 "basedir": data_base_dir,
                                 "rundir": "{basedir}/adc/{hostname}",
                                 "datadir": "{rundir}/Data/{timestamp}",
@@ -274,7 +280,7 @@ class GUI_WINDOW(Frame):
 #        timestamp = "2017-06-01T17:38:29"
         outfileglob = "adcTest_{}_*.json".format(timestamp)
         outfileglob = os.path.join(datadir,outfileglob)
-        print(outfileglob)
+        #print(outfileglob)
         outfilenames = glob.glob(outfileglob)
         print(outfilenames)
         if len(outfilenames) != self.config.NASICS:
@@ -315,6 +321,13 @@ class GUI_WINDOW(Frame):
                 label.grid(row=rowbase+iTest+1,column=columnbase+1+iCol)
                 self.result_labels.append(label)
             titles_made = True
+        imgfileglob = "adcTest_{}_*.png".format(timestamp)
+        imgfileglob = os.path.join(datadir,imgfileglob)
+        print(imgfileglob)
+        imgfilenames = glob.glob(imgfileglob)
+        print(imgfilenames)
+        for imgfilename in imgfilenames:
+            self.display_procs.append(subprocess.Popen(["display","-resize","800x800",imgfilename]))
 
 def main():
     root = Tk()
