@@ -277,7 +277,7 @@ ASIC 3 ID: {asic3id}
         self.load_button_result["text"] = "Testing - do not remove"
         self.update_idletasks()
 
-        for method in ["check_setup", "gain_enc_sequence", "gain_enc_sequence_fpgadac",  "gain_enc_sequence_externaldac", "check_configs"]:
+        for method in ["check_setup", "gain_enc_sequence", "gain_enc_sequence_fpgadac",  "gain_enc_sequence_externaldac", "gain_enc_sequence_check_configs"]:
             LOUD = method.replace("_"," ").upper()
             methname = "do_" + method
             meth = getattr(self, methname)
