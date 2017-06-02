@@ -159,7 +159,7 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.turnOnAsics()
         subrun = 1
         #loop over pulser configurations, each configuration is it's own subrun
-        for p in range(1,10,1):
+        for p in range(1,64,1):
             pVal = int(p)
             #pVal = 1024 + int(p)*256
             self.femb_config.setInternalPulser(1,pVal)
