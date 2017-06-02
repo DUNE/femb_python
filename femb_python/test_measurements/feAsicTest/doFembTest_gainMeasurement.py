@@ -45,6 +45,10 @@ class FEMB_TEST_GAIN(object):
         self.gain = 0
         self.shape = 0
         self.base = 0
+        self.leakage = 0
+        self.leakagex10 = 0
+        self.buffer = 0
+        self.acdc = 0
 
         #json output, note module version number defined here
         self.jsondict = {'type':'quadFeAsic_gain'}
@@ -119,6 +123,10 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.feasicGain = self.gain
         self.femb_config.feasicShape = self.shape
         self.femb_config.feasicBaseline = self.base
+        self.femb_config.feasicLeakageVal = self.leakage
+        self.femb_config.feasicLeakagex10Val = self.leakagex10
+        self.femb_config.bufVal = self.buffer
+        self.femb_config.acdcVal = self.acdc
         self.femb_config.configFeAsic()
 
         #disable pulser
@@ -283,6 +291,10 @@ def main():
     ftg.gain = params['gain_ind']
     ftg.shape = params['shape_ind']
     ftg.base = params['base_ind']
+    ftg.leakage = params['leakage_ind']
+    ftg.leakagex10 = params['leakagex10_ind']
+    ftg.buffer = params['buffer_ind']
+    ftg.acdc = params['acdc_ind']
 
     ftg.check_setup()
     ftg.record_data()

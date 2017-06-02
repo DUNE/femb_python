@@ -379,7 +379,7 @@ ASIC 3 ID: {asic3id}
     def generic_sequence_handler(self, **params):
         '''Generically handle results after an executable runs.  The params
         are the resolved input parameters'''
-        button = getattr(self, params['method']+"_result")
+        button = getattr(self, self.params['method']+"_result")
         button["text"] = title + " - DONE"
         self.update_idletasks()        
 
@@ -413,6 +413,10 @@ ASIC 3 ID: {asic3id}
                                            gain_ind = gain, 
                                            shape_ind = shape, 
                                            base_ind = base,
+                                           leakage_ind = 0,
+                                           leakagex10_ind = 0,
+                                           buffer_ind = 0,
+                                           acdc_ind = 0,
                                            femb_num = 0,
                     )
                     if handler:
@@ -422,14 +426,30 @@ ASIC 3 ID: {asic3id}
 
 
     def handle_gain_result(self, **params):
-        # ETW: fill this in
-        #Check pass/fail for each test
-        #output_file = [f for f in os.listdir(self.params['datadir']) if ".list" in f]
-        #print("ETW TEST>>>>>>"+output_file)
-        #ETW - not actually reading anything yet, just to test!!!
-        self.params['asic1_pass'] = 0
+        """
+        Check pass/fail for each test
+        """
+        output_file = [f for f in os.listdir(params['datadir']) if ".list" in f]
+        file_name = params['datadir'] + "/" + output_file[0]
+        print("From "+file_name)
+        file = open(file_name)
+        for line in file:
+            if ( line[0:4] == "asic" ):
+                print("ASIC",line[5],"fail",line[12])
+                if ( line[12] == 1 ):
+                    if ( line[5] == 0 ):
+                        params['asic0_pass'] = 0
+                    if ( line[5] == 1 ):
+                        params['asic1_pass'] = 0
+                    if ( line[5] == 2 ):
+                        params['asic2_pass'] = 0
+                    if ( line[5] == 3 ):
+                        params['asic3_pass'] = 0
 
-
+        print('\n')
+        
+        return
+    
     def do_gain_enc_sequence(self):
         self.generic_sequence("gain_enc_sequence", "femb_feasic_gain",
                               #range(4), range(4), range(2),

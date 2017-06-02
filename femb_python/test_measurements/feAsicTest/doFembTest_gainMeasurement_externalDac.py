@@ -248,7 +248,7 @@ class FEMB_TEST_GAIN_EXTERNALDAC(object):
         print( jsonoutput )
  
         #dump results into json
-        jsonFile = self.outpathlabel + "-results.list"
+        jsonFile = self.outpathlabel + "-results.json"
         with open( jsonFile , 'w') as outfile:
             json.dump(jsonoutput, outfile)
 
