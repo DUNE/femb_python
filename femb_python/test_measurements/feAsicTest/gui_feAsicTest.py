@@ -115,6 +115,20 @@ class GUI_WINDOW(Frame):
         if self.use_sumatra:
             print ("Using Sumatra")
             self.runner = runpolicy.SumatraRunner(**self.params)
+
+            pghost = os.environ.get("PGHOST")
+            if pghost:
+                print (" with PostgreSQL database at %s" % pghost)
+                self.params.update(
+                    smtstore="postgres://{pguser}@{pghost}/{pgdatabase}",
+                    pguser = os.environ['PGUSER'],
+                    pghost = os.environ['PGHOST'],
+                    pgdatabase = os.environ['PGDATABASE'],
+                )
+            else:
+                print (" with Sqlite3 database in rundir")
+
+
         else:
             self.runner = runpolicy.DirectRunner(**self.params)
         return
