@@ -42,6 +42,8 @@ class GUI_WINDOW(Frame):
         self.define_test_details_column()
         self.reset()
 
+        self.master.protocol("WM_DELETE_WINDOW", self.exit)
+
     def define_test_details_column(self):
         columnbase=0
 
@@ -161,6 +163,10 @@ class GUI_WINDOW(Frame):
         for i in reversed(range(len(self.display_procs))):
             tmp = self.display_procs.pop(i)
             tmp.terminate()
+            try:
+                tmp.wait(2)
+            except TimeoutExpires:
+                tmp.kill()
             del tmp
         for i in reversed(range(len(self.result_labels))):
             tmp = self.result_labels.pop(i)
@@ -232,8 +238,8 @@ class GUI_WINDOW(Frame):
 
         runnerSetup = {
                                 "executable": "femb_adc_run",
-                                "argstr": "-q -j {paramfile}",
-                                #"argstr": "-j {paramfile}",
+                                #"argstr": "-q -j {paramfile}",
+                                "argstr": "-j {paramfile}",
                                 "basedir": data_base_dir,
                                 "rundir": "{basedir}/adc/{hostname}",
                                 "datadir": "{rundir}/Data/{timestamp}",
@@ -328,6 +334,18 @@ class GUI_WINDOW(Frame):
         print(imgfilenames)
         for imgfilename in imgfilenames:
             self.display_procs.append(subprocess.Popen(["display","-resize","800x800",imgfilename]))
+
+    def exit(self,*args, **kargs):
+        for i in reversed(range(len(self.display_procs))):
+            tmp = self.display_procs.pop(i)
+            tmp.terminate()
+            del tmp
+            try:
+                tmp.wait(4)
+            except TimeoutExpires:
+                tmp.kill()
+        self.destroy()
+        self.master.destroy()
 
 def main():
     root = Tk()
