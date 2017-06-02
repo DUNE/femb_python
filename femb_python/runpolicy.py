@@ -117,6 +117,7 @@ class Runner(object):
 
 
     def resolve(self, **user_params):
+
         params = self.default_params.copy()
         params.update(user_params)
 
@@ -296,6 +297,8 @@ class SumatraRunner(Runner):
         self.assuredir(datadir)
 
         smtname = params['smtname']       # required
+        smtstore = params['smtstore']
+        print ("Initializing Sumatra: %s at %s" % (smtname, smtstore))
 
         # Initialize git. 
 

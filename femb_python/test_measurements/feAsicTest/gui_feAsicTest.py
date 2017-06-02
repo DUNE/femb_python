@@ -114,8 +114,6 @@ class GUI_WINDOW(Frame):
         # when the runner is called.
         if self.use_sumatra:
             print ("Using Sumatra")
-            self.runner = runpolicy.SumatraRunner(**self.params)
-
             pghost = os.environ.get("PGHOST")
             if pghost:
                 print (" with PostgreSQL database at %s" % pghost)
@@ -128,6 +126,7 @@ class GUI_WINDOW(Frame):
             else:
                 print (" with Sqlite3 database in rundir")
 
+            self.runner = runpolicy.SumatraRunner(**self.params)
 
         else:
             self.runner = runpolicy.DirectRunner(**self.params)
