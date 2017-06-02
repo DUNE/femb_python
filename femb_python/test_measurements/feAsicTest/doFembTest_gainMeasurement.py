@@ -120,6 +120,8 @@ class FEMB_TEST_GAIN(object):
 
         #initialize FEMB configuration to known state
         print("FE ASIC Settings: Gain " + str(self.gain) + ", Shaping Time " + str(self.shape) + ", Baseline " + str(self.base) )
+        print("FE ASIC Settings: Leakage Current " + str(self.leakage) + ", Leakage x10 " + str(self.leakagex10) )
+        print("FE ASIC Settings: Output Buffer " + str(self.buffer) + ", AC/DC " + str(self.acdc) )
         self.femb_config.feasicGain = self.gain
         self.femb_config.feasicShape = self.shape
         self.femb_config.feasicBaseline = self.base
