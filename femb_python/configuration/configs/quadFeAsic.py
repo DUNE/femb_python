@@ -259,7 +259,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #write ASIC SPI registers, note all ASICs+channels configured the same
         for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+20,1):
-            print( str(regNum) + "\t" + str(hex(chWord)) )
+            #print( str(regNum) + "\t" + str(hex(chWord)) )
             self.femb.write_reg( regNum, chWord)
             self.femb.write_reg( self.REG_FESPI_BASE+4, asicReg )
             self.femb.write_reg( self.REG_FESPI_BASE+9, asicReg )
