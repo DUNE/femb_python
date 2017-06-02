@@ -245,7 +245,7 @@ class FEMB_TEST_GAIN_EXTERNALDAC(object):
                 lines.append(parseline)
         self.jsondict['results'] = lines
         jsonoutput = json.dumps(self.jsondict, indent=4, sort_keys=True)
-        print( jsonoutput )
+        #print( jsonoutput )
  
         #dump results into json
         jsonFile = self.outpathlabel + "-results.json"
