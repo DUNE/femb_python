@@ -241,8 +241,8 @@ class SumatraRunner(Runner):
     canonical = (
         ('rundir','.'),
         ('datadir','.'),
-        ('stdout','{datadir}/output.log'),
-        ('stderr','{datadir}/error.log'),
+        ('stdout',None),
+        ('stderr',None),
         ('paramfile','{rundir}/params.json'),
         ('smtname',None),
         ('smtstore',"{rundir}/sumatra.sqlite"),   # replace with PSQL URL
