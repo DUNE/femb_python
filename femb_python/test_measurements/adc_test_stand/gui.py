@@ -33,6 +33,7 @@ class GUI_WINDOW(Frame):
 
         self.config = CONFIG()
 
+        self.timestamp = None
         self.result_labels = []
         #Define general commands column
         self.define_test_details_column()
@@ -123,7 +124,10 @@ class GUI_WINDOW(Frame):
             print("ASIC {} ID: '{}'".format(i,asic_ids[i]))
 
         # need serialnumber list, operator, board_id, timestamp, hostname
-        timestamp = datetime.datetime.now().replace(microsecond=0).isoformat()
+        timestamp = self.timestamp
+        if timestamp is None:
+            timestamp = datetime.datetime.now().replace(microsecond=0).isoformat()
+        self.timestamp = timestamp
         hostname = socket.gethostname() 
         chipidstr = ""
         for i in asic_ids:
@@ -147,6 +151,7 @@ class GUI_WINDOW(Frame):
     def reset(self):
         print("POWER DOWN")
         self.config.POWERSUPPLYINTER.off()
+        self.timestamp = None
         for i in reversed(range(len(self.result_labels))):
             tmp = self.result_labels.pop(i)
             tmp.destroy()
