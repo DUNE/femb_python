@@ -357,6 +357,7 @@ ASIC 3 ID: {asic3id}
     def reset_gui(self):
         #Power down all 4 chips:
         self.runner(datasubdir="power",executable="femb_control_power", argstr="OFF")
+        self.params['power_ready'] = 0
 
         #Reset GUI:
         self.operator_entry.delete(0,1000)
@@ -366,7 +367,8 @@ ASIC 3 ID: {asic3id}
         self.asic1_entry.delete(0,1000)
         self.asic2_entry.delete(0,1000)
         self.asic3_entry.delete(0,1000)
-
+        self.params['asic_pass'] = [1,1,1,1]
+        
         self.load_button_result["text"] = "Press Load ASICs before loading"
         self.start_button_result["text"] = "NOT STARTED"
         self.check_setup_result["text"] = "CHECK SETUP - NOT STARTED"
@@ -378,8 +380,6 @@ ASIC 3 ID: {asic3id}
         now = time.time()
         self.params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
         self.params["session_start_unix"] = now
-
-        self.power_ready = 0
 
         self.update_idletasks()
 
