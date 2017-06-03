@@ -149,7 +149,7 @@ class FEMB_TEST_GAIN_FPGADAC(object):
         self.femb_config.turnOnAsics()
         subrun = 1
         #loop over pulser configurations, each configuration is it's own subrun
-        #for p in range(1,10,1):
+        #for p in range(1,2,1):
         for p in range(1,0x3F,1):
             pVal = int(p)
             self.femb_config.setFpgaPulser(1,pVal)

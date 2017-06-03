@@ -73,9 +73,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("Initialize board")
 
         #turn on ASICs
-        self.femb.write_reg( self.REG_TST_SW, 0x0)
+        self.turnOnAsics()
         #pause after turning on ASICs
-        time.sleep(5)
+        time.sleep(1)
 
         #Set DAC to 0
         self.femb.write_reg( self.REG_SET_DAC , 0x0 )
