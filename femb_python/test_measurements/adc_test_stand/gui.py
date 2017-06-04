@@ -267,7 +267,8 @@ class GUI_WINDOW(Frame):
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
             return
-        self.done_measuring(params)
+        else:
+            self.done_measuring(params)
 
     def done_preparing_board(self):
         ## once prepared....
@@ -293,8 +294,8 @@ class GUI_WINDOW(Frame):
         self.reset_button["activebackground"] = "#A3CCA3"
         datadir = params["datadir"]
         timestamp = params["timestamp"]
-#        datadir = "/home/jhugon/data/adc/hothdaq4/Data/2017-06-01T17:38:29"
-#        timestamp = "2017-06-01T17:38:29"
+        #datadir = "/home/jhugon/data/adc/hothdaq4/olddata/2017-06-02T14:24:54"
+        #timestamp = "2017-06-02T14:24:54"
         outfileglob = "adcTest_{}_*.json".format(timestamp)
         outfileglob = os.path.join(datadir,outfileglob)
         #print(outfileglob)
@@ -316,6 +317,7 @@ class GUI_WINDOW(Frame):
             results = data["testResults"]
             serial = data["serial"]
             theseTestNames = sorted(list(results.keys()))
+            theseTestNames.pop(theseTestNames.index("pass")) # don't want in list
             if titles_made:
                 assert(theseTestNames == testNames)
             else:
@@ -326,16 +328,31 @@ class GUI_WINDOW(Frame):
             label = Label(self, text=serial)
             label.grid(row=rowbase,column=columnbase+1+iCol)
             self.result_labels.append(label)
+            # overall pass fail
+            if results["pass"]:
+                label = Label(self, text="PASS",bg="#00CC00")
+                label.grid(row=rowbase+2,column=columnbase+1+iCol)
+                self.result_labels.append(label)
+            else:
+                label = Label(self, text="FAIL",bg="#FF0000")
+                label.grid(row=rowbase+2,column=columnbase+1+iCol)
+                self.result_labels.append(label)
+            label = Label(self, text="") # just to put a blank space
+            label.grid(row=rowbase+3,column=columnbase+1+iCol)
+            self.result_labels.append(label)
+            # individual tests:
             for iTest, test in enumerate(testNames):
                 if not titles_made:
                     label = Label(self, text=test,anchor=E,justify=LEFT)
-                    label.grid(row=rowbase+iTest+1,column=columnbase)
+                    label.grid(row=rowbase+iTest+5,column=columnbase)
                     self.result_labels.append(label)
                 color = "#FF0000"
+                text = "FAIL"
                 if results[test]:
-                    color = "#00FF00"
-                label = Label(self, text="",width=4,bg=color)
-                label.grid(row=rowbase+iTest+1,column=columnbase+1+iCol)
+                    color = "#00CC00"
+                    text = "OK"
+                label = Label(self, text=text,width=4,bg=color)
+                label.grid(row=rowbase+iTest+5,column=columnbase+1+iCol)
                 self.result_labels.append(label)
             titles_made = True
         imgfileglob = "adcTest_{}_*.png".format(timestamp)
