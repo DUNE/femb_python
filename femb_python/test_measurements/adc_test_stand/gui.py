@@ -153,6 +153,17 @@ class GUI_WINDOW(Frame):
         }
         if getCurrent:
             inputOptions["current"] = current
+        pghost = os.environ.get("PGHOST")
+        if pghost:
+            print ("Using PostgreSQL database at %s" % pghost)
+            inputOptions.update(
+                smtstore="postgres://{pguser}@{pghost}/{pgdatabase}",
+                pguser = os.environ['PGUSER'],
+                pghost = os.environ['PGHOST'],
+                pgdatabase = os.environ['PGDATABASE'],
+            )
+        else:
+            print ("Using Sqlite3 database in rundir")
         print(inputOptions)
         return inputOptions
 
@@ -238,7 +249,7 @@ class GUI_WINDOW(Frame):
 
         runnerSetup = {
                                 "executable": "femb_adc_run",
-                                #"argstr": "-q -j {paramfile}",
+                                #"argstr": "--quick -j {paramfile}",
                                 "argstr": "-j {paramfile}",
                                 "basedir": data_base_dir,
                                 "rundir": "{basedir}/adc/{hostname}",

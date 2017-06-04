@@ -84,6 +84,7 @@ setup(
 	'configparser>=3.5.0',
         'sumatra>=0.5.1',
         'gitpython>=2.1.3',
+        'psycopg2>=2.7.1'
     ],
 
     # List additional groups of dependencies here (e.g. development
