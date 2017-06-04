@@ -230,7 +230,7 @@ class GUI_WINDOW(Frame):
         self.status_label["fg"] = "#000000"
         self.update_idletasks()
 
-        data_base_dir = "/dsk/1"
+        data_base_dir = "/dsk/1/data"
         try:
             data_base_dir = os.environ["FEMB_DATA_DIR"]
         except KeyError:
