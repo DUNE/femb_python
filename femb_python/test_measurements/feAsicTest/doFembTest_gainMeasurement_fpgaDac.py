@@ -139,6 +139,7 @@ class FEMB_TEST_GAIN_FPGADAC(object):
         #take initial noise data run
         subrun = 0
         for asic in range(0,4,1):
+            self.femb_config.turnOffAsics()
             self.femb_config.turnOnAsic(asic)
             for asicCh in range(0,16,1):
                 self.femb_config.selectChannel(asic,asicCh)
