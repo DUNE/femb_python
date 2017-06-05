@@ -105,6 +105,8 @@ class Runner(object):
         Wrap up the low level running of some command
         '''
         print ('Running "%s" in %s' % (cmdstr, cwd))
+        if cwd == ".":
+            print ("which is: %s" % os.path.realpath(cwd))
         sc = subprocess.run(cmdstr, cwd=cwd, shell=shell)
         if sc.stdout:
             print (sc.stdout)
@@ -115,6 +117,7 @@ class Runner(object):
 
 
     def resolve(self, **user_params):
+
         params = self.default_params.copy()
         params.update(user_params)
 
@@ -239,8 +242,8 @@ class SumatraRunner(Runner):
     canonical = (
         ('rundir','.'),
         ('datadir','.'),
-        ('stdout','{datadir}/output.log'),
-        ('stderr','{datadir}/error.log'),
+        ('stdout',None),
+        ('stderr',None),
         ('paramfile','{rundir}/params.json'),
         ('smtname',None),
         ('smtstore',"{rundir}/sumatra.sqlite"),   # replace with PSQL URL
@@ -294,6 +297,8 @@ class SumatraRunner(Runner):
         self.assuredir(datadir)
 
         smtname = params['smtname']       # required
+        smtstore = params['smtstore']
+        print ("Initializing Sumatra: %s at %s" % (smtname, smtstore))
 
         # Initialize git. 
 
@@ -302,6 +307,7 @@ class SumatraRunner(Runner):
 
         dotgit = os.path.join(rundir, '.git')
         if not os.path.exists(dotgit):
+            print ("Initializing Git in: %s" % rundir)
             sc = self.exec("git init", rundir)
 
             touch = params.get("smtprime","readme.txt")
@@ -317,6 +323,7 @@ class SumatraRunner(Runner):
         dotsmt = os.path.join(rundir, '.smt')
         if os.path.exists(dotsmt):
             return
+        print ("Initializing Sumatra in: %s" % rundir)
         cmd = "smt init -s {smtstore} -r . {smtname}".format(**params)
         self.exec(cmd, rundir)
         return

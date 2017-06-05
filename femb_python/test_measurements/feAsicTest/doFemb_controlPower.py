@@ -28,12 +28,12 @@ class FEMB_CONTROL_POWER(object):
         self.femb_config = CONFIG()
 
     def power_off(self):
-        self.femb_config.turnOffAsics()
         print("Powering down all four ASICs")
+        self.femb_config.turnOffAsics()
         
     def power_on(self):
-        self.femb_config.turnOnAsics()
         print("Powering up all four ASICs")        
+        self.femb_config.turnOnAsics()
 
 def main():
     '''Power off the ASICs!

@@ -238,7 +238,8 @@ void Analyze::outputResults(){
 	int numBadAsic2Channels = 0;
 	int numBadAsic3Channels = 0;
         for(int ch = 0 ; ch < numChan ; ch++ ){
-		if( badChannelMask[ch] == 1 ){
+		double channelGain = hGainVsChan->GetBinContent(ch+1);
+		if( badChannelMask[ch] == 1 || channelGain == 0 ){
 			numBadChannels++;
 			if( ch >= 0 && ch < 16 ){
 				numBadAsic0Channels++;

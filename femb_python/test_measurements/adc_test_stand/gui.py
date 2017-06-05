@@ -14,10 +14,12 @@ import datetime
 import socket
 import os
 import os.path
+import sys
 import glob
 import json
 from time import sleep
 from tkinter import *
+import subprocess
 
 #import the test module
 from ...configuration import CONFIG
@@ -33,10 +35,14 @@ class GUI_WINDOW(Frame):
 
         self.config = CONFIG()
 
+        self.timestamp = None
         self.result_labels = []
+        self.display_procs = []
         #Define general commands column
         self.define_test_details_column()
         self.reset()
+
+        self.master.protocol("WM_DELETE_WINDOW", self.exit)
 
     def define_test_details_column(self):
         columnbase=0
@@ -88,6 +94,7 @@ class GUI_WINDOW(Frame):
 
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
         self.status_label.grid(row=100,column=columnbase,columnspan=2)
+        self.bkg_color = self.status_label.cget("background")
 
     def get_options(self,getCurrent=False):
         operator = self.operator_entry.get()
@@ -123,7 +130,10 @@ class GUI_WINDOW(Frame):
             print("ASIC {} ID: '{}'".format(i,asic_ids[i]))
 
         # need serialnumber list, operator, board_id, timestamp, hostname
-        timestamp = datetime.datetime.now().replace(microsecond=0).isoformat()
+        timestamp = self.timestamp
+        if timestamp is None:
+            timestamp = datetime.datetime.now().replace(microsecond=0).isoformat()
+        self.timestamp = timestamp
         hostname = socket.gethostname() 
         chipidstr = ""
         for i in asic_ids:
@@ -131,6 +141,7 @@ class GUI_WINDOW(Frame):
         chipidstr = chipidstr[:-1]
         runid = "{} {} chip: {}".format(hostname,timestamp, chipidstr)
         print("runid: '{}'".format(runid))
+        femb_config_name = os.environ["FEMB_CONFIG"]
         inputOptions = {
             "operator": operator,
             "board_id": boardid,
@@ -138,20 +149,42 @@ class GUI_WINDOW(Frame):
             "timestamp": timestamp,
             "hostname": hostname,
             "runid": runid,
+            "femb_config_name": femb_config_name
         }
         if getCurrent:
             inputOptions["current"] = current
+        pghost = os.environ.get("PGHOST")
+        if pghost:
+            print ("Using PostgreSQL database at %s" % pghost)
+            inputOptions.update(
+                smtstore="postgres://{pguser}@{pghost}/{pgdatabase}",
+                pguser = os.environ['PGUSER'],
+                pghost = os.environ['PGHOST'],
+                pgdatabase = os.environ['PGDATABASE'],
+            )
+        else:
+            print ("Using Sqlite3 database in rundir")
         print(inputOptions)
         return inputOptions
 
     def reset(self):
         print("POWER DOWN")
         self.config.POWERSUPPLYINTER.off()
+        self.timestamp = None
+        for i in reversed(range(len(self.display_procs))):
+            tmp = self.display_procs.pop(i)
+            tmp.terminate()
+            try:
+                tmp.wait(2)
+            except subprocess.TimeoutExpired:
+                tmp.kill()
+            del tmp
         for i in reversed(range(len(self.result_labels))):
             tmp = self.result_labels.pop(i)
             tmp.destroy()
         self.status_label["text"] = "NOT STARTED"
         self.status_label["fg"] = "#000000"
+        self.status_label["bg"] = self.bkg_color
         self.runid_label["text"] = ""
         self.prepare_button["state"] = "normal"
         self.start_button["state"] = "disabled"
@@ -208,7 +241,7 @@ class GUI_WINDOW(Frame):
         self.status_label["fg"] = "#000000"
         self.update_idletasks()
 
-        data_base_dir = "/dsk/1"
+        data_base_dir = "/dsk/1/data"
         try:
             data_base_dir = os.environ["FEMB_DATA_DIR"]
         except KeyError:
@@ -216,7 +249,7 @@ class GUI_WINDOW(Frame):
 
         runnerSetup = {
                                 "executable": "femb_adc_run",
-                                #"argstr": "-q -j {paramfile}",
+                                #"argstr": "--quick -j {paramfile}",
                                 "argstr": "-j {paramfile}",
                                 "basedir": data_base_dir,
                                 "rundir": "{basedir}/adc/{hostname}",
@@ -226,9 +259,16 @@ class GUI_WINDOW(Frame):
                             }
         #runner = DirectRunner(**runnerSetup)
         runner = SumatraRunner(**runnerSetup)
-        params = runner(**inputOptions)
-        #params = runner.resolve(**inputOptions) # use to test GUI w/o running test
-        self.done_measuring(params)
+        try:
+            params = runner(**inputOptions)
+            #params = runner.resolve(**inputOptions) # use to test GUI w/o running test
+        except RuntimeError:
+            self.status_label["text"] = "Error in test program. Report to shift leader"
+            self.status_label["fg"] = "#FFFFFF"
+            self.status_label["bg"] = "#FF0000"
+            return
+        else:
+            self.done_measuring(params)
 
     def done_preparing_board(self):
         ## once prepared....
@@ -254,11 +294,11 @@ class GUI_WINDOW(Frame):
         self.reset_button["activebackground"] = "#A3CCA3"
         datadir = params["datadir"]
         timestamp = params["timestamp"]
-#        datadir = "/home/jhugon/data/adc/hothdaq4/Data/2017-06-01T17:38:29"
-#        timestamp = "2017-06-01T17:38:29"
+        #datadir = "/home/jhugon/data/adc/hothdaq4/olddata/2017-06-02T14:24:54"
+        #timestamp = "2017-06-02T14:24:54"
         outfileglob = "adcTest_{}_*.json".format(timestamp)
         outfileglob = os.path.join(datadir,outfileglob)
-        print(outfileglob)
+        #print(outfileglob)
         outfilenames = glob.glob(outfileglob)
         print(outfilenames)
         if len(outfilenames) != self.config.NASICS:
@@ -277,6 +317,7 @@ class GUI_WINDOW(Frame):
             results = data["testResults"]
             serial = data["serial"]
             theseTestNames = sorted(list(results.keys()))
+            theseTestNames.pop(theseTestNames.index("pass")) # don't want in list
             if titles_made:
                 assert(theseTestNames == testNames)
             else:
@@ -287,18 +328,52 @@ class GUI_WINDOW(Frame):
             label = Label(self, text=serial)
             label.grid(row=rowbase,column=columnbase+1+iCol)
             self.result_labels.append(label)
+            # overall pass fail
+            if results["pass"]:
+                label = Label(self, text="PASS",bg="#00CC00")
+                label.grid(row=rowbase+2,column=columnbase+1+iCol)
+                self.result_labels.append(label)
+            else:
+                label = Label(self, text="FAIL",bg="#FF0000")
+                label.grid(row=rowbase+2,column=columnbase+1+iCol)
+                self.result_labels.append(label)
+            label = Label(self, text="") # just to put a blank space
+            label.grid(row=rowbase+3,column=columnbase+1+iCol)
+            self.result_labels.append(label)
+            # individual tests:
             for iTest, test in enumerate(testNames):
                 if not titles_made:
                     label = Label(self, text=test,anchor=E,justify=LEFT)
-                    label.grid(row=rowbase+iTest+1,column=columnbase)
+                    label.grid(row=rowbase+iTest+5,column=columnbase)
                     self.result_labels.append(label)
                 color = "#FF0000"
+                text = "FAIL"
                 if results[test]:
-                    color = "#00FF00"
-                label = Label(self, text="",width=4,bg=color)
-                label.grid(row=rowbase+iTest+1,column=columnbase+1+iCol)
+                    color = "#00CC00"
+                    text = "OK"
+                label = Label(self, text=text,width=4,bg=color)
+                label.grid(row=rowbase+iTest+5,column=columnbase+1+iCol)
                 self.result_labels.append(label)
             titles_made = True
+        imgfileglob = "adcTest_{}_*.png".format(timestamp)
+        imgfileglob = os.path.join(datadir,imgfileglob)
+        print(imgfileglob)
+        imgfilenames = glob.glob(imgfileglob)
+        print(imgfilenames)
+        for imgfilename in imgfilenames:
+            self.display_procs.append(subprocess.Popen(["display","-resize","800x800",imgfilename]))
+
+    def exit(self,*args, **kargs):
+        for i in reversed(range(len(self.display_procs))):
+            tmp = self.display_procs.pop(i)
+            tmp.terminate()
+            try:
+                tmp.wait(4)
+            except subprocess.TimeoutExpired:
+                tmp.kill()
+            del tmp
+        self.destroy()
+        self.master.destroy()
 
 def main():
     root = Tk()

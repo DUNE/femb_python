@@ -120,6 +120,8 @@ class FEMB_TEST_GAIN(object):
 
         #initialize FEMB configuration to known state
         print("FE ASIC Settings: Gain " + str(self.gain) + ", Shaping Time " + str(self.shape) + ", Baseline " + str(self.base) )
+        print("FE ASIC Settings: Leakage Current " + str(self.leakage) + ", Leakage x10 " + str(self.leakagex10) )
+        print("FE ASIC Settings: Output Buffer " + str(self.buffer) + ", AC/DC " + str(self.acdc) )
         self.femb_config.feasicGain = self.gain
         self.femb_config.feasicShape = self.shape
         self.femb_config.feasicBaseline = self.base
@@ -147,6 +149,7 @@ class FEMB_TEST_GAIN(object):
         #take initial noise data run
         subrun = 0
         for asic in range(0,4,1):
+            self.femb_config.turnOffAsics()
             self.femb_config.turnOnAsic(asic)
             for asicCh in range(0,16,1):
                 self.femb_config.selectChannel(asic,asicCh)
@@ -157,7 +160,7 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.turnOnAsics()
         subrun = 1
         #loop over pulser configurations, each configuration is it's own subrun
-        for p in range(1,10,1):
+        for p in range(1,64,1):
             pVal = int(p)
             #pVal = 1024 + int(p)*256
             self.femb_config.setInternalPulser(1,pVal)
@@ -254,7 +257,7 @@ class FEMB_TEST_GAIN(object):
                 lines.append(parseline)
         self.jsondict['results'] = lines
         jsonoutput = json.dumps(self.jsondict, indent=4, sort_keys=True)
-        print( jsonoutput )
+        #print( jsonoutput )
  
         #dump results into json
         jsonFile = self.outpathlabel + "-results.json"

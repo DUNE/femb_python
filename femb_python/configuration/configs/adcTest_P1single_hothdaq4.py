@@ -1,7 +1,7 @@
 #!/usr/bin/env python33
 
 """
-Configuration for P1 ADC single-chip board on hothdaq3
+Configuration for P1 ADC single-chip board on hothdaq4
 Mainly uses the Rigol signal generator for now
 """
 
@@ -73,7 +73,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.NASICS = 1
         self.FUNCGENINTER = RigolDG4000("/dev/usbtmc0",1)
-        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc1",["CH1","CH2"])
+        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc1",["CH2","CH1"]) # turn on CH2 first
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
 

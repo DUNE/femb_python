@@ -73,9 +73,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("Initialize board")
 
         #turn on ASICs
-        self.femb.write_reg( self.REG_TST_SW, 0x0)
+        self.turnOnAsics()
         #pause after turning on ASICs
-        time.sleep(5)
+        time.sleep(1)
 
         #Set DAC to 0
         self.femb.write_reg( self.REG_SET_DAC , 0x0 )
@@ -113,22 +113,28 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 print( "femb_config_femb : turnOnAsics - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
                 return
         print( "turnOnAsic " + str(asicVal) )
-        self.femb.write_reg( self.REG_TST_SW, 0xF) #turn off all
+        #self.femb.write_reg( self.REG_TST_SW, 0xF) #turn off all
         self.femb.write_reg_bits( self.REG_TST_SW , asicVal, 0x1, 0x0 )
-        time.sleep(5) #pause after turn on
+        time.sleep(1) #pause after turn on
 
         #start ASICs
         self.femb.write_reg( self.REG_START, 1)
         self.configFeAsic()
 
     def turnOnAsics(self):
-        print( "Turn On Asics" )
-        self.femb.write_reg( self.REG_TST_SW, 0x0)
-        time.sleep(5) #pause after turn on
+        #print( "Turn On Asics" )
+        #self.femb.write_reg( self.REG_TST_SW, 0x0)
+        #time.sleep(1) #pause after turn on
         #start ASICs
-        self.femb.write_reg( self.REG_START, 1)
-        self.configFeAsic()
+        #self.femb.write_reg( self.REG_START, 1)
+        #self.configFeAsic()
 
+        self.turnOnAsic(0)
+        self.turnOnAsic(1)
+        self.turnOnAsic(2)
+        self.turnOnAsic(3)
+        
+        
         """
     def powerCycle(self,asic):
         print( "Repeat ASIC",asic,"power cycles" )

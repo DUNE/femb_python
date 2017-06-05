@@ -25,7 +25,7 @@ import os
 # for real app, this unique jobid would be generated from user input 
 jobid = time.strftime("%Y%m%d-%H%M%S", time.gmtime(time.time()))
 
-basedir = '/tmp/runpolicy-test/'
+basedir = os.path.realpath('./test_runpolicy')
 rundir = os.path.join(basedir,"rundir")
 datadir = os.path.join(basedir,"datadir-%s"%jobid)
 paramfile = os.path.join(datadir,"params.json")
@@ -96,6 +96,12 @@ def test_per_call_args():
 def test_with_sumatra():
     clear()
     r = make_runner(SumatraRunner, smtname="test_with_sumatra")
+    r()
+
+def test_with_sumatra_pgsql():
+    clear()
+    r = make_runner(SumatraRunner, smtname="test_with_sumatra",
+                    smtstore="postgres://cetester_bviren@hothstor2.phy.bnl.gov/cetest_bviren")
     r()
     
 

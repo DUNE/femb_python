@@ -139,6 +139,7 @@ class FEMB_TEST_GAIN_FPGADAC(object):
         #take initial noise data run
         subrun = 0
         for asic in range(0,4,1):
+            self.femb_config.turnOffAsics()
             self.femb_config.turnOnAsic(asic)
             for asicCh in range(0,16,1):
                 self.femb_config.selectChannel(asic,asicCh)
@@ -149,8 +150,8 @@ class FEMB_TEST_GAIN_FPGADAC(object):
         self.femb_config.turnOnAsics()
         subrun = 1
         #loop over pulser configurations, each configuration is it's own subrun
-        for p in range(1,10,1):
-        #for p in range(1,0x3F,1):
+        #for p in range(1,2,1):
+        for p in range(1,0x3F,1):
             pVal = int(p)
             self.femb_config.setFpgaPulser(1,pVal)
             print("Pulse amplitude " + str(pVal) )
@@ -246,7 +247,7 @@ class FEMB_TEST_GAIN_FPGADAC(object):
                 lines.append(parseline)
         self.jsondict['results'] = lines
         jsonoutput = json.dumps(self.jsondict, indent=4, sort_keys=True)
-        print( jsonoutput )
+        #print( jsonoutput )
  
         #dump results into json
         jsonFile = self.outpathlabel + "-results.json"
