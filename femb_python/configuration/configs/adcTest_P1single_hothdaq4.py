@@ -1,7 +1,7 @@
 #!/usr/bin/env python33
 
 """
-Configuration for P1 ADC single-chip board on hothdaq3
+Configuration for P1 ADC single-chip board on hothdaq4
 Mainly uses the Rigol signal generator for now
 """
 
