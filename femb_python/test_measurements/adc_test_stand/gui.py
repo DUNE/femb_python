@@ -14,6 +14,7 @@ import datetime
 import socket
 import os
 import os.path
+import pwd
 import sys
 import glob
 import json
@@ -142,6 +143,7 @@ class GUI_WINDOW(Frame):
         runid = "{} {} chip: {}".format(hostname,timestamp, chipidstr)
         print("runid: '{}'".format(runid))
         femb_config_name = os.environ["FEMB_CONFIG"]
+        linux_username = pwd.getpwuid(os.getuid()).pw_name
         inputOptions = {
             "operator": operator,
             "board_id": boardid,
@@ -149,7 +151,8 @@ class GUI_WINDOW(Frame):
             "timestamp": timestamp,
             "hostname": hostname,
             "runid": runid,
-            "femb_config_name": femb_config_name
+            "femb_config_name": femb_config_name,
+            "linux_username": linux_username,
         }
         if getCurrent:
             inputOptions["current"] = current
