@@ -191,7 +191,7 @@ class SUMMARY_PLOTS(object):
         ylim = ax4.get_ylim()
         newylim = [x for x in ylim]
         if ylim[0] > -50:
-            newylim[0] = 50
+            newylim[0] = -50
         if ylim[1] < 400:
             newylim[1] = 400
         ax4.set_ylim(*newylim)
