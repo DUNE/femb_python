@@ -87,6 +87,7 @@ class GUI_WINDOW(Frame):
         self.params.update(
 
             user = username,
+            hostname = os.uname()[1],
             datadisk = datadisk,
 
             # The rundir is where each individual job starts and should be
@@ -105,6 +106,8 @@ class GUI_WINDOW(Frame):
 
             # This is some "project" name needed by Sumatra
             smtname = "{test_category}",
+
+            smttag = "{hostname},{datadisk}",
             );
 
 
