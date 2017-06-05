@@ -107,6 +107,7 @@ class RANKING(object):
                     ax.set_xlabel("min({})".format(statName))
                     ax.set_ylabel("ASICs / bin")
                     ax.hist(minVals[statName],histtype="step")
+                    self.set_xticks(ax)
             plt.tight_layout()
             fig.savefig("ADC_ranking_mins_page{}.png".format(iFig))
         for iFig in range(int(numpy.ceil(nStats/nPerFig))):
@@ -123,8 +124,15 @@ class RANKING(object):
                     ax.set_xlabel("max({})".format(statName))
                     ax.set_ylabel("ASICs / bin")
                     ax.hist(maxVals[statName],histtype="step")
+                    self.set_xticks(ax)
             plt.tight_layout()
             fig.savefig("ADC_ranking_maxs_page{}.png".format(iFig))
+
+    def set_xticks(self,ax):
+        xlim = ax.get_xlim()
+        xticks = numpy.linspace(xlim[0],xlim[1],4)
+        xticklabels = ["{:.1g}".format(x) for x in xticks]
+        ax.set_xticks(xticks)
 
     def getminmaxstats(self,data,dynamic=False):
         result = {}
