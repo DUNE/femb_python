@@ -77,6 +77,7 @@ class RigolDG4000(object):
             self.sourceString+":FREQuency {:f}".format(freq),
             self.sourceString+":VOLTage:AMPLitude {:f}".format(peakToPeak),
             self.sourceString+":VOLTage:OFFSet {:f}".format(offset),
+            self.outputString+":load 50", # could be infinity, but like 50 ohm
         ]
         for command in commands:
             self.writeCommand(command)
@@ -93,6 +94,7 @@ class RigolDG4000(object):
         commands = [
             self.sourceString+":FUNCtion DC",
             self.sourceString+":VOLTage:OFFSet {:f}".format(voltage),
+            self.outputString+":load 50", # could be infinity, but like 50 ohm
         ]
         for command in commands:
             self.writeCommand(command)
@@ -117,6 +119,7 @@ class RigolDG4000(object):
             self.sourceString+":FREQuency {:f}".format(freq),
             self.sourceString+":VOLTage:LOW {:f}".format(minV),
             self.sourceString+":VOLTage:HIGH {:f}".format(maxV),
+            self.outputString+":load 50", # could be infinity, but like 50 ohm
         ]
         for command in commands:
             self.writeCommand(command)
