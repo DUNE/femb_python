@@ -25,28 +25,48 @@ from matplotlib.figure import Figure
 
 class RANKING(object):
 
-    def __init__(self,inglobstr):
+    def __init__(self,inglobstrs):
         """
         inglobstr is a string that can be parsed by glob to make a list of
         directories containing json files or json files to be analyzed.
         Directories found in the glob will be walked to find subdirectories 
         containing json files.
         """
-        inpathlist = glob.glob(inglobstr)
         jsonpaths = []
-        for inpath in inpathlist:
-            for directory, subdirs, filenames in os.walk(inpath):
-                for filename in filenames:
-                    if os.path.splitext(filename)[1] == ".json" and "adcTest" == filename[:7] and not ("Raw" in filename):
-                        jsonpath = os.path.join(directory,filename)
-                        jsonpaths.append(jsonpath)
-                        print(jsonpath)
+        for inglobstr in inglobstrs:
+            inpathlist = glob.glob(inglobstr)
+            for inpath in inpathlist:
+                for directory, subdirs, filenames in os.walk(inpath):
+                    for filename in filenames:
+                        if os.path.splitext(filename)[1] == ".json" and "adcTest" == filename[:7] and not ("Raw" in filename):
+                            jsonpath = os.path.join(directory,filename)
+                            jsonpaths.append(jsonpath)
+                            print(jsonpath)
         datadicts = []
         for jsonpath in jsonpaths:
             with open(jsonpath) as jsonfile:
                 datadict = json.load(jsonfile)
                 datadicts.append(datadict)
         self.datadicts = datadicts
+
+        # 0 for min 1 for max
+        self.statsToDraw = {
+            "DNL75perc400": 1,
+            "DNLmax400": 1,
+            "INLabs75perc400": 1,
+            "INLabsMax400": 1,
+            "codeAtZeroV": 1,
+            "minCode": 1,
+            "minCodeV": 1,
+            "maxCode": 0,
+            "maxCodeV": 0,
+            "inputPin_mean": 1,
+            "meanCodeFor0.2V": 1,
+            "meanCodeFor1.6V": 0,
+            "sinads_f62365.0_a0.6": 0,
+            "sinads_f951512.5_a0.6": 0,
+            "stuckCodeFrac400": 1,
+        }
 
     def rank(self):
         datadicts = self.getlatestdata()
@@ -65,7 +85,7 @@ class RANKING(object):
             except KeyError:
                 print("Warning: now input pin stats for chip",serial)
             else:
-                asic_stats.update(self.getminmaxstats(inputPin))
+                asic_stats.update(self.getminmaxstats(inputPin,inputPin=True))
             try:
                 dc = datadict["dc"]
             except KeyError:
@@ -76,6 +96,8 @@ class RANKING(object):
             for stat in asic_stats:
                 statNames.add(stat)
         statNames = sorted(list(statNames))
+        print("AllStatNames:")
+        print(sorted(statNames))
         maxVals = {}
         minVals = {}
         for statName in statNames:
@@ -88,8 +110,10 @@ class RANKING(object):
                 except KeyError as e:
                     print("Warning KeyError for asic: ",serial," stat: ",statName," error: ",e)
                     pass
-        nStats = len(statNames)
-        print(statNames)
+        statNamesToDraw = sorted(self.statsToDraw)
+        nStats = len(statNamesToDraw)
+        print("statNamesToDraw:")
+        print(statNamesToDraw)
         nx = 4
         ny = 4
         nPerFig = nx*ny
@@ -99,34 +123,26 @@ class RANKING(object):
             axes = [y for x in axes2D for y in x]
             for iAx, ax in enumerate(axes):
                 try:
-                    statName = statNames[iFig*nPerFig+iAx]
+                    statName = statNamesToDraw[iFig*nPerFig+iAx]
                 except IndexError:
                     ax.axis("off")
                     continue
                 else:
-                    ax.set_xlabel("min({})".format(statName))
                     ax.set_ylabel("ASICs / bin")
-                    ax.hist(minVals[statName],histtype="step")
+                    try:
+                        if self.statsToDraw[statName] == 0: # min
+                            ax.hist(minVals[statName],histtype="step")
+                            ax.set_xlabel("min({})".format(statName))
+                        else: #max
+                            ax.hist(maxVals[statName],histtype="step")
+                            ax.set_xlabel("max({})".format(statName))
+                    except KeyError as e:
+                        print("Warning: Could not find stat to draw",e)
                     self.set_xticks(ax)
+                    ax.set_ylim(0,ax.get_ylim()[1]*1.2)
             plt.tight_layout()
-            fig.savefig("ADC_ranking_mins_page{}.png".format(iFig))
-        for iFig in range(int(numpy.ceil(nStats/nPerFig))):
-            fig, axes2D = plt.subplots(4,4,figsize=(12,12))
-            #fig.subplots_adjust(left=0.07,right=0.93,bottom=0.05,top=0.95,wspace=0.25)
-            axes = [y for x in axes2D for y in x]
-            for iAx, ax in enumerate(axes):
-                try:
-                    statName = statNames[iFig*nPerFig+iAx]
-                except IndexError:
-                    ax.axis("off")
-                    continue
-                else:
-                    ax.set_xlabel("max({})".format(statName))
-                    ax.set_ylabel("ASICs / bin")
-                    ax.hist(maxVals[statName],histtype="step")
-                    self.set_xticks(ax)
-            plt.tight_layout()
-            fig.savefig("ADC_ranking_maxs_page{}.png".format(iFig))
+            fig.savefig("ADC_ranking_page{}.png".format(iFig))
+            fig.savefig("ADC_ranking_page{}.pdf".format(iFig))
 
     def set_xticks(self,ax):
         xlim = ax.get_xlim()
@@ -134,7 +150,7 @@ class RANKING(object):
         xticklabels = ["{:.1g}".format(x) for x in xticks]
         ax.set_xticks(xticks)
 
-    def getminmaxstats(self,data,dynamic=False):
+    def getminmaxstats(self,data,dynamic=False,inputPin=False):
         result = {}
         stats = []
         clocks = sorted(data.keys())
@@ -167,7 +183,7 @@ class RANKING(object):
                                     val = data[clock][offset][stat][amp][freq][chan]
                                     minVal = min(val,minVal)
                                     maxVal = max(val,maxVal)
-                        result[stat] = [minVal,maxVal]
+                        result["{}_f{:.1f}_a{:.1f}".format(stat,float(freq),float(amp))] = [minVal,maxVal]
             else:
                 minVal = 1e20
                 maxVal = -1e20
@@ -177,7 +193,11 @@ class RANKING(object):
                                val = data[clock][offset][stat][chan]
                                minVal = min(val,minVal)
                                maxVal = max(val,maxVal)
-                result[stat] = [minVal,maxVal]
+                if inputPin:
+                    print("stat:",stat)
+                    result["inputPin_"+stat] = [minVal,maxVal]
+                else:
+                    result[stat] = [minVal,maxVal]
         return result
 
     def getlatestdata(self):
@@ -218,12 +238,12 @@ class RANKING(object):
 def main():
     from ...configuration.argument_parser import ArgumentParser
     parser = ArgumentParser(description="Plots a ranking of ADCs")
-    #parser.add_argument("infilename",help="Input json file names and/or glob string.")
+    parser.add_argument("infilename",help="Input json file names and/or glob string.",nargs="+")
     args = parser.parse_args()
   
     #from ...configuration import CONFIG
     #config = CONFIG()
 
     globstr =  "/home/jhugon/dune/coldelectronics/femb_python/hothdaq*"
-    ranking = RANKING(globstr)
+    ranking = RANKING(args.infilename)
     ranking.rank()
