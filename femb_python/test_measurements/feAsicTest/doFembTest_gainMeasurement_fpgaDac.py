@@ -12,12 +12,12 @@ from builtins import object
 import sys
 import string
 from subprocess import check_call as call
-from time import sleep
 import os
 import ntpath
 import glob
 import struct
 import json
+import time
 
 from femb_python.configuration import CONFIG
 from femb_python.write_data import WRITE_DATA
@@ -141,6 +141,7 @@ class FEMB_TEST_GAIN_FPGADAC(object):
         for asic in range(0,4,1):
             self.femb_config.turnOffAsics()
             self.femb_config.turnOnAsic(asic)
+            time.sleep(5) # wait extra for power to settle 
             for asicCh in range(0,16,1):
                 self.femb_config.selectChannel(asic,asicCh)
                 self.write_data.record_data(subrun, asic, asicCh)
