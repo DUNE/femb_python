@@ -150,13 +150,82 @@ class RANKING(object):
             fig.savefig("ADC_ranking_page{}.png".format(iFig))
             fig.savefig("ADC_ranking_page{}.pdf".format(iFig))
 
+    def histAllChannels(self):
+        datadicts = self.getlatestdata()
+        asicStatsDicts = {}
+        statNames = set()
+        for datadict in datadicts:
+            asic_stats = {}
+            serial = datadict["serial"]
+            print(serial)
+            static = datadict["static"]
+            asic_stats.update(self.getstats(static,getAll=True))
+            dynamic = datadict["dynamic"]
+            asic_stats.update(self.getstats(dynamic,dynamic=True,getAll=True))
+            try:
+                inputPin = datadict["inputPin"]
+            except KeyError:
+                print("Warning: now input pin stats for chip",serial)
+            else:
+                asic_stats.update(self.getstats(inputPin,getAll=True))
+            try:
+                dc = datadict["dc"]
+            except KeyError:
+                print("Warning: now input pin stats for chip",serial)
+            else:
+                asic_stats.update(self.getstats(dc,getAll=True))
+            asicStatsDicts[serial] = asic_stats
+            for stat in asic_stats:
+                statNames.add(stat)
+        statNames = sorted(list(statNames))
+        print("AllStatNames:")
+        print(sorted(statNames))
+        allVals = {}
+        for statName in statNames:
+            allVals[statName] = []
+            for serial in asicStatsDicts:
+                try:
+                    allVals[statName].extend(asicStatsDicts[serial][statName])
+                except KeyError as e:
+                    print("Warning KeyError for asic: ",serial," stat: ",statName," error: ",e)
+                    pass
+        statNamesToDraw = sorted(self.statsToDraw)
+        nStats = len(statNamesToDraw)
+        print("statNamesToDraw:")
+        print(statNamesToDraw)
+        nx = 4
+        ny = 4
+        nPerFig = nx*ny
+        for iFig in range(int(numpy.ceil(nStats/nPerFig))):
+            fig, axes2D = plt.subplots(4,4,figsize=(12,12))
+            #fig.subplots_adjust(left=0.07,right=0.93,bottom=0.05,top=0.95,wspace=0.25)
+            axes = [y for x in axes2D for y in x]
+            for iAx, ax in enumerate(axes):
+                try:
+                    statName = statNamesToDraw[iFig*nPerFig+iAx]
+                except IndexError:
+                    ax.axis("off")
+                    continue
+                else:
+                    ax.set_ylabel("ASICs / bin")
+                    try:
+                        ax.hist(allVals[statName],histtype="step")
+                        ax.set_xlabel("{}".format(statName))
+                    except KeyError as e:
+                        print("Warning: Could not find stat to draw",e)
+                    self.set_xticks(ax)
+                    ax.set_ylim(0,ax.get_ylim()[1]*1.2)
+            plt.tight_layout()
+            fig.savefig("ADC_chanHist_page{}.png".format(iFig))
+            fig.savefig("ADC_chanHist_page{}.pdf".format(iFig))
+
     def set_xticks(self,ax):
         xlim = ax.get_xlim()
         xticks = numpy.linspace(xlim[0],xlim[1],4)
         xticklabels = ["{:.1g}".format(x) for x in xticks]
         ax.set_xticks(xticks)
 
-    def getstats(self,data,dynamic=False):
+    def getstats(self,data,dynamic=False,getAll=False):
         statsToDraw = self.statsToDraw
         result = {}
         stats = []
@@ -219,7 +288,13 @@ class RANKING(object):
                                     val = data[clock][offset][stat][amp][freq][chan]
                                     minVal = min(val,minVal)
                                     maxVal = max(val,maxVal)
-                                    result[statToDraw] = [minVal,maxVal]
+                                    if getAll:
+                                        try:
+                                            result[statToDraw].append(val)
+                                        except KeyError:
+                                            result[statToDraw] = [val]
+                if not getAll:
+                    result[statToDraw] = [minVal,maxVal]
             else:
                 minVal = 1e20
                 maxVal = -1e20
@@ -229,7 +304,13 @@ class RANKING(object):
                                val = data[clock][offset][stat][chan]
                                minVal = min(val,minVal)
                                maxVal = max(val,maxVal)
-                result[statToDraw] = [minVal,maxVal]
+                               if getAll:
+                                  try:
+                                    result[statToDraw].append(val)
+                                  except KeyError:
+                                    result[statToDraw] = [val]
+                if not getAll:
+                    result[statToDraw] = [minVal,maxVal]
         return result
 
     def getlatestdata(self):
@@ -279,3 +360,4 @@ def main():
     globstr =  "/home/jhugon/dune/coldelectronics/femb_python/hothdaq*"
     ranking = RANKING(args.infilename)
     ranking.rank()
+    ranking.histAllChannels()
