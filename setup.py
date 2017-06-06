@@ -84,6 +84,7 @@ setup(
 	'configparser>=3.5.0',
         'sumatra>=0.5.1',
         'gitpython>=2.1.3',
+        'psycopg2>=2.7.1'
     ],
 
     # List additional groups of dependencies here (e.g. development
@@ -143,6 +144,7 @@ setup(
             'femb_adc_dc_tests=femb_python.test_measurements.adc_test_stand.dc_tests:main',
             'femb_adc_run=femb_python.test_measurements.adc_test_stand.run:main',
             'femb_adc_summary_plots=femb_python.test_measurements.adc_test_stand.summary_plots:main',
+            'femb_adc_ranking=femb_python.test_measurements.adc_test_stand.ranking:main',
             'femb_adc_gui=femb_python.test_measurements.adc_test_stand.gui:main',
 
             'femb_example_measure_simple=femb_python.test_measurements.example_femb_test.doFembTest_simpleMeasurement:main',

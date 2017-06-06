@@ -279,6 +279,8 @@ class SumatraRunner(Runner):
             cmd += " -l {smtlabel}"
         if params.get('smtreason'):
             cmd += " -r {smtreason}"
+        if params.get('smttag'): # comma-separated list
+            cmd += " -t {smttag}"
         cmd += ' -e {executable} {argstr}'
         if params.get('stdout'):
             cmd+= ' >{stdout}'

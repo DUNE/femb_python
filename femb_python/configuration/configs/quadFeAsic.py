@@ -74,8 +74,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #turn on ASICs
         self.turnOnAsics()
-        #pause after turning on ASICs
-        time.sleep(1)
 
         #Set DAC to 0
         self.femb.write_reg( self.REG_SET_DAC , 0x0 )
@@ -106,7 +104,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     
     def turnOffAsics(self):
         self.femb.write_reg( self.REG_TST_SW, 0xF)
-
+        #pause after turning off ASICs
+        time.sleep(2)
+        
     def turnOnAsic(self,asic):
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
@@ -134,6 +134,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.turnOnAsic(2)
         self.turnOnAsic(3)
         
+        #pause after turning on ASICs
+        time.sleep(2)
+
         
         """
     def powerCycle(self,asic):

@@ -73,6 +73,7 @@ class RigolDG4000(object):
             raise Exception("Voltage swings outside of {} to {} V, may damage things, amp={} offset={}".format(VMIN,VMAX,amp,offset))
         peakToPeak = amp*2
         commands = [
+            self.outputString+":load 50", # could be infinity, but like 50 ohm
             self.sourceString+":FUNCtion SINusoid",
             self.sourceString+":FREQuency {:f}".format(freq),
             self.sourceString+":VOLTage:AMPLitude {:f}".format(peakToPeak),
@@ -91,6 +92,7 @@ class RigolDG4000(object):
         if voltage < VMIN or voltage > VMAX:
             raise Exception("Voltage swings outside of {} to {} V, may damage things".format(VMIN,VMAX))
         commands = [
+            self.outputString+":load 50", # could be infinity, but like 50 ohm
             self.sourceString+":FUNCtion DC",
             self.sourceString+":VOLTage:OFFSet {:f}".format(voltage),
         ]
@@ -113,6 +115,7 @@ class RigolDG4000(object):
         if minV >= maxV:
             raise Exception("Ramp minVoltage {} >= maxVoltage {}".format(minV,maxV))
         commands = [
+            self.outputString+":load 50", # could be infinity, but like 50 ohm
             self.sourceString+":FUNCtion RAMP",
             self.sourceString+":FREQuency {:f}".format(freq),
             self.sourceString+":VOLTage:LOW {:f}".format(minV),

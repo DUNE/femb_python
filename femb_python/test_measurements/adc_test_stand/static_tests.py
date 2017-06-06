@@ -313,7 +313,7 @@ class STATIC_TESTS(object):
         Makes a histogram of linear ramp data between xLow and xHigh 
         for iChip and iChan. The histogram will have at leas nSamples entries.
         """
-        #print("makeRampHist: ",iChip,iChan,xLow,xHigh,nSamples)
+        #print("makeRampHist: ",iChan,infilename)
 
         samples, iChip, metadata = self.loadWaveform(iChan,infilename)
         cleanedSamples, minCode, minCodeV, maxCode, maxCodeV = self.cleanWaveform(samples,metadata)
@@ -557,7 +557,7 @@ class STATIC_TESTS(object):
             iStartLook = iPeak + int(0.3*nSamplesPeriod)
             iStopLook = iPeak + int(nSamplesPeriod/2.) -1 # -1 to not double count 
             iStopLook = min(iStopLook,len(waveform))
-            if iStartLook < len(waveform):
+            if iStartLook < len(waveform) and iStopLook > iStartLook + 1:
               minCode = numpy.min(waveform[iStartLook:iStopLook-1])
               iEnd = iStopLook-1
               for iLook in range(iStartLook,iStopLook-1):
