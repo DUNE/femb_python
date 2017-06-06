@@ -376,6 +376,10 @@ ASIC 3 ID: {asic3id}
         self.gain_enc_sequence_fpgadac_result["text"] = "GAIN+ENC FPGA DAC SUBSET OF SETTINGS - NOT STARTED"
         self.gain_enc_sequence_externaldac_result["text"] = "GAIN+ENC EXTERNAL DAC SUBSET OF SETTINGS - NOT STARTED"
         self.gain_enc_sequence_check_configs_result["text"] = "GAIN+ENC FOR ALTERNATE SETTINGS - NOT STARTED"
+        self.asic0_result["text"] = "ASIC 0 Result: TBD"
+        self.asic1_result["text"] = "ASIC 1 Result: TBD"
+        self.asic2_result["text"] = "ASIC 2 Result: TBD"
+        self.asic3_result["text"] = "ASIC 3 Result: TBD"
 
         now = time.time()
         self.params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
