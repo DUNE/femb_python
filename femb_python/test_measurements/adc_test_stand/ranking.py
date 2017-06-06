@@ -345,7 +345,53 @@ class RANKING(object):
         for serial in sortedserials:
             datadict = resultdict[serial]
         #    print(datadict["serial"],datadict["timestamp"])
+        #    print(datadict["sumatra"])
             result.append(datadict)
+        return result
+
+    def getlatestdatapermachine(self):
+        """
+        Returns a dict of list of data dicts, only the 
+        latest timesamped one per serial in each list per 
+        machine.
+        """
+        datadicts = self.datadicts
+        #for datadict in datadicts:
+        #    print(datadict["serial"],datadict["timestamp"])
+        resultdict = {} # resultdict[hostname][serial] value is datadict
+        for datadict in datadicts:
+            serial = datadict["serial"]
+            hostname = datadict["hostname"]
+            try:
+                resultdict[hostname]
+            except KeyError:
+                resultdict[hostname] = {}
+            try:
+                olddata = resultdict[hostname][serial]
+            except KeyError:
+                resultdict[hostname][serial] = datadict
+            else:
+                oldtimestamp = olddata["timestamp"]
+                newtimestamp = datadict["timestamp"]
+                oldtimestamp = datetime.datetime.strptime(oldtimestamp,"%Y-%m-%dT%H:%M:%S")
+                newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y-%m-%dT%H:%M:%S")
+                if newtimestamp > oldtimestamp:
+                  resultdict[hostname][serial] = datadict
+        #print(resultdict.keys())
+        #print("result:")
+        sortedserials = {}
+        for hostname in resultdict:
+            try:
+                sortedserials[hostname] = sorted(resultdict[hostname],key=lambda x: int(x))
+            except:
+                sortedserials[hostname] = sorted(resultdict[hostname])
+        result = {}
+        for hostname in resultdict:
+            for serial in sortedserials[hostname]:
+                datadict = resultdict[hostname][serial]
+                print("Justin")
+                print(hostname,datadict["serial"],datadict["timestamp"])
+                result[hostname].append(datadict)
         return result
 
 def main():
@@ -361,3 +407,4 @@ def main():
     ranking = RANKING(args.infilename)
     ranking.rank()
     ranking.histAllChannels()
+    ranking.getlatestdatapermachine()
