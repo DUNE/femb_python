@@ -153,6 +153,7 @@ class GUI_WINDOW(Frame):
             "runid": runid,
             "femb_config_name": femb_config_name,
             "linux_username": linux_username,
+            "smttag": hostname,
         }
         if getCurrent:
             inputOptions["current"] = current
