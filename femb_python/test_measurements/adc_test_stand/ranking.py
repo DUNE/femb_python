@@ -51,22 +51,23 @@ class RANKING(object):
 
         # 0 for min 1 for max
         self.statsToDraw = {
-            "DNL75perc400": 1,
-            "DNLmax400": 1,
-            "INLabs75perc400": 1,
-            "INLabsMax400": 1,
-            "codeAtZeroV": 1,
-            "minCode": 1,
-            "minCodeV": 1,
-            "maxCode": 0,
-            "maxCodeV": 0,
-            "inputPin_mean": 1,
-            "meanCodeFor0.2V": 1,
-            "meanCodeFor1.6V": 0,
-            "sinads_f62365.0_a0.6": 0,
-            "sinads_f951512.5_a0.6": 0,
-            "stuckCodeFrac400": 1,
+            "DNL 75%": {"stat":"DNL75perc400"},
+            "DNL Max": {"stat":"DNLmax400"},
+            "INL 75%": {"stat":"INLabs75perc400"},
+            "INL Max": {"stat":"INLabsMax400"},
+            "Min Code": {"stat":"minCode","offsets":["-1"]},
+            "Min Code V": {"stat":"minCodeV","offsets":["-1"]},
+            "Max Code": {"stat":"maxCode","min":True,"offsets":["-1"]},
+            "Max Code V": {"stat":"maxCodeV","min":True,"offsets":["-1"]},
+            "Input Pin Mean": {"stat":"mean"},
+            "Code for 0.2 V": {"stat":"meanCodeFor0.2V","offsets":["-1"]},
+            "Code for 1.6 V": {"stat":"meanCodeFor1.6V","min":True,"offsets":["-1"]},
+            "SINAD for 62 kHz": {"stat":"sinads","min":True,"freqs":["62365.0"],"offsets":["-1"]},
+            "SINAD for 951 kHz": {"stat":"sinads","min":True,"freqs":["951512.5"],"offsets":["-1"]},
+            "Stuck Code Fraction": {"stat":"stuckCodeFrac400"},
         }
+        for stat in self.statsToDraw:
+            self.statsToDraw[stat]["clocks"] = ["0"]
 
     def rank(self):
         datadicts = self.getlatestdata()
@@ -77,21 +78,21 @@ class RANKING(object):
             serial = datadict["serial"]
             print(serial)
             static = datadict["static"]
-            asic_stats.update(self.getminmaxstats(static))
+            asic_stats.update(self.getstats(static))
             dynamic = datadict["dynamic"]
-            asic_stats.update(self.getminmaxstats(dynamic,True))
+            asic_stats.update(self.getstats(dynamic,True))
             try:
                 inputPin = datadict["inputPin"]
             except KeyError:
                 print("Warning: now input pin stats for chip",serial)
             else:
-                asic_stats.update(self.getminmaxstats(inputPin,inputPin=True))
+                asic_stats.update(self.getstats(inputPin))
             try:
                 dc = datadict["dc"]
             except KeyError:
                 print("Warning: now input pin stats for chip",serial)
             else:
-                asic_stats.update(self.getminmaxstats(dc))
+                asic_stats.update(self.getstats(dc))
             minMaxDicts[serial] = asic_stats
             for stat in asic_stats:
                 statNames.add(stat)
@@ -130,7 +131,12 @@ class RANKING(object):
                 else:
                     ax.set_ylabel("ASICs / bin")
                     try:
-                        if self.statsToDraw[statName] == 0: # min
+                        doMin = False
+                        try:
+                            doMin = self.statsToDraw[statName]["min"]
+                        except KeyError:
+                            pass
+                        if doMin: #min
                             ax.hist(minVals[statName],histtype="step")
                             ax.set_xlabel("min({})".format(statName))
                         else: #max
@@ -150,10 +156,12 @@ class RANKING(object):
         xticklabels = ["{:.1g}".format(x) for x in xticks]
         ax.set_xticks(xticks)
 
-    def getminmaxstats(self,data,dynamic=False,inputPin=False):
+    def getstats(self,data,dynamic=False):
+        statsToDraw = self.statsToDraw
         result = {}
         stats = []
         clocks = sorted(data.keys())
+        #clocks = clocks[:1]
         offsets = []
         amps = []
         freqs = []
@@ -166,38 +174,62 @@ class RANKING(object):
                         amps = data[clock][offset][stat]
                         for amp in amps:
                             freqs = data[clock][offset][stat][amp]
+                            print(freqs)
                     break
                 break
             break
-        for stat in stats:
+        for statToDraw in statsToDraw:
+            stat = None
+            for s in stats:
+                if s == statsToDraw[statToDraw]["stat"]:
+                    stat = s
+                    break
+            if stat is None:
+                continue
             minVal = 1e20
             maxVal = -1e20
+            thisClocks = clocks
+            thisOffsets = offsets
+            thisAmps = amps
+            thisFreqs = freqs
+            try:
+                thisClocks = statsToDraw[statToDraw]["clocks"]
+            except KeyError:
+                pass
+            try:
+                thisOffsets = statsToDraw[statToDraw]["offsets"]
+            except KeyError:
+                pass
+            try:
+                thisAmps = statsToDraw[statToDraw]["amps"]
+            except KeyError:
+                pass
+            try:
+                thisFreqs = statsToDraw[statToDraw]["freqs"]
+            except KeyError:
+                pass
             if dynamic:
-                for amp in amps:
-                    for freq in freqs:
+                for amp in thisAmps:
+                    for freq in thisFreqs:
                         minVal = 1e20
                         maxVal = -1e20
-                        for clock in clocks:
-                            for offset in offsets:
+                        for clock in thisClocks:
+                            for offset in thisOffsets:
                                 for chan in range(16):
                                     val = data[clock][offset][stat][amp][freq][chan]
                                     minVal = min(val,minVal)
                                     maxVal = max(val,maxVal)
-                        result["{}_f{:.1f}_a{:.1f}".format(stat,float(freq),float(amp))] = [minVal,maxVal]
+                                    result[statToDraw] = [minVal,maxVal]
             else:
                 minVal = 1e20
                 maxVal = -1e20
-                for clock in clocks:
-                    for offset in offsets:
+                for clock in thisClocks:
+                    for offset in thisOffsets:
                           for chan in range(16):
                                val = data[clock][offset][stat][chan]
                                minVal = min(val,minVal)
                                maxVal = max(val,maxVal)
-                if inputPin:
-                    print("stat:",stat)
-                    result["inputPin_"+stat] = [minVal,maxVal]
-                else:
-                    result[stat] = [minVal,maxVal]
+                result[statToDraw] = [minVal,maxVal]
         return result
 
     def getlatestdata(self):
