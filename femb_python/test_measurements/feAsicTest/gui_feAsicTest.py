@@ -16,6 +16,7 @@ from time import sleep
 from tkinter import *
 
 import os                                 # for statv
+import os.path
 import time
 import getpass                            # for getuser
 
@@ -23,6 +24,7 @@ import getpass                            # for getuser
 #from femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement import FEMB_TEST_SIMPLE
 #from femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement import FEMB_TEST_GAIN
 
+import femb_python
 from femb_python import runpolicy
 
 class GUI_WINDOW(Frame):
@@ -108,6 +110,9 @@ class GUI_WINDOW(Frame):
             smtname = "{test_category}",
 
             smttag = "{hostname},{datadisk}",
+
+            # We can get the femb_python version out of this
+            femb_python_location = os.path.dirname(femb_python.__file__),
             );
 
 

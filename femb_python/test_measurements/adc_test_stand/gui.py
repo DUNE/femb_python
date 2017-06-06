@@ -23,6 +23,7 @@ from tkinter import *
 import subprocess
 
 #import the test module
+import femb_python
 from ...configuration import CONFIG
 from .run import runTests
 from ...runpolicy import DirectRunner, SumatraRunner
@@ -144,6 +145,7 @@ class GUI_WINDOW(Frame):
         print("runid: '{}'".format(runid))
         femb_config_name = os.environ["FEMB_CONFIG"]
         linux_username = pwd.getpwuid(os.getuid()).pw_name
+        femb_python_location = os.path.dirname(femb_python.__file__)
         inputOptions = {
             "operator": operator,
             "board_id": boardid,
@@ -154,6 +156,7 @@ class GUI_WINDOW(Frame):
             "femb_config_name": femb_config_name,
             "linux_username": linux_username,
             "smttag": hostname,
+            "femb_python_location": femb_python_location,
         }
         if getCurrent:
             inputOptions["current"] = current
