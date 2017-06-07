@@ -49,6 +49,7 @@ class WRITE_ROOT_TREE(object):
         self.base = 0
         self.adcOffset = -2 # -2 undefined, -1 off, 0-15 on with various values
         self.adcClock = -1 # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
+        self.sampleRate = -1. # Hz, -1 undefined.
         # func generator
         self.funcType = 0 # 0 means not active, 1 constant, 2 sin, 3 ramp
         self.funcFreq = 0.
@@ -57,7 +58,6 @@ class WRITE_ROOT_TREE(object):
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
         self.femb_config = femb_config
-
 
     def record_data_run(self):
         f = ROOT.TFile( self.filename, 'recreate' )
@@ -100,6 +100,7 @@ class WRITE_ROOT_TREE(object):
         _base = array( 'H', [self.base] )
         _adcOffset = array( 'h', [self.adcOffset] )
         _adcClock = array( 'h', [self.adcClock] )
+        _sampleRate = array( 'f', [self.sampleRate] )
         _funcType = array( 'H', [self.funcType] )
         _funcAmp = array( 'f', [self.funcAmp] )
         _funcOffset = array( 'f', [self.funcOffset] )
@@ -123,6 +124,7 @@ class WRITE_ROOT_TREE(object):
         metatree.Branch( 'base',_base, 'base/s')
         metatree.Branch( 'adcOffset',_adcOffset, 'adcOffset/S')
         metatree.Branch( 'adcClock',_adcClock, 'adcClock/S')
+        metatree.Branch( 'sampleRate',_sampleRate, 'sampleRate/F')
         metatree.Branch( 'funcType',_funcType, 'funcType/s')
         metatree.Branch( 'funcAmp',_funcAmp, 'funcAmp/F')
         metatree.Branch( 'funcOffset',_funcOffset, 'funcOffset/F')

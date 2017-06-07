@@ -253,8 +253,8 @@ class ADC_TEST_SUMMARY(object):
             for stat in dynamicChecks:
                 check = dynamicChecks[stat]
                 statPass = True
-                for sampleRate in thisSummary['static']:
-                    for clock in thisSummary['dynamic']:
+                for sampleRate in thisSummary['dynamic']:
+                    for clock in thisSummary['dynamic'][sampleRate]:
                         for offset in thisSummary['dynamic'][sampleRate][clock]:
                             for amp in thisSummary['dynamic'][sampleRate][clock][offset][stat]:
                                 for freq in thisSummary['dynamic'][sampleRate][clock][offset][stat][amp]:
@@ -283,8 +283,8 @@ class ADC_TEST_SUMMARY(object):
             for stat in inputPinChecks:
                 check = inputPinChecks[stat]
                 statPass = True
-                for sampleRate in thisSummary['static']:
-                    for clock in thisSummary['inputPin']:
+                for sampleRate in thisSummary['inputPin']:
+                    for clock in thisSummary['inputPin'][sampleRate]:
                         for offset in thisSummary['inputPin'][sampleRate][clock]:
                             for channel in range(16):
                                 if check[0] == "lt":
@@ -307,8 +307,8 @@ class ADC_TEST_SUMMARY(object):
             for stat in dcChecks:
                 check = dcChecks[stat]
                 statPass = True
-                for sampleRate in thisSummary['static']:
-                    for clock in thisSummary['dc']:
+                for sampleRate in thisSummary['dc']:
+                    for clock in thisSummary['dc'][sampleRate]:
                         for offset in thisSummary['dc'][sampleRate][clock]:
                             for channel in range(16):
                                 if check[0] == "lt":
