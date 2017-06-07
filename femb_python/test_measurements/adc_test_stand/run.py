@@ -16,6 +16,7 @@ import glob
 from uuid import uuid1 as uuid
 import json
 import socket
+from subprocess import CalledProcessError
 import numpy
 import matplotlib.pyplot as plt
 import ROOT
@@ -357,7 +358,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     baseline_rms = BASELINE_RMS()
     dc_tests = DC_TESTS(config)
 
-    sampleRates = [2000000]
+    sampleRates = [2000000,1000000]
     clocks = [0,1] # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
     offsets = range(-1,16)
     if singleConfig:
@@ -366,6 +367,27 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
 
     allStatsRaw = {}
     for sampleRate in sampleRates:
+        if sampleRate == 2000000:
+            if hasattr(config,"FIRMWAREPATH2MHZ"):
+                try:
+                    config.programFirmware2Mhz()
+                except CalledProcessError as e:
+                    print("Error: firmware programming failed, exiting.")
+                    sys.exit(1)
+                config.syncADC()
+        elif sampleRate == 1000000:
+            if not hasattr(config,"FIRMWAREPATH1MHZ"):
+                print("No 1 MHz firmware path configured, skipping.")
+                continue
+            try:
+                config.programFirmware1Mhz()
+            except CalledProcessError as e:
+                print("Error: firmware programming failed, exiting.")
+                sys.exit(1)
+            config.syncADC()
+        else:
+            print("Error: Sample rate not 1 MHz or 2 MHz, exiting.")
+            sys.exit(1)
         static_tests.samplingFreq = float(sampleRate)
         dynamic_tests.sampleRate = float(sampleRate)
         allStatsRaw[sampleRate] = {}
