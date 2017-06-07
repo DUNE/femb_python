@@ -48,66 +48,79 @@ class ADC_TEST_SUMMARY(object):
     def makeSummaries(self):
         """
         makes keys:
-        self.staticSummary[chipSerial][clock][offset][statistic][channel]
-        self.dynamicSummary[chipSerial][clock][offset][statistic][amp][freq][channel]
-        self.inputPinSummary[chipSerial][clock][offset][statistic][channel]
-        self.dcSummary[chipSerial][clock][offset][statistic][channel]
+        self.staticSummary[chipSerial][sampleRate][clock][offset][statistic][channel]
+        self.dynamicSummary[chipSerial][sampleRate][clock][offset][statistic][amp][freq][channel]
+        self.inputPinSummary[chipSerial][sampleRate][clock][offset][statistic][channel]
+        self.dcSummary[chipSerial][sampleRate][clock][offset][statistic][channel]
 
         from:
-        self.allStatsRaw[clock][offset][chipSerial]
+        self.allStatsRaw[sampleRate][clock][offset][chipSerial]
         """
         print("Summarizing all data...")
         sys.stdout.flush()
         allStatsRaw = self.allStatsRaw
-        clocks = sorted(allStatsRaw.keys())
+        sampleRates = sorted(allStatsRaw.keys())
         offsets = []
         chipSerials = []
-        for clock in clocks:
-            offsets = sorted(allStatsRaw[clock].keys())
-            for offset in offsets:
-                chipSerials = sorted(allStatsRaw[clock][offset].keys())
+        for sampleRate in sampleRates:
+            clocks = sorted(allStatsRaw[sampleRate].keys())
+            for clock in clocks:
+                offsets = sorted(allStatsRaw[sampleRate][clock].keys())
+                for offset in offsets:
+                    chipSerials = sorted(allStatsRaw[sampleRate][clock][offset].keys())
+                    break
                 break
-            break
         staticSummary = {}
         dynamicSummary = {}
         for chipSerial in chipSerials:
             staticSummary[chipSerial]={}
             dynamicSummary[chipSerial]={}
-            for clock in clocks:
-                staticSummary[chipSerial][clock]={}
-                dynamicSummary[chipSerial][clock]={}
-                for offset in offsets:
-                    staticSummary[chipSerial][clock][offset] = self.makeStaticSummary(allStatsRaw[clock][offset][chipSerial]["static"])
-                    dynamicSummary[chipSerial][clock][offset] = self.makeDynamicSummary(allStatsRaw[clock][offset][chipSerial]["dynamic"])
+            for sampleRate in sampleRates:
+                staticSummary[chipSerial][sampleRate]={}
+                dynamicSummary[chipSerial][sampleRate]={}
+                for clock in clocks:
+                    staticSummary[chipSerial][sampleRate][clock]={}
+                    dynamicSummary[chipSerial][sampleRate][clock]={}
+                    for offset in offsets:
+                        staticSummary[chipSerial][sampleRate][clock][offset] = self.makeStaticSummary(allStatsRaw[sampleRate][clock][offset][chipSerial]["static"])
+                        dynamicSummary[chipSerial][sampleRate][clock][offset] = self.makeDynamicSummary(allStatsRaw[sampleRate][clock][offset][chipSerial]["dynamic"])
         self.staticSummary = staticSummary
         self.dynamicSummary = dynamicSummary
 
         inputPinSummary = {}
         for chipSerial in chipSerials:
             inputPinSummary[chipSerial]={}
-            for clock in clocks:
-                inputPinSummary[chipSerial][clock]={}
-                for offset in offsets:
-                    try:
-                        inputPinSummary[chipSerial][clock][offset] = self.makeStaticSummary(allStatsRaw[clock][offset][chipSerial]["inputPin"])
-                    except KeyError:
-                        pass
-                if len(inputPinSummary[chipSerial][clock]) == 0:
-                    inputPinSummary[chipSerial].pop(clock)
+            for sampleRate in sampleRates:
+                inputPinSummary[chipSerial][sampleRate]={}
+                for clock in clocks:
+                    inputPinSummary[chipSerial][sampleRate][clock]={}
+                    for offset in offsets:
+                        try:
+                            inputPinSummary[chipSerial][sampleRate][clock][offset] = self.makeStaticSummary(allStatsRaw[sampleRate][clock][offset][chipSerial]["inputPin"])
+                        except KeyError:
+                            pass
+                    if len(inputPinSummary[chipSerial][sampleRate][clock]) == 0:
+                        inputPinSummary[chipSerial][sampleRate].pop(clock)
+                if len(inputPinSummary[chipSerial][sampleRate]) == 0:
+                    inputPinSummary[chipSerial].pop(sampleRate)
+            if len(inputPinSummary[chipSerial]) == 0:
+                inputPinSummary.pop(chipSerial)
         self.inputPinSummary = inputPinSummary
 
         dcSummary = {}
         for chipSerial in chipSerials:
             dcSummary[chipSerial]={}
-            for clock in clocks:
-                dcSummary[chipSerial][clock]={}
-                for offset in offsets:
-                #    try:
-                        dcSummary[chipSerial][clock][offset] = self.makeStaticSummary(allStatsRaw[clock][offset][chipSerial]["dc"])
-                #    except KeyError:
-                #        pass
-                #if len(dcSummary[chipSerial][clock]) == 0:
-                #    dcSummary[chipSerial].pop(clock)
+            for sampleRate in sampleRates:
+                dcSummary[chipSerial][sampleRate]={}
+                for clock in clocks:
+                    dcSummary[chipSerial][sampleRate][clock]={}
+                    for offset in offsets:
+                    #    try:
+                            dcSummary[chipSerial][sampleRate][clock][offset] = self.makeStaticSummary(allStatsRaw[sampleRate][clock][offset][chipSerial]["dc"])
+                    #    except KeyError:
+                    #        pass
+                    #if len(dcSummary[chipSerial][clock]) == 0:
+                    #    dcSummary[chipSerial].pop(clock)
         self.dcSummary = dcSummary
 
     def makeStaticSummary(self,stats):
@@ -216,19 +229,22 @@ class ADC_TEST_SUMMARY(object):
             for stat in staticChecks:
                 check = staticChecks[stat]
                 statPass = True
-                for clock in thisSummary['static']:
-                    for offset in thisSummary['static'][clock]:
-                        for channel in range(16):
-                            if check[0] == "lt":
-                                if thisSummary['static'][clock][offset][stat][channel] >= check[1]:
-                                    statPass = False
-                                    thisPass = False
-                                    break
-                            if check[0] == "gt":
-                                if thisSummary['static'][clock][offset][stat][channel] <= check[1]:
-                                    statPass = False
-                                    thisPass = False
-                                    break
+                for sampleRate in thisSummary['static']:
+                    for clock in thisSummary['static'][sampleRate]:
+                        for offset in thisSummary['static'][sampleRate][clock]:
+                            for channel in range(16):
+                                if check[0] == "lt":
+                                    if thisSummary['static'][sampleRate][clock][offset][stat][channel] >= check[1]:
+                                        statPass = False
+                                        thisPass = False
+                                        break
+                                if check[0] == "gt":
+                                    if thisSummary['static'][sampleRate][clock][offset][stat][channel] <= check[1]:
+                                        statPass = False
+                                        thisPass = False
+                                        break
+                            if not statPass:
+                                break
                         if not statPass:
                             break
                     if not statPass:
@@ -237,21 +253,24 @@ class ADC_TEST_SUMMARY(object):
             for stat in dynamicChecks:
                 check = dynamicChecks[stat]
                 statPass = True
-                for clock in thisSummary['dynamic']:
-                    for offset in thisSummary['dynamic'][clock]:
-                        for amp in thisSummary['dynamic'][clock][offset][stat]:
-                            for freq in thisSummary['dynamic'][clock][offset][stat][amp]:
-                                for channel in range(16):
-                                    if check[0] == "lt":
-                                        if thisSummary['dynamic'][clock][offset][stat][amp][freq][channel] >= check[1]:
-                                            statPass = False
-                                            thisPass = False
-                                            break
-                                    if check[0] == "gt":
-                                        if thisSummary['dynamic'][clock][offset][stat][amp][freq][channel] <= check[1]:
-                                            statPass = False
-                                            thisPass = False
-                                            break
+                for sampleRate in thisSummary['static']:
+                    for clock in thisSummary['dynamic']:
+                        for offset in thisSummary['dynamic'][sampleRate][clock]:
+                            for amp in thisSummary['dynamic'][sampleRate][clock][offset][stat]:
+                                for freq in thisSummary['dynamic'][sampleRate][clock][offset][stat][amp]:
+                                    for channel in range(16):
+                                        if check[0] == "lt":
+                                            if thisSummary['dynamic'][sampleRate][clock][offset][stat][amp][freq][channel] >= check[1]:
+                                                statPass = False
+                                                thisPass = False
+                                                break
+                                        if check[0] == "gt":
+                                            if thisSummary['dynamic'][sampleRate][clock][offset][stat][amp][freq][channel] <= check[1]:
+                                                statPass = False
+                                                thisPass = False
+                                                break
+                                    if not statPass:
+                                        break
                                 if not statPass:
                                     break
                             if not statPass:
@@ -264,19 +283,22 @@ class ADC_TEST_SUMMARY(object):
             for stat in inputPinChecks:
                 check = inputPinChecks[stat]
                 statPass = True
-                for clock in thisSummary['inputPin']:
-                    for offset in thisSummary['inputPin'][clock]:
-                        for channel in range(16):
-                            if check[0] == "lt":
-                                if thisSummary['inputPin'][clock][offset][stat][channel] >= check[1]:
-                                    statPass = False
-                                    thisPass = False
-                                    break
-                            if check[0] == "gt":
-                                if thisSummary['inputPin'][clock][offset][stat][channel] <= check[1]:
-                                    statPass = False
-                                    thisPass = False
-                                    break
+                for sampleRate in thisSummary['static']:
+                    for clock in thisSummary['inputPin']:
+                        for offset in thisSummary['inputPin'][sampleRate][clock]:
+                            for channel in range(16):
+                                if check[0] == "lt":
+                                    if thisSummary['inputPin'][sampleRate][clock][offset][stat][channel] >= check[1]:
+                                        statPass = False
+                                        thisPass = False
+                                        break
+                                if check[0] == "gt":
+                                    if thisSummary['inputPin'][sampleRate][clock][offset][stat][channel] <= check[1]:
+                                        statPass = False
+                                        thisPass = False
+                                        break
+                            if not statPass:
+                                break
                         if not statPass:
                             break
                     if not statPass:
@@ -285,19 +307,22 @@ class ADC_TEST_SUMMARY(object):
             for stat in dcChecks:
                 check = dcChecks[stat]
                 statPass = True
-                for clock in thisSummary['dc']:
-                    for offset in thisSummary['dc'][clock]:
-                        for channel in range(16):
-                            if check[0] == "lt":
-                                if thisSummary['dc'][clock][offset][stat][channel] >= check[1]:
-                                    statPass = False
-                                    thisPass = False
-                                    break
-                            if check[0] == "gt":
-                                if thisSummary['dc'][clock][offset][stat][channel] <= check[1]:
-                                    statPass = False
-                                    thisPass = False
-                                    break
+                for sampleRate in thisSummary['static']:
+                    for clock in thisSummary['dc']:
+                        for offset in thisSummary['dc'][sampleRate][clock]:
+                            for channel in range(16):
+                                if check[0] == "lt":
+                                    if thisSummary['dc'][sampleRate][clock][offset][stat][channel] >= check[1]:
+                                        statPass = False
+                                        thisPass = False
+                                        break
+                                if check[0] == "gt":
+                                    if thisSummary['dc'][sampleRate][clock][offset][stat][channel] <= check[1]:
+                                        statPass = False
+                                        thisPass = False
+                                        break
+                            if not statPass:
+                                break
                         if not statPass:
                             break
                     if not statPass:
@@ -332,6 +357,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     baseline_rms = BASELINE_RMS()
     dc_tests = DC_TESTS(config)
 
+    sampleRates = [2000000]
     clocks = [0,1] # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
     offsets = range(-1,16)
     if singleConfig:
@@ -339,52 +365,55 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
         offsets = [-1]
 
     allStatsRaw = {}
-    for clock in clocks: # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
-        allStatsRaw[clock] = {}
-        clockMonostable=False
-        clockFromFIFO=False
-        clockExternal=False
-        if clock == 0:
-            clockExternal=True
-        elif clock == 1:
-            clockMonostable=True
-        else:
-            clockFromFIFO=True
-        for offset in offsets:
-            configStats = {}
-            if offset <=0:
-                config.configAdcAsic(enableOffsetCurrent=0,offsetCurrent=0,
-                                    clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
-                                    clockExternal=clockExternal)
+    for sampleRate in sampleRates:
+        allStatsRaw[sampleRate] = {}
+        for clock in clocks: # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
+            allStatsRaw[sampleRate][clock] = {}
+            clockMonostable=False
+            clockFromFIFO=False
+            clockExternal=False
+            if clock == 0:
+                clockExternal=True
+            elif clock == 1:
+                clockMonostable=True
             else:
-                config.configAdcAsic(enableOffsetCurrent=1,offsetCurrent=offset,
-                                    clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
-                                    clockExternal=clockExternal)
-            for iChip in range(config.NASICS):
-                print("Collecting data for clock: {} offset: {} chip: {} ...".format(clock, offset, iChip))
-                sys.stdout.flush()
-                chipStats = {}
-                fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
-                fileprefix = os.path.join(dataDir,fileprefix)
-                collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
-                print("Processing...")
-                static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
-                assert(len(static_fns)==1)
-                static_fn = static_fns[0]
-                dc_fns = list(glob.glob(fileprefix+"_functype1_*.root"))
-                CALIBRATE_RAMP(static_fn).write_calibrate_tree()
-                staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
-                dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
-                dcStats = dc_tests.analyze(dc_fns,verbose=False)
-                chipStats["static"] = staticStats
-                chipStats["dynamic"] = dynamicStats
-                chipStats["dc"] = dcStats
-                configStats[adcSerialNumbers[iChip]] = chipStats
-                #with open(fileprefix+"_statsRaw.json","w") as f:
-                #    json.dump(chipStats,f)
-            allStatsRaw[clock][offset] = configStats
+                clockFromFIFO=True
+            for offset in offsets:
+                configStats = {}
+                if offset <=0:
+                    config.configAdcAsic(enableOffsetCurrent=0,offsetCurrent=0,
+                                        clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
+                                        clockExternal=clockExternal)
+                else:
+                    config.configAdcAsic(enableOffsetCurrent=1,offsetCurrent=offset,
+                                        clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
+                                        clockExternal=clockExternal)
+                for iChip in range(config.NASICS):
+                    print("Collecting data for clock: {} offset: {} chip: {} ...".format(clock, offset, iChip))
+                    sys.stdout.flush()
+                    chipStats = {}
+                    fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
+                    fileprefix = os.path.join(dataDir,fileprefix)
+                    collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
+                    print("Processing...")
+                    static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
+                    assert(len(static_fns)==1)
+                    static_fn = static_fns[0]
+                    dc_fns = list(glob.glob(fileprefix+"_functype1_*.root"))
+                    CALIBRATE_RAMP(static_fn).write_calibrate_tree()
+                    staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
+                    dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
+                    dcStats = dc_tests.analyze(dc_fns,verbose=False)
+                    chipStats["static"] = staticStats
+                    chipStats["dynamic"] = dynamicStats
+                    chipStats["dc"] = dcStats
+                    configStats[adcSerialNumbers[iChip]] = chipStats
+                    #with open(fileprefix+"_statsRaw.json","w") as f:
+                    #    json.dump(chipStats,f)
+                allStatsRaw[sampleRate][clock][offset] = configStats
     # check the input pin works
     if True:
+        sampleRate = 2000000
         clock=0
         offset = -1
         clockMonostable=False
@@ -403,7 +432,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
             assert(len(static_fns)==1)
             static_fn = static_fns[0]
             baselineRmsStats = baseline_rms.analyze(static_fn)
-            allStatsRaw[clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
+            allStatsRaw[sampleRate][clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
             #with open(fileprefix+"_statsRaw.json","w") as f:
             #    json.dump(baselineRmsStats,f)
     statsRawJsonFn = "adcTestData_{}_statsRaw.json".format(startDateTime)
