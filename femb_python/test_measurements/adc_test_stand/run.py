@@ -389,12 +389,12 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                                         clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
                                         clockExternal=clockExternal)
                 for iChip in range(config.NASICS):
-                    print("Collecting data for clock: {} offset: {} chip: {} ...".format(clock, offset, iChip))
+                    print("Collecting data for sample rate: {} clock: {} offset: {} chip: {} ...".format(sampleRate, clock, offset, iChip))
                     sys.stdout.flush()
                     chipStats = {}
-                    fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
+                    fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}_sampleRate{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset,sampleRate)
                     fileprefix = os.path.join(dataDir,fileprefix)
-                    collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
+                    collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate)
                     print("Processing...")
                     static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
                     assert(len(static_fns)==1)
@@ -425,9 +425,9 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
         for iChip in range(config.NASICS):
             print("Collecting input pin data for chip: {} ...".format(iChip))
             sys.stdout.flush()
-            fileprefix = "adcTestData_{}_inputPinTest_chip{}_adcClock{}_adcOffset{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset)
+            fileprefix = "adcTestData_{}_inputPinTest_chip{}_adcClock{}_adcOffset{}_sampleRate{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset,sampleRate)
             fileprefix = os.path.join(dataDir,fileprefix)
-            collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,100,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip])
+            collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,100,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate)
             static_fns = list(glob.glob(fileprefix+"_*.root"))
             assert(len(static_fns)==1)
             static_fn = static_fns[0]
