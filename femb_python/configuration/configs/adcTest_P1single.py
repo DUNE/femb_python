@@ -20,6 +20,7 @@ import sys
 import string
 import time
 import copy
+import os.path
 import subprocess
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
@@ -498,6 +499,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         """
         Programs the FPGA using the firmware file given.
         """
+        if self.FIRMWAREPROGCABLE == "USB-BlasterII":
+            # this programmer is too fast for our board 
+            # (or linux or something) so we have to slow it down
+            jtagconfig_commandline = os.path.dirname(self.FIRMWAREPROGEXE)
+            jtagconfig_commandline = os.path.join(jtagconfig_commandline,"jtagconfig")
+            jtagconfig_commandline += " --setparam 1 JtagClock 6M"
+            print(jtagconfig_commandline)
+            subprocess.run(jtagconfig_commandline.split(),check=True)
         commandline = "{} -c {} -m jtag -o p;{}".format(self.FIRMWAREPROGEXE,self.FIRMWAREPROGCABLE,firmware)
         commandlinelist = commandline.split()
         print(commandline)
