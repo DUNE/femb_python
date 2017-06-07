@@ -24,11 +24,11 @@ class SUMMARY_PLOTS(object):
 
     def __init__(self,stats,outfileprefix,plotAll=False):
         try:
-            print("static keys: ",stats["static"].keys())
+            stats["static"].keys()
         except KeyError:
             print("No static")
         try:
-            print("dynamic keys: ",stats["dynamic"].keys())
+            stats["dynamic"].keys()
         except KeyError:
             print("No dynamic")
         self.stats = stats
@@ -38,68 +38,93 @@ class SUMMARY_PLOTS(object):
         colors = ["grey","m","plum","darkorchid","firebrick","red","sienna","sandybrown","gold","y","olivedrab","chartreuse","seagreen","paleturquoise","deepskyblue","navy","blue"]*2
         colors.reverse()
         clocks = [-1,0,1,2] # clock int: -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
-        for iClock in clocks:
-            self.legendHandles = []
-            clockFn = "extClock"
-            clockLabel="External Clock"
-            if int(iClock) == -1:
-              clockFn = "undefClock"
-              clockLabel="Undefined Clock"
-            elif int(iClock) == 0:
-              clockFn = "extClock"
-              clockLabel="External Clock"
-            elif int(iClock) == 1:
-              clockFn = "intClock"
-              clockLabel="Internal Clock"
-            elif int(iClock) == 2:
-              clockFn = "fifoClock"
-              clockLabel="FIFO Clock"
-            ## json dict keys must be strings, so these keys are strings when read from json
+        sampleRates = [2000000,1000000]
+        for sampleRate in sampleRates:
             try:
-                self.offsets = self.stats["static"][iClock]
+                self.stats["static"][sampleRate]
             except KeyError:
                 try:
-                    self.offsets = self.stats["static"][str(iClock)]
-                except KeyError:
+                    self.stats["static"][str(sampleRate)]
+                except KeyError as e:
                     try:
-                        self.offsets = self.stats["dynamic"][iClock]
+                        self.stats["dynamic"][sampleRate]
                     except KeyError:
                         try:
-                            self.offsets = self.stats["dynamic"][str(iClock)]
+                            self.stats["dynamic"][str(sampleRate)]
+                        except KeyError as e:
+                            print("Not using sampleRate: ",sampleRate)
+                            continue  # skip this sampleRate if no data for it
+                        else:
+                            sampleRate = str(sampleRate)
+                else:
+                    sampleRate = str(sampleRate)
+            sampleRateFn = "2MHz"
+            sampleRateLabel = "2 MHz"
+            if int(sampleRate) == 1000000:
+                sampleRateFn = "1MHz"
+                sampleRateLabel = "1 MHz"
+            for iClock in clocks:
+                self.legendHandles = []
+                clockFn = "extClock"
+                clockLabel="External Clock"
+                if int(iClock) == -1:
+                  clockFn = "undefClock"
+                  clockLabel="Undefined Clock"
+                elif int(iClock) == 0:
+                  clockFn = "extClock"
+                  clockLabel="External Clock"
+                elif int(iClock) == 1:
+                  clockFn = "intClock"
+                  clockLabel="Internal Clock"
+                elif int(iClock) == 2:
+                  clockFn = "fifoClock"
+                  clockLabel="FIFO Clock"
+                ## json dict keys must be strings, so these keys are strings when read from json
+                try:
+                    self.offsets = self.stats["static"][sampleRate][iClock]
+                except KeyError:
+                    try:
+                        self.offsets = self.stats["static"][sampleRate][str(iClock)]
+                    except KeyError:
+                        try:
+                            self.offsets = self.stats["dynamic"][sampleRate][iClock]
                         except KeyError:
-                            print("Not using iClock: ",iClock)
-                            continue  # skip this iClock if no data for it
-            self.offsets = list(self.offsets.keys())
-            self.offsets.sort(key=lambda x: int(x))
-            if not plotAll:
-                self.offsets = self.offsets[:1]
-            self.colorDict = {}
-            for i, offset in enumerate(self.offsets):
-                self.colorDict[offset] = colors[i]
-            fig, ((ax1,ax2,ax3),(ax4,ax5,ax6),(ax7,ax8,ax9)) = plt.subplots(3,3,figsize=(12,12))
-            if plotAll:
-                fig.subplots_adjust(left=0.07,right=0.91,bottom=0.05,top=0.92,wspace=0.27)
-            else:
-                fig.subplots_adjust(left=0.07,right=0.93,bottom=0.05,top=0.92,wspace=0.27)
-            fig.suptitle("ADC {}, {}, \nTest Time: {}".format(self.serial,clockLabel,self.time),fontsize='x-large')
-            self.staticSummary(iClock,ax1,ax3,ax2,ax9)
-            self.dynamicSummary(iClock,ax4,ax5)
-            self.baselineSummary(iClock,ax7,ax8)
-            self.dcSummary(iClock,ax6)
-            self.doLegend(fig,self.colorDict,patches=True,offsets=True)
-            fig.savefig(self.outfileprefix + "_"+clockFn+".png")
-            fig.savefig(self.outfileprefix + "_"+clockFn+".pdf")
-            plt.close(fig)
-            if not plotAll:
-                break
+                            try:
+                                self.offsets = self.stats["dynamic"][sampleRate][str(iClock)]
+                            except KeyError:
+                                print("Not using iClock: ",iClock, "for sampleRate: ",sampleRate)
+                                continue  # skip this iClock if no data for it
+                self.offsets = list(self.offsets.keys())
+                self.offsets.sort(key=lambda x: int(x))
+                if not plotAll:
+                    self.offsets = self.offsets[:1]
+                self.colorDict = {}
+                for i, offset in enumerate(self.offsets):
+                    self.colorDict[offset] = colors[i]
+                fig, ((ax1,ax2,ax3),(ax4,ax5,ax6),(ax7,ax8,ax9)) = plt.subplots(3,3,figsize=(12,12))
+                if plotAll:
+                    fig.subplots_adjust(left=0.07,right=0.91,bottom=0.05,top=0.92,wspace=0.27)
+                else:
+                    fig.subplots_adjust(left=0.07,right=0.93,bottom=0.05,top=0.92,wspace=0.27)
+                fig.suptitle("ADC {}, {}, {}, \nTest Time: {}".format(self.serial,clockLabel,sampleRateLabel,self.time),fontsize='x-large')
+                self.staticSummary(sampleRate,iClock,ax1,ax3,ax2,ax9)
+                self.dynamicSummary(sampleRate,iClock,ax4,ax5)
+                self.baselineSummary(sampleRate,iClock,ax7,ax8)
+                self.dcSummary(sampleRate,iClock,ax6)
+                self.doLegend(fig,self.colorDict,patches=True,offsets=True)
+                fig.savefig(self.outfileprefix + "_"+clockFn+"_"+sampleRateFn+".png")
+                fig.savefig(self.outfileprefix + "_"+clockFn+"_"+sampleRateFn+".pdf")
+                plt.close(fig)
+                if not plotAll:
+                    break
 
-    def staticSummary(self,iClock,ax1,ax2,ax3,ax4):
+    def staticSummary(self,sampleRate,iClock,ax1,ax2,ax3,ax4):
         data = None
         try:
-            data = self.stats["static"][iClock]
+            data = self.stats["static"][sampleRate][iClock]
         except KeyError:
             try:
-                data = self.stats["static"][str(iClock)]
+                data = self.stats["static"][sampleRate][str(iClock)]
             except KeyError:
                 print("No staticSummary for iClock: ",iClock)
                 return
@@ -203,13 +228,13 @@ class SUMMARY_PLOTS(object):
         ax4Right.set_ylim(0.010*numpy.array(ax4.get_ylim()))
         ax4Right.set_ylabel("Min/Max ADC Code Voltage [V]")
 
-    def dynamicSummary(self,iClock,ax1,ax2):
+    def dynamicSummary(self,sampleRate,iClock,ax1,ax2):
         data = None
         try:
-            data = self.stats["dynamic"][iClock]
+            data = self.stats["dynamic"][sampleRate][iClock]
         except KeyError:
             try:
-                data = self.stats["dynamic"][str(iClock)]
+                data = self.stats["dynamic"][sampleRate][str(iClock)]
             except KeyError:
                 print("No dynamicSummary for iClock: ",iClock)
                 return
@@ -253,13 +278,13 @@ class SUMMARY_PLOTS(object):
         ax2.set_xlabel("Channel")
         ax2.set_ylabel("SINAD for {:.1f} kHz [dBc]".format(freq2))
 
-    def baselineSummary(self,iClock,ax1,ax2):
+    def baselineSummary(self,sampleRate,iClock,ax1,ax2):
         data = None
         try:
-            data = self.stats["inputPin"][iClock]
+            data = self.stats["inputPin"][sampleRate][iClock]
         except KeyError:
             try:
-                data = self.stats["inputPin"][str(iClock)]
+                data = self.stats["inputPin"][sampleRate][str(iClock)]
             except KeyError:
                 print("No inputPinSummary for iClock: ",iClock)
                 return
@@ -301,13 +326,13 @@ class SUMMARY_PLOTS(object):
         #self.doLegend(ax1,legendDict1)
         #self.doLegend(ax2,legendDict2)
 
-    def dcSummary(self,iClock,ax1):
+    def dcSummary(self,sampleRate,iClock,ax1):
         data = None
         try:
-            data = self.stats["dc"][iClock]
+            data = self.stats["dc"][sampleRate][iClock]
         except KeyError:
             try:
-                data = self.stats["dc"][str(iClock)]
+                data = self.stats["dc"][sampleRate][str(iClock)]
             except KeyError:
                 print("No dcSummary for iClock: ",iClock)
                 return
