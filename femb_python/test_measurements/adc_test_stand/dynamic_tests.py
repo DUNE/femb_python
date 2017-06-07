@@ -35,6 +35,7 @@ class DYNAMIC_TESTS(object):
         self.harmonicLeakageWidthBins = 20
         self.nHarmonics = 5 # total harmonic distortion includes up to this harmonic (and S/N excludes them)
         self.nBits = 12
+        self.sampleRate = 2e6
 
     def analyze(self,fileprefix,diagnosticPlots=True,debugPlots=False):
         waveforms, adcSerial = self.loadWaveforms(fileprefix)
@@ -175,7 +176,7 @@ class DYNAMIC_TESTS(object):
         fftPower *= 2 / len(data)
         fftPowerRelative = fftPower/max(fftPower)
         fftPowerRelativeDB = 10*numpy.log10(fftPowerRelative)
-        samplePeriod = 0.5 # microsecond -> freqs will be in MHz
+        samplePeriod = 1./self.sampleRate*1e6 # microsecond -> freqs will be in MHz
         frequencies = numpy.fft.rfftfreq(len(data),samplePeriod)
 
         iFreqs = numpy.arange(len(frequencies))

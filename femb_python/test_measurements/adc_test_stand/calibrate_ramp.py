@@ -18,11 +18,11 @@ class CALIBRATE_RAMP(object):
     Calibrates ADC ramp data--finds the voltage for each ADC sample
     """
 
-    def __init__(self,infilename,dcCalibrationFiles=[]):
+    def __init__(self,infilename,samplingFreq,dcCalibrationFiles=[]):
         self.infilename = infilename
         self.dcCalibrationFiles = dcCalibrationFiles
         self.outfilename = os.path.splitext(infilename)[0]+"_calib.root"
-        self.samplingFreq = 2e6
+        self.samplingFreq = samplingFreq
 
     def write_calibrate_tree(self):
         f = ROOT.TFile(self.infilename)

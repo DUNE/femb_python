@@ -366,6 +366,8 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
 
     allStatsRaw = {}
     for sampleRate in sampleRates:
+        static_tests.samplingFreq = float(sampleRate)
+        dynamic_tests.sampleRate = float(sampleRate)
         allStatsRaw[sampleRate] = {}
         for clock in clocks: # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
             allStatsRaw[sampleRate][clock] = {}
@@ -400,7 +402,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                     assert(len(static_fns)==1)
                     static_fn = static_fns[0]
                     dc_fns = list(glob.glob(fileprefix+"_functype1_*.root"))
-                    CALIBRATE_RAMP(static_fn).write_calibrate_tree()
+                    CALIBRATE_RAMP(static_fn,sampleRate).write_calibrate_tree()
                     staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
                     dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
                     dcStats = dc_tests.analyze(dc_fns,verbose=False)
