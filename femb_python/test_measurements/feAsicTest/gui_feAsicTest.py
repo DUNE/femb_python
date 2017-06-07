@@ -296,7 +296,7 @@ ASIC 3 ID: {asic3id}
             return
 
         print("BEGIN TESTS")
-        self.start_button_result["text"] = "IN PROGRESS"
+        self.start_button_result["text"] = "IN PROGRESS "+self.params["session_start_time"]
         self.load_button_result["text"] = "Testing - do not remove"
         self.update_idletasks()
 
