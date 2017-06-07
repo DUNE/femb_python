@@ -374,6 +374,8 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                 except CalledProcessError as e:
                     print("Error: firmware programming failed, exiting.")
                     sys.exit(1)
+                config.resetBoard()
+                config.initBoard()
                 config.syncADC()
         elif sampleRate == 1000000:
             if not hasattr(config,"FIRMWAREPATH1MHZ"):
@@ -384,6 +386,8 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
             except CalledProcessError as e:
                 print("Error: firmware programming failed, exiting.")
                 sys.exit(1)
+            config.resetBoard()
+            config.initBoard()
             config.syncADC()
         else:
             print("Error: Sample rate not 1 MHz or 2 MHz, exiting.")

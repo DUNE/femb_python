@@ -146,6 +146,16 @@ class GUI_WINDOW(Frame):
         femb_config_name = os.environ["FEMB_CONFIG"]
         linux_username = pwd.getpwuid(os.getuid()).pw_name
         femb_python_location = os.path.dirname(femb_python.__file__)
+        firmware_1MHz = None
+        firmware_2MHz = None
+        try:
+            firmware_1MHz = self.config.FIRMWAREPATH1MHZ
+        except AttributeError:
+            pass
+        try:
+            firmware_2MHz = self.config.FIRMWAREPATH2MHZ
+        except AttributeError:
+            pass
         inputOptions = {
             "operator": operator,
             "board_id": boardid,
@@ -157,6 +167,8 @@ class GUI_WINDOW(Frame):
             "linux_username": linux_username,
             "smttag": hostname,
             "femb_python_location": femb_python_location,
+            "firmware_1MHz": firmware_1MHz,
+            "firmware_2MHz": firmware_2MHz,
         }
         if getCurrent:
             inputOptions["current"] = current
