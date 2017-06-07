@@ -21,6 +21,7 @@ import sys
 import string
 import time
 import copy
+import subprocess
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.configuration.adc_asic_reg_mapping_P1 import ADC_ASIC_REG_MAPPING
@@ -76,6 +77,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc1",["CH2","CH1"]) # turn on CH2 first
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
+
+        ## Firmware update related variables
+        self.FIRMWAREPATH2MHZ = "/home/jhugon/femb_firmware/adc_tester/S7_2M_SBND_FPGA.sof"
+        self.FIRMWAREPATH1MHZ = "/home/jhugon/femb_firmware/adc_tester/S7_1M_SBND_FPGA.sof"
+        self.FIRMWAREPROGEXE = "/opt/sw/intelFPGA/17.0/qprogrammer/bin/quartus_pgm"
+        self.FIRMWAREPROGCABLE = "USB-Blaster"
+        self.SAMPLERATE = 2e6
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
@@ -485,3 +493,20 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             #print("ExtClock Register {0:12} number {1:3} set to {2:5} = {2:#06x}".format(name,reg,val))
             self.femb.write_reg(reg,val)
             
+    def programFirmware(self, firmware):
+        """
+        Programs the FPGA using the firmware file given.
+        """
+        commandline = "{} -c {} -m jtag -o p;{}".format(self.FIRMWAREPROGEXE,self.FIRMWAREPROGCABLE,firmware)
+        commandlinelist = commandline.split()
+        print(commandline)
+        print(commandlinelist)
+        subprocess.run(commandlinelist,check=True)
+
+    def programFirmware1Mhz(self):
+        self.programFirmware(self.FIRMWAREPATH1MHZ)
+        self.SAMPLERATE = 1e6
+
+    def programFirmware2Mhz(self):
+        self.programFirmware(self.FIRMWAREPATH2MHZ)
+        self.SAMPLERATE = 1e6
