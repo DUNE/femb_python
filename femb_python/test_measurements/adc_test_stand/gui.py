@@ -77,7 +77,7 @@ class GUI_WINDOW(Frame):
             self.asic_entries.append(asic_entry)
 
         self.prepare_button = Button(self, text="Power-up Board", command=self.prepare_board,width=25)
-        self.prepare_button.grid(row=20,column=columnbase,columnspan=2)
+        self.prepare_button.grid(row=20,column=columnbase,columnspan=2,pady=30)
 
         # Adding electronics ID and read entry box
         self.current_label = Label(self,text="CH2 Current [A]:",width=25,state="disabled")
@@ -87,12 +87,12 @@ class GUI_WINDOW(Frame):
         self.current_entry.grid(sticky=W,row=21,column=columnbase+1)
 
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        self.start_button.grid(row=22,column=columnbase,columnspan=2)
+        self.start_button.grid(row=22,column=columnbase,columnspan=2,pady=30)
         self.reset_button = Button(self, text="Reset & Power-off", command=self.reset,width=25,bg="#FF8000")
         self.reset_button.grid(row=24,column=columnbase,columnspan=2)
 
         self.runid_label = Label(self, text="")
-        self.runid_label.grid(row=25,column=columnbase,columnspan=2)
+        self.runid_label.grid(row=25,column=columnbase,columnspan=2,pady=20)
 
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
         self.status_label.grid(row=100,column=columnbase,columnspan=2)
@@ -315,6 +315,8 @@ class GUI_WINDOW(Frame):
         timestamp = params["timestamp"]
         #datadir = "/home/jhugon/data/adc/hothdaq4/olddata/2017-06-02T14:24:54"
         #timestamp = "2017-06-02T14:24:54"
+        #datadir = "/home/jhugon/data/adc/hothdaq3/Data/2017-06-08T13:04:41"
+        #timestamp = "2017-06-08T13:04:41"
         outfileglob = "adcTest_{}_*.json".format(timestamp)
         outfileglob = os.path.join(datadir,outfileglob)
         #print(outfileglob)
@@ -380,7 +382,7 @@ class GUI_WINDOW(Frame):
         imgfilenames = glob.glob(imgfileglob)
         print(imgfilenames)
         for imgfilename in imgfilenames:
-            self.display_procs.append(subprocess.Popen(["display","-resize","800x800",imgfilename]))
+            self.display_procs.append(subprocess.Popen(["eog",imgfilename]))
 
     def exit(self,*args, **kargs):
         for i in reversed(range(len(self.display_procs))):
