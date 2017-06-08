@@ -107,18 +107,19 @@ class SUMMARY_PLOTS(object):
                 else:
                     fig.subplots_adjust(left=0.07,right=0.93,bottom=0.05,top=0.92,wspace=0.27)
                 fig.suptitle("ADC {}, {}, {}, \nTest Time: {}".format(self.serial,clockLabel,sampleRateLabel,self.time),fontsize='x-large')
-                self.staticSummary(sampleRate,iClock,ax1,ax3,ax2,ax9)
-                self.dynamicSummary(sampleRate,iClock,ax4,ax5)
-                self.baselineSummary(sampleRate,iClock,ax7,ax8)
+                self.staticSummary(sampleRate,iClock,ax1,ax3,ax2,ax4,ax5)
+                self.dynamicSummary(sampleRate,iClock,ax7)
+                self.inputPinSummary(sampleRate,iClock,ax8)
                 self.dcSummary(sampleRate,iClock,ax6)
                 self.doLegend(fig,self.colorDict,patches=True,offsets=True)
+                ax9.set_visible(False)
                 fig.savefig(self.outfileprefix + "_"+clockFn+"_"+sampleRateFn+".png")
                 fig.savefig(self.outfileprefix + "_"+clockFn+"_"+sampleRateFn+".pdf")
                 plt.close(fig)
                 if not plotAll:
                     break
 
-    def staticSummary(self,sampleRate,iClock,ax1,ax2,ax3,ax4):
+    def staticSummary(self,sampleRate,iClock,ax1,ax2,ax3,ax4,ax5):
         data = None
         try:
             data = self.stats["static"][sampleRate][iClock]
@@ -132,22 +133,26 @@ class SUMMARY_PLOTS(object):
         ax2.set_xlabel("Channel")
         ax3.set_xlabel("Channel")
         ax4.set_xlabel("Channel")
+        ax5.set_xlabel("Channel")
         ax1.set_ylabel("DNL [LSB]")
         ax2.set_ylabel("Stuck Code Fraction")
         ax3.set_ylabel("INL [LSB]")
         ax4.set_ylabel("Min ADC Code or Max ADC Code - 4095")
+        ax5.set_ylabel("V at Min or Max ADC Code [V]")
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
         markerstyle = ['o','s','*','p','^']*10
         legendDict1 = {}
         legendDict2 = {}
         legendDict3 = {}
         legendDict4 = {}
+        legendDict5 = {}
         for offset in self.offsets:
             color = self.colorDict[offset]
             i1 = 0
             im1 = 0
             i2 = 0
             i3 = 0
+            i4 = 0
             i4 = 0
             for stat in sorted(data[offset]):
               if stat[:13] == "stuckCodeFrac":
@@ -157,39 +162,49 @@ class SUMMARY_PLOTS(object):
                   ax2.plot(data[offset][stat],label=stat,c='k',ls="dotted")
                   legendDict2[stat] = ("dotted",None)
                 else:
-                  #ax2.plot(data[offset][stat],label=stat,c=color,marker=markerstyle[i2],ls="")
-                  ax2.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i2])
+                  ax2.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i2],drawstyle="steps-mid")
                   legendDict2[stat] = (linestyle[i2],None)
                   i2 += 1
               elif stat[:3] == "DNL":
                 if not ("400" in stat):
                     continue
-                if "max" in stat:
-                  ax1.plot(data[offset][stat],label=stat,c=color,marker=markerstyle[im1],ls="")
-                  legendDict1[stat] = ("",markerstyle[im1])
+                if "max" in stat.lower():
+                  ax1.plot(data[offset][stat],label="Max",c=color,marker=markerstyle[im1],ls="")
+                  legendDict1["Max"] = ("",markerstyle[im1])
                   im1 += 1
                 else:
-                  ax1.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i1])
-                  legendDict1[stat] = (linestyle[i1],None)
+                  ax1.plot(data[offset][stat],label="75th Percentile",c=color,ls=linestyle[i1],drawstyle="steps-mid")
+                  legendDict1["75th Percentile"] = (linestyle[i1],None)
                   i1 += 1
               elif stat[:3] == "INL":
                 if not ("400" in stat):
                     continue
-                #ax3.plot(data[offset][stat],label=stat,c=color,marker=markerstyle[i3],ls="")
-                ax3.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i3])
-                legendDict3[stat] = (linestyle[i3],None)
-                i3 += 1
+                if not str(offset) == "-1":
+                    continue
+                if "max" in stat.lower():
+                  ax3.plot(data[offset][stat],label="Max",c=color,marker=markerstyle[0],ls="")
+                  legendDict3["Max"] = ("",markerstyle[0])
+                else:
+                  ax3.plot(data[offset][stat],label="75th Percentile",c=color,ls=linestyle[0],drawstyle="steps-mid")
+                  legendDict3["75th Percentile"] = (linestyle[0],None)
               elif stat == "lsbPerV" or stat == "codeAtZeroV":
                 continue
-              else:
-                data4 = numpy.array(data[offset][stat])
-                if stat[-1] == "V":
-                    data4 = data4*100
-                elif stat == "maxCode":
-                    data4 -= 4095
-                ax4.plot(data4,label=stat,c=color,ls=linestyle[i4])
-                legendDict4[stat] = (linestyle[i4],None)
-                i4 += 1
+              elif stat == "maxCode":
+                if str(offset) != "-1": continue
+                dataTmp = numpy.array(data[offset][stat])
+                ax4.plot(dataTmp-4095,label="Max Code",c=color,ls=linestyle[0],drawstyle="steps-mid")
+              elif stat == "minCode":
+                if str(offset) != "-1": continue
+                dataTmp = numpy.array(data[offset][stat])
+                ax4.plot(dataTmp,label="Min Code",c=color,ls=linestyle[1],drawstyle="steps-mid")
+              elif stat == "maxCodeV":
+                if str(offset) != "-1": continue
+                dataTmp = numpy.array(data[offset][stat])
+                ax5.plot(dataTmp,label="V at Max Code",c=color,ls=linestyle[0],drawstyle="steps-mid")
+              elif stat == "minCodeV":
+                if str(offset) != "-1": continue
+                dataTmp = numpy.array(data[offset][stat])
+                ax5.plot(dataTmp,label="V at Min Code",c=color,ls=linestyle[1],drawstyle="steps-mid")
         ax1.set_yscale("log")
         ax3.set_yscale("log")
         ylim = ax1.get_ylim()
@@ -215,20 +230,19 @@ class SUMMARY_PLOTS(object):
         ax3.set_ylim(*newylim)
         ylim = ax4.get_ylim()
         newylim = [x for x in ylim]
-        if ylim[0] > -50:
-            newylim[0] = -50
+        if ylim[0] > -100:
+            newylim[0] = -100
         if ylim[1] < 400:
             newylim[1] = 400
         ax4.set_ylim(*newylim)
         self.doLegend(ax1,legendDict1)
         #self.doLegend(ax2,legendDict2)
-        self.doLegend(ax3,legendDict3)
-        self.doLegend(ax4,legendDict4)
-        ax4Right = ax4.twinx()
-        ax4Right.set_ylim(0.010*numpy.array(ax4.get_ylim()))
-        ax4Right.set_ylabel("Min/Max ADC Code Voltage [V]")
+        #self.doLegend(ax3,legendDict3)
+        ax3.legend(loc="best",fontsize="medium",frameon=False)
+        ax4.legend(loc="best",fontsize="medium",frameon=False)
+        ax5.legend(loc="best",fontsize="medium",frameon=False)
 
-    def dynamicSummary(self,sampleRate,iClock,ax1,ax2):
+    def dynamicSummary(self,sampleRate,iClock,ax1):
         data = None
         try:
             data = self.stats["dynamic"][sampleRate][iClock]
@@ -240,24 +254,21 @@ class SUMMARY_PLOTS(object):
                 return
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
         markerstyle = ['o','s','*','p','^']*10
-        freq1 = 0.
-        freq2 = 0.
+        legendDict1 = {}
         for offset in self.offsets:
+            if int(offset) != -1:
+                continue
             color = self.colorDict[offset]
             i1 = 0
-            i2 = 0
             for stat in sorted(data[offset]):
               if stat.lower() == "sinads":
                 for amp in reversed(sorted(data[offset][stat])): # largest amp
                   freqs = sorted(data[offset][stat][amp],key=lambda x: float(x))
-                  for freq in freqs[:1]:
-                    ax1.plot(data[offset][stat][amp][freq],label=stat,c=color,ls=linestyle[i1])
+                  for freq in reversed(freqs):
+                    freqStr = "{:.1f} kHz".format(float(freq)/1000.)
+                    ax1.plot(data[offset][stat][amp][freq],label=freqStr,c=color,ls=linestyle[i1],drawstyle="steps-mid")
+                    legendDict1[freqStr] = (linestyle[i1],None)
                     i1 += 1
-                    freq1 = float(freq)/1000.
-                  for freq in freqs[-1:]:
-                    ax2.plot(data[offset][stat][amp][freq],label=stat,c=color,ls=linestyle[i2])
-                    i2 += 1
-                    freq2 = float(freq)/1000.
                   break
         ylim = ax1.get_ylim()
         newylim = [x for x in ylim]
@@ -266,19 +277,12 @@ class SUMMARY_PLOTS(object):
         if ylim[1] < 70:
             newylim[1] = 70
         ax1.set_ylim(*newylim)
-        ylim = ax2.get_ylim()
-        newylim = [x for x in ylim]
-        if ylim[0] > 0:
-            newylim[0] = 0
-        if ylim[1] < 70:
-            newylim[1] = 70
-        ax2.set_ylim(*newylim)
         ax1.set_xlabel("Channel")
-        ax1.set_ylabel("SINAD for {:.1f} kHz [dBc]".format(freq1))
-        ax2.set_xlabel("Channel")
-        ax2.set_ylabel("SINAD for {:.1f} kHz [dBc]".format(freq2))
+        ax1.set_ylabel("SINAD [dBc]")
+        #self.doLegend(ax1,legendDict1)
+        ax1.legend(loc="best",fontsize="medium",frameon=False)
 
-    def baselineSummary(self,sampleRate,iClock,ax1,ax2):
+    def inputPinSummary(self,sampleRate,iClock,ax1):
         data = None
         try:
             data = self.stats["inputPin"][sampleRate][iClock]
@@ -286,12 +290,11 @@ class SUMMARY_PLOTS(object):
             try:
                 data = self.stats["inputPin"][sampleRate][str(iClock)]
             except KeyError:
+                ax1.set_visible(False)
                 print("No inputPinSummary for iClock: ",iClock)
                 return
         ax1.set_xlabel("Channel")
-        ax2.set_xlabel("Channel")
         ax1.set_ylabel("Input Pin Mean [ADC]")
-        ax2.set_ylabel("Input Pin RMS [ADC]")
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
         markerstyle = ['o','s','*','p','^']*10
         legendDict1 = {}
@@ -299,16 +302,11 @@ class SUMMARY_PLOTS(object):
         for offset in data:
             color = self.colorDict[offset]
             i1 = 0
-            i2 = 0
             for stat in sorted(data[offset]):
               if stat.lower() == "mean":
-                ax1.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i1])
+                ax1.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i1],drawstyle="steps-mid")
                 legendDict1[stat] = (linestyle[i1],None)
                 i1 += 1
-              elif stat.lower() == "rms":
-                ax2.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i2])
-                legendDict2[stat] = (linestyle[i2],None)
-                i2 += 1
         ylim = ax1.get_ylim()
         newylim = [x for x in ylim]
         if ylim[0] > 0:
@@ -316,15 +314,7 @@ class SUMMARY_PLOTS(object):
         if ylim[1] < 4000:
             newylim[1] = 4000
         ax1.set_ylim(*newylim)
-        ylim = ax2.get_ylim()
-        newylim = [x for x in ylim]
-        if ylim[0] > 0:
-            newylim[0] = 0
-        if ylim[1] < 10:
-            newylim[1] = 10
-        ax2.set_ylim(*newylim)
         #self.doLegend(ax1,legendDict1)
-        #self.doLegend(ax2,legendDict2)
 
     def dcSummary(self,sampleRate,iClock,ax1):
         data = None
@@ -342,18 +332,14 @@ class SUMMARY_PLOTS(object):
         markerstyle = ['o','s','*','p','^']*10
         legendDict1 = {}
         for offset in self.offsets:
+            if str(offset) != "-1": 
+                continue
             color = self.colorDict[offset]
-            i1 = 0
-            im1 = 0
-            for stat in sorted(data[offset]):
+            for stat in reversed(sorted(data[offset])):
               if stat == "meanCodeFor1.6V":
-                 ax1.plot(data[offset][stat],label=stat,c=color,marker=markerstyle[im1],ls="")
-                 legendDict1[stat[-4:]] = ("",markerstyle[im1])
-                 im1 += 1
+                 ax1.plot(data[offset][stat],label=stat[-4:],c=color,marker=markerstyle[0],ls="")
               elif stat == "meanCodeFor0.2V":
-                 ax1.plot(data[offset][stat],label=stat,c=color,ls=linestyle[i1])
-                 legendDict1[stat[-4:]] = (linestyle[i1],None)
-                 i1 += 1
+                 ax1.plot(data[offset][stat],label=stat[-4:],c=color,ls=linestyle[0],drawstyle="steps-mid")
         ylim = ax1.get_ylim()
         newylim = [x for x in ylim]
         if ylim[0] > -100:
@@ -361,7 +347,7 @@ class SUMMARY_PLOTS(object):
         if ylim[1] < 5000:
             newylim[1] = 5000
         ax1.set_ylim(*newylim)
-        self.doLegend(ax1,legendDict1)
+        ax1.legend(loc="best",fontsize="medium",frameon=False)
 
     def doLegend(self,ax,legendDict,patches=False,offsets=False):
         legendHandles = []
@@ -370,7 +356,7 @@ class SUMMARY_PLOTS(object):
             for title in sorted(legendDict.keys(),key=lambda x: int(x)):
                 color = legendDict[title]
                 if offsets:
-                    if title == "-1":
+                    if str(title) == "-1":
                         title = "Off"
                     else:
                         title = str(title)
@@ -387,7 +373,7 @@ class SUMMARY_PLOTS(object):
         self.legendHandles = legendHandles
         if isinstance(ax,Figure):
             ax.legend(self.legendHandles,legendLabels,loc="upper right",fontsize="medium",frameon=False)
-            ax.text(0.87,0.978,"Offset:")
+            ax.text(0.89,0.978,"Offset:")
         else:
             ax.legend(handles=self.legendHandles,loc="best",fontsize="medium",frameon=False)
 
