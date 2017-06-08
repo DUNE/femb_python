@@ -520,9 +520,13 @@ def main():
     from ...configuration.argument_parser import ArgumentParser
     from ...configuration import CONFIG
     import json
+
     ROOT.gROOT.SetBatch(True)
+
+    timestamp = datetime.datetime.now().replace(microsecond=0).isoformat().replace(":","").replace("-","")
+
     parser = ArgumentParser(description="Runs ADC tests")
-    parser.add_argument("-t", "--timestamp",help="Timestamp string to use for this test",type=str,default=datetime.datetime.now().replace(microsecond=0).isoformat())
+    parser.add_argument("-t", "--timestamp",help="Timestamp string to use for this test",type=str,default=timestamp)
     parser.add_argument("-o", "--operator",help="Test operator name",type=str,default="Command-line Operator")
     parser.add_argument("-s", "--serial",help="Chip serial number, use multiple times for multiple chips, e.g. -s 1 -s 2 -s 3 -s 4",action='append',default=[])
     parser.add_argument("-b", "--board",help="Test board serial number",default=None)

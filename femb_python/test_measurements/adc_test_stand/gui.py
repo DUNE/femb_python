@@ -134,7 +134,7 @@ class GUI_WINDOW(Frame):
         # need serialnumber list, operator, board_id, timestamp, hostname
         timestamp = self.timestamp
         if timestamp is None:
-            timestamp = datetime.datetime.now().replace(microsecond=0).isoformat()
+            timestamp = datetime.datetime.now().replace(microsecond=0).isoformat().replace(":","").replace("-","")
         self.timestamp = timestamp
         hostname = socket.gethostname() 
         chipidstr = ""

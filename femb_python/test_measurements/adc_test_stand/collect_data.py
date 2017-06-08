@@ -100,7 +100,7 @@ def main():
 
     collect_data = COLLECT_DATA(config,args.nPackets)
   
-    startDateTime = datetime.datetime.now().replace(microsecond=0).isoformat()
+    timestamp = datetime.datetime.now().replace(microsecond=0).isoformat().replace(":","").replace("-","")
     for iChip in range(config.NASICS):
-        fileprefix = "adcTestData_{}_chip{}".format(startDateTime,iChip)
+        fileprefix = "adcTestData_{}_chip{}".format(timestamp,iChip)
         collect_data.getData(fileprefix,iChip)

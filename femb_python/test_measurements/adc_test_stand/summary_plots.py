@@ -9,10 +9,6 @@ from ...femb_udp import FEMB_UDP
 from ...test_instrument_interface import RigolDG4000
 from ...write_root_tree import WRITE_ROOT_TREE
 import os.path
-import time
-import datetime
-import glob
-from uuid import uuid1 as uuid
 import json
 import numpy
 import matplotlib.pyplot as plt
