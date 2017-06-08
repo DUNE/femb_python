@@ -38,7 +38,7 @@ class DYNAMIC_TESTS(object):
         self.sampleRate = 2e6
 
     def analyze(self,fileprefix,diagnosticPlots=True,debugPlots=False):
-        waveforms, adcSerial = self.loadWaveforms(fileprefix)
+        waveforms, adcSerial, sampleRate = self.loadWaveforms(fileprefix)
         frequencies = sorted(list(waveforms.keys()))
         #frequencies = frequencies[:3]
         amplitudes = []
@@ -47,6 +47,8 @@ class DYNAMIC_TESTS(object):
               if not amp in amplitudes:
                 amplitudes.append(amp)
         amplitudes.sort()
+        if sampleRate <= 0.: # if not set in tree
+            sampleRate = self.sampleRate
         chipstats = {}
         for iChan in range(16):
         #for iChan in range(1):
@@ -55,6 +57,9 @@ class DYNAMIC_TESTS(object):
             for amp in amplitudes:
                 chanstats[amp] = {}
                 for freq in frequencies:
+                    if freq >= 0.5*sampleRate:
+                        print("Warning: data with freq {:.2g} Hz >= 0.5*sampleRate (sample Rate {:.2g} Hz, not analyzing dynamic params.".format(freq,sampleRate))
+                        continue
                     chanstats[amp][freq] = {}
                     waveform = waveforms[freq][amp][iChan]
                     if diagnosticPlots:
@@ -64,10 +69,10 @@ class DYNAMIC_TESTS(object):
                     freqCoef = freq/10**freqExp
                     freqStr = "{:.0f}e{:.0f}".format(freqCoef,freqExp)
                     outputSuffix = "chip{}_chan{}_freq{}Hz_amp{:.0f}mV".format(adcSerial,iChan,freqStr,amp*1000)
-                    maxAmpFreq, thd, snr, sinad, enob = self.getDynamicParameters(waveform,outputSuffix,debugPlots=debugPlots)
+                    maxAmpFreq, thd, snr, sinad, enob = self.getDynamicParameters(waveform,outputSuffix,sampleRate,debugPlots=debugPlots)
                     deltaFreqRel = (maxAmpFreq*1e6 - freq)/freq
                     if abs(deltaFreqRel) > 1e-2:
-                        print("Warning: Chip: {} Channel: {} Frequency: {:.2g} Hz Amplitude: {:.2f} V FFT peak doesn't match input frequency, skipping. fft freq - input freq relative error: {:.2%}".format(adcSerial,iChan,freq,amp,deltaFreqRel))
+                        print("Warning: Chip: {} Channel: {} Frequency: {:.2g} Hz Amplitude: {:.2f} V FFT peak ({:.2g} Hz) doesn't match input frequency, skipping. fft freq - input freq relative error: {:.2%}".format(adcSerial,iChan,freq,amp,maxAmpFreq*1e6,deltaFreqRel))
                         #chanstats[amp][freq]['thds'] = float('nan')
                         #chanstats[amp][freq]['snrs'] = float('nan')
                         chanstats[amp][freq]['sinads'] = float('nan')
@@ -114,30 +119,35 @@ class DYNAMIC_TESTS(object):
                 manyaxeses.append(manyaxes)
             # do analysis
             for iChan in range(16):
-            #for iChan in range(1):
                 chanstats = allstats[iChan]
-                for iKey, key in enumerate(['thds','snrs','sinads']):
-                    fig, ax = plt.subplots(figsize=(8,8))
-                    for amp in amplitudes:
-                        freqs = numpy.array(chanstats[amp]['freqs'])
-                        ax.plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
-                        manyaxeses[iKey][iChan].plot(freqs/1e6,chanstats[amp][key],label="{:.2f} V".format(amp))
-                    ax.set_xlabel("Frequency [MHz]")
-                    ax.set_ylabel("{} [dB]".format(key[:-1].upper()))
-                    ax.set_xlim(0,1)
-                    ax.set_ylim(0,60)
-                    if key == "thds":
-                      ax.set_ylim(-80,0)
-                    ax.legend()
-                    fig.savefig("{}_chip{}_chan{}.png".format(key,adcSerial,iChan))
-                    plt.close(fig)
-            for iKey, key in enumerate(['thds','snrs','sinads']):
+                #for iKey, key in enumerate(['thds','snrs','sinads']):
+                for iKey, key in enumerate(['sinads']):
+                    try:
+                        fig, ax = plt.subplots(figsize=(8,8))
+                        for amp in amplitudes:
+                            freqs = numpy.array(list(chanstats[amp]))
+                            ydata = [chanstats[amp][f][key] for f in freqs]
+                            ax.plot(freqs/1e6,ydata,label="{:.2f} V".format(amp))
+                            manyaxeses[iKey][iChan].plot(freqs/1e6,ydata,label="{:.2f} V".format(amp))
+                        ax.set_xlabel("Frequency [MHz]")
+                        ax.set_ylabel("{} [dB]".format(key[:-1].upper()))
+                        ax.set_xlim(0,1)
+                        ax.set_ylim(0,60)
+                        if key == "thds":
+                          ax.set_ylim(-80,0)
+                        ax.legend()
+                    except KeyError as e:
+                        raise e
+                    finally:
+                        plt.close(fig)
+            #for iKey, key in enumerate(['thds','snrs','sinads']):
+            for iKey, key in enumerate(['sinads']):
               figmanys[iKey].savefig("{}_chip{}.png".format(key,adcSerial))
               plt.close(figmanys[iKey])
 
         return allstats
 
-    def getDynamicParameters(self,data,outputSuffix,fake=False,debugPlots=False):
+    def getDynamicParameters(self,data,outputSuffix,sampleRate,fake=False,debugPlots=False):
         """
         Performs the fft on the input sample data and returns:
 
@@ -176,7 +186,7 @@ class DYNAMIC_TESTS(object):
         fftPower *= 2 / len(data)
         fftPowerRelative = fftPower/max(fftPower)
         fftPowerRelativeDB = 10*numpy.log10(fftPowerRelative)
-        samplePeriod = 1./self.sampleRate*1e6 # microsecond -> freqs will be in MHz
+        samplePeriod = 1./sampleRate*1e6 # microsecond -> freqs will be in MHz
         frequencies = numpy.fft.rfftfreq(len(data),samplePeriod)
 
         iFreqs = numpy.arange(len(frequencies))
@@ -266,6 +276,7 @@ class DYNAMIC_TESTS(object):
         amplitudes = set()
         frequencies = set()
         adcSerials = set()
+        sampleRates = set()
         for mdt in metadataTrees:
             mdt.GetEntry(0)
             md = {
@@ -273,7 +284,8 @@ class DYNAMIC_TESTS(object):
                 'funcAmp': mdt.funcAmp,
                 'funcOffset': mdt.funcOffset,
                 'funcFreq': mdt.funcFreq,
-                'adcSerial': mdt.adcSerial
+                'adcSerial': mdt.adcSerial,
+                'sampleRate': mdt.sampleRate,
                 }
             metadatas.append(md)
             if not mdt.funcAmp in amplitudes:
@@ -282,10 +294,14 @@ class DYNAMIC_TESTS(object):
                 frequencies.add(mdt.funcFreq)
             if not mdt.adcSerial in adcSerials:
                 adcSerials.add(mdt.adcSerial)
+            if not mdt.sampleRate in sampleRates:
+                sampleRates.add(mdt.sampleRate)
         if len(adcSerials) > 1:
             raise Exception("fileprefix '{}' matches files with more than one ADC serial number, only one serial number allowed at a time")
         elif len(adcSerials) == 0:
             raise Exception("fileprefix '{}' doesn't match to any files with functype2.")
+        elif len(sampleRates) > 1:
+            raise Exception("fileprefix '{}' matches files with more than one sampleRate, only one sample Rate at a time.")
         result = {}
         for freq in frequencies:
             result[freq] = {}
@@ -305,7 +321,7 @@ class DYNAMIC_TESTS(object):
                           adccodes = [i >> (12 - self.nBits) for i in adccodes]
                       thesePoints[iChannel].extend(adccodes)
               result[freq][amp] = thesePoints
-        return result, adcSerials.pop()
+        return result, adcSerials.pop(), sampleRates.pop()
 
     def getHanningWindow(self,N):
         """

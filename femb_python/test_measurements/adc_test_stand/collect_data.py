@@ -61,8 +61,11 @@ class COLLECT_DATA(object):
           self.dumpWaveformRootFile(iChip,outPrefix,1,0.,dc,0.,10,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate)
 
     def getSin(self,outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,amplitudeV,offsetV):
-        freqList = [6.2365e4,5.13587e5,9.515125e5]
+        freqList = [6.2365e4,4.83587e5,9.515125e5]
         for freq in freqList:
+          if sampleRate > 0.:
+            if freq >= 0.5*sampleRate: # if greater than nyquist don't do
+                continue
           self.funcgen.startSin(freq,amplitudeV,offsetV)
           time.sleep(self.settlingTime)
           self.dumpWaveformRootFile(iChip,outPrefix,2,freq,offsetV,amplitudeV,100,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate)
