@@ -143,11 +143,15 @@ class CALIBRATE_RAMP(object):
         
 def main():
     from ...configuration.argument_parser import ArgumentParser
+    from ...configuration import CONFIG
+
     ROOT.gROOT.SetBatch(True)
     parser = ArgumentParser(description="Calibrates ADC ramp data")
     parser.add_argument("infilename",help="Input file name. The file created by femb_adc_collect_data that includes 'functype3'.")
     parser.add_argument("DCcalibrationfile",help="DC calibration file names. These files are created by femb_adc_collect_data and include 'functype1'.",nargs="*")
     args = parser.parse_args()
-  
-    cal_ramp = CALIBRATE_RAMP(args.infilename,args.DCcalibrationfile)
+
+    config = CONFIG()
+
+    cal_ramp = CALIBRATE_RAMP(args.infilename,config.SAMPLERATE,args.DCcalibrationfile)
     cal_ramp.write_calibrate_tree()

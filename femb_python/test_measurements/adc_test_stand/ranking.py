@@ -53,8 +53,8 @@ class RANKING(object):
         self.statsToDraw = {
             "DNL 75%": {"stat":"DNL75perc400"},
             "DNL Max": {"stat":"DNLmax400"},
-            "INL 75%": {"stat":"INLabs75perc400"},
-            "INL Max": {"stat":"INLabsMax400"},
+            "INL 75%": {"stat":"INLabs75perc400","offsets":["-1"]},
+            "INL Max": {"stat":"INLabsMax400","offsets":["-1"]},
             "Min Code": {"stat":"minCode","offsets":["-1"]},
             "Min Code V": {"stat":"minCodeV","offsets":["-1"]},
             "Max Code": {"stat":"maxCode","min":True,"offsets":["-1"]},
@@ -66,8 +66,8 @@ class RANKING(object):
             "SINAD for 951 kHz": {"stat":"sinads","min":True,"freqs":["951512.5"],"offsets":["-1"]},
             "Stuck Code Fraction": {"stat":"stuckCodeFrac400"},
         }
-        for stat in self.statsToDraw:
-            self.statsToDraw[stat]["clocks"] = ["0"]
+#        for stat in self.statsToDraw:
+#            self.statsToDraw[stat]["clocks"] = ["0"]
 
     def rank(self):
         datadicts = self.getlatestdata()
@@ -407,4 +407,4 @@ def main():
     ranking = RANKING(args.infilename)
     ranking.rank()
     ranking.histAllChannels()
-    ranking.getlatestdatapermachine()
+    #ranking.getlatestdatapermachine()

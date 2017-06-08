@@ -207,32 +207,42 @@ class ADC_TEST_SUMMARY(object):
             thisPass = True
             results = {}
             staticChecks = {
-                'DNLmax400': ["lt",50.],
-                'DNL75perc400': ["lt",2.],
-                'stuckCodeFrac400': ["lt",0.1],
-                'INLabsMax400': ["lt",100.],
-                'INLabs75perc400': ["lt",50.],
-                'minCode': ["lt",300.],
-                'minCodeV': ["lt",0.3],
-                #'maxCode': ["gt",3000.],
-                'maxCodeV': ["gt",1.7],
+                'DNLmax400': ["lt",28.,{}],
+                'DNL75perc400': ["lt",0.48,{}],
+                'stuckCodeFrac400': ["lt",0.1,{}],
+                'INLabsMax400': ["lt",60.,{"offset":-1}],
+                'INLabs75perc400': ["lt",50.,{"offset":-1}],
+                'minCode': ["lt",240.,{"offset":-1}],
+                'minCodeV': ["lt",0.2,{"offset":-1}],
+                'maxCode': ["gt",4090.,{"offset":-1}],
+                'maxCodeV': ["gt",1.3,{"offset":-1}],
             }
             dynamicChecks = {
-                'sinads': ["gt",10.],
+                'sinads': ["gt",25.,{"offset":-1,"clock":0}],
             }
             inputPinChecks = {
-                'mean': ["lt",3000.],
+                #'mean': ["lt",3000.,{}],
             }
             dcChecks = {
-                "meanCodeFor0.2V": ["lt",400],
-                "meanCodeFor1.6V": ["gt",3500],
+                "meanCodeFor0.2V": ["lt",800,{"offset":-1}],
+                "meanCodeFor1.6V": ["gt",3500,{"offset":-1}],
             }
             for stat in staticChecks:
                 check = staticChecks[stat]
                 statPass = True
                 for sampleRate in thisSummary['static']:
                     for clock in thisSummary['static'][sampleRate]:
+                        try:
+                            if check[2]["clock"] != int(clock):
+                                continue
+                        except KeyError:
+                            pass
                         for offset in thisSummary['static'][sampleRate][clock]:
+                            try:
+                                if check[2]["offset"] != int(offset):
+                                    continue
+                            except KeyError:
+                                pass
                             for channel in range(16):
                                 if check[0] == "lt":
                                     if thisSummary['static'][sampleRate][clock][offset][stat][channel] >= check[1]:
@@ -256,7 +266,17 @@ class ADC_TEST_SUMMARY(object):
                 statPass = True
                 for sampleRate in thisSummary['dynamic']:
                     for clock in thisSummary['dynamic'][sampleRate]:
+                        try:
+                            if check[2]["clock"] != int(clock):
+                                continue
+                        except KeyError:
+                            pass
                         for offset in thisSummary['dynamic'][sampleRate][clock]:
+                            try:
+                                if check[2]["offset"] != int(offset):
+                                    continue
+                            except KeyError:
+                                pass
                             for amp in thisSummary['dynamic'][sampleRate][clock][offset][stat]:
                                 for freq in thisSummary['dynamic'][sampleRate][clock][offset][stat][amp]:
                                     for channel in range(16):
@@ -286,7 +306,17 @@ class ADC_TEST_SUMMARY(object):
                 statPass = True
                 for sampleRate in thisSummary['inputPin']:
                     for clock in thisSummary['inputPin'][sampleRate]:
+                        try:
+                            if check[2]["clock"] != int(clock):
+                                continue
+                        except KeyError:
+                            pass
                         for offset in thisSummary['inputPin'][sampleRate][clock]:
+                            try:
+                                if check[2]["offset"] != int(offset):
+                                    continue
+                            except KeyError:
+                                pass
                             for channel in range(16):
                                 if check[0] == "lt":
                                     if thisSummary['inputPin'][sampleRate][clock][offset][stat][channel] >= check[1]:
@@ -310,7 +340,17 @@ class ADC_TEST_SUMMARY(object):
                 statPass = True
                 for sampleRate in thisSummary['dc']:
                     for clock in thisSummary['dc'][sampleRate]:
+                        try:
+                            if check[2]["clock"] != int(clock):
+                                continue
+                        except KeyError:
+                            pass
                         for offset in thisSummary['dc'][sampleRate][clock]:
+                            try:
+                                if check[2]["offset"] != int(offset):
+                                    continue
+                            except KeyError:
+                                pass
                             for channel in range(16):
                                 if check[0] == "lt":
                                     if thisSummary['dc'][sampleRate][clock][offset][stat][channel] >= check[1]:

@@ -77,6 +77,7 @@ def main():
     fig2, axs2 = plt.subplots(4,4)
     fig.suptitle("Waveforms for socket: {}, FE: {} ADC: {}".format(metadata['iChip'],metadata['feSerial'],metadata['adcSerial']))
     fig2.suptitle("FFT for socket: {}, FE: {} ADC: {}".format(metadata['iChip'],metadata['feSerial'],metadata['adcSerial']))
+    axRights = []
     for iChan in waveforms:
       ax = axs[iChan // 4][iChan % 4]
       ax2 = axs2[iChan // 4][iChan % 4]
@@ -84,6 +85,14 @@ def main():
       if not (voltages is None):
         if not (calibSlopes is None):
             ax.plot(numpy.array(voltages[iChan])/calibSlopes[iChan]-calibInters[iChan]/calibSlopes[iChan],"-g")
+            axRight = ax.twinx()
+            ylow,yhigh = ax.get_ylim()
+            ylow = ylow*calibSlopes[iChan] + calibInters[iChan]
+            yhigh = yhigh*calibSlopes[iChan] + calibInters[iChan]
+            axRight.set_ylim(ylow*1000.,yhigh*1000.)
+            if iChan % 4 == 3:
+                axRight.set_ylabel("Voltage [mV]")
+            axRights.append(axRight)
         else:
             ax.plot(voltages[iChan],"-g")
       ax.plot(waveform,"-b")

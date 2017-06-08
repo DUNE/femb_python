@@ -571,8 +571,8 @@ class STATIC_TESTS(object):
 
         #print(minCodes)
         #print(minCodeVs)
-        minCode = numpy.mean(minCodes)
-        minCodeVs = numpy.mean(minCodeVs)
+        minCode = numpy.median(minCodes)
+        minCodeV = numpy.median(minCodeVs)
         #print(minCode,minCodeV,metadata['funcOffset'],metadata['funcAmp'],nSamplesPeriod)
 
         #fig, ax = plt.subplots()
