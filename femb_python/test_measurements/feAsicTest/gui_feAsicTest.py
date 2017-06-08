@@ -316,7 +316,7 @@ ASIC 3 ID: {asic3id}
                 meth()
             except RuntimeError as err:
                 print("failed: %s\n%s" % (LOUD, err)) 
-                self.start_button_result["text"] = LOUD + " - FAILED"
+                self.start_button_result["text"] = LOUD + " - FAILED "+self.params["session_start_time"]
                 getattr(self, method + "_result")["text"] = LOUD + " - FAILED"
                 # anything else?
                 return
@@ -324,7 +324,7 @@ ASIC 3 ID: {asic3id}
             getattr(self, method + "_result")["text"] = LOUD + " - DONE"
             continue
 
-        self.start_button_result["text"] = "DONE"
+        self.start_button_result["text"] = "DONE "+self.params["session_start_time"]
 
 
         if (self.params['asic_pass'][0]):
