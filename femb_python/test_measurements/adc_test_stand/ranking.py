@@ -81,7 +81,6 @@ class RANKING(object):
         for datadict in datadicts:
             asic_stats = {}
             serial = datadict["serial"]
-            print("serial: ",serial)
             static = datadict["static"]
             asic_stats.update(self.getstats(static))
             dynamic = datadict["dynamic"]
@@ -102,8 +101,8 @@ class RANKING(object):
             for stat in asic_stats:
                 statNames.add(stat)
         statNames = sorted(list(statNames))
-        print("AllStatNames:")
-        print(sorted(statNames))
+        #print("AllStatNames:")
+        #print(sorted(statNames))
         maxVals = {}
         minVals = {}
         for statName in statNames:
@@ -118,8 +117,8 @@ class RANKING(object):
                     pass
         statNamesToDraw = sorted(self.statsToDraw)
         nStats = len(statNamesToDraw)
-        print("statNamesToDraw:")
-        print(statNamesToDraw)
+        #print("statNamesToDraw:")
+        #print(statNamesToDraw)
         nx = 4
         ny = 4
         nPerFig = nx*ny
@@ -164,7 +163,6 @@ class RANKING(object):
         for datadict in datadicts:
             asic_stats = {}
             serial = datadict["serial"]
-            print(serial)
             static = datadict["static"]
             asic_stats.update(self.getstats(static,getAll=True))
             dynamic = datadict["dynamic"]
@@ -185,8 +183,8 @@ class RANKING(object):
             for stat in asic_stats:
                 statNames.add(stat)
         statNames = sorted(list(statNames))
-        print("AllStatNames:")
-        print(sorted(statNames))
+        #print("AllStatNames:")
+        #print(sorted(statNames))
         allVals = {}
         for statName in statNames:
             allVals[statName] = []
@@ -198,8 +196,8 @@ class RANKING(object):
                     pass
         statNamesToDraw = sorted(self.statsToDraw)
         nStats = len(statNamesToDraw)
-        print("statNamesToDraw:")
-        print(statNamesToDraw)
+        #print("statNamesToDraw:")
+        #print(statNamesToDraw)
         nx = 4
         ny = 4
         nPerFig = nx*ny
@@ -236,23 +234,32 @@ class RANKING(object):
         statsToDraw = self.statsToDraw
         result = {}
         stats = []
-        sampleRates = reversed(sorted(data.keys()))
+        sampleRates = list(reversed(sorted(data.keys())))
         clocks = []
-        #clocks = clocks[:1]
+        noSampleRate = False
+        if int(sampleRates[0]) < 1000000: # old style before sampleRates
+            noSampleRate = True
+            clocks = sampleRates
+            sampleRates = [2000000]
         offsets = []
         amps = []
         freqs = []
         for sampleRate in sampleRates:
-            clocks = sorted(data[sampleRate])
+            thisData = None
+            if noSampleRate:
+                thisData = data
+            else:
+                thisData = data[sampleRate]
+            clocks = sorted(thisData)
             for clock in clocks:
-                offsets = sorted(data[sampleRate][clock])
+                offsets = sorted(thisData[clock])
                 for offset in offsets:
-                    stats = sorted(data[sampleRate][clock][offset])
+                    stats = sorted(thisData[clock][offset])
                     if dynamic:
                         for stat in stats: 
-                            amps = data[sampleRate][clock][offset][stat]
+                            amps = thisData[clock][offset][stat]
                             for amp in amps:
-                                freqs = data[sampleRate][clock][offset][stat][amp]
+                                freqs = thisData[clock][offset][stat][amp]
                         break
                     break
                 break
@@ -295,10 +302,17 @@ class RANKING(object):
                         minVal = 1e20
                         maxVal = -1e20
                         for sampleRate in thisSampleRates:
+                            thisData = None
+                            if noSampleRate:
+                                thisData = data
+                            else:
+                                thisData = data[sampleRate]
+                            if float(freq) > 0.5*float(sampleRate):
+                                continue
                             for clock in thisClocks:
                                 for offset in thisOffsets:
                                     for chan in range(16):
-                                        val = data[clock][offset][stat][amp][freq][chan]
+                                        val = thisData[clock][offset][stat][amp][freq][chan]
                                         minVal = min(val,minVal)
                                         maxVal = max(val,maxVal)
                                         if getAll:
@@ -312,10 +326,15 @@ class RANKING(object):
                 minVal = 1e20
                 maxVal = -1e20
                 for sampleRate in thisSampleRates:
+                    thisData = None
+                    if noSampleRate:
+                        thisData = data
+                    else:
+                        thisData = data[sampleRate]
                     for clock in thisClocks:
                         for offset in thisOffsets:
                               for chan in range(16):
-                                   val = data[clock][offset][stat][chan]
+                                   val = thisData[clock][offset][stat][chan]
                                    minVal = min(val,minVal)
                                    maxVal = max(val,maxVal)
                                    if getAll:
@@ -369,7 +388,7 @@ class RANKING(object):
             result.append(datadict)
         print("getlatestdata result:")
         for d in result:
-          print(d["serial"],d["timestamp"])
+          print("{:6}  {}".format(d["serial"],d["timestamp"]))
         return result
 
     def getlatestdatapermachine(self):
@@ -428,6 +447,6 @@ def main():
 
     globstr =  "/home/jhugon/dune/coldelectronics/femb_python/hothdaq*"
     ranking = RANKING(args.infilename)
-    #ranking.rank()
+    ranking.rank()
     ranking.histAllChannels()
     #ranking.getlatestdatapermachine()
