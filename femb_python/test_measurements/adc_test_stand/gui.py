@@ -251,7 +251,7 @@ class GUI_WINDOW(Frame):
                                 "datadir": "{rundir}/Data/{timestamp}",
                                 "paramfile": "{datadir}/setup_params.json",
                                 "smtname": "adc",
-                                "smttag": "{hostname},adc_setup_board",
+                                "smttag": "{hostname}",
                             }
         #runner = DirectRunner(**runnerSetup)
         runner = SumatraRunner(**runnerSetup)
@@ -291,7 +291,7 @@ class GUI_WINDOW(Frame):
                                 "datadir": "{rundir}/Data/{timestamp}",
                                 "paramfile": "{datadir}/params.json",
                                 "smtname": "adc",
-                                "smttag": "{hostname},adc_tests",
+                                "smttag": "{hostname}",
                             }
         #runner = DirectRunner(**runnerSetup)
         runner = SumatraRunner(**runnerSetup)
