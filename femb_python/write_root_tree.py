@@ -134,6 +134,43 @@ class WRITE_ROOT_TREE(object):
         f.Write()
         f.Close()
 
+    def getTraceAndFFT(self,iTrace=None,chan=0):
+        packetNum = 0
+        wordArray = []
+        for word in data:
+            #print(str(packetNum) + "\t" + str(hex(word)) )
+            if str(hex(word)) == "0xface" :
+              packetNum = 0
+              wordArray = []
+            if packetNum > 0 and packetNum < 13 :
+              wordArray.append( word )
+            if packetNum == 12 :
+              chSamp = []
+              for i in range(0,16,1):
+                chSamp.append(0)
+              chSamp[0] = ((wordArray[5] & 0xFFF0 ) >> 4)
+              chSamp[1] = ((wordArray[4] & 0xFF00 ) >> 8) | ((wordArray[5] & 0x000F ) << 8)
+              chSamp[2] = ((wordArray[4] & 0x00FF ) << 4) | ((wordArray[3] & 0xF000 ) >> 12)
+              chSamp[3] = ((wordArray[3] & 0x0FFF ) >> 0)
+              chSamp[4] = ((wordArray[2] & 0xFFF0 ) >> 4)
+              chSamp[5] = ((wordArray[2] & 0x000F ) << 8) | ((wordArray[1] & 0xFF00 ) >> 8)
+              chSamp[6] = ((wordArray[1] & 0x00FF ) << 4) | ((wordArray[0] & 0xF000 ) >> 12)
+              chSamp[7] = ((wordArray[0] & 0x0FFF ) >> 0)				
+              chSamp[8] = ((wordArray[11] & 0xFFF0 ) >> 4) 
+              chSamp[9] = ((wordArray[11] & 0x000F ) << 8) | ((wordArray[10] & 0xFF00 ) >> 8) 
+              chSamp[10] = ((wordArray[10] & 0x00FF ) << 4) | ((wordArray[9] & 0xF000 ) >> 12) 
+              chSamp[11] = ((wordArray[9] & 0x0FFF ))
+              chSamp[12] = ((wordArray[8] & 0xFFF0 ) >> 4)
+              chSamp[13] = ((wordArray[8] & 0x000F ) << 8) | ((wordArray[7] & 0xFF00 ) >> 8) 
+              chSamp[14] = ((wordArray[7] & 0x00FF ) << 4) | ((wordArray[6] & 0xF000 ) >> 12) 
+              chSamp[15] = ((wordArray[6] & 0x0FFF ) )
+
+              result.append( chSamp[ int(chan) ] )
+              num = num + 1
+
+            packetNum = packetNum + 1
+        return result
+
 
 def main():
   from .configuration.argument_parser import ArgumentParser
