@@ -36,12 +36,17 @@ class RANKING(object):
         for inglobstr in inglobstrs:
             inpathlist = glob.glob(inglobstr)
             for inpath in inpathlist:
-                for directory, subdirs, filenames in os.walk(inpath):
-                    for filename in filenames:
-                        if os.path.splitext(filename)[1] == ".json" and "adcTest" == filename[:7] and not ("Raw" in filename):
-                            jsonpath = os.path.join(directory,filename)
-                            jsonpaths.append(jsonpath)
-                            print(jsonpath)
+                if os.path.isfile(inpath):
+                    if os.path.splitext(inpath)[1] == ".json" and "adcTest" == os.path.split(inpath)[1][:7] and not ("Raw" in inpath):
+                        jsonpaths.append(inpath)
+                        print(inpath)
+                else:
+                    for directory, subdirs, filenames in os.walk(inpath):
+                        for filename in filenames:
+                            if os.path.splitext(filename)[1] == ".json" and "adcTest" == filename[:7] and not ("Raw" in filename):
+                                jsonpath = os.path.join(directory,filename)
+                                jsonpaths.append(jsonpath)
+                                print(jsonpath)
         datadicts = []
         for jsonpath in jsonpaths:
             with open(jsonpath) as jsonfile:
@@ -76,7 +81,7 @@ class RANKING(object):
         for datadict in datadicts:
             asic_stats = {}
             serial = datadict["serial"]
-            print(serial)
+            print("serial: ",serial)
             static = datadict["static"]
             asic_stats.update(self.getstats(static))
             dynamic = datadict["dynamic"]
@@ -84,13 +89,13 @@ class RANKING(object):
             try:
                 inputPin = datadict["inputPin"]
             except KeyError:
-                print("Warning: now input pin stats for chip",serial)
+                print("Warning: no input pin stats for chip",serial)
             else:
                 asic_stats.update(self.getstats(inputPin))
             try:
                 dc = datadict["dc"]
             except KeyError:
-                print("Warning: now input pin stats for chip",serial)
+                print("Warning: no dc stats for chip",serial)
             else:
                 asic_stats.update(self.getstats(dc))
             minMaxDicts[serial] = asic_stats
@@ -137,11 +142,13 @@ class RANKING(object):
                         except KeyError:
                             pass
                         if doMin: #min
-                            ax.hist(minVals[statName],histtype="step")
-                            ax.set_xlabel("min({})".format(statName))
+                            if len(minVals[statName])>0:
+                                ax.hist(minVals[statName],histtype="step")
+                                ax.set_xlabel("min({})".format(statName))
                         else: #max
-                            ax.hist(maxVals[statName],histtype="step")
-                            ax.set_xlabel("max({})".format(statName))
+                            if len(maxVals[statName])>0:
+                                ax.hist(maxVals[statName],histtype="step")
+                                ax.set_xlabel("max({})".format(statName))
                     except KeyError as e:
                         print("Warning: Could not find stat to draw",e)
                     self.set_xticks(ax)
@@ -229,24 +236,26 @@ class RANKING(object):
         statsToDraw = self.statsToDraw
         result = {}
         stats = []
-        clocks = sorted(data.keys())
+        sampleRates = reversed(sorted(data.keys()))
+        clocks = []
         #clocks = clocks[:1]
         offsets = []
         amps = []
         freqs = []
-        for clock in clocks:
-            offsets = sorted(data[clock])
-            for offset in offsets:
-                stats = sorted(data[clock][offset])
-                if dynamic:
-                    for stat in stats: 
-                        amps = data[clock][offset][stat]
-                        for amp in amps:
-                            freqs = data[clock][offset][stat][amp]
-                            print(freqs)
+        for sampleRate in sampleRates:
+            clocks = sorted(data[sampleRate])
+            for clock in clocks:
+                offsets = sorted(data[sampleRate][clock])
+                for offset in offsets:
+                    stats = sorted(data[sampleRate][clock][offset])
+                    if dynamic:
+                        for stat in stats: 
+                            amps = data[sampleRate][clock][offset][stat]
+                            for amp in amps:
+                                freqs = data[sampleRate][clock][offset][stat][amp]
+                        break
                     break
                 break
-            break
         for statToDraw in statsToDraw:
             stat = None
             for s in stats:
@@ -255,12 +264,15 @@ class RANKING(object):
                     break
             if stat is None:
                 continue
-            minVal = 1e20
-            maxVal = -1e20
+            thisSampleRates = sampleRates
             thisClocks = clocks
             thisOffsets = offsets
             thisAmps = amps
             thisFreqs = freqs
+            try:
+                thisSampleRates = statsToDraw[statToDraw]["sampleRates"]
+            except KeyError:
+                pass
             try:
                 thisClocks = statsToDraw[statToDraw]["clocks"]
             except KeyError:
@@ -282,33 +294,35 @@ class RANKING(object):
                     for freq in thisFreqs:
                         minVal = 1e20
                         maxVal = -1e20
-                        for clock in thisClocks:
-                            for offset in thisOffsets:
-                                for chan in range(16):
-                                    val = data[clock][offset][stat][amp][freq][chan]
-                                    minVal = min(val,minVal)
-                                    maxVal = max(val,maxVal)
-                                    if getAll:
-                                        try:
-                                            result[statToDraw].append(val)
-                                        except KeyError:
-                                            result[statToDraw] = [val]
+                        for sampleRate in thisSampleRates:
+                            for clock in thisClocks:
+                                for offset in thisOffsets:
+                                    for chan in range(16):
+                                        val = data[clock][offset][stat][amp][freq][chan]
+                                        minVal = min(val,minVal)
+                                        maxVal = max(val,maxVal)
+                                        if getAll:
+                                            try:
+                                                result[statToDraw].append(val)
+                                            except KeyError:
+                                                result[statToDraw] = [val]
                 if not getAll:
                     result[statToDraw] = [minVal,maxVal]
             else:
                 minVal = 1e20
                 maxVal = -1e20
-                for clock in thisClocks:
-                    for offset in thisOffsets:
-                          for chan in range(16):
-                               val = data[clock][offset][stat][chan]
-                               minVal = min(val,minVal)
-                               maxVal = max(val,maxVal)
-                               if getAll:
-                                  try:
-                                    result[statToDraw].append(val)
-                                  except KeyError:
-                                    result[statToDraw] = [val]
+                for sampleRate in thisSampleRates:
+                    for clock in thisClocks:
+                        for offset in thisOffsets:
+                              for chan in range(16):
+                                   val = data[clock][offset][stat][chan]
+                                   minVal = min(val,minVal)
+                                   maxVal = max(val,maxVal)
+                                   if getAll:
+                                      try:
+                                        result[statToDraw].append(val)
+                                      except KeyError:
+                                        result[statToDraw] = [val]
                 if not getAll:
                     result[statToDraw] = [minVal,maxVal]
         return result
@@ -331,8 +345,14 @@ class RANKING(object):
             else:
                 oldtimestamp = olddata["timestamp"]
                 newtimestamp = datadict["timestamp"]
-                oldtimestamp = datetime.datetime.strptime(oldtimestamp,"%Y-%m-%dT%H:%M:%S")
-                newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y-%m-%dT%H:%M:%S")
+                try:
+                    oldtimestamp = datetime.datetime.strptime(oldtimestamp,"%Y-%m-%dT%H:%M:%S")
+                except ValueError:
+                    oldtimestamp = datetime.datetime.strptime(oldtimestamp,"%Y%m%dT%H%M%S")
+                try:
+                    newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y-%m-%dT%H:%M:%S")
+                except ValueError:
+                    newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y%m%dT%H%M%S")
                 if newtimestamp > oldtimestamp:
                   resultdict[serial] = datadict
         #print("result:")
@@ -347,6 +367,9 @@ class RANKING(object):
         #    print(datadict["serial"],datadict["timestamp"])
         #    print(datadict["sumatra"])
             result.append(datadict)
+        print("getlatestdata result:")
+        for d in result:
+          print(d["serial"],d["timestamp"])
         return result
 
     def getlatestdatapermachine(self):
@@ -405,6 +428,6 @@ def main():
 
     globstr =  "/home/jhugon/dune/coldelectronics/femb_python/hothdaq*"
     ranking = RANKING(args.infilename)
-    ranking.rank()
+    #ranking.rank()
     ranking.histAllChannels()
     #ranking.getlatestdatapermachine()
