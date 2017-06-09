@@ -9,6 +9,7 @@ import sys
 import os.path
 import glob
 import array
+import math
 import numpy
 import numpy.linalg
 import ROOT
@@ -83,7 +84,8 @@ class CALIBRATE_RAMP(object):
 
         maxCodes = []
         iPeaks = []
-        for iTryPeak in range(int(numpy.ceil(iFirstPeak)),len(waveform),int(numpy.floor(nSamplesPeriod))):
+        print("iFirstPeak:",iFirstPeak)
+        for iTryPeak in range(int(math.ceil(iFirstPeak)),len(waveform),int(math.floor(nSamplesPeriod))):
             iStartLook = int(iTryPeak - 0.3*nSamplesPeriod)
             iStopLook = int(iTryPeak + 0.3*nSamplesPeriod)
             iStopLook = min(iStopLook,len(waveform))
