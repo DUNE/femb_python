@@ -415,8 +415,14 @@ class RANKING(object):
             else:
                 oldtimestamp = olddata["timestamp"]
                 newtimestamp = datadict["timestamp"]
-                oldtimestamp = datetime.datetime.strptime(oldtimestamp,"%Y-%m-%dT%H:%M:%S")
-                newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y-%m-%dT%H:%M:%S")
+                try:
+                    oldtimestamp = datetime.datetime.strptime(oldtimestamp,"%Y-%m-%dT%H:%M:%S")
+                except ValueError:
+                    oldtimestamp = datetime.datetime.strptime(oldtimestamp,"%Y%m%dT%H%M%S")
+                try:
+                    newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y-%m-%dT%H:%M:%S")
+                except ValueError:
+                    newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y%m%dT%H%M%S")
                 if newtimestamp > oldtimestamp:
                   resultdict[hostname][serial] = datadict
         #print(resultdict.keys())
@@ -428,11 +434,12 @@ class RANKING(object):
             except:
                 sortedserials[hostname] = sorted(resultdict[hostname])
         result = {}
+        print("getlatestdatapermachine result:")
         for hostname in resultdict:
+            result[hostname] = []
             for serial in sortedserials[hostname]:
                 datadict = resultdict[hostname][serial]
-                print("Justin")
-                print(hostname,datadict["serial"],datadict["timestamp"])
+                print("{}  {:5}  {}".format(hostname,datadict["serial"],datadict["timestamp"]))
                 result[hostname].append(datadict)
         return result
 
@@ -449,4 +456,4 @@ def main():
     ranking = RANKING(args.infilename)
     ranking.rank()
     ranking.histAllChannels()
-    #ranking.getlatestdatapermachine()
+    ranking.getlatestdatapermachine()
