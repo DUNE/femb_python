@@ -160,8 +160,19 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.feasicEnableTestInput = 1
         self.femb_config.turnOnAsics()
         subrun = 1
+
+        #modify set of pulser configurations to record based on gain and baseline settings
+        pMax = 64
+        pMax200mV = [ 46 , 46, 36, 21 ]
+        pMax900mV = [ 64 , 46, 31, 16 ]
+        if ( int( self.base ) == 0 ) and ( int(self.gain) >= 0 ) and ( int(self.gain) < 4 ) :
+          pMax = pMax200mV[ int(self.gain) ]
+        if ( int( self.base ) == 1 ) and ( int(self.gain) >= 0 ) and ( int(self.gain) < 4 ) :
+          pMax = pMax900mV[ int(self.gain) ]
+
         #loop over pulser configurations, each configuration is it's own subrun
-        for p in range(1,64,1):
+        #for p in range(1,64,1):
+        for p in range(1,pMax,1):
             pVal = int(p)
             #pVal = 1024 + int(p)*256
             self.femb_config.setInternalPulser(1,pVal)
