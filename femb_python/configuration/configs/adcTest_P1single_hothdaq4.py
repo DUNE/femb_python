@@ -24,7 +24,7 @@ import copy
 import os.path
 import subprocess
 from femb_python.femb_udp import FEMB_UDP
-from femb_python.configuration.config_base import FEMB_CONFIG_BASE
+from femb_python.configuration.config_base import FEMB_CONFIG_BASE, FEMBConfigError, SyncADCError, InitBoardError
 from femb_python.configuration.adc_asic_reg_mapping_P1 import ADC_ASIC_REG_MAPPING
 from femb_python.test_instrument_interface.rigol_dg4000 import RigolDG4000
 from femb_python.test_instrument_interface.rigol_dp800 import RigolDP800
@@ -91,7 +91,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb = FEMB_UDP()
         self.adc_reg = ADC_ASIC_REG_MAPPING()
 
-    def resetBoard(self):
+    def resetBoard(self,exitOnError=True):
         #Reset system
         self.femb.write_reg( self.REG_RESET, 1)
         time.sleep(5.)
@@ -108,7 +108,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_ASIC_RESET, 1)
         time.sleep(0.5)
 
-    def initBoard(self):
+    def initBoard(self,exitOnError=True):
         nRetries = 5
         for iRetry in range(nRetries):
             #set up default registers
@@ -150,7 +150,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print("FEMB_CONFIG--> Reset FEMB is DONE")
             return
         print("Error: Board not streaming data after trying to initialize {} times. Exiting.".format(nRetries))
-        sys.exit(1)
+        if exitOnError:
+            sys.exit(1)
+        else:
+            raise InitBoardError
 
     def configAdcAsic_regs(self,Adcasic_regs):
         #ADC ASIC SPI registers
@@ -297,7 +300,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         regVal = (chVal << 8 ) + asicVal
         self.femb.write_reg( self.REG_SEL_CH, regVal)
 
-    def syncADC(self):
+    def syncADC(self,exitOnError=True):
         #turn on ADC test mode
         print("FEMB_CONFIG--> Start sync ADC")
         reg3 = self.femb.read_reg (3)
@@ -312,7 +315,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             if unsync != 0:
                 alreadySynced = False
                 print("FEMB_CONFIG--> ADC not synced, try to fix")
-                self.fixUnsync(a)
+                self.fixUnsync(a,exitOnError=exitOnError)
         self.REG_LATCHLOC1_4_data = self.femb.read_reg ( self.REG_LATCHLOC1_4 ) 
         self.REG_LATCHLOC5_8_data = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
         self.REG_CLKPHASE_data    = self.femb.read_reg ( self.REG_CLKPHASE )
@@ -356,7 +359,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         return badSync
 
 
-    def fixUnsync(self, adc):
+    def fixUnsync(self, adc,exitOnError=True):
         adcNum = int(adc)
         if (adcNum < 0 ) or (adcNum > 7 ):
                 print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
@@ -396,8 +399,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                                 print("FEMB_CONFIG--> ADC synchronized")
                                 return
         #if program reaches here, sync has failed
-        print("FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc))
-
+        print("Error: FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc))
+        if exitOnError:
+            sys.exit(1)
+        else:
+            raise SyncADCError
 
     def extClock(self, enable=False, 
                 period=500, mult=1, 

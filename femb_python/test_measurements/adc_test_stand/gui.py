@@ -25,6 +25,7 @@ import subprocess
 #import the test module
 import femb_python
 from ...configuration import CONFIG
+from .setup_board import setup_board
 from .run import runTests
 from ...runpolicy import DirectRunner, SumatraRunner
 
@@ -45,6 +46,12 @@ class GUI_WINDOW(Frame):
         self.reset()
 
         self.master.protocol("WM_DELETE_WINDOW", self.exit)
+
+        self.data_base_dir = "/dsk/1/data"
+        try:
+            self.data_base_dir = os.environ["FEMB_DATA_DIR"]
+        except KeyError:
+            pass
 
     def define_test_details_column(self):
         columnbase=0
@@ -165,7 +172,6 @@ class GUI_WINDOW(Frame):
             "runid": runid,
             "femb_config_name": femb_config_name,
             "linux_username": linux_username,
-            "smttag": hostname,
             "femb_python_location": femb_python_location,
             "firmware_1MHz": firmware_1MHz,
             "firmware_2MHz": firmware_2MHz,
@@ -237,12 +243,28 @@ class GUI_WINDOW(Frame):
         self.runid_label["text"] = "Run ID: "+ inputOptions["runid"]
 
         self.update_idletasks()
-        self.config.POWERSUPPLYINTER.on()
-        sleep(1)
-        self.config.resetBoard()
-        self.config.initBoard()
-        self.config.syncADC()
-        self.done_preparing_board()
+        runnerSetup = {
+                                "executable": "femb_adc_setup_board",
+                                "argstr": "-j {paramfile}",
+                                "basedir": self.data_base_dir,
+                                "rundir": "{basedir}/adc/{hostname}",
+                                "datadir": "{rundir}/Data/{timestamp}",
+                                "paramfile": "{datadir}/setup_params.json",
+                                "smtname": "adc",
+                                "smttag": "{hostname},setup",
+                            }
+        #runner = DirectRunner(**runnerSetup)
+        runner = SumatraRunner(**runnerSetup)
+        try:
+            params = runner(**inputOptions)
+            #params = runner.resolve(**inputOptions) # use to test GUI w/o running test
+        except RuntimeError:
+            self.status_label["text"] = "Error setting up board/ADC. Report to shift leader"
+            self.status_label["fg"] = "#FFFFFF"
+            self.status_label["bg"] = "#FF0000"
+            return
+        else:
+            self.done_preparing_board(params)
 
     def start_measurements(self):
         inputOptions = self.get_options(getCurrent=True)
@@ -260,21 +282,16 @@ class GUI_WINDOW(Frame):
         self.status_label["fg"] = "#000000"
         self.update_idletasks()
 
-        data_base_dir = "/dsk/1/data"
-        try:
-            data_base_dir = os.environ["FEMB_DATA_DIR"]
-        except KeyError:
-            pass
-
         runnerSetup = {
                                 "executable": "femb_adc_run",
                                 #"argstr": "--quick -j {paramfile}",
                                 "argstr": "-j {paramfile}",
-                                "basedir": data_base_dir,
+                                "basedir": self.data_base_dir,
                                 "rundir": "{basedir}/adc/{hostname}",
                                 "datadir": "{rundir}/Data/{timestamp}",
                                 "paramfile": "{datadir}/params.json",
                                 "smtname": "adc",
+                                "smttag": "{hostname},test",
                             }
         #runner = DirectRunner(**runnerSetup)
         runner = SumatraRunner(**runnerSetup)
@@ -289,22 +306,49 @@ class GUI_WINDOW(Frame):
         else:
             self.done_measuring(params)
 
-    def done_preparing_board(self):
+    def done_preparing_board(self,params):
         ## once prepared....
         print("BOARD POWERED UP & INITIALIZED")
-        self.current_label["state"] = "normal"
-        self.current_entry["state"] = "normal"
-        self.status_label["text"] = "Power up success, enter CH2 Current"
-        self.status_label["fg"] = "#000000"
-        self.prepare_button["state"] = "disabled"
-        self.start_button["state"] = "normal"
-        self.operator_label["state"] = "disabled"
-        self.operator_entry["state"] = "disabled"
-        self.boardid_label["state"] = "disabled"
-        self.boardid_entry["state"] = "disabled"
-        for i in range(self.config.NASICS):
-            self.asic_labels[i]["state"] = "disabled"
-            self.asic_entries[i]["state"] = "disabled"
+        datadir = params["datadir"]
+        timestamp = params["timestamp"]
+        outfilename = "adcSetup_{}.json".format(timestamp)
+        outfilename = os.path.join(datadir,outfilename)
+        print(outfilename)
+        resultdict = None
+        try:
+            with open(outfilename) as outfile:
+                resultdict = json.load(outfile)
+        except FileNotFoundError:
+            self.status_label["text"] = "Error: Board setup output not found. Report to shift leader"
+            self.status_label["fg"] = "#FFFFFF"
+            self.status_label["bg"] = "#FF0000"
+            return
+        if resultdict["pass"]:
+            self.current_label["state"] = "normal"
+            self.current_entry["state"] = "normal"
+            self.status_label["text"] = "Power up success, enter CH2 Current"
+            self.status_label["fg"] = "#000000"
+            self.prepare_button["state"] = "disabled"
+            self.start_button["state"] = "normal"
+            self.operator_label["state"] = "disabled"
+            self.operator_entry["state"] = "disabled"
+            self.boardid_label["state"] = "disabled"
+            self.boardid_entry["state"] = "disabled"
+            for i in range(self.config.NASICS):
+                self.asic_labels[i]["state"] = "disabled"
+                self.asic_entries[i]["state"] = "disabled"
+        else:
+            columnbase = 0
+            rowbase = 50
+            label = Label(self, text="FAIL to setup board",bg="#FF0000")
+            label.grid(row=rowbase+2,column=columnbase,columnspan=2)
+            self.result_labels.append(label)
+            label = Label(self, text="Report to shift leader",bg="#FF0000")
+            label.grid(row=rowbase+3,column=columnbase,columnspan=2)
+            self.result_labels.append(label)
+            self.prepare_button["state"] = "disabled"
+            self.reset_button["bg"] ="#00CC00"
+            self.reset_button["activebackground"] = "#A3CCA3"
 
     def done_measuring(self,params):
         print("TESTS COMPLETE")

@@ -16,6 +16,18 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import object
 
+class FEMBConfigError(Exception):
+    """Base class exception for femb_python configuration errors"""
+    pass
+
+class SyncADCError(FEMBConfigError):
+    """Exception when you can't sync the ADC"""
+    pass
+
+class InitBoardError(FEMBConfigError):
+    """Exception when you can't initialize a board"""
+    pass
+
 class FEMB_CONFIG_BASE(object):
     """
     Base class for configuration files. These should be considered the 'public'

@@ -143,6 +143,7 @@ setup(
             'femb_adc_baseline_rms=femb_python.test_measurements.adc_test_stand.baseline_rms:main',
             'femb_adc_dc_tests=femb_python.test_measurements.adc_test_stand.dc_tests:main',
             'femb_adc_run=femb_python.test_measurements.adc_test_stand.run:main',
+            'femb_adc_setup_board=femb_python.test_measurements.adc_test_stand.setup_board:main',
             'femb_adc_summary_plots=femb_python.test_measurements.adc_test_stand.summary_plots:main',
             'femb_adc_ranking=femb_python.test_measurements.adc_test_stand.ranking:main',
             'femb_adc_gui=femb_python.test_measurements.adc_test_stand.gui:main',
