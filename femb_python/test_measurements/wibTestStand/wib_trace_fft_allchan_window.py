@@ -40,7 +40,7 @@ matplotlib.rc('ytick',labelsize=8)
 
 from femb_python.femb_udp import FEMB_UDP
 
-class TRACE_FFT_WINDOW(Tk.Frame):
+class TRACE_FFT_ALLCHAN_WINDOW(Tk.Frame):
   """
   This window displays a live ADC redout and its FFT
   """
@@ -53,7 +53,8 @@ class TRACE_FFT_WINDOW(Tk.Frame):
 
     self.pack()
 
-    self.figure = Figure(figsize=(14,9), dpi=100, facecolor='gray')
+    #self.figure = Figure(figsize=(14,9), dpi=100, facecolor='gray')
+    self.figure = Figure(figsize=(14,8), dpi=100, facecolor='gray')
        
     self.canvas = FigureCanvas(self.figure, master=self)
     self.canvas.show()
