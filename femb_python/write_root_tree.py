@@ -67,19 +67,29 @@ class WRITE_ROOT_TREE(object):
         wf = ROOT.std.vector( int )()
         t.Branch( 'chan', chan, 'chan/i')
         t.Branch( 'wf', wf )
-
-        for ch in range(16):
-            chan[0] = int(ch)
-            self.femb_config.selectChannel( self.iChip, ch)
-            time.sleep(0.01)
-            wf.clear()
-            npackets = self.numpacketsrecord
+        if False:
+            for ch in range(16):
+                chan[0] = int(ch)
+                self.femb_config.selectChannel( self.iChip, ch)
+                time.sleep(0.01)
+                wf.clear()
+                npackets = self.numpacketsrecord
+                data = self.femb.get_data(npackets)
+                for samp in data:
+                    chNum = ((samp >> 12 ) & 0xF)
+                    sampVal = (samp & 0xFFF)
+                    wf.push_back( sampVal )
+                t.Fill()
+        else:
+            self.femb_config.selectChannel( self.iChip, 0, hsmode=0) # all channels at once
             data = self.femb.get_data(npackets)
-            for samp in data:
-                chNum = ((samp >> 12 ) & 0xF)
-                sampVal = (samp & 0xFFF)
-                wf.push_back( sampVal )
-            t.Fill()
+            for ch in range(16):
+                chan[0] = int(ch)
+                wf.clear()
+                samples = self.convertHighSpeed(data)
+                for samp in samples[ch]:
+                    wf.push_back( samp )
+                t.Fill()
 
         #define metadata
         _date = array( 'L' , [self.date] )
@@ -134,9 +144,10 @@ class WRITE_ROOT_TREE(object):
         f.Write()
         f.Close()
 
-    def getTraceAndFFT(self,iTrace=None,chan=0):
+    def convertHighSpeed(self,data):
         packetNum = 0
         wordArray = []
+        result = [[] for chan in range(16)]
         for word in data:
             #print(str(packetNum) + "\t" + str(hex(word)) )
             if str(hex(word)) == "0xface" :
@@ -145,32 +156,24 @@ class WRITE_ROOT_TREE(object):
             if packetNum > 0 and packetNum < 13 :
               wordArray.append( word )
             if packetNum == 12 :
-              chSamp = []
-              for i in range(0,16,1):
-                chSamp.append(0)
-              chSamp[0] = ((wordArray[5] & 0xFFF0 ) >> 4)
-              chSamp[1] = ((wordArray[4] & 0xFF00 ) >> 8) | ((wordArray[5] & 0x000F ) << 8)
-              chSamp[2] = ((wordArray[4] & 0x00FF ) << 4) | ((wordArray[3] & 0xF000 ) >> 12)
-              chSamp[3] = ((wordArray[3] & 0x0FFF ) >> 0)
-              chSamp[4] = ((wordArray[2] & 0xFFF0 ) >> 4)
-              chSamp[5] = ((wordArray[2] & 0x000F ) << 8) | ((wordArray[1] & 0xFF00 ) >> 8)
-              chSamp[6] = ((wordArray[1] & 0x00FF ) << 4) | ((wordArray[0] & 0xF000 ) >> 12)
-              chSamp[7] = ((wordArray[0] & 0x0FFF ) >> 0)				
-              chSamp[8] = ((wordArray[11] & 0xFFF0 ) >> 4) 
-              chSamp[9] = ((wordArray[11] & 0x000F ) << 8) | ((wordArray[10] & 0xFF00 ) >> 8) 
-              chSamp[10] = ((wordArray[10] & 0x00FF ) << 4) | ((wordArray[9] & 0xF000 ) >> 12) 
-              chSamp[11] = ((wordArray[9] & 0x0FFF ))
-              chSamp[12] = ((wordArray[8] & 0xFFF0 ) >> 4)
-              chSamp[13] = ((wordArray[8] & 0x000F ) << 8) | ((wordArray[7] & 0xFF00 ) >> 8) 
-              chSamp[14] = ((wordArray[7] & 0x00FF ) << 4) | ((wordArray[6] & 0xF000 ) >> 12) 
-              chSamp[15] = ((wordArray[6] & 0x0FFF ) )
-
-              result.append( chSamp[ int(chan) ] )
-              num = num + 1
-
+              result[0].append(((wordArray[5] & 0xFFF0 ) >> 4))
+              result[1].append(((wordArray[4] & 0xFF00 ) >> 8) | ((wordArray[5] & 0x000F ) << 8))
+              result[2].append(((wordArray[4] & 0x00FF ) << 4) | ((wordArray[3] & 0xF000 ) >> 12))
+              result[3].append(((wordArray[3] & 0x0FFF ) >> 0))
+              result[4].append(((wordArray[2] & 0xFFF0 ) >> 4))
+              result[5].append(((wordArray[2] & 0x000F ) << 8) | ((wordArray[1] & 0xFF00 ) >> 8))
+              result[6].append(((wordArray[1] & 0x00FF ) << 4) | ((wordArray[0] & 0xF000 ) >> 12))
+              result[7].append(((wordArray[0] & 0x0FFF ) >> 0)				)
+              result[8].append(((wordArray[11] & 0xFFF0 ) >> 4))
+              result[9].append(((wordArray[11] & 0x000F ) << 8) | ((wordArray[10] & 0xFF00 ) >> 8))
+              result[10].append(((wordArray[10] & 0x00FF ) << 4) | ((wordArray[9] & 0xF000 ) >> 12))
+              result[11].append(((wordArray[9] & 0x0FFF )))
+              result[12].append(((wordArray[8] & 0xFFF0 ) >> 4))
+              result[13].append(((wordArray[8] & 0x000F ) << 8) | ((wordArray[7] & 0xFF00 ) >> 8))
+              result[14].append(((wordArray[7] & 0x00FF ) << 4) | ((wordArray[6] & 0xF000 ) >> 12))
+              result[15].append(((wordArray[6] & 0x0FFF ) ))
             packetNum = packetNum + 1
         return result
-
 
 def main():
   from .configuration.argument_parser import ArgumentParser
