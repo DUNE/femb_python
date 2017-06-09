@@ -67,13 +67,13 @@ class WRITE_ROOT_TREE(object):
         wf = ROOT.std.vector( int )()
         t.Branch( 'chan', chan, 'chan/i')
         t.Branch( 'wf', wf )
+        npackets = self.numpacketsrecord
         if False:
             for ch in range(16):
                 chan[0] = int(ch)
                 self.femb_config.selectChannel( self.iChip, ch)
                 time.sleep(0.01)
                 wf.clear()
-                npackets = self.numpacketsrecord
                 data = self.femb.get_data(npackets)
                 for samp in data:
                     chNum = ((samp >> 12 ) & 0xF)
@@ -82,11 +82,12 @@ class WRITE_ROOT_TREE(object):
                 t.Fill()
         else:
             self.femb_config.selectChannel( self.iChip, 0, hsmode=0) # all channels at once
+            time.sleep(0.01)
             data = self.femb.get_data(npackets)
             for ch in range(16):
                 chan[0] = int(ch)
                 wf.clear()
-                samples = self.convertHighSpeed(data)
+                samples = self.convertHighSpeedSimple(data)
                 for samp in samples[ch]:
                     wf.push_back( samp )
                 t.Fill()
@@ -144,7 +145,15 @@ class WRITE_ROOT_TREE(object):
         f.Write()
         f.Close()
 
-    def convertHighSpeed(self,data):
+    def convertHighSpeedSimple(self,data):
+        result = [[] for chan in range(16)]
+        for samp in data:
+            chNum = ((samp >> 12 ) & 0xF)
+            sampVal = (samp & 0xFFF)
+            result[chNum].append(sampVal)
+        return result
+
+    def convertHighSpeedPacked(self,data):
         packetNum = 0
         wordArray = []
         result = [[] for chan in range(16)]
