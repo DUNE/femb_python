@@ -84,7 +84,7 @@ class CALIBRATE_RAMP(object):
 
         maxCodes = []
         iPeaks = []
-        print("iFirstPeak:",iFirstPeak)
+        #print("iFirstPeak:",iFirstPeak)
         for iTryPeak in range(int(math.ceil(iFirstPeak)),len(waveform),int(math.floor(nSamplesPeriod))):
             iStartLook = int(iTryPeak - 0.3*nSamplesPeriod)
             iStopLook = int(iTryPeak + 0.3*nSamplesPeriod)
