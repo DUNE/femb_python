@@ -684,7 +684,7 @@ int main(int argc, char *argv[]){
   std::string inputFileName = argv[1];
   std::cout << "inputFileName " << inputFileName << std::endl;
 
-  //gROOT->SetBatch(true);
+  gROOT->SetBatch(true);
   //define ROOT application object
   theApp = new TApplication("App", &argc, argv);
   processNtuple(inputFileName); 
