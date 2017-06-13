@@ -488,7 +488,7 @@ void Analyze::identifyBadChannel(unsigned int chan, double baseMean, double base
 		isBadChannel = 1;
 	if( baseMean > 8000 )
 		isBadChannel = 1;
-	if( baseMean > 3400 && baseMean < 7300 )
+	if( baseMean > 3400 && baseMean < 7000 )
 		isBadChannel = 1;
 
 	//RMS additional cuts
