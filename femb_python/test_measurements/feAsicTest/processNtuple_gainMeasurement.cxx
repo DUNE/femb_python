@@ -48,7 +48,7 @@ class Analyze {
 	void getAveragePulseHeight(const std::vector<double> &pulseHeights);
 	void measureGain(unsigned int chan, double baseRms);
 
- 	void identifyBadChannel(unsigned int chan, double baseRms, double gain);
+ 	void identifyBadChannel(unsigned int chan, double baseMean, double baseRms, double gain);
 	void identifyBadAsic();
 
         void outputResults();
@@ -288,7 +288,7 @@ void Analyze::analyzeChannel(unsigned int chan){
 
 	//determine if channel is bad, don't try to measure gain
 	if( rmsSubrun0 <= 0 ){
-		identifyBadChannel(chan,rmsSubrun0,0);
+		identifyBadChannel(chan,meanSubrun0,rmsSubrun0,0);
 		return;
 	}
 
@@ -331,7 +331,7 @@ void Analyze::analyzeChannel(unsigned int chan){
 	hEnc->Fill(measuredEnc);
 
 	//identify if channel is bad
-	identifyBadChannel(chan,rmsSubrun0,measuredGain);
+	identifyBadChannel(chan,meanSubrun0,rmsSubrun0,measuredGain);
 }
 
 //draw waveform if wanted
@@ -473,7 +473,7 @@ void Analyze::measureGain(unsigned int chan, double baseRms){
 	return;
 }
 
-void Analyze::identifyBadChannel(unsigned int chan, double baseRms, double gain){
+void Analyze::identifyBadChannel(unsigned int chan, double baseMean, double baseRms, double gain){
 	if( chan >= const_numChan )
 		return;
 
@@ -482,6 +482,25 @@ void Analyze::identifyBadChannel(unsigned int chan, double baseRms, double gain)
 		isBadChannel = 1;
 	if( gain <= 0 )
 		isBadChannel = 1;
+
+        //baseline additional cuts
+	if( baseMean < 2250 )
+		isBadChannel = 1;
+	if( baseMean > 7700 )
+		isBadChannel = 1;
+	if( baseMean > 2950 && baseMean < 7300 )
+		isBadChannel = 1;
+
+	//RMS additional cuts
+ 	if( baseRms > 40.4 )
+		isBadChannel = 1;
+
+	//gain additional cuts
+	if( gain > 185 )
+		isBadChannel = 1;
+	if( gain < 30 )
+		isBadChannel = 1;
+
 	badChannelMask[chan] = isBadChannel;
 
 	return;
