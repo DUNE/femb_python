@@ -81,7 +81,7 @@ The values in the filename are similar to the keys of the json file described
 at the end of the previous section. Additionally, Signal offset voltage is the
 offset voltage of the input signal, and "functype" describes the type of input
 signal: 0 for none, 1 for DC, 2 for sin, 3 for ramp (the sloping up and sloping
-down kind, /\/\/\, NOT the abruptly coming down kind /|/|/|).
+down kind, `/\/\/\`, NOT the abruptly coming down kind `/|/|/|`).
 
 The ROOT files are created and trees filled using the code in
 `../../write_root_tree.py`. Each ROOT file contains two trees, "femb_wfdata" and
