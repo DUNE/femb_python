@@ -17,7 +17,7 @@ from subprocess import CalledProcessError
 import numpy
 import matplotlib.pyplot as plt
 import ROOT
-from ...configuration.config_base import InitBoardError, SyncADCError
+from ...configuration.config_base import InitBoardError, SyncADCError, ConfigADCError
 
 def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,timestamp=None,sumatradict=None):
     """
@@ -48,6 +48,7 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
              }
     result["pass"] = False;
     result["init"] = None;
+    result["configADC"] = None;
     result["sync"] = None;
     with open(outfilename,"w") as outfile:
         config.POWERSUPPLYINTER.on()
@@ -60,8 +61,15 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
             result["init"] = False;
             json.dump(result,outfile)
             return
+        except ConfigADCError:
+            print("Board/chip Failure: couldn't write ADC SPI.")
+            result["init"] = False;
+            result["configADC"] = False;
+            json.dump(result,outfile)
+            return
         else:
             result["init"] = True;
+            result["configADC"] = True;
         try:
             config.syncADC(exitOnError=False)
         except SyncADCError:
