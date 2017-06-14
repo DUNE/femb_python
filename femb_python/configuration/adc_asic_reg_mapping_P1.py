@@ -2,6 +2,13 @@
 
 """
 Register mapping for P1 ADC
+
+36 32-bit registers
+
+Each ASIC channel is 8 bits and ASIC globals are 16 bits
+Each ASIC total 144 bits = 16 * 8bits + 16 bits
+Board is 8 ADC ASICs is 1152 bits = 8 * 144 bits
+This is exactly 36  32-bit registers
 """
 
 from __future__ import print_function

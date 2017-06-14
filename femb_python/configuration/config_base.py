@@ -20,6 +20,10 @@ class FEMBConfigError(Exception):
     """Base class exception for femb_python configuration errors"""
     pass
 
+class ConfigADCError(FEMBConfigError):
+    """Exception when you can't configure the ADC"""
+    pass
+
 class SyncADCError(FEMBConfigError):
     """Exception when you can't sync the ADC"""
     pass
