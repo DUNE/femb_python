@@ -15,6 +15,7 @@ from time import sleep
 
 from femb_python.configuration import CONFIG
 from femb_python.test_measurements.wibTestStand.wib_trace_fft_window import TRACE_FFT_WINDOW
+from femb_python.test_measurements.wibTestStand.wib_trace_fft_allchan_window import TRACE_FFT_ALLCHAN_WINDOW
 
 import numpy as np
 from matplotlib import pyplot
@@ -24,6 +25,7 @@ from tkinter import *
 GAINVALS = ("4.7 mV/fC","7.8 mV/fC","14 mV/fC","25 mV/fC")
 SHAPEVALS = ("0.5 us", "1 us", "2 us", "3 us")
 BASEVALS = ("200 mV--collection","900 mV--induction")
+CHAN_OPTIONS = ("ALL",0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15)
 
 class CONFIGURATION_WINDOW(Frame):
 
@@ -48,6 +50,7 @@ class CONFIGURATION_WINDOW(Frame):
         self.define_adcasic_config_commands_column()
 
         self.trace_fft_window = None
+        #self.trace_fft_allchan_window = None
         self.trace_fft = None
 
     def define_general_commands_column(self):
@@ -129,8 +132,11 @@ class CONFIGURATION_WINDOW(Frame):
         # Adding channel number to select
         label = Label(self,text="Channel:")
         label.grid(sticky=W,row=5,column=columnbase+0)
-        self.channel_number_entry = Spinbox(self,from_=0,to=15,insertwidth=3,width=4)
+        self.channel_number_entry = Spinbox(self,values=CHAN_OPTIONS,insertwidth=3,width=4)
         self.channel_number_entry.grid(sticky=W,row=5,column=columnbase+1)
+        #self.channel_number_entry = Menu(self,insertwidth=3,width=4)
+        #self.channel_number_entry.add_command(label="1")
+        #self.channel_number_entry.grid(sticky=W,row=5,column=columnbase+1)
 
         #Adding the select channel button
         selectChannel_button = Button(self, text="Select Channel", command=self.call_selectChannel)
@@ -243,9 +249,11 @@ class CONFIGURATION_WINDOW(Frame):
           self.selectChannel_result["text"] = "Error asic must be an int"
           return
         try:
-          chan = int(self.channel_number_entry.get())
+          if self.channel_number_entry.get() != "ALL":
+              chan = int(self.channel_number_entry.get())
+          else: chan = self.channel_number_entry.get()
         except ValueError:
-          self.selectChannel_result["text"] = "Error channel must be an int"
+          self.selectChannel_result["text"] = "Error channel must be an int or ALL"
           return
         message = ""
         if femb < 0 or femb >=4 :
@@ -254,15 +262,16 @@ class CONFIGURATION_WINDOW(Frame):
         if asic < 0 or asic >= 7:
           self.selectChannel_result["text"] = "Error asic only from 0 to 7"
           return
-        if chan < 0 or chan >= 16:
-          self.selectChannel_result["text"] = "Error channel only from 0 to 15"
-          return
+        if chan != "ALL":
+          if chan < 0 or chan >= 16:
+            self.selectChannel_result["text"] = "Error channel only from 0 to 15 or ALL"
+            return
         self.femb_config.selectFemb(femb)
         self.femb_config.selectChannel(asic,chan)
         self.selectChannel_result["text"] = ""
 
         #WIB specific
-        self.trace_fft_window.selChan = chan
+        if isinstance( chan, int ): self.trace_fft_window.selChan = chan
         self.call_reset_plot()
 
     def call_feasic_config(self):
@@ -350,12 +359,17 @@ class CONFIGURATION_WINDOW(Frame):
         print("call_adcasic_config")
 
     def call_reset_plot(self):
+        selChan = self.channel_number_entry.get()
         if self.trace_fft_window:
-          self.trace_fft_window.destroy()
-        self.trace_fft_window = Toplevel(self)
-        self.trace_fft_window.title("Trace FFT Window")
-        self.trace_fft = TRACE_FFT_WINDOW(self.trace_fft_window)
-
+            self.trace_fft_window.destroy()
+        if selChan == "ALL":
+            self.trace_fft_window = Toplevel(self)
+            self.trace_fft_window.title("Trace FFT Window")
+            self.trace_fft = TRACE_FFT_ALLCHAN_WINDOW(self.trace_fft_window)
+        else:
+            self.trace_fft_window = Toplevel(self)
+            self.trace_fft_window.title("Trace FFT Window")
+            self.trace_fft = TRACE_FFT_WINDOW(self.trace_fft_window)
 ###################################################
 
 def main():
