@@ -388,6 +388,10 @@ ASIC 3 ID: {asic3id}
         self.asic1_result["text"] = "ASIC 1 Result: TBD"
         self.asic2_result["text"] = "ASIC 2 Result: TBD"
         self.asic3_result["text"] = "ASIC 3 Result: TBD"
+        self.asic0_result["fg"] = "black"
+        self.asic1_result["fg"] = "black"
+        self.asic2_result["fg"] = "black"
+        self.asic3_result["fg"] = "black"        
 
         now = time.time()
         self.params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
