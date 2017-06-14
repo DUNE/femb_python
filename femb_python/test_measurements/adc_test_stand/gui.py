@@ -29,6 +29,8 @@ from .setup_board import setup_board
 from .run import runTests
 from ...runpolicy import DirectRunner, SumatraRunner
 
+GUITESTMODE=False
+
 class GUI_WINDOW(Frame):
 
     #GUI window defined entirely in init function
@@ -194,7 +196,8 @@ class GUI_WINDOW(Frame):
 
     def reset(self):
         print("POWER DOWN")
-        self.config.POWERSUPPLYINTER.off()
+        if not GUITESTMODE:
+            self.config.POWERSUPPLYINTER.off()
         self.timestamp = None
         for i in reversed(range(len(self.display_procs))):
             tmp = self.display_procs.pop(i)
@@ -256,8 +259,10 @@ class GUI_WINDOW(Frame):
         #runner = DirectRunner(**runnerSetup)
         runner = SumatraRunner(**runnerSetup)
         try:
-            params = runner(**inputOptions)
-            #params = runner.resolve(**inputOptions) # use to test GUI w/o running test
+            if GUITESTMODE:
+                params = runner.resolve(**inputOptions) # use to test GUI w/o running test
+            else:
+                params = runner(**inputOptions)
         except RuntimeError:
             self.status_label["text"] = "Error setting up board/ADC. Report to shift leader"
             self.status_label["fg"] = "#FFFFFF"
@@ -296,8 +301,10 @@ class GUI_WINDOW(Frame):
         #runner = DirectRunner(**runnerSetup)
         runner = SumatraRunner(**runnerSetup)
         try:
-            params = runner(**inputOptions)
-            #params = runner.resolve(**inputOptions) # use to test GUI w/o running test
+            if GUITESTMODE:
+                params = runner.resolve(**inputOptions) # use to test GUI w/o running test
+            else:
+                params = runner(**inputOptions)
         except RuntimeError:
             self.status_label["text"] = "Error in test program. Report to shift leader"
             self.status_label["fg"] = "#FFFFFF"
