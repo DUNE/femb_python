@@ -163,6 +163,11 @@ class GUI_WINDOW(Frame):
             firmware_2MHz = self.config.FIRMWAREPATH2MHZ
         except AttributeError:
             pass
+        cold = None
+        try:
+            cold = self.config.COLD
+        except AttributeError:
+            cold = None
         inputOptions = {
             "operator": operator,
             "board_id": boardid,
@@ -175,6 +180,7 @@ class GUI_WINDOW(Frame):
             "femb_python_location": femb_python_location,
             "firmware_1MHz": firmware_1MHz,
             "firmware_2MHz": firmware_2MHz,
+            "cold": cold,
         }
         if getCurrent:
             inputOptions["current"] = current
