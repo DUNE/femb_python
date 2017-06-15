@@ -284,8 +284,8 @@ class GUI_WINDOW(Frame):
 
         runnerSetup = {
                                 "executable": "femb_adc_run",
-                                #"argstr": "--quick -j {paramfile}",
-                                "argstr": "-j {paramfile}",
+                                "argstr": "--quick -j {paramfile}",
+                                #"argstr": "-j {paramfile}",
                                 "basedir": self.data_base_dir,
                                 "rundir": "/home/{linux_username}/run",
                                 "datadir": "{basedir}/{linux_username}/adcasic/{femb_config_name}/{timestamp}",

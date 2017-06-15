@@ -16,6 +16,7 @@ import glob
 from uuid import uuid1 as uuid
 import json
 import socket
+import traceback
 from subprocess import CalledProcessError
 import numpy
 import matplotlib.pyplot as plt
@@ -30,13 +31,14 @@ from .summary_plots import SUMMARY_PLOTS
 
 class ADC_TEST_SUMMARY(object):
 
-    def __init__(self,allStatsRaw,testTime,hostname,board_id,operator,sumatradict=None):
+    def __init__(self,allStatsRaw,testTime,hostname,board_id,operator,sumatradict=None,isError=None):
         self.allStatsRaw = allStatsRaw
         self.testTime = testTime
         self.hostname = hostname
         self.board_id = board_id
         self.operator = operator
         self.sumatradict = sumatradict
+        self.isError = isError
         self.allStats = None
         self.staticSummary = None
         self.dynamicSummary = None
@@ -180,6 +182,10 @@ class ADC_TEST_SUMMARY(object):
                 "operator":self.operator,
                 "sumatra": self.sumatradict,
                 }
+        if self.isError is None:
+            result["error"] = None,
+        else:
+            result["error"] = self.isError[serial]
         try:
             result["inputPin"] = self.inputPinSummary[serial]
         except:
@@ -369,6 +375,8 @@ class ADC_TEST_SUMMARY(object):
                     if not statPass:
                         break
                 results[stat] = statPass
+            results["error"] = self.isError[serial]
+            thisPass = thisPass and self.isError[serial]
             results["pass"] = thisPass
             self.testResults[serial] = results
 
@@ -406,6 +414,9 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
         offsets = [-1]
 
     allStatsRaw = {}
+    isError = {}
+    for adcSerialNumber in adcSerialNumbers:
+        isError[adcSerialNumber] = False
     for sampleRate in sampleRates:
         if sampleRate == 2000000:
             if hasattr(config,"FIRMWAREPATH2MHZ"):
@@ -462,19 +473,45 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                     chipStats = {}
                     fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}_sampleRate{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset,sampleRate)
                     fileprefix = os.path.join(dataDir,fileprefix)
-                    collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate)
+                    try:
+                        collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate)
+                    except Exception as e:
+                        isError[adcSerialNumbers[iChip]] = True
+                        print("Error while collecting data:")
+                        traceback.print_tb(e.__traceback__)
+                        continue
                     print("Processing...")
                     static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
                     assert(len(static_fns)==1)
                     static_fn = static_fns[0]
                     dc_fns = list(glob.glob(fileprefix+"_functype1_*.root"))
-                    CALIBRATE_RAMP(static_fn,sampleRate).write_calibrate_tree()
-                    staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
-                    dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
-                    dcStats = dc_tests.analyze(dc_fns,verbose=False)
-                    chipStats["static"] = staticStats
-                    chipStats["dynamic"] = dynamicStats
-                    chipStats["dc"] = dcStats
+                    try:
+                        CALIBRATE_RAMP(static_fn,sampleRate).write_calibrate_tree()
+                    except Exception as e:
+                        isError[adcSerialNumbers[iChip]] = True
+                        print("Error while calibrating ramp:")
+                        traceback.print_tb(e.__traceback__)
+                    try:
+                        staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
+                        chipStats["static"] = staticStats
+                    except Exception as e:
+                        isError[adcSerialNumbers[iChip]] = True
+                        print("Error while performing static tests")
+                        traceback.print_tb(e.__traceback__)
+                    try:
+                        dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
+                        chipStats["dynamic"] = dynamicStats
+                    except Exception as e:
+                        isError[adcSerialNumbers[iChip]] = True
+                        print("Error while performing dynamic tests")
+                        traceback.print_tb(e.__traceback__)
+                    try:
+                        dcStats = dc_tests.analyze(dc_fns,verbose=False)
+                        chipStats["dc"] = dcStats
+                    except Exception as e:
+                        isError[adcSerialNumbers[iChip]] = True
+                        print("Error while performing dc tests")
+                        traceback.print_tb(e.__traceback__)
                     configStats[adcSerialNumbers[iChip]] = chipStats
                     #with open(fileprefix+"_statsRaw.json","w") as f:
                     #    json.dump(chipStats,f)
@@ -495,19 +532,31 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
             sys.stdout.flush()
             fileprefix = "adcTestData_{}_inputPinTest_chip{}_adcClock{}_adcOffset{}_sampleRate{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset,sampleRate)
             fileprefix = os.path.join(dataDir,fileprefix)
-            collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,100,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate)
-            static_fns = list(glob.glob(fileprefix+"_*.root"))
-            assert(len(static_fns)==1)
-            static_fn = static_fns[0]
-            baselineRmsStats = baseline_rms.analyze(static_fn)
-            allStatsRaw[sampleRate][clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
+            try:
+                collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,100,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate)
+            except Exception as e:
+                isError[adcSerialNumbers[iChip]] = True
+                print("Error while collecting input pin data:")
+                traceback.print_tb(e.__traceback__)
+            else:
+                try:
+                    static_fns = list(glob.glob(fileprefix+"_*.root"))
+                    assert(len(static_fns)==1)
+                    static_fn = static_fns[0]
+                    baselineRmsStats = baseline_rms.analyze(static_fn)
+                except Exception as e:
+                    isError[adcSerialNumbers[iChip]] = True
+                    print("Error while performing input pin tests:")
+                    traceback.print_tb(e.__traceback__)
+                else:
+                    allStatsRaw[sampleRate][clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
             #with open(fileprefix+"_statsRaw.json","w") as f:
             #    json.dump(baselineRmsStats,f)
     statsRawJsonFn = "adcTestData_{}_statsRaw.json".format(startDateTime)
     statsRawJsonFn = os.path.join(dataDir,statsRawJsonFn)
     with open(statsRawJsonFn,"w") as f:
         json.dump(allStatsRaw,f)
-    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id,operator,sumatradict=sumatradict)
+    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id,operator,sumatradict=sumatradict,isError=isError)
     summary.write_jsons(os.path.join(dataDir,"adcTest_{}".format(startDateTime)))
     print("Making summary plots...")
     sys.stdout.flush()
