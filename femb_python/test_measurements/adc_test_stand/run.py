@@ -376,7 +376,7 @@ class ADC_TEST_SUMMARY(object):
                         break
                 results[stat] = statPass
             results["error"] = self.isError[serial]
-            thisPass = thisPass and self.isError[serial]
+            thisPass = thisPass and not self.isError[serial]
             results["pass"] = thisPass
             self.testResults[serial] = results
 
@@ -488,7 +488,8 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                     try:
                         CALIBRATE_RAMP(static_fn,sampleRate).write_calibrate_tree()
                     except Exception as e:
-                        isError[adcSerialNumbers[iChip]] = True
+                        # Don't count as error right now since causes trouble
+                        #isError[adcSerialNumbers[iChip]] = True
                         print("Error while calibrating ramp:")
                         traceback.print_tb(e.__traceback__)
                     try:
@@ -550,8 +551,8 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                     traceback.print_tb(e.__traceback__)
                 else:
                     allStatsRaw[sampleRate][clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
-            #with open(fileprefix+"_statsRaw.json","w") as f:
-            #    json.dump(baselineRmsStats,f)
+                    #with open(fileprefix+"_statsRaw.json","w") as f:
+                    #    json.dump(baselineRmsStats,f)
     statsRawJsonFn = "adcTestData_{}_statsRaw.json".format(startDateTime)
     statsRawJsonFn = os.path.join(dataDir,statsRawJsonFn)
     with open(statsRawJsonFn,"w") as f:
