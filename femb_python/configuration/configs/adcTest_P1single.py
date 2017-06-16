@@ -79,7 +79,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.CLKDEFAULT = "fifo"
 
         ## Firmware update related variables
-        self.FIRMWAREPATH2MHZ = "/opt/sw/releases/femb_firmware-0.1.0/adc_tester/S7_2M_SBND_FPGA.sof"
+        #self.FIRMWAREPATH2MHZ = "/opt/sw/releases/femb_firmware-0.1.0/adc_tester/S7_2M_SBND_FPGA.sof"
         #self.FIRMWAREPATH1MHZ = "/opt/sw/releases/femb_firmware-0.1.0/adc_tester/S7_1M_SBND_FPGA.sof"
         self.FIRMWAREPROGEXE = "/opt/sw/intelFPGA/17.0/qprogrammer/bin/quartus_pgm"
         #self.FIRMWAREPROGCABLE = "USB-Blaster"

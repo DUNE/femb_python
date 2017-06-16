@@ -375,8 +375,8 @@ class ADC_TEST_SUMMARY(object):
                     if not statPass:
                         break
                 results[stat] = statPass
-            results["error"] = self.isError[serial]
-            thisPass = thisPass and not self.isError[serial]
+            results["noErrors"] = not self.isError[serial]
+            thisPass = thisPass and results["noErrors"]
             results["pass"] = thisPass
             self.testResults[serial] = results
 

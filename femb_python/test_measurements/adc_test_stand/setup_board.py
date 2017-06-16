@@ -13,6 +13,7 @@ import glob
 from uuid import uuid1 as uuid
 import json
 import socket
+import traceback
 from subprocess import CalledProcessError
 import numpy
 import matplotlib.pyplot as plt
@@ -36,6 +37,7 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
         corresponds to the input serial number list.  
     """
 
+    raise Exception("Justin Caused this")
     outfilename = "adcSetup_{}.json".format(startDateTime)
     outfilename = os.path.join(dataDir,outfilename)
     result = {
@@ -137,4 +139,9 @@ def main():
         print("Error, serial number must be an int: ",e)
         sys.exit(1)
 
-    chipsPass = setup_board(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,sumatradict=options)
+    try:
+        chipsPass = setup_board(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,sumatradict=options)
+    except Exception as e:
+        print("Uncaught exception in setup_board. Traceback in stderr.")
+        traceback.print_tb(e.__traceback__)
+        sys.exit(1)

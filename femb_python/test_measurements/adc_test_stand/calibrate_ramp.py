@@ -24,6 +24,7 @@ class CALIBRATE_RAMP(object):
         self.dcCalibrationFiles = dcCalibrationFiles
         self.outfilename = os.path.splitext(infilename)[0]+"_calib.root"
         self.samplingFreq = samplingFreq
+        raise Exception
 
     def write_calibrate_tree(self):
         f = ROOT.TFile(self.infilename)
