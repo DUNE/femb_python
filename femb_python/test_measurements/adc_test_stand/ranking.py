@@ -33,7 +33,7 @@ class RANKING(object):
         containing json files.
         """
 
-        self.colors = ["b","r","m","o","gray","c","y"]*5
+        self.colors = ["b","g","m","o","gray","c","y"]*5
         jsonpaths = []
         for inglobstr in inglobstrs:
             inpathlist = glob.glob(inglobstr)
@@ -76,46 +76,70 @@ class RANKING(object):
 #        for stat in self.statsToDraw:
 #            self.statsToDraw[stat]["clocks"] = ["0"]
 
-    def rank(self,datadicts):
-        minMaxDicts = {}
+    def rank(self,data,outfileprefix):
+        if type(data) is dict:
+            pass
+        elif type(data) is list:
+            data = {None:data}
+        else:
+            raise TypeError("data should be list or dict")
         statNames = set()
-        for datadict in datadicts:
-            asic_stats = {}
-            serial = datadict["serial"]
-            static = datadict["static"]
-            asic_stats.update(self.getstats(static))
-            dynamic = datadict["dynamic"]
-            asic_stats.update(self.getstats(dynamic,True))
-            try:
-                inputPin = datadict["inputPin"]
-            except KeyError:
-                print("Warning: no input pin stats for chip",serial)
-            else:
-                asic_stats.update(self.getstats(inputPin))
-            try:
-                dc = datadict["dc"]
-            except KeyError:
-                print("Warning: no dc stats for chip",serial)
-            else:
-                asic_stats.update(self.getstats(dc))
-            minMaxDicts[serial] = asic_stats
-            for stat in asic_stats:
-                statNames.add(stat)
-        statNames = sorted(list(statNames))
-        #print("AllStatNames:")
-        #print(sorted(statNames))
-        maxVals = {}
-        minVals = {}
-        for statName in statNames:
-            minVals[statName] = []
-            maxVals[statName] = []
-            for serial in minMaxDicts:
+        sortedKeys = sorted(list(data.keys()))
+        maxValsPerCase = {}
+        minValsPerCase = {}
+        maxValsAll = {}
+        minValsAll = {}
+        for key in sortedKeys:
+            datadicts = data[key]
+            minMaxPerSerials = {}
+            for datadict in datadicts:
+                asic_stats = {}
+                serial = datadict["serial"]
+                static = datadict["static"]
+                asic_stats.update(self.getstats(static))
+                dynamic = datadict["dynamic"]
+                asic_stats.update(self.getstats(dynamic,True))
                 try:
-                    minVals[statName].append(minMaxDicts[serial][statName][0])
-                    maxVals[statName].append(minMaxDicts[serial][statName][1])
-                except KeyError as e:
-                    print("Warning KeyError for asic: ",serial," stat: ",statName," error: ",e)
-                    pass
+                    inputPin = datadict["inputPin"]
+                except KeyError:
+                    print("Warning: no input pin stats for chip",serial)
+                else:
+                    asic_stats.update(self.getstats(inputPin))
+                try:
+                    dc = datadict["dc"]
+                except KeyError:
+                    print("Warning: no dc stats for chip",serial)
+                else:
+                    asic_stats.update(self.getstats(dc))
+                minMaxPerSerials[serial] = asic_stats
+                for stat in asic_stats:
+                    statNames.add(stat)
+            #print("AllStatNames:")
+            #print(sorted(statNames))
+            maxValsThis = {}
+            minValsThis = {}
+            for statName in statNames:
+                minValsThis[statName] = []
+                maxValsThis[statName] = []
+                try:
+                    maxValsAll[statName]
+                except KeyError:
+                    maxValsAll[statName] = []
+                try:
+                    minValsAll[statName]
+                except KeyError:
+                    minValsAll[statName] = []
+                for serial in minMaxPerSerials:
+                    try:
+                        minValsThis[statName].append(minMaxPerSerials[serial][statName][0])
+                        maxValsThis[statName].append(minMaxPerSerials[serial][statName][1])
+                        minValsAll[statName].append(minMaxPerSerials[serial][statName][0])
+                        maxValsAll[statName].append(minMaxPerSerials[serial][statName][1])
+                    except KeyError as e:
+                        print("Warning KeyError for asic: ",serial," stat: ",statName," error: ",e)
+                        pass
+            maxValsPerCase[key] = maxValsThis
+            minValsPerCase[key] = minValsThis
         statNamesToDraw = sorted(self.statsToDraw)
         nStats = len(statNamesToDraw)
         #print("statNamesToDraw:")
@@ -135,27 +159,33 @@ class RANKING(object):
                     continue
                 else:
                     ax.set_ylabel("ASICs / bin")
+                    doMin = False
                     try:
-                        doMin = False
+                        doMin = self.statsToDraw[statName]["min"]
+                    except KeyError:
+                        pass
+                    hist, bin_edges = numpy.histogram(maxValsAll[statName],10)
+                    if doMin:
+                        hist, bin_edges = numpy.histogram(minValsAll[statName],10)
+                    for iKey, key in enumerate(sortedKeys):
                         try:
-                            doMin = self.statsToDraw[statName]["min"]
-                        except KeyError:
-                            pass
-                        if doMin: #min
-                            if len(minVals[statName])>0:
-                                ax.hist(minVals[statName],histtype="step")
-                                ax.set_xlabel("min({})".format(statName))
-                        else: #max
-                            if len(maxVals[statName])>0:
-                                ax.hist(maxVals[statName],histtype="step")
-                                ax.set_xlabel("max({})".format(statName))
-                    except KeyError as e:
-                        print("Warning: Could not find stat to draw",e)
+                            if doMin: #min
+                                if len(minValsPerCase[key][statName])>0:
+                                    ax.hist(minValsPerCase[key][statName],bin_edges,histtype="step",color=self.colors[iKey])
+                                    ax.set_xlabel("min({})".format(statName))
+                            else: #max
+                                if len(maxValsPerCase[key][statName])>0:
+                                    ax.hist(maxValsPerCase[key][statName],bin_edges,histtype="step",color=self.colors[iKey])
+                                    ax.set_xlabel("max({})".format(statName))
+                        except KeyError as e:
+                            print("Warning: Could not find stat to draw",e)
                     self.set_xticks(ax)
                     ax.set_ylim(0,ax.get_ylim()[1]*1.2)
             plt.tight_layout()
-            fig.savefig("ADC_ranking_page{}.png".format(iFig))
-            fig.savefig("ADC_ranking_page{}.pdf".format(iFig))
+            if len(sortedKeys) > 1 or not (sortedKeys[0] is None):
+                self.doLegend(fig,sortedKeys)
+            fig.savefig(outfileprefix+"_page{}.png".format(iFig))
+            fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
 
     def histAllChannels(self,data,outfileprefix):
         if type(data) is dict:
@@ -228,7 +258,7 @@ class RANKING(object):
                     ax.axis("off")
                     continue
                 else:
-                    ax.set_ylabel("ASICs / bin")
+                    ax.set_ylabel("Channels / bin")
                     ax.set_xlabel("{}".format(statName))
                     hist, bin_edges = numpy.histogram(allVals[statName],40)
                     for iKey, key in enumerate(sortedKeys):
@@ -489,7 +519,8 @@ def main():
     globstr =  "/home/jhugon/dune/coldelectronics/femb_python/hothdaq*"
     ranking = RANKING(args.infilename)
     latestData = ranking.getlatestdata()
-    ranking.rank(latestData)
+    ranking.rank(latestData,"ADC_ranking")
     ranking.histAllChannels(latestData,"ADC_chanHist")
     latestDataPerMachine = ranking.getlatestdatapermachine()
+    ranking.rank(latestDataPerMachine,"ADC_PerHost_ranking")
     ranking.histAllChannels(latestDataPerMachine,"ADC_PerHost_chanHist")
