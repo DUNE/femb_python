@@ -54,6 +54,17 @@ class RANKING(object):
         for jsonpath in jsonpaths:
             with open(jsonpath) as jsonfile:
                 datadict = json.load(jsonfile)
+                timestamp = datadict["timestamp"]
+                try:
+                    timestamp = datetime.datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S")
+                except ValueError:
+                    timestamp = datetime.datetime.strptime(timestamp,"%Y%m%dT%H%M%S")
+                if datadict["hostname"] == "hothdaq3":
+                    if timestamp < datetime.datetime(2017,6,15,hour=13,minute=5):
+                        continue
+                if datadict["hostname"] == "hothdaq4":
+                    if timestamp < datetime.datetime(2017,6,15,hour=10,minute=53):
+                        continue
                 datadicts.append(datadict)
         self.datadicts = datadicts
 
@@ -456,6 +467,7 @@ class RANKING(object):
         #    print(datadict["sumatra"])
             result.append(datadict)
         print("getlatestdata result:")
+        print("{:6}  {}".format("Chip #","Timestamp"))
         for d in result:
           print("{:6}  {}".format(d["serial"],d["timestamp"]))
         return result
@@ -506,6 +518,7 @@ class RANKING(object):
                 sortedserials[keyval] = sorted(resultdict[keyval])
         result = {}
         print("getlatestdataperkey result:")
+        print("{:30}  {:5}  {}".format("Key","Chip #","Timestamp"))
         for keyval in resultdict:
             result[keyval] = []
             for serial in sortedserials[keyval]:
@@ -527,7 +540,7 @@ def main():
     ranking.histAllChannels(latestData,"Channel Histogram for Latest Timestamp","ADC_chanHist")
     for tlk in ["operator","hostname","board_id"]:
         print("Top Level Key: ",tlk)
-        latestDataPerTLK = ranking.getlatestdataperkey(lambda x: x[tlk])
+        latestDataPerTLK = ranking.getlatestdataperkey(lambda x: str(x[tlk]))
         ranking.rank(latestDataPerTLK,"Ranking for Latest Timestamp per {}".format(tlk),"ADC_per_{}_ranking".format(tlk))
         ranking.histAllChannels(latestDataPerTLK,"Channel Histogram for Latest Timestamp per {}".format(tlk),"ADC_per_{}_chanHist".format(tlk))
     smtkeys = [
@@ -537,9 +550,9 @@ def main():
     ]
     for smtkey in smtkeys:
         print("Sumatra Key: ",smtkey)
-        latestDataPerSMTKey = ranking.getlatestdataperkey(lambda x: x["sumatra"][smtkey])
+        latestDataPerSMTKey = ranking.getlatestdataperkey(lambda x: str(x["sumatra"][smtkey]))
         ranking.rank(latestDataPerSMTKey,"Ranking for Latest Timestamp per {}".format(smtkey),"ADC_per_{}_ranking".format(smtkey))
-        ranking.histAllChannels(latestDataPerSMTKey,"Channel Histogram for Latest Timestamp per {}".format(tlk),"ADC_per_{}_chanHist".format(smtkey))
+        ranking.histAllChannels(latestDataPerSMTKey,"Channel Histogram for Latest Timestamp per {}".format(smtkey),"ADC_per_{}_chanHist".format(smtkey))
     
     def getVersion(summaryDict):
         pathstr = summaryDict["sumatra"]["femb_python_location"]
