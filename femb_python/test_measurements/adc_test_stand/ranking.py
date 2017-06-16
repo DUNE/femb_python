@@ -33,7 +33,7 @@ class RANKING(object):
         containing json files.
         """
 
-        self.colors = ["b","g","m","o","gray","c","y"]*5
+        self.colors = ["b","g","orange","gray","y","c","m"]*5
         jsonpaths = []
         for inglobstr in inglobstrs:
             inpathlist = glob.glob(inglobstr)
@@ -455,27 +455,27 @@ class RANKING(object):
           print("{:6}  {}".format(d["serial"],d["timestamp"]))
         return result
 
-    def getlatestdatapermachine(self):
+    def getlatestdatapertopkey(self,toplevelkey):
         """
         Returns a dict of list of data dicts, only the 
         latest timesamped one per serial in each list per 
-        machine.
+        top level key (operator, hostname, board_id).
         """
         datadicts = self.datadicts
         #for datadict in datadicts:
         #    print(datadict["serial"],datadict["timestamp"])
-        resultdict = {} # resultdict[hostname][serial] value is datadict
+        resultdict = {} # resultdict[toplevelkeyval][serial] value is datadict
         for datadict in datadicts:
             serial = datadict["serial"]
-            hostname = datadict["hostname"]
+            toplevelkeyval = datadict[toplevelkey]
             try:
-                resultdict[hostname]
+                resultdict[toplevelkeyval]
             except KeyError:
-                resultdict[hostname] = {}
+                resultdict[toplevelkeyval] = {}
             try:
-                olddata = resultdict[hostname][serial]
+                olddata = resultdict[toplevelkeyval][serial]
             except KeyError:
-                resultdict[hostname][serial] = datadict
+                resultdict[toplevelkeyval][serial] = datadict
             else:
                 oldtimestamp = olddata["timestamp"]
                 newtimestamp = datadict["timestamp"]
@@ -488,23 +488,23 @@ class RANKING(object):
                 except ValueError:
                     newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y%m%dT%H%M%S")
                 if newtimestamp > oldtimestamp:
-                  resultdict[hostname][serial] = datadict
+                  resultdict[toplevelkeyval][serial] = datadict
         #print(resultdict.keys())
         #print("result:")
         sortedserials = {}
-        for hostname in resultdict:
+        for toplevelkeyval in resultdict:
             try:
-                sortedserials[hostname] = sorted(resultdict[hostname],key=lambda x: int(x))
+                sortedserials[toplevelkeyval] = sorted(resultdict[toplevelkeyval],key=lambda x: int(x))
             except:
-                sortedserials[hostname] = sorted(resultdict[hostname])
+                sortedserials[toplevelkeyval] = sorted(resultdict[toplevelkeyval])
         result = {}
-        print("getlatestdatapermachine result:")
-        for hostname in resultdict:
-            result[hostname] = []
-            for serial in sortedserials[hostname]:
-                datadict = resultdict[hostname][serial]
-                print("{}  {:5}  {}".format(hostname,datadict["serial"],datadict["timestamp"]))
-                result[hostname].append(datadict)
+        print("getlatestdatapertopkey {} result:".format(toplevelkey))
+        for toplevelkeyval in resultdict:
+            result[toplevelkeyval] = []
+            for serial in sortedserials[toplevelkeyval]:
+                datadict = resultdict[toplevelkeyval][serial]
+                print("{}  {:5}  {}".format(toplevelkeyval,datadict["serial"],datadict["timestamp"]))
+                result[toplevelkeyval].append(datadict)
         return result
 
 def main():
@@ -513,14 +513,12 @@ def main():
     parser.add_argument("infilename",help="Input json file names and/or glob string.",nargs="+")
     args = parser.parse_args()
   
-    #from ...configuration import CONFIG
-    #config = CONFIG()
-
     globstr =  "/home/jhugon/dune/coldelectronics/femb_python/hothdaq*"
     ranking = RANKING(args.infilename)
     latestData = ranking.getlatestdata()
     ranking.rank(latestData,"ADC_ranking")
     ranking.histAllChannels(latestData,"ADC_chanHist")
-    latestDataPerMachine = ranking.getlatestdatapermachine()
-    ranking.rank(latestDataPerMachine,"ADC_PerHost_ranking")
-    ranking.histAllChannels(latestDataPerMachine,"ADC_PerHost_chanHist")
+    for tlk in ["operator","hostname","board_id"]:
+        latestDataPerTLK = ranking.getlatestdatapertopkey(tlk)
+        ranking.rank(latestDataPerTLK,"ADC_per_{}_ranking".format(tlk))
+        ranking.histAllChannels(latestDataPerTLK,"ADC_per_{}_chanHist".format(tlk))
