@@ -57,6 +57,7 @@ class CALIBRATE_RAMP(object):
         for iEntry in range(outtree.GetEntries()):
             outtree.GetEntry(iEntry)
             waveform = numpy.array(list(outtree.wf))
+            #print("Channel: ",outtree.chan)
             voltage.resize(len(waveform))
             slope, intercept = self.doCalibration(waveform,voltage,frequency,offset,amplitude)
             voltageBranch.Fill()
@@ -70,9 +71,9 @@ class CALIBRATE_RAMP(object):
     def doCalibration(self,waveform,voltage,freq,funcOffset,funcAmp):
         nSamplesPeriod = self.samplingFreq/freq
         iFirstPeak = None
-        firstMax = numpy.max(waveform[int(nSamplesPeriod//2.):min(int(3*nSamplesPeriod//2.),len(waveform)-1)])
+        firstMax = numpy.max(waveform[int(0.5*nSamplesPeriod):min(int(1.7*nSamplesPeriod),len(waveform)-1)])
         maxCodeV = None
-        for iSample in range(int(nSamplesPeriod//2.),min(int(3*nSamplesPeriod//2.),len(waveform)-1)):
+        for iSample in range(int(0.5*nSamplesPeriod),min(int(1.7*nSamplesPeriod),len(waveform)-1)):
             if not (iFirstPeak is None):
                 break
             if waveform[iSample] >= firstMax and waveform[iSample+1] < firstMax:
