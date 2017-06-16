@@ -37,7 +37,6 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
         corresponds to the input serial number list.  
     """
 
-    raise Exception("Justin Caused this")
     outfilename = "adcSetup_{}.json".format(startDateTime)
     outfilename = os.path.join(dataDir,outfilename)
     result = {
@@ -143,5 +142,6 @@ def main():
         chipsPass = setup_board(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,sumatradict=options)
     except Exception as e:
         print("Uncaught exception in setup_board. Traceback in stderr.")
+        sys.stderr.write("Uncaught exception in setup_board: Error: {} {}\n".format(type(e),e))
         traceback.print_tb(e.__traceback__)
         sys.exit(1)

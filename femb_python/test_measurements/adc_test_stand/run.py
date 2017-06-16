@@ -61,6 +61,7 @@ class ADC_TEST_SUMMARY(object):
         """
         print("Summarizing all data...")
         sys.stdout.flush()
+        sys.stderr.flush()
         allStatsRaw = self.allStatsRaw
         sampleRates = sorted(allStatsRaw.keys())
         offsets = []
@@ -207,6 +208,7 @@ class ADC_TEST_SUMMARY(object):
     def checkPass(self):
         print("Checking if chip passes tests...")
         sys.stdout.flush()
+        sys.stderr.flush()
         self.testResults = {}
         for serial in self.get_serials():
             thisSummary = self.get_summary(serial)
@@ -470,6 +472,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                 for iChip in range(config.NASICS):
                     print("Collecting data for sample rate: {} clock: {} offset: {} chip: {} ...".format(sampleRate, clock, offset, iChip))
                     sys.stdout.flush()
+                    sys.stderr.flush()
                     chipStats = {}
                     fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}_sampleRate{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset,sampleRate)
                     fileprefix = os.path.join(dataDir,fileprefix)
@@ -477,7 +480,8 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                         collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate)
                     except Exception as e:
                         isError[adcSerialNumbers[iChip]] = True
-                        print("Error while collecting data:")
+                        print("Error while collecting data, traceback in stderr.")
+                        sys.stderr.write("Error collecting data for sample rate: {} clock: {} offset: {} chip: {} Error: {} {}\n".format(sampleRate, clock, offset, iChip,type(e),e))
                         traceback.print_tb(e.__traceback__)
                         continue
                     print("Processing...")
@@ -488,30 +492,33 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                     try:
                         CALIBRATE_RAMP(static_fn,sampleRate).write_calibrate_tree()
                     except Exception as e:
-                        # Don't count as error right now since causes trouble
-                        #isError[adcSerialNumbers[iChip]] = True
-                        print("Error while calibrating ramp:")
+                        isError[adcSerialNumbers[iChip]] = True
+                        print("Error while calibrating ramp, traceback in stderr.")
+                        sys.stderr.write("Error calibrating ramp for sample rate: {} clock: {} offset: {} chip: {} Error: {} {}\n".format(sampleRate, clock, offset, iChip,type(e),e))
                         traceback.print_tb(e.__traceback__)
                     try:
                         staticStats = static_tests.analyzeLinearity(static_fn,diagnosticPlots=False)
                         chipStats["static"] = staticStats
                     except Exception as e:
                         isError[adcSerialNumbers[iChip]] = True
-                        print("Error while performing static tests")
+                        print("Error while performing static tests, traceback in stderr.")
+                        sys.stderr.write("Error in static tests for sample rate: {} clock: {} offset: {} chip: {}  Error: {} {}\n".format(sampleRate, clock, offset, iChip,type(e),e))
                         traceback.print_tb(e.__traceback__)
                     try:
                         dynamicStats = dynamic_tests.analyze(fileprefix,diagnosticPlots=False)
                         chipStats["dynamic"] = dynamicStats
                     except Exception as e:
                         isError[adcSerialNumbers[iChip]] = True
-                        print("Error while performing dynamic tests")
+                        print("Error while performing dynamic tests, traceback in stderr.")
+                        sys.stderr.write("Error in dynamic tests for sample rate: {} clock: {} offset: {} chip: {}  Error: {} {}\n".format(sampleRate, clock, offset, iChip,type(e),e))
                         traceback.print_tb(e.__traceback__)
                     try:
                         dcStats = dc_tests.analyze(dc_fns,verbose=False)
                         chipStats["dc"] = dcStats
                     except Exception as e:
                         isError[adcSerialNumbers[iChip]] = True
-                        print("Error while performing dc tests")
+                        print("Error while performing dc tests, traceback in stderr.")
+                        sys.stderr.write("Error in dc tests for sample rate: {} clock: {} offset: {} chip: {} Error: {} {}\n".format(sampleRate, clock, offset, iChip,type(e),e))
                         traceback.print_tb(e.__traceback__)
                     configStats[adcSerialNumbers[iChip]] = chipStats
                     #with open(fileprefix+"_statsRaw.json","w") as f:
@@ -531,13 +538,15 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
         for iChip in range(config.NASICS):
             print("Collecting input pin data for chip: {} ...".format(iChip))
             sys.stdout.flush()
+            sys.stderr.flush()
             fileprefix = "adcTestData_{}_inputPinTest_chip{}_adcClock{}_adcOffset{}_sampleRate{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset,sampleRate)
             fileprefix = os.path.join(dataDir,fileprefix)
             try:
                 collect_data.dumpWaveformRootFile(iChip,fileprefix,0,0,0,0,100,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate)
             except Exception as e:
                 isError[adcSerialNumbers[iChip]] = True
-                print("Error while collecting input pin data:")
+                print("Error while collecting input pin data, traceback in stderr.")
+                sys.stderr.write("Error collecting input pin data for chip: {} Error: {} {}\n".format(iChip,type(e),e))
                 traceback.print_tb(e.__traceback__)
             else:
                 try:
@@ -547,7 +556,8 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                     baselineRmsStats = baseline_rms.analyze(static_fn)
                 except Exception as e:
                     isError[adcSerialNumbers[iChip]] = True
-                    print("Error while performing input pin tests:")
+                    print("Error while performing input pin tests, traceback in stderr.")
+                    sys.stderr.write("Error processing input pin data for chip: {} Error: {} {}\n".format(iChip,type(e),e))
                     traceback.print_tb(e.__traceback__)
                 else:
                     allStatsRaw[sampleRate][clock][offset][adcSerialNumbers[iChip]]["inputPin"] = baselineRmsStats
@@ -561,6 +571,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     summary.write_jsons(os.path.join(dataDir,"adcTest_{}".format(startDateTime)))
     print("Making summary plots...")
     sys.stdout.flush()
+    sys.stderr.flush()
     for serial in summary.get_serials():
       SUMMARY_PLOTS(summary.get_summary(serial),
                 os.path.join(dataDir,"adcTest_{}_{}".format(startDateTime,serial)),
@@ -624,11 +635,18 @@ def main():
         print("Error, serial number must be an int: ",e)
         sys.exit(1)
 
-    if args.profiler:
-        import cProfile
-        cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)',globals(),locals(),args.profiler)
+    try:
+        if args.profiler:
+            import cProfile
+            cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)',globals(),locals(),args.profiler)
+        else:
+            chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)
+    except Exception as e:
+        print("Uncaught exception in runTests. Traceback in stderr.")
+        sys.stderr.write("Uncaught exception in runTests: Error: {} {}\n".format(type(e),e))
+        traceback.print_tb(e.__traceback__)
+        sys.exit(1)
     else:
-        chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)
-    runTime = datetime.datetime.now() - startTime
-    print("Test took: {:.0f} min {:.1f} s".format(runTime.total_seconds() // 60, runTime.total_seconds() % 60.))
-    print("Chips Pass: ",chipsPass)
+        runTime = datetime.datetime.now() - startTime
+        print("Test took: {:.0f} min {:.1f} s".format(runTime.total_seconds() // 60, runTime.total_seconds() % 60.))
+        print("Chips Pass: ",chipsPass)
