@@ -17,6 +17,7 @@ import datetime
 import glob
 from uuid import uuid1 as uuid
 import json
+import re
 import numpy
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -76,7 +77,7 @@ class RANKING(object):
 #        for stat in self.statsToDraw:
 #            self.statsToDraw[stat]["clocks"] = ["0"]
 
-    def rank(self,data,outfileprefix):
+    def rank(self,data,title,outfileprefix):
         if type(data) is dict:
             pass
         elif type(data) is list:
@@ -182,12 +183,14 @@ class RANKING(object):
                     self.set_xticks(ax)
                     ax.set_ylim(0,ax.get_ylim()[1]*1.2)
             plt.tight_layout()
+            fig.subplots_adjust(top=0.95)
+            fig.suptitle(title,fontsize="large")
             if len(sortedKeys) > 1 or not (sortedKeys[0] is None):
                 self.doLegend(fig,sortedKeys)
             fig.savefig(outfileprefix+"_page{}.png".format(iFig))
             fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
 
-    def histAllChannels(self,data,outfileprefix):
+    def histAllChannels(self,data,title,outfileprefix):
         if type(data) is dict:
             pass
         elif type(data) is list:
@@ -269,6 +272,8 @@ class RANKING(object):
                     self.set_xticks(ax)
                     ax.set_ylim(0,ax.get_ylim()[1]*1.2)
             plt.tight_layout()
+            fig.subplots_adjust(top=0.95)
+            fig.suptitle(title,fontsize="large")
             if len(sortedKeys) > 1 or not (sortedKeys[0] is None):
                 self.doLegend(fig,sortedKeys)
             fig.savefig(outfileprefix+"_page{}.png".format(iFig))
@@ -455,27 +460,29 @@ class RANKING(object):
           print("{:6}  {}".format(d["serial"],d["timestamp"]))
         return result
 
-    def getlatestdatapertopkey(self,toplevelkey):
+    def getlatestdataperkey(self,funcToGetKey):
         """
         Returns a dict of list of data dicts, only the 
         latest timesamped one per serial in each list per 
-        top level key (operator, hostname, board_id).
+        key, where the funcToGetKey gets the key from the 
+        result json.
         """
         datadicts = self.datadicts
-        #for datadict in datadicts:
-        #    print(datadict["serial"],datadict["timestamp"])
-        resultdict = {} # resultdict[toplevelkeyval][serial] value is datadict
+        resultdict = {} # resultdict[keyval][serial] value is datadict
         for datadict in datadicts:
             serial = datadict["serial"]
-            toplevelkeyval = datadict[toplevelkey]
             try:
-                resultdict[toplevelkeyval]
+                keyval = funcToGetKey(datadict)
             except KeyError:
-                resultdict[toplevelkeyval] = {}
+                keyval = "Not Yet Implemented"
             try:
-                olddata = resultdict[toplevelkeyval][serial]
+                resultdict[keyval]
             except KeyError:
-                resultdict[toplevelkeyval][serial] = datadict
+                resultdict[keyval] = {}
+            try:
+                olddata = resultdict[keyval][serial]
+            except KeyError:
+                resultdict[keyval][serial] = datadict
             else:
                 oldtimestamp = olddata["timestamp"]
                 newtimestamp = datadict["timestamp"]
@@ -488,23 +495,23 @@ class RANKING(object):
                 except ValueError:
                     newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y%m%dT%H%M%S")
                 if newtimestamp > oldtimestamp:
-                  resultdict[toplevelkeyval][serial] = datadict
+                  resultdict[keyval][serial] = datadict
         #print(resultdict.keys())
         #print("result:")
         sortedserials = {}
-        for toplevelkeyval in resultdict:
+        for keyval in resultdict:
             try:
-                sortedserials[toplevelkeyval] = sorted(resultdict[toplevelkeyval],key=lambda x: int(x))
+                sortedserials[keyval] = sorted(resultdict[keyval],key=lambda x: int(x))
             except:
-                sortedserials[toplevelkeyval] = sorted(resultdict[toplevelkeyval])
+                sortedserials[keyval] = sorted(resultdict[keyval])
         result = {}
-        print("getlatestdatapertopkey {} result:".format(toplevelkey))
-        for toplevelkeyval in resultdict:
-            result[toplevelkeyval] = []
-            for serial in sortedserials[toplevelkeyval]:
-                datadict = resultdict[toplevelkeyval][serial]
-                print("{}  {:5}  {}".format(toplevelkeyval,datadict["serial"],datadict["timestamp"]))
-                result[toplevelkeyval].append(datadict)
+        print("getlatestdataperkey result:")
+        for keyval in resultdict:
+            result[keyval] = []
+            for serial in sortedserials[keyval]:
+                datadict = resultdict[keyval][serial]
+                print("{:30}  {:5}  {}".format(keyval,datadict["serial"],datadict["timestamp"]))
+                result[keyval].append(datadict)
         return result
 
 def main():
@@ -516,9 +523,31 @@ def main():
     globstr =  "/home/jhugon/dune/coldelectronics/femb_python/hothdaq*"
     ranking = RANKING(args.infilename)
     latestData = ranking.getlatestdata()
-    ranking.rank(latestData,"ADC_ranking")
-    ranking.histAllChannels(latestData,"ADC_chanHist")
+    ranking.rank(latestData,"Ranking for Latest Timestamp","ADC_ranking")
+    ranking.histAllChannels(latestData,"Channel Histogram for Latest Timestamp","ADC_chanHist")
     for tlk in ["operator","hostname","board_id"]:
-        latestDataPerTLK = ranking.getlatestdatapertopkey(tlk)
-        ranking.rank(latestDataPerTLK,"ADC_per_{}_ranking".format(tlk))
-        ranking.histAllChannels(latestDataPerTLK,"ADC_per_{}_chanHist".format(tlk))
+        print("Top Level Key: ",tlk)
+        latestDataPerTLK = ranking.getlatestdataperkey(lambda x: x[tlk])
+        ranking.rank(latestDataPerTLK,"Ranking for Latest Timestamp per {}".format(tlk),"ADC_per_{}_ranking".format(tlk))
+        ranking.histAllChannels(latestDataPerTLK,"Channel Histogram for Latest Timestamp per {}".format(tlk),"ADC_per_{}_chanHist".format(tlk))
+    smtkeys = [
+        "cold",
+        "linux_username",
+        "femb_config_name",
+    ]
+    for smtkey in smtkeys:
+        print("Sumatra Key: ",smtkey)
+        latestDataPerSMTKey = ranking.getlatestdataperkey(lambda x: x["sumatra"][smtkey])
+        ranking.rank(latestDataPerSMTKey,"Ranking for Latest Timestamp per {}".format(smtkey),"ADC_per_{}_ranking".format(smtkey))
+        ranking.histAllChannels(latestDataPerSMTKey,"Channel Histogram for Latest Timestamp per {}".format(tlk),"ADC_per_{}_chanHist".format(smtkey))
+    
+    def getVersion(summaryDict):
+        pathstr = summaryDict["sumatra"]["femb_python_location"]
+        match = re.match(r"/opt/sw/releases/femb_python-(.*)/femb_python",pathstr)    
+        if match:
+            return match.group(1)
+        else:
+            return "Not Using Official Release"
+    latestDataPerVersion = ranking.getlatestdataperkey(getVersion)
+    ranking.rank(latestDataPerVersion,"Ranking for Latest Timestamp Per Software Version","ADC_per_version_ranking")
+    ranking.histAllChannels(latestDataPerVersion,"Histogram for Latest Timestamp Per Software Version","ADC_per_version_chanHist")
