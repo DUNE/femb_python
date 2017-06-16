@@ -85,6 +85,11 @@ class GUI_WINDOW(Frame):
         else:
             datadisk = "{lo_disk}/tmp"
 
+        cold = None
+        try:
+            cold = self.config.COLD
+        except AttributeError:
+            cold = None
         # these are needed for runpolicy Runner
         self.params.update(
 
@@ -113,6 +118,8 @@ class GUI_WINDOW(Frame):
 
             # We can get the femb_python version out of this
             femb_python_location = os.path.dirname(femb_python.__file__),
+            # Is this a cold test?
+            cold = cold,
             );
 
 

@@ -511,7 +511,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             val = int(val) & 0xFFFF # only 16 bits for some reason
             #print("ExtClock Register {0:12} number {1:3} set to {2:5} = {2:#06x}".format(name,reg,val))
             self.femb.write_reg(reg,val)
-            
+
     def programFirmware(self, firmware):
         """
         Programs the FPGA using the firmware file given.
@@ -529,6 +529,20 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print(commandline)
         print(commandlinelist)
         subprocess.run(commandlinelist,check=True)
+
+    def checkFirmwareProgrammerStatus(self):
+        """
+        Prints a debug message for the firmware programmer
+        """
+        jtagconfig_commandline = os.path.dirname(self.FIRMWAREPROGEXE)
+        jtagconfig_commandline = os.path.join(jtagconfig_commandline,"jtagconfig")
+        if self.FIRMWAREPROGCABLE == "USB-BlasterII":
+            # this programmer is too fast for our board 
+            # (or linux or something) so we have to slow it down
+            jtagconfig_commandline_speed = jtagconfig_commandline +" --setparam 1 JtagClock 6M"
+            print(jtagconfig_commandline_speed)
+            subprocess.run(jtagconfig_commandline_speed.split())
+        subprocess.run(jtagconfig_commandline.split())
 
     def programFirmware1Mhz(self):
         self.programFirmware(self.FIRMWAREPATH1MHZ)

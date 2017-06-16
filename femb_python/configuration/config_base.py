@@ -46,6 +46,7 @@ class FEMB_CONFIG_BASE(object):
         self.femb = None
         self.NASICS = 1
         self.NBOARDS = 1
+        self.COLD = False
 
     def resetBoard(self):
         """
