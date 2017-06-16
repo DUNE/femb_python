@@ -520,10 +520,10 @@ class STATIC_TESTS(object):
         nSamplesPeriod = self.samplingFreq/freq
         #print("nSamplesPeriod: ",nSamplesPeriod)
         iFirstPeak = None
-        firstMax = numpy.max(waveform[int(nSamplesPeriod//2.):min(int(3*nSamplesPeriod//2.),len(waveform)-1)])
+        firstMax = numpy.max(waveform[int(0.5*nSamplesPeriod):min(int(1.7*nSamplesPeriod),len(waveform)-1)])
         #print("firstMax: ",firstMax)
         maxCodeV = None
-        for iSample in range(int(nSamplesPeriod//2.),min(int(3*nSamplesPeriod//2.),len(waveform)-1)):
+        for iSample in range(int(0.5*nSamplesPeriod),min(int(1.7*nSamplesPeriod),len(waveform)-1)):
             if not (iFirstPeak is None):
                 break
             if waveform[iSample] >= firstMax and waveform[iSample+1] < firstMax:
