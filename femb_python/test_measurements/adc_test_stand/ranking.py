@@ -32,6 +32,8 @@ class RANKING(object):
         Directories found in the glob will be walked to find subdirectories 
         containing json files.
         """
+
+        self.colors = ["b","r","m","o","gray","c","y"]*5
         jsonpaths = []
         for inglobstr in inglobstrs:
             inpathlist = glob.glob(inglobstr)
@@ -74,8 +76,7 @@ class RANKING(object):
 #        for stat in self.statsToDraw:
 #            self.statsToDraw[stat]["clocks"] = ["0"]
 
-    def rank(self):
-        datadicts = self.getlatestdata()
+    def rank(self,datadicts):
         minMaxDicts = {}
         statNames = set()
         for datadict in datadicts:
@@ -156,44 +157,59 @@ class RANKING(object):
             fig.savefig("ADC_ranking_page{}.png".format(iFig))
             fig.savefig("ADC_ranking_page{}.pdf".format(iFig))
 
-    def histAllChannels(self):
-        datadicts = self.getlatestdata()
-        asicStatsDicts = {}
+    def histAllChannels(self,data,outfileprefix):
+        if type(data) is dict:
+            pass
+        elif type(data) is list:
+            data = {None:data}
+        else:
+            raise TypeError("data should be list or dict")
         statNames = set()
-        for datadict in datadicts:
-            asic_stats = {}
-            serial = datadict["serial"]
-            static = datadict["static"]
-            asic_stats.update(self.getstats(static,getAll=True))
-            dynamic = datadict["dynamic"]
-            asic_stats.update(self.getstats(dynamic,dynamic=True,getAll=True))
-            try:
-                inputPin = datadict["inputPin"]
-            except KeyError:
-                print("Warning: now input pin stats for chip",serial)
-            else:
-                asic_stats.update(self.getstats(inputPin,getAll=True))
-            try:
-                dc = datadict["dc"]
-            except KeyError:
-                print("Warning: now input pin stats for chip",serial)
-            else:
-                asic_stats.update(self.getstats(dc,getAll=True))
-            asicStatsDicts[serial] = asic_stats
-            for stat in asic_stats:
-                statNames.add(stat)
-        statNames = sorted(list(statNames))
-        #print("AllStatNames:")
-        #print(sorted(statNames))
+        allValsPerCase = {}
         allVals = {}
-        for statName in statNames:
-            allVals[statName] = []
-            for serial in asicStatsDicts:
+        sortedKeys = sorted(list(data.keys()))
+        for key in sortedKeys:
+            datadicts = data[key]
+            statsPerSerial = {}
+            for datadict in datadicts:
+                asic_stats = {}
+                serial = datadict["serial"]
+                static = datadict["static"]
+                asic_stats.update(self.getstats(static,getAll=True))
+                dynamic = datadict["dynamic"]
+                asic_stats.update(self.getstats(dynamic,dynamic=True,getAll=True))
                 try:
-                    allVals[statName].extend(asicStatsDicts[serial][statName])
-                except KeyError as e:
-                    print("Warning KeyError for asic: ",serial," stat: ",statName," error: ",e)
-                    pass
+                    inputPin = datadict["inputPin"]
+                except KeyError:
+                    print("Warning: now input pin stats for chip",serial)
+                else:
+                    asic_stats.update(self.getstats(inputPin,getAll=True))
+                try:
+                    dc = datadict["dc"]
+                except KeyError:
+                    print("Warning: now input pin stats for chip",serial)
+                else:
+                    asic_stats.update(self.getstats(dc,getAll=True))
+                statsPerSerial[serial] = asic_stats
+                for stat in asic_stats:
+                    statNames.add(stat)
+            #print("AllStatNames:")
+            #print(sorted(statNames))
+            allValsThis = {}
+            for statName in statNames:
+                allValsThis[statName] = []
+                try:
+                    allVals[statName]
+                except KeyError:
+                    allVals[statName] = []
+                for serial in statsPerSerial:
+                    try:
+                        allValsThis[statName].extend(statsPerSerial[serial][statName])
+                        allVals[statName].extend(statsPerSerial[serial][statName])
+                    except KeyError as e:
+                        print("Warning KeyError for asic: ",serial," stat: ",statName," error: ",e)
+                        pass
+            allValsPerCase[key] = allValsThis
         statNamesToDraw = sorted(self.statsToDraw)
         nStats = len(statNamesToDraw)
         #print("statNamesToDraw:")
@@ -213,22 +229,40 @@ class RANKING(object):
                     continue
                 else:
                     ax.set_ylabel("ASICs / bin")
-                    try:
-                        ax.hist(allVals[statName],histtype="step")
-                        ax.set_xlabel("{}".format(statName))
-                    except KeyError as e:
-                        print("Warning: Could not find stat to draw",e)
+                    ax.set_xlabel("{}".format(statName))
+                    hist, bin_edges = numpy.histogram(allVals[statName],40)
+                    for iKey, key in enumerate(sortedKeys):
+                        try:
+                            ax.hist(allValsPerCase[key][statName],bin_edges,histtype="step",color=self.colors[iKey])
+                        except KeyError as e:
+                            print("Warning: Could not find stat to draw",e)
                     self.set_xticks(ax)
                     ax.set_ylim(0,ax.get_ylim()[1]*1.2)
             plt.tight_layout()
-            fig.savefig("ADC_chanHist_page{}.png".format(iFig))
-            fig.savefig("ADC_chanHist_page{}.pdf".format(iFig))
+            if len(sortedKeys) > 1 or not (sortedKeys[0] is None):
+                self.doLegend(fig,sortedKeys)
+            fig.savefig(outfileprefix+"_page{}.png".format(iFig))
+            fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
 
     def set_xticks(self,ax):
         xlim = ax.get_xlim()
         xticks = numpy.linspace(xlim[0],xlim[1],4)
         xticklabels = ["{:.1g}".format(x) for x in xticks]
         ax.set_xticks(xticks)
+
+    def doLegend(self,ax,titles):
+        legendHandles = []
+        legendLabels = []
+        for iTitle, title in enumerate(titles):
+            line = mlines.Line2D([], [], color=self.colors[iTitle],
+                           label=title)
+            legendLabels.append(title)
+            legendHandles.append(line)
+        self.legendHandles = legendHandles
+        if isinstance(ax,Figure):
+            ax.legend(self.legendHandles,legendLabels,loc="lower right",fontsize="large",frameon=False)
+        else:
+            ax.legend(handles=self.legendHandles,loc="best",fontsize="medium",frameon=False)
 
     def getstats(self,data,dynamic=False,getAll=False):
         statsToDraw = self.statsToDraw
@@ -454,6 +488,8 @@ def main():
 
     globstr =  "/home/jhugon/dune/coldelectronics/femb_python/hothdaq*"
     ranking = RANKING(args.infilename)
-    ranking.rank()
-    ranking.histAllChannels()
-    ranking.getlatestdatapermachine()
+    latestData = ranking.getlatestdata()
+    ranking.rank(latestData)
+    ranking.histAllChannels(latestData,"ADC_chanHist")
+    latestDataPerMachine = ranking.getlatestdatapermachine()
+    ranking.histAllChannels(latestDataPerMachine,"ADC_PerHost_chanHist")
