@@ -22,6 +22,7 @@ import numpy
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
+import matplotlib.dates
 from matplotlib.figure import Figure
 
 class RANKING(object):
@@ -290,6 +291,125 @@ class RANKING(object):
             fig.savefig(outfileprefix+"_page{}.png".format(iFig))
             fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
 
+    def rankVVar(self,data,varfunc,title,outfileprefix):
+        if type(data) is dict:
+            pass
+        elif type(data) is list:
+            data = {None:data}
+        else:
+            raise TypeError("data should be list or dict")
+        statNames = set()
+        maxValsPerCase = {}
+        minValsPerCase = {}
+        varsPerCase = {}
+        sortedKeys = sorted(list(data.keys()))
+        for key in sortedKeys:
+            datadicts = data[key]
+            minLists = {}
+            maxLists = {}
+            varLists = {}
+            for datadict in datadicts:
+                asic_stats = {}
+                serial = datadict["serial"]
+                static = datadict["static"]
+                asic_stats.update(self.getstats(static))
+                dynamic = datadict["dynamic"]
+                asic_stats.update(self.getstats(dynamic,True))
+                try:
+                    inputPin = datadict["inputPin"]
+                except KeyError:
+                    print("Warning: no input pin stats for chip",serial)
+                else:
+                    asic_stats.update(self.getstats(inputPin))
+                try:
+                    dc = datadict["dc"]
+                except KeyError:
+                    print("Warning: no dc stats for chip",serial)
+                else:
+                    asic_stats.update(self.getstats(dc))
+                for stat in asic_stats:
+                    statNames.add(stat)
+                    try:
+                        minLists[stat].append(asic_stats[stat][0])
+                    except KeyError:
+                        minLists[stat] = [ asic_stats[stat][0] ]
+                    try:
+                        maxLists[stat].append(asic_stats[stat][1])
+                    except KeyError:
+                        maxLists[stat] = [ asic_stats[stat][1] ]
+                    try:
+                        varLists[stat].append(varfunc(datadict))
+                    except KeyError:
+                        varLists[stat] = [ varfunc(datadict) ]
+            maxValsPerCase[key] = maxLists
+            minValsPerCase[key] = minLists
+            varsPerCase[key] = varLists
+        statNamesToDraw = sorted(self.statsToDraw)
+        nStats = len(statNamesToDraw)
+        #print("statNamesToDraw:")
+        #print(statNamesToDraw)
+        nx = 4
+        ny = 4
+        nPerFig = nx*ny
+        for iFig in range(int(numpy.ceil(nStats/nPerFig))):
+            fig, axes2D = plt.subplots(4,4,figsize=(12,12))
+            #fig.subplots_adjust(left=0.07,right=0.93,bottom=0.05,top=0.95,wspace=0.25)
+            axes = [y for x in axes2D for y in x]
+            for iAx, ax in enumerate(axes):
+                try:
+                    statName = statNamesToDraw[iFig*nPerFig+iAx]
+                except IndexError:
+                    ax.axis("off")
+                    continue
+                else:
+                    doMin = False
+                    try:
+                        doMin = self.statsToDraw[statName]["min"]
+                    except KeyError:
+                        pass
+                    xDates = False
+                    minX = 1e99
+                    maxX = -1e99
+                    for iKey, key in enumerate(sortedKeys):
+                        try:
+                            if doMin: #min
+                                if len(minValsPerCase[key][statName])>0:
+                                    if type(varsPerCase[key][statName][0]) == datetime.datetime:
+                                        xDates = True
+                                        ax.plot_date(varsPerCase[key][statName],minValsPerCase[key][statName],color=self.colors[iKey])
+                                        minX = min(varsPerCase[key][statName]+[minX])
+                                        maxX = min(varsPerCase[key][statName]+[maxX])
+                                    else:
+                                        ax.scatter(varsPerCase[key][statName],minValsPerCase[key][statName],color=self.colors[iKey])
+                                        minX = min(varsPerCase[key][statName]+[minX])
+                                        maxX = min(varsPerCase[key][statName]+[maxX])
+                                    ax.set_ylabel("min({})".format(statName))
+                            else: #max
+                                if len(maxValsPerCase[key][statName])>0:
+                                    if type(varsPerCase[key][statName][0]) == datetime.datetime:
+                                        xDates = True
+                                        ax.plot_date(varsPerCase[key][statName],maxValsPerCase[key][statName],color=self.colors[iKey])
+                                        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%Y%m%dT%H%M"))
+                                    else:
+                                        ax.scatter(varsPerCase[key][statName],maxValsPerCase[key][statName],color=self.colors[iKey])
+                                    ax.set_ylabel("max({})".format(statName))
+                                    minX = min(varsPerCase[key][statName]+[minX])
+                                    maxX = min(varsPerCase[key][statName]+[maxX])
+                        except KeyError as e:
+                            print("Warning: Could not find stat to draw",e)
+                    self.set_xticks(ax)
+                    if xDates:
+                        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%Y-%m-%d"))
+
+            #fig.autofmt_xdate()
+            #plt.tight_layout()
+            fig.subplots_adjust(top=0.95)
+            fig.suptitle(title,fontsize="large")
+            if len(sortedKeys) > 1 or not (sortedKeys[0] is None):
+                self.doLegend(fig,sortedKeys)
+            fig.savefig(outfileprefix+"_page{}.png".format(iFig))
+            fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
+
     def set_xticks(self,ax):
         xlim = ax.get_xlim()
         xticks = numpy.linspace(xlim[0],xlim[1],4)
@@ -527,6 +647,34 @@ class RANKING(object):
                 result[keyval].append(datadict)
         return result
 
+    def getalldataperkey(self,funcToGetKey):
+        """
+        Returns a dict of list of data dicts, where the 
+        funcToGetKey gets the key from the 
+        result json. These lists contain all dicts that have the key
+        """
+        datadicts = self.datadicts
+        resultdict = {} # resultdict[keyval] value is list of datadict
+        for datadict in datadicts:
+            try:
+                keyval = funcToGetKey(datadict)
+            except KeyError:
+                keyval = "Not Yet Implemented"
+            try:
+                resultdict[keyval]
+            except KeyError:
+                resultdict[keyval] = []
+            resultdict[keyval].append(datadict)
+        #print(resultdict.keys())
+        #print("result:")
+        result = {}
+        print("getalldataperkey result:")
+        print("{:30}  {:5}  {}".format("Key","Chip #","Timestamp"))
+        for keyval in resultdict:
+            for datadict in resultdict[keyval]:
+                print("{:30}  {:5}  {}".format(keyval,datadict["serial"],datadict["timestamp"]))
+        return resultdict
+
 def main():
     from ...configuration.argument_parser import ArgumentParser
     parser = ArgumentParser(description="Plots a ranking of ADCs")
@@ -564,3 +712,14 @@ def main():
     latestDataPerVersion = ranking.getlatestdataperkey(getVersion)
     ranking.rank(latestDataPerVersion,"Ranking for Latest Timestamp Per Software Version","ADC_per_version_ranking")
     ranking.histAllChannels(latestDataPerVersion,"Histogram for Latest Timestamp Per Software Version","ADC_per_version_chanHist")
+
+    #def getTimestamp(data):
+    #    timestamp = data["timestamp"]
+    #    try:
+    #        timestamp = datetime.datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S")
+    #    except ValueError:
+    #        timestamp = datetime.datetime.strptime(timestamp,"%Y%m%dT%H%M%S")
+    #    return timestamp
+
+    #data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["hostname"]))
+    #ranking.rankVVar(data,getTimestamp,"Time Dependence Per Hostname","ADCVTime_timestamp_per_hostname")
