@@ -645,7 +645,7 @@ def main():
     parser.add_argument("-j", "--jsonfile",help="json options file location",default=None)
     args = parser.parse_args()
   
-    config = CONFIG()
+    config = CONFIG(exitOnError=False)
     chipsPass = None
     startTime = datetime.datetime.now()
 

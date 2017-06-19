@@ -11,8 +11,8 @@ from femb_python.test_instrument_interface.rigol_dp800 import RigolDP800
 
 class FEMB_CONFIG(adcTest_P1single.FEMB_CONFIG):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self,exitOnError=True):
+        super().__init__(exitOnError=exitOnError)
         self.REG_CLKPHASE_data = 0xfffc0000
         print("Really using:")
         self.FUNCGENINTER = RigolDG4000("/dev/usbtmc0",1)

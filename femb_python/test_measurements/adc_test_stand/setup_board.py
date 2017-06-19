@@ -54,9 +54,9 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
     with open(outfilename,"w") as outfile:
         config.POWERSUPPLYINTER.on()
         time.sleep(1)
-        config.resetBoard(exitOnError=False)
+        config.resetBoard()
         try:
-            config.initBoard(exitOnError=False)
+            config.initBoard()
         except InitBoardError:
             print("Board/chip Failure: couldn't initialize board.")
             result["init"] = False;
@@ -74,7 +74,7 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
             result["init"] = True;
             result["configADC"] = True;
         try:
-            config.syncADC(exitOnError=False)
+            config.syncADC()
         except SyncADCError:
             print("Board/chip Failure: couldn't sync ADCs.")
             result["sync"] = False;
@@ -104,7 +104,7 @@ def main():
     parser.add_argument("-j", "--jsonfile",help="json options file location",default=None)
     args = parser.parse_args()
   
-    config = CONFIG()
+    config = CONFIG(exitOnError=False)
     chipsPass = None
 
     hostname = socket.gethostname()

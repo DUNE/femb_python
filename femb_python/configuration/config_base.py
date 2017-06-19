@@ -32,6 +32,10 @@ class InitBoardError(FEMBConfigError):
     """Exception when you can't initialize a board"""
     pass
 
+class ReadRegError(FEMBConfigError):
+    """Exception when you can't read a register"""
+    pass
+
 class FEMB_CONFIG_BASE(object):
     """
     Base class for configuration files. These should be considered the 'public'
@@ -39,14 +43,16 @@ class FEMB_CONFIG_BASE(object):
     of functions.  
     """
 
-    def __init__(self):
+    def __init__(self,exitOnError=True):
         """
-        Initialize this class (no board communication here. Should setup self.femb as a femb_udp instance.
+        Initialize this class (no board communication here. Should setup self.femb as a femb_udp instance.)
+        if exitOnError is false, methods should raise error that subclass FEMBConfigError
         """
         self.femb = None
         self.NASICS = 1
         self.NBOARDS = 1
         self.COLD = False
+        self.exitOnError=exitOnError
 
     def resetBoard(self):
         """
