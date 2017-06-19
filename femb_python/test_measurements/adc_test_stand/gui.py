@@ -273,6 +273,8 @@ class GUI_WINDOW(Frame):
             self.status_label["text"] = "Error setting up board/ADC. Report to shift leader"
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
+            if not GUITESTMODE:
+                self.config.POWERSUPPLYINTER.off()
             return
         else:
             self.done_preparing_board(params)
@@ -315,8 +317,12 @@ class GUI_WINDOW(Frame):
             self.status_label["text"] = "Error in test program. Report to shift leader"
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
+            if not GUITESTMODE:
+                self.config.POWERSUPPLYINTER.off()
             return
         else:
+            if not GUITESTMODE:
+                self.config.POWERSUPPLYINTER.off()
             self.done_measuring(params)
 
     def done_preparing_board(self,params):
@@ -335,6 +341,8 @@ class GUI_WINDOW(Frame):
             self.status_label["text"] = "Error: Board setup output not found. Report to shift leader"
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
+            if not GUITESTMODE:
+                self.config.POWERSUPPLYINTER.off()
             return
         if resultdict["pass"]:
             self.current_label["state"] = "normal"
@@ -442,6 +450,8 @@ class GUI_WINDOW(Frame):
             self.display_procs.append(subprocess.Popen(["eog",imgfilename]))
 
     def exit(self,*args, **kargs):
+        if not GUITESTMODE:
+            self.config.POWERSUPPLYINTER.off()
         for i in reversed(range(len(self.display_procs))):
             tmp = self.display_procs.pop(i)
             tmp.terminate()

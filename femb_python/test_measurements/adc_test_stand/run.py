@@ -645,8 +645,10 @@ def main():
         print("Uncaught exception in runTests. Traceback in stderr.")
         sys.stderr.write("Uncaught exception in runTests: Error: {} {}\n".format(type(e),e))
         traceback.print_tb(e.__traceback__)
+        config.POWERSUPPLYINTER.off()
         sys.exit(1)
     else:
+        config.POWERSUPPLYINTER.off()
         runTime = datetime.datetime.now() - startTime
         print("Test took: {:.0f} min {:.1f} s".format(runTime.total_seconds() // 60, runTime.total_seconds() % 60.))
         print("Chips Pass: ",chipsPass)

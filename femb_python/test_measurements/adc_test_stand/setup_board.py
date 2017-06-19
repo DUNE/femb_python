@@ -61,12 +61,14 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
             print("Board/chip Failure: couldn't initialize board.")
             result["init"] = False;
             json.dump(result,outfile)
+            config.POWERSUPPLYINTER.off()
             return
         except ConfigADCError:
             print("Board/chip Failure: couldn't write ADC SPI.")
             result["init"] = False;
             result["configADC"] = False;
             json.dump(result,outfile)
+            config.POWERSUPPLYINTER.off()
             return
         else:
             result["init"] = True;
@@ -77,6 +79,7 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
             print("Board/chip Failure: couldn't sync ADCs.")
             result["sync"] = False;
             json.dump(result,outfile)
+            config.POWERSUPPLYINTER.off()
             return
         else:
             result["sync"] = True;
@@ -144,4 +147,5 @@ def main():
         print("Uncaught exception in setup_board. Traceback in stderr.")
         sys.stderr.write("Uncaught exception in setup_board: Error: {} {}\n".format(type(e),e))
         traceback.print_tb(e.__traceback__)
+        config.POWERSUPPLYINTER.off()
         sys.exit(1)
