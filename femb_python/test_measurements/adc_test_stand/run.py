@@ -28,6 +28,7 @@ from .dynamic_tests import DYNAMIC_TESTS
 from .baseline_rms import BASELINE_RMS
 from .dc_tests import DC_TESTS
 from .summary_plots import SUMMARY_PLOTS
+from ...configuration.config_base import FEMBConfigError
 
 class ADC_TEST_SUMMARY(object):
 
@@ -382,6 +383,43 @@ class ADC_TEST_SUMMARY(object):
             results["pass"] = thisPass
             self.testResults[serial] = results
 
+def resetBoardAndProgramFirmware(config,sampleRate):
+    programFunc = None
+    nTries = 5
+    for iPowerCycle in range(2):
+        for iTry in range(iPowerCycle*nTries,nTries+iPowerCycle*nTries):
+            try:
+                if sampleRate == 2000000:
+                    if hasattr(config,"FIRMWAREPATH2MHZ"):
+                        programFunc = config.programFirmware2Mhz
+                    else:
+                        print("No 2 MHz firmware path configured, not programming firmware.")
+                        return True
+                elif sampleRate == 1000000:
+                    if not hasattr(config,"FIRMWAREPATH1MHZ"):
+                        print("No 1 MHz firmware path configured, skipping.")
+                        continue
+                    programFunc = config.programFirmware1Mhz
+                else:
+                    print("Error: Sample rate not 1 MHz or 2 MHz: ",sampleRate)
+                    continue
+                programFunc()
+                config.resetBoard()
+                config.initBoard()
+                config.syncADC()
+            except FEMBConfigError as e:
+                sys.stderr.write("Error while reset/init/sync board: Error: {} {}\n".format(type(e),e))
+                traceback.print_tb(e.__traceback__)
+            except CalledProcessError as e:
+                sys.stderr.write("Error while programming firmware: Error: {} {}\n".format(type(e),e))
+                traceback.print_tb(e.__traceback__)
+            else: # success if no exception :-)
+                return True
+            print("Reset/init/sync/firmware try {} failed, trying again...".format(iTry))
+        print("Reset/init/sync/firmware trying power cycle and {} more tries...".format(nTries))
+    print("Unable to reset/init/sync/firmware.")
+    return False
+
 def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,singleConfig=True,timestamp=None,sumatradict=None):
     """
     Runs the ADC tests for all chips on the ADC test board.
@@ -420,31 +458,9 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     for adcSerialNumber in adcSerialNumbers:
         isError[adcSerialNumber] = False
     for sampleRate in sampleRates:
-        if sampleRate == 2000000:
-            if hasattr(config,"FIRMWAREPATH2MHZ"):
-                try:
-                    config.programFirmware2Mhz()
-                except CalledProcessError as e:
-                    print("Error: firmware programming failed, exiting.")
-                    sys.exit(1)
-                config.resetBoard()
-                config.initBoard()
-                config.syncADC()
-        elif sampleRate == 1000000:
-            if not hasattr(config,"FIRMWAREPATH1MHZ"):
-                print("No 1 MHz firmware path configured, skipping.")
-                continue
-            try:
-                config.programFirmware1Mhz()
-            except CalledProcessError as e:
-                print("Error: firmware programming failed, exiting.")
-                sys.exit(1)
-            config.resetBoard()
-            config.initBoard()
-            config.syncADC()
-        else:
-            print("Error: Sample rate not 1 MHz or 2 MHz, exiting.")
-            sys.exit(1)
+        resetAndProgramSuccess = resetBoardAndProgramFirmware(config,sampleRate)
+        if not resetAndProgramSuccess:
+            continue
         static_tests.samplingFreq = float(sampleRate)
         dynamic_tests.sampleRate = float(sampleRate)
         allStatsRaw[sampleRate] = {}
