@@ -417,7 +417,41 @@ def resetBoardAndProgramFirmware(config,sampleRate):
                 return True
             print("Reset/init/sync/firmware try {} failed, trying again...".format(iTry))
         print("Reset/init/sync/firmware trying power cycle and {} more tries...".format(nTries))
+        config.POWERSUPPLYINTER.off()
+        time.sleep(0.5)
+        config.POWERSUPPLYINTER.on()
+        time.sleep(0.5)
     print("Unable to reset/init/sync/firmware.")
+    return False
+
+def configAdcAsic(config,sampleRate,offsetCurrent=None,
+                    clockMonostable=None,clockFromFIFO=None,
+                    clockExternal=None)
+    enableOffsetCurrent = 0
+    if offset >= 0:
+        enableOffsetCurrent = 1
+    nTries = 5
+    for iPowerCycle in range(2):
+        for iTry in range(iPowerCycle*nTries,nTries+iPowerCycle*nTries):
+            try:
+                config.configAdcAsic(enableOffsetCurrent=enableOffsetCurrent,offsetCurrent=offset,
+                            clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
+                            clockExternal=clockExternal)
+            except FEMBConfigError as e:
+                sys.stderr.write("Error while configAdcAsic: Error: {} {}\n".format(type(e),e))
+                traceback.print_tb(e.__traceback__)
+            else: # success if no exception :-)
+                return True
+            print("configAdcAsic try {} failed, trying again...".format(iTry))
+        print("configAdcAsic trying power cycle and {} more tries...".format(nTries))
+        config.POWERSUPPLYINTER.off()
+        time.sleep(0.5)
+        config.POWERSUPPLYINTER.on()
+        time.sleep(0.5)
+        resetSuccess = resetBoardAndProgramFirmware(config,sampleRate)
+        if not resetSuccess:
+            return False
+    print("Unable to configAdcAsic.")
     return False
 
 def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,singleConfig=True,timestamp=None,sumatradict=None):
@@ -477,14 +511,12 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                 clockFromFIFO=True
             for offset in offsets:
                 configStats = {}
-                if offset <=0:
-                    config.configAdcAsic(enableOffsetCurrent=0,offsetCurrent=0,
-                                        clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
-                                        clockExternal=clockExternal)
-                else:
-                    config.configAdcAsic(enableOffsetCurrent=1,offsetCurrent=offset,
-                                        clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
-                                        clockExternal=clockExternal)
+                configSuccess = configAdcAsic(config,sampleRate,
+                            offsetCurrent=offset,
+                            clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
+                            clockExternal=clockExternal)
+                if not configSuccess:
+                    continue
                 for iChip in range(config.NASICS):
                     print("Collecting data for sample rate: {} clock: {} offset: {} chip: {} ...".format(sampleRate, clock, offset, iChip))
                     sys.stdout.flush()
@@ -541,16 +573,16 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                     #    json.dump(chipStats,f)
                 allStatsRaw[sampleRate][clock][offset] = configStats
     # check the input pin works
-    if True:
-        sampleRate = 2000000
-        clock=0
-        offset = -1
-        clockMonostable=False
-        clockFromFIFO=False
-        clockExternal=True
-        config.configAdcAsic(enableOffsetCurrent=0,offsetCurrent=0,
-                            clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
-                            clockExternal=clockExternal,testInput=0)
+    sampleRate = 2000000
+    clock=0
+    offset = -1
+    clockMonostable=False
+    clockFromFIFO=False
+    clockExternal=True
+    configSuccess = configAdcAsic(config,sampleRate,offsetCurrent=offset,
+                        clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
+                        clockExternal=clockExternal,testInput=0)
+    if configSuccess:
         for iChip in range(config.NASICS):
             print("Collecting input pin data for chip: {} ...".format(iChip))
             sys.stdout.flush()
