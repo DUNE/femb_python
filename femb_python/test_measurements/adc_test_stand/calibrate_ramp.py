@@ -82,7 +82,8 @@ class CALIBRATE_RAMP(object):
                         iFirstPeak = 0.5*(iSample + jSample)
                         maxCodeV = funcOffset+funcAmp-(iSample-jSample)/nSamplesPeriod*funcAmp*2
                         break
-
+        if iFirstPeak is None:
+            raise RuntimeError("Could not find first peak in waveform.")
         maxCodes = []
         iPeaks = []
         #print("iFirstPeak:",iFirstPeak)
