@@ -35,7 +35,7 @@ class RANKING(object):
         containing json files.
         """
 
-        self.colors = ["b","g","orange","gray","y","c","m"]*5
+        self.colors = ["b","g","orange","gray","y","c","m","plum","sienna","sandybrown","seagreen","deepskyblue","navy"]*5
         jsonpaths = []
         for inglobstr in inglobstrs:
             inpathlist = glob.glob(inglobstr)
@@ -89,7 +89,7 @@ class RANKING(object):
 #        for stat in self.statsToDraw:
 #            self.statsToDraw[stat]["clocks"] = ["0"]
 
-    def rank(self,data,title,outfileprefix):
+    def rank(self,data,title,outfileprefix,legendTitle=""):
         if type(data) is dict:
             pass
         elif type(data) is list:
@@ -177,32 +177,36 @@ class RANKING(object):
                         doMin = self.statsToDraw[statName]["min"]
                     except KeyError:
                         pass
-                    hist, bin_edges = numpy.histogram(maxValsAll[statName],10)
+                    histRange = (min(maxValsAll[statName]),max(maxValsAll[statName]))
+                    hist, bin_edges = numpy.histogram(maxValsAll[statName],10,range=histRange)
                     if doMin:
-                        hist, bin_edges = numpy.histogram(minValsAll[statName],10)
+                        histRange = (min(minValsAll[statName]),max(minValsAll[statName]))
+                        hist, bin_edges = numpy.histogram(minValsAll[statName],10,range=histRange)
                     for iKey, key in enumerate(sortedKeys):
                         try:
                             if doMin: #min
                                 if len(minValsPerCase[key][statName])>0:
-                                    ax.hist(minValsPerCase[key][statName],bin_edges,histtype="step",color=self.colors[iKey])
+                                    ax.hist(minValsPerCase[key][statName],bin_edges,range=histRange,histtype="step",color=self.colors[iKey])
                                     ax.set_xlabel("min({})".format(statName))
                             else: #max
                                 if len(maxValsPerCase[key][statName])>0:
-                                    ax.hist(maxValsPerCase[key][statName],bin_edges,histtype="step",color=self.colors[iKey])
+                                    ax.hist(maxValsPerCase[key][statName],bin_edges,range=histRange,histtype="step",color=self.colors[iKey])
                                     ax.set_xlabel("max({})".format(statName))
                         except KeyError as e:
                             print("Warning: Could not find stat to draw",e)
+                    ax.relim()
+                    ax.autoscale_view(False,True,True)
+                    #ax.set_ylim(0,ax.get_ylim()[1]*1.2)
                     self.set_xticks(ax)
-                    ax.set_ylim(0,ax.get_ylim()[1]*1.2)
             plt.tight_layout()
             fig.subplots_adjust(top=0.95)
             fig.suptitle(title,fontsize="large")
             if len(sortedKeys) > 1 or not (sortedKeys[0] is None):
-                self.doLegend(fig,sortedKeys)
+                self.doLegend(fig,sortedKeys,legendTitle=legendTitle)
             fig.savefig(outfileprefix+"_page{}.png".format(iFig))
             fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
 
-    def histAllChannels(self,data,title,outfileprefix):
+    def histAllChannels(self,data,title,outfileprefix,legendTitle=""):
         if type(data) is dict:
             pass
         elif type(data) is list:
@@ -275,23 +279,26 @@ class RANKING(object):
                 else:
                     ax.set_ylabel("Channels / bin")
                     ax.set_xlabel("{}".format(statName))
-                    hist, bin_edges = numpy.histogram(allVals[statName],40)
+                    histRange = (min(allVals[statName]),max(allVals[statName]))
+                    hist, bin_edges = numpy.histogram(allVals[statName],40,range=histRange)
                     for iKey, key in enumerate(sortedKeys):
                         try:
-                            ax.hist(allValsPerCase[key][statName],bin_edges,histtype="step",color=self.colors[iKey])
+                            ax.hist(allValsPerCase[key][statName],bin_edges,range=histRange,histtype="step",color=self.colors[iKey])
                         except KeyError as e:
                             print("Warning: Could not find stat to draw",e)
+                    ax.relim()
+                    ax.autoscale_view(False,True,True)
+                    #ax.set_ylim(0,ax.get_ylim()[1]*1.2)
                     self.set_xticks(ax)
-                    ax.set_ylim(0,ax.get_ylim()[1]*1.2)
             plt.tight_layout()
             fig.subplots_adjust(top=0.95)
             fig.suptitle(title,fontsize="large")
             if len(sortedKeys) > 1 or not (sortedKeys[0] is None):
-                self.doLegend(fig,sortedKeys)
+                self.doLegend(fig,sortedKeys,legendTitle=legendTitle)
             fig.savefig(outfileprefix+"_page{}.png".format(iFig))
             fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
 
-    def rankVVar(self,data,varfunc,title,outfileprefix):
+    def rankVVar(self,data,varfunc,title,outfileprefix,xlabel=None,xlims=None,legendTitle=""):
         if type(data) is dict:
             pass
         elif type(data) is list:
@@ -368,45 +375,43 @@ class RANKING(object):
                     except KeyError:
                         pass
                     xDates = False
-                    minX = 1e99
-                    maxX = -1e99
                     for iKey, key in enumerate(sortedKeys):
                         try:
                             if doMin: #min
                                 if len(minValsPerCase[key][statName])>0:
                                     if type(varsPerCase[key][statName][0]) == datetime.datetime:
                                         xDates = True
-                                        ax.plot_date(varsPerCase[key][statName],minValsPerCase[key][statName],color=self.colors[iKey])
-                                        minX = min(varsPerCase[key][statName]+[minX])
-                                        maxX = min(varsPerCase[key][statName]+[maxX])
+                                        ax.plot_date(varsPerCase[key][statName],minValsPerCase[key][statName],color=self.colors[iKey],markersize=3,markeredgewidth=0)
                                     else:
-                                        ax.scatter(varsPerCase[key][statName],minValsPerCase[key][statName],color=self.colors[iKey])
-                                        minX = min(varsPerCase[key][statName]+[minX])
-                                        maxX = min(varsPerCase[key][statName]+[maxX])
+                                        ax.scatter(varsPerCase[key][statName],minValsPerCase[key][statName],color=self.colors[iKey],s=5)
+                                        ax.set_xlabel(xlabel)
                                     ax.set_ylabel("min({})".format(statName))
                             else: #max
                                 if len(maxValsPerCase[key][statName])>0:
                                     if type(varsPerCase[key][statName][0]) == datetime.datetime:
                                         xDates = True
-                                        ax.plot_date(varsPerCase[key][statName],maxValsPerCase[key][statName],color=self.colors[iKey])
+                                        ax.plot_date(varsPerCase[key][statName],maxValsPerCase[key][statName],color=self.colors[iKey],markersize=3,markeredgewidth=0)
                                         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%Y%m%dT%H%M"))
                                     else:
-                                        ax.scatter(varsPerCase[key][statName],maxValsPerCase[key][statName],color=self.colors[iKey])
+                                        ax.scatter(varsPerCase[key][statName],maxValsPerCase[key][statName],color=self.colors[iKey],s=5)
+                                        ax.set_xlabel(xlabel)
                                     ax.set_ylabel("max({})".format(statName))
-                                    minX = min(varsPerCase[key][statName]+[minX])
-                                    maxX = min(varsPerCase[key][statName]+[maxX])
                         except KeyError as e:
                             print("Warning: Could not find stat to draw",e)
-                    self.set_xticks(ax)
+                    ax.relim()
                     if xDates:
                         ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%Y-%m-%d"))
+                        for label in ax.get_xticklabels():
+                            label.set_rotation(30)
+                            label.set_ha("right")
+                    if xlims:
+                        ax.set_xlim(*xlims)
 
-            #fig.autofmt_xdate()
-            #plt.tight_layout()
+            plt.tight_layout()
             fig.subplots_adjust(top=0.95)
             fig.suptitle(title,fontsize="large")
             if len(sortedKeys) > 1 or not (sortedKeys[0] is None):
-                self.doLegend(fig,sortedKeys)
+                self.doLegend(fig,sortedKeys,patches=True,legendTitle=legendTitle)
             fig.savefig(outfileprefix+"_page{}.png".format(iFig))
             fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
 
@@ -416,19 +421,27 @@ class RANKING(object):
         xticklabels = ["{:.1g}".format(x) for x in xticks]
         ax.set_xticks(xticks)
 
-    def doLegend(self,ax,titles):
+    def doLegend(self,ax,titles,patches=False,legendTitle=""):
         legendHandles = []
         legendLabels = []
         for iTitle, title in enumerate(titles):
-            line = mlines.Line2D([], [], color=self.colors[iTitle],
-                           label=title)
+            if patches:
+                patch = mpatches.Patch(color=self.colors[iTitle],
+                               label=title)
+                legendHandles.append(patch)
+            else:
+                line = mlines.Line2D([], [], color=self.colors[iTitle],
+                               label=title)
+                legendHandles.append(line)
             legendLabels.append(title)
-            legendHandles.append(line)
         self.legendHandles = legendHandles
+        ncol = 1
+        if len(titles) > 7:
+            ncol = 2
         if isinstance(ax,Figure):
-            ax.legend(self.legendHandles,legendLabels,loc="lower right",fontsize="large",frameon=False)
+            ax.legend(self.legendHandles,legendLabels,loc="lower right",fontsize="large",frameon=False,ncol=ncol,title=legendTitle)
         else:
-            ax.legend(handles=self.legendHandles,loc="best",fontsize="medium",frameon=False)
+            ax.legend(handles=self.legendHandles,loc="best",fontsize="medium",frameon=False,ncol=ncol,title=legendTitle)
 
     def getstats(self,data,dynamic=False,getAll=False):
         statsToDraw = self.statsToDraw
@@ -512,14 +525,18 @@ class RANKING(object):
                             for clock in thisClocks:
                                 for offset in thisOffsets:
                                     for chan in range(16):
-                                        val = thisData[clock][offset][stat][amp][freq][chan]
-                                        minVal = min(val,minVal)
-                                        maxVal = max(val,maxVal)
-                                        if getAll:
-                                            try:
-                                                result[statToDraw].append(val)
-                                            except KeyError:
-                                                result[statToDraw] = [val]
+                                        try:
+                                            val = thisData[clock][offset][stat][amp][freq][chan]
+                                        except KeyError:
+                                            continue
+                                        else:
+                                            minVal = min(val,minVal)
+                                            maxVal = max(val,maxVal)
+                                            if getAll:
+                                                try:
+                                                    result[statToDraw].append(val)
+                                                except KeyError:
+                                                    result[statToDraw] = [val]
                 if not getAll:
                     result[statToDraw] = [minVal,maxVal]
             else:
@@ -533,15 +550,19 @@ class RANKING(object):
                         thisData = data[sampleRate]
                     for clock in thisClocks:
                         for offset in thisOffsets:
-                              for chan in range(16):
-                                   val = thisData[clock][offset][stat][chan]
-                                   minVal = min(val,minVal)
-                                   maxVal = max(val,maxVal)
-                                   if getAll:
-                                      try:
-                                        result[statToDraw].append(val)
-                                      except KeyError:
-                                        result[statToDraw] = [val]
+                            for chan in range(16):
+                                try:
+                                    val = thisData[clock][offset][stat][chan]
+                                except KeyError:
+                                    continue
+                                else:
+                                    minVal = min(val,minVal)
+                                    maxVal = max(val,maxVal)
+                                    if getAll:
+                                        try:
+                                            result[statToDraw].append(val)
+                                        except KeyError:
+                                            result[statToDraw] = [val]
                 if not getAll:
                     result[statToDraw] = [minVal,maxVal]
         return result
@@ -681,16 +702,16 @@ def main():
     parser.add_argument("infilename",help="Input json file names and/or glob string.",nargs="+")
     args = parser.parse_args()
   
-    globstr =  "/home/jhugon/dune/coldelectronics/femb_python/hothdaq*"
     ranking = RANKING(args.infilename)
+
     latestData = ranking.getlatestdata()
     ranking.rank(latestData,"Ranking for Latest Timestamp","ADC_ranking")
     ranking.histAllChannels(latestData,"Channel Histogram for Latest Timestamp","ADC_chanHist")
     for tlk in ["operator","hostname","board_id"]:
         print("Top Level Key: ",tlk)
         latestDataPerTLK = ranking.getlatestdataperkey(lambda x: str(x[tlk]))
-        ranking.rank(latestDataPerTLK,"Ranking for Latest Timestamp per {}".format(tlk),"ADC_per_{}_ranking".format(tlk))
-        ranking.histAllChannels(latestDataPerTLK,"Channel Histogram for Latest Timestamp per {}".format(tlk),"ADC_per_{}_chanHist".format(tlk))
+        ranking.rank(latestDataPerTLK,"Ranking for Latest Timestamp per {}".format(tlk),"ADC_per_{}_ranking".format(tlk),legendTitle=tlk)
+        ranking.histAllChannels(latestDataPerTLK,"Channel Histogram for Latest Timestamp per {}".format(tlk),"ADC_per_{}_chanHist".format(tlk),legendTitle=tlk)
     smtkeys = [
         "cold",
         "linux_username",
@@ -699,8 +720,8 @@ def main():
     for smtkey in smtkeys:
         print("Sumatra Key: ",smtkey)
         latestDataPerSMTKey = ranking.getlatestdataperkey(lambda x: str(x["sumatra"][smtkey]))
-        ranking.rank(latestDataPerSMTKey,"Ranking for Latest Timestamp per {}".format(smtkey),"ADC_per_{}_ranking".format(smtkey))
-        ranking.histAllChannels(latestDataPerSMTKey,"Channel Histogram for Latest Timestamp per {}".format(smtkey),"ADC_per_{}_chanHist".format(smtkey))
+        ranking.rank(latestDataPerSMTKey,"Ranking for Latest Timestamp per {}".format(smtkey),"ADC_per_{}_ranking".format(smtkey),legendTitle=smtkey)
+        ranking.histAllChannels(latestDataPerSMTKey,"Channel Histogram for Latest Timestamp per {}".format(smtkey),"ADC_per_{}_chanHist".format(smtkey),legendTitle=smtkey)
     
     def getVersion(summaryDict):
         pathstr = summaryDict["sumatra"]["femb_python_location"]
@@ -710,16 +731,22 @@ def main():
         else:
             return "Not Using Official Release"
     latestDataPerVersion = ranking.getlatestdataperkey(getVersion)
-    ranking.rank(latestDataPerVersion,"Ranking for Latest Timestamp Per Software Version","ADC_per_version_ranking")
-    ranking.histAllChannels(latestDataPerVersion,"Histogram for Latest Timestamp Per Software Version","ADC_per_version_chanHist")
+    ranking.rank(latestDataPerVersion,"Ranking for Latest Timestamp Per Software Version","ADC_per_version_ranking",legendTitle="femb_python version")
+    ranking.histAllChannels(latestDataPerVersion,"Histogram for Latest Timestamp Per Software Version","ADC_per_version_chanHist",legendTitle="femb_python version")
 
-    #def getTimestamp(data):
-    #    timestamp = data["timestamp"]
-    #    try:
-    #        timestamp = datetime.datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S")
-    #    except ValueError:
-    #        timestamp = datetime.datetime.strptime(timestamp,"%Y%m%dT%H%M%S")
-    #    return timestamp
+    def getTimestamp(data):
+        timestamp = data["timestamp"]
+        try:
+            timestamp = datetime.datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S")
+        except ValueError:
+            timestamp = datetime.datetime.strptime(timestamp,"%Y%m%dT%H%M%S")
+        return timestamp
 
-    #data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["hostname"]))
-    #ranking.rankVVar(data,getTimestamp,"Time Dependence Per Hostname","ADCVTime_timestamp_per_hostname")
+    data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["hostname"]))
+    ranking.rankVVar(data,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp","ADCVTime_per_hostname",legendTitle="Hostname")
+    data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["cold"]))
+    ranking.rankVVar(data,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp","ADCVTime_per_cold",legendTitle="Cryogenic")
+
+    data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["cold"]))
+    ranking.rankVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_cold",xlabel="Chip #",xlims=(0,150),legendTitle="Cryogenic")
+    ranking.rankVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_cold_zoom",xlabel="Chip #",xlims=(0,40),legendTitle="Cryogenic")
