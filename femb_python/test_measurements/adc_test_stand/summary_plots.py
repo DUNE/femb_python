@@ -76,21 +76,25 @@ class SUMMARY_PLOTS(object):
                   clockFn = "fifoClock"
                   clockLabel="FIFO Clock"
                 ## json dict keys must be strings, so these keys are strings when read from json
+                self.offsets = set()
                 try:
-                    self.offsets = self.stats["static"][sampleRate][iClock]
+                    self.offsets.update(self.stats["static"][sampleRate][iClock].keys())
                 except KeyError:
                     try:
-                        self.offsets = self.stats["static"][sampleRate][str(iClock)]
+                        self.offsets.update(self.stats["static"][sampleRate][str(iClock)].keys())
                     except KeyError:
-                        try:
-                            self.offsets = self.stats["dynamic"][sampleRate][iClock]
-                        except KeyError:
-                            try:
-                                self.offsets = self.stats["dynamic"][sampleRate][str(iClock)]
-                            except KeyError:
-                                print("Not using iClock: ",iClock, "for sampleRate: ",sampleRate)
-                                continue  # skip this iClock if no data for it
-                self.offsets = list(self.offsets.keys())
+                        pass
+                try:
+                    self.offsets.update(self.stats["dynamic"][sampleRate][iClock].keys())
+                except KeyError:
+                    try:
+                        self.offsets.update(self.stats["dynamic"][sampleRate][str(iClock)].keys())
+                    except KeyError:
+                        pass
+                if len(self.offsets) == 0:
+                    print("Not using iClock: ",iClock, "for sampleRate: ",sampleRate)
+                    continue  # skip this iClock if no data for it
+                self.offsets = list(self.offsets)
                 self.offsets.sort(key=lambda x: int(x))
                 if not plotAll:
                     self.offsets = self.offsets[:1]
@@ -143,6 +147,10 @@ class SUMMARY_PLOTS(object):
         legendDict4 = {}
         legendDict5 = {}
         for offset in self.offsets:
+            try:
+                data[offset]
+            except KeyError:
+                continue
             color = self.colorDict[offset]
             i1 = 0
             im1 = 0
@@ -254,6 +262,10 @@ class SUMMARY_PLOTS(object):
         for offset in self.offsets:
             if int(offset) != -1:
                 continue
+            try:
+                data[offset]
+            except KeyError:
+                continue
             color = self.colorDict[offset]
             i1 = 0
             for stat in sorted(data[offset]):
@@ -329,6 +341,10 @@ class SUMMARY_PLOTS(object):
         legendDict1 = {}
         for offset in self.offsets:
             if str(offset) != "-1": 
+                continue
+            try:
+                data[offset]
+            except KeyError:
                 continue
             color = self.colorDict[offset]
             for stat in reversed(sorted(data[offset])):
