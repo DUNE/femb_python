@@ -18,11 +18,41 @@ import json
 import socket
 import traceback
 from subprocess import CalledProcessError
+from types import MappingProxyType
 import numpy
 import matplotlib.pyplot as plt
 import ROOT
 
 class ADC_TEST_SUMMARY(object):
+
+    # Don't use _checks!!! Use checks
+    _checks = {
+        'static' : {
+            'DNLmax400': ["lt",28.,{}],
+            'DNL75perc400': ["lt",0.48,{}],
+            'stuckCodeFrac400': ["lt",0.1,{}],
+            'INLabsMax400': ["lt",60.,{"offset":-1}],
+            'INLabs75perc400': ["lt",50.,{"offset":-1}],
+            'minCode': ["lt",240.,{"offset":-1}],
+            'minCodeV': ["lt",0.2,{"offset":-1}],
+            'maxCode': ["gt",4090.,{"offset":-1}],
+            'maxCodeV': ["gt",1.3,{"offset":-1}],
+        },
+        'dynamic' : {
+            'sinads': ["gt",25.,{"offset":-1,"clock":0}],
+        },
+        'inputPin' : {
+            #'mean': ["lt",3000.,{}],
+        },
+        'dc' : {
+            "meanCodeFor0.2V": ["lt",800,{"offset":-1}],
+            "meanCodeFor1.6V": ["gt",3500,{"offset":-1}],
+        },
+    }
+
+    # checks is read-only, which is how we want something
+    # shared by all instances of the class to be
+    checks = MappingProxyType(_checks)
 
     def __init__(self,allStatsRaw,testTime,hostname,board_id,operator,sumatradict=None,isError=None):
         self.allStatsRaw = allStatsRaw
@@ -38,6 +68,7 @@ class ADC_TEST_SUMMARY(object):
         self.inputPinSummary = None
         self.dcSummary = None
         self.testResults = None
+
         self.makeSummaries()
         self.checkPass()
 
@@ -225,29 +256,8 @@ class ADC_TEST_SUMMARY(object):
             thisSummary = self.get_summary(serial)
             thisPass = True
             results = {}
-            staticChecks = {
-                'DNLmax400': ["lt",28.,{}],
-                'DNL75perc400': ["lt",0.48,{}],
-                'stuckCodeFrac400': ["lt",0.1,{}],
-                'INLabsMax400': ["lt",60.,{"offset":-1}],
-                'INLabs75perc400': ["lt",50.,{"offset":-1}],
-                'minCode': ["lt",240.,{"offset":-1}],
-                'minCodeV': ["lt",0.2,{"offset":-1}],
-                'maxCode': ["gt",4090.,{"offset":-1}],
-                'maxCodeV': ["gt",1.3,{"offset":-1}],
-            }
-            dynamicChecks = {
-                'sinads': ["gt",25.,{"offset":-1,"clock":0}],
-            }
-            inputPinChecks = {
-                #'mean': ["lt",3000.,{}],
-            }
-            dcChecks = {
-                "meanCodeFor0.2V": ["lt",800,{"offset":-1}],
-                "meanCodeFor1.6V": ["gt",3500,{"offset":-1}],
-            }
-            for stat in staticChecks:
-                check = staticChecks[stat]
+            for stat in self.checks['static']:
+                check = self.checks['static'][stat]
                 statPass = True
                 for sampleRate in thisSummary['static']:
                     for clock in thisSummary['static'][sampleRate]:
@@ -280,8 +290,8 @@ class ADC_TEST_SUMMARY(object):
                     if not statPass:
                         break
                 results[stat] = statPass
-            for stat in dynamicChecks:
-                check = dynamicChecks[stat]
+            for stat in self.checks['dynamic']:
+                check = self.checks['dynamic'][stat]
                 statPass = True
                 for sampleRate in thisSummary['dynamic']:
                     for clock in thisSummary['dynamic'][sampleRate]:
@@ -320,8 +330,8 @@ class ADC_TEST_SUMMARY(object):
                     if not statPass:
                         break
                 results[stat] = statPass
-            for stat in inputPinChecks:
-                check = inputPinChecks[stat]
+            for stat in self.checks['inputPin']:
+                check = self.checks['inputPin'][stat]
                 statPass = True
                 for sampleRate in thisSummary['inputPin']:
                     for clock in thisSummary['inputPin'][sampleRate]:
@@ -354,8 +364,8 @@ class ADC_TEST_SUMMARY(object):
                     if not statPass:
                         break
                 results["inputPin_"+stat] = statPass
-            for stat in dcChecks:
-                check = dcChecks[stat]
+            for stat in self.checks['dc']:
+                check = self.checks['dc'][stat]
                 statPass = True
                 for sampleRate in thisSummary['dc']:
                     for clock in thisSummary['dc'][sampleRate]:
