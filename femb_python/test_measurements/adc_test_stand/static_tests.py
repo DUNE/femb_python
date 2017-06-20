@@ -532,6 +532,8 @@ class STATIC_TESTS(object):
                         iFirstPeak = 0.5*(iSample + jSample)
                         maxCodeV = metadata["funcOffset"]+metadata["funcAmp"]-(iSample-jSample)/nSamplesPeriod*metadata["funcAmp"]*2
                         break
+        if iFirstPeak is None:
+            raise RuntimeError("Could not find first peak in waveform.")
         #print("iFirstPeak: ",iFirstPeak)
         #print("maxCodeV: ",maxCodeV)
         # Get rid of spurious jumps upward for very low voltage inputs
