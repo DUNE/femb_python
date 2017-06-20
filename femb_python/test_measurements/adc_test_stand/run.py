@@ -74,17 +74,19 @@ def resetBoardAndProgramFirmware(config,sampleRate):
 
 def configAdcAsic(config,sampleRate,offsetCurrent=None,
                     clockMonostable=None,clockFromFIFO=None,
-                    clockExternal=None)
+                    clockExternal=None,testInput=None):
     enableOffsetCurrent = 0
-    if offset >= 0:
+    if offsetCurrent >= 0:
         enableOffsetCurrent = 1
+    else:
+        offsetCurrent = 0
     nTries = 5
     for iPowerCycle in range(2):
         for iTry in range(iPowerCycle*nTries,nTries+iPowerCycle*nTries):
             try:
-                config.configAdcAsic(enableOffsetCurrent=enableOffsetCurrent,offsetCurrent=offset,
+                config.configAdcAsic(enableOffsetCurrent=enableOffsetCurrent,offsetCurrent=offsetCurrent,
                             clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
-                            clockExternal=clockExternal)
+                            clockExternal=clockExternal,testInput=testInput)
             except FEMBConfigError as e:
                 sys.stderr.write("Error while configAdcAsic: Error: {} {}\n".format(type(e),e))
                 traceback.print_tb(e.__traceback__)
@@ -162,7 +164,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                 configSuccess = configAdcAsic(config,sampleRate,
                             offsetCurrent=offset,
                             clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
-                            clockExternal=clockExternal)
+                            clockExternal=clockExternal,testInput=1)
                 if not configSuccess:
                     continue
                 for iChip in range(config.NASICS):
