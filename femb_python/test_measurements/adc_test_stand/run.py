@@ -36,6 +36,8 @@ def resetBoardAndProgramFirmware(config,sampleRate):
     nTries = 5
     for iPowerCycle in range(2):
         for iTry in range(iPowerCycle*nTries,nTries+iPowerCycle*nTries):
+            sys.stdout.flush()
+            sys.stderr.flush()
             try:
                 if sampleRate == 2000000:
                     if hasattr(config,"FIRMWAREPATH2MHZ"):
@@ -56,13 +58,19 @@ def resetBoardAndProgramFirmware(config,sampleRate):
                 config.initBoard()
                 config.syncADC()
             except FEMBConfigError as e:
+                sys.stdout.flush()
+                sys.stderr.flush()
                 sys.stderr.write("Error while reset/init/sync board: Error: {} {}\n".format(type(e),e))
                 traceback.print_tb(e.__traceback__)
             except CalledProcessError as e:
+                sys.stdout.flush()
+                sys.stderr.flush()
                 sys.stderr.write("Error while programming firmware: Error: {} {}\n".format(type(e),e))
                 traceback.print_tb(e.__traceback__)
             else: # success if no exception :-)
                 return True
+            sys.stdout.flush()
+            sys.stderr.flush()
             print("Reset/init/sync/firmware try {} failed, trying again...".format(iTry))
         print("Reset/init/sync/firmware trying power cycle and {} more tries...".format(nTries))
         config.POWERSUPPLYINTER.off()
@@ -83,11 +91,15 @@ def configAdcAsic(config,sampleRate,offsetCurrent=None,
     nTries = 5
     for iPowerCycle in range(2):
         for iTry in range(iPowerCycle*nTries,nTries+iPowerCycle*nTries):
+            sys.stdout.flush()
+            sys.stderr.flush()
             try:
                 config.configAdcAsic(enableOffsetCurrent=enableOffsetCurrent,offsetCurrent=offsetCurrent,
                             clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
                             clockExternal=clockExternal,testInput=testInput)
             except FEMBConfigError as e:
+                sys.stdout.flush()
+                sys.stderr.flush()
                 sys.stderr.write("Error while configAdcAsic: Error: {} {}\n".format(type(e),e))
                 traceback.print_tb(e.__traceback__)
             else: # success if no exception :-)

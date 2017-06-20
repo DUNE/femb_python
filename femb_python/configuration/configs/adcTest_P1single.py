@@ -190,7 +190,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             adcasic_rb_regs = []
             for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+len(Adcasic_regs),1):
                 val = self.femb.read_reg (regNum) 
-                if val == None:
+                if val is None:
                     message = "Error in FEMB_CONFIG.configAdcAsic_regs: read from board failed"
                     print(message)
                     if self.exitOnError:
