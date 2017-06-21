@@ -209,10 +209,16 @@ class RANKING(object):
                     except KeyError:
                         pass
                     histRange = (min(maxValsAll[statName]),max(maxValsAll[statName]))
-                    hist, bin_edges = numpy.histogram(maxValsAll[statName],10,range=histRange)
+                    nVals = len(maxValsAll[statName])
+                    nBins = 10
+                    if nVals > 30:
+                        nBins = 20
+                    if nVals > 100:
+                        nBins = 40 
+                    hist, bin_edges = numpy.histogram(maxValsAll[statName],nBins,range=histRange)
                     if doMin:
                         histRange = (min(minValsAll[statName]),max(minValsAll[statName]))
-                        hist, bin_edges = numpy.histogram(minValsAll[statName],10,range=histRange)
+                        hist, bin_edges = numpy.histogram(minValsAll[statName],nBins,range=histRange)
                     for iKey, key in enumerate(sortedKeys):
                         try:
                             if doMin: #min
@@ -312,7 +318,15 @@ class RANKING(object):
                     ax.set_ylabel("Channels / bin")
                     ax.set_xlabel("{}".format(statName))
                     histRange = (min(allVals[statName]),max(allVals[statName]))
-                    hist, bin_edges = numpy.histogram(allVals[statName],40,range=histRange)
+                    nVals = len(allVals[statName])
+                    nBins = 10
+                    if nVals > 30:
+                        nBins = 20
+                    if nVals > 100:
+                        nBins = 40 
+                    #print(allVals[statName])
+                    #print(nVals,histRange)
+                    hist, bin_edges = numpy.histogram(allVals[statName],nBins,range=histRange)
                     for iKey, key in enumerate(sortedKeys):
                         try:
                             ax.hist(allValsPerCase[key][statName],bin_edges,range=histRange,histtype="step",color=self.colors[iKey])
@@ -454,7 +468,7 @@ class RANKING(object):
                             label.set_rotation(30)
                             label.set_ha("right")
                     else:
-                            ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=7))
+                            ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=4))
                     if xlims:
                         ax.set_xlim(*xlims)
 
@@ -736,20 +750,42 @@ class RANKING(object):
         return resultdict
 
 def main():
+    import sys
     from ...configuration.argument_parser import ArgumentParser
     parser = ArgumentParser(description="Plots a ranking of ADCs")
     parser.add_argument("infilename",help="Input json file names and/or glob string.",nargs="+")
     parser.add_argument("-f","--firstTime",help="Only accept times after this timestamp (uses filename)")
     parser.add_argument("-l","--lastTime",help="Only accept times before this timestamp (uses filename)")
+    exclusiveArgs = parser.add_mutually_exclusive_group()
+    exclusiveArgs.add_argument("--today",help="Only accept timestamps from today (since midnight)",action="store_true")
+    exclusiveArgs.add_argument("--previousDay",help="Only accept timestamps from the previous day (midnight to midnight)",action="store_true")
+    exclusiveArgs.add_argument("--thisWeek",help="Only accept timestamps from the current week (since Monday)",action="store_true")
+    exclusiveArgs.add_argument("--previousWeek",help="Only accept timestamps from the previous week (Monday to Monday)",action="store_true")
     args = parser.parse_args()
 
-    print(args.firstTime,args.lastTime)
+    if args.firstTime or args.lastTime:
+        if args.today or args.previousDay or args.thisWeek or args.previousWeek:
+            print("Error: if --firstTime and/or --lastTime are set, then --today, --previousDay, --thisWeek, and --previousWeek must not be used")
+            sys.exit(1)
     firstTime = None
     lastTime = None
     if args.firstTime:
         firstTime = datetimeFromTimestamp(args.firstTime)
     if args.lastTime:
         lastTime = datetimeFromTimestamp(args.lastTime)
+    if args.previousDay:
+        lastTime = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
+        firstTime = lastTime - datetime.timedelta(days=1)
+    if args.today:
+        firstTime = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
+    if args.thisWeek:
+        firstTime = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
+        firstTime -= datetime.timedelta(days=firstTime.weekday())
+    if args.previousWeek:
+        lastTime = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
+        lastTime -= datetime.timedelta(days=lastTime.weekday())
+        firstTime = lastTime - datetime.timedelta(days=7)
+    print("Using data from {} to {}".format(firstTime,lastTime))
 
     ranking = RANKING(args.infilename,firstTime,lastTime)
 
@@ -793,5 +829,5 @@ def main():
     ranking.rankVVar(data,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp","ADCVTime_per_cold",legendTitle="Cryogenic")
 
     data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["cold"]))
-    ranking.rankVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_cold",xlabel="Chip #",xlims=(0,150),legendTitle="Cryogenic")
-    ranking.rankVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_cold_zoom",xlabel="Chip #",xlims=(0,40),legendTitle="Cryogenic")
+    ranking.rankVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_cold",xlabel="Chip #",legendTitle="Cryogenic")
+    #ranking.rankVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_cold_zoom",xlabel="Chip #",xlims=(0,40),legendTitle="Cryogenic")
