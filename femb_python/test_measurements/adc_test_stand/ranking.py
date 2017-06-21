@@ -18,6 +18,7 @@ import glob
 from uuid import uuid1 as uuid
 import json
 import re
+import math
 import numpy
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -25,30 +26,63 @@ import matplotlib.lines as mlines
 import matplotlib.dates
 from matplotlib.figure import Figure
 
+def datetimeFromTimestamp(timestamp):
+    result = None
+    try:
+        result = datetime.datetime.strptime(timestamp,"%Y%m%dT%H%M%S")
+    except ValueError:
+        result = datetime.datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S")
+    return result
+
 class RANKING(object):
 
-    def __init__(self,inglobstrs):
+    def fileIsGood(self,jsonpath):
+        filename = os.path.split(jsonpath)[1]
+        if os.path.splitext(filename)[1] == ".json" and "adcTest_" == filename[:8] and not ("Raw" in filename):
+            search = re.search(r"\d\d\d\d\d\d\d\dT\d\d\d\d\d\d",filename)
+            if not search:
+                search = re.search(r"\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d",filename)
+            if not search:
+                raise ValueError("Couldn't find valid timestamp in filepath: "+str(jsonpath))
+            timestamp = search.group(0)
+            timestamp = datetimeFromTimestamp(timestamp)
+            if self.firstTime:
+                if timestamp < self.firstTime:
+                    return False
+            if self.lastTime:
+                if timestamp > self.lastTime:
+                    return False
+            return True
+        return False
+
+    def __init__(self,inglobstrs,firstTime=None,lastTime=None):
         """
         inglobstr is a string that can be parsed by glob to make a list of
         directories containing json files or json files to be analyzed.
         Directories found in the glob will be walked to find subdirectories 
         containing json files.
+
+        firstTime and lastTime are datetimes or None that limit the range 
+            of timestamps put in the ranking. The json content isn't used 
+            only the timestamp in the filename.
         """
 
+        self.firstTime = firstTime
+        self.lastTime = lastTime
         self.colors = ["b","g","orange","gray","y","c","m","plum","sienna","sandybrown","seagreen","deepskyblue","navy"]*5
         jsonpaths = []
         for inglobstr in inglobstrs:
             inpathlist = glob.glob(inglobstr)
             for inpath in inpathlist:
                 if os.path.isfile(inpath):
-                    if os.path.splitext(inpath)[1] == ".json" and "adcTest" == os.path.split(inpath)[1][:7] and not ("Raw" in inpath):
+                    if self.fileIsGood(inpath):
                         jsonpaths.append(inpath)
                         print(inpath)
                 else:
                     for directory, subdirs, filenames in os.walk(inpath):
                         for filename in filenames:
-                            if os.path.splitext(filename)[1] == ".json" and "adcTest" == filename[:7] and not ("Raw" in filename):
-                                jsonpath = os.path.join(directory,filename)
+                            jsonpath = os.path.join(directory,filename)
+                            if self.fileIsGood(jsonpath):
                                 jsonpaths.append(jsonpath)
                                 print(jsonpath)
         datadicts = []
@@ -56,10 +90,7 @@ class RANKING(object):
             with open(jsonpath) as jsonfile:
                 datadict = json.load(jsonfile)
                 timestamp = datadict["timestamp"]
-                try:
-                    timestamp = datetime.datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S")
-                except ValueError:
-                    timestamp = datetime.datetime.strptime(timestamp,"%Y%m%dT%H%M%S")
+                timestamp = datetimeFromTimestamp(timestamp)
                 if datadict["hostname"] == "hothdaq3":
                     if timestamp < datetime.datetime(2017,6,15,hour=13,minute=5):
                         continue
@@ -362,6 +393,7 @@ class RANKING(object):
             fig, axes2D = plt.subplots(4,4,figsize=(12,12))
             #fig.subplots_adjust(left=0.07,right=0.93,bottom=0.05,top=0.95,wspace=0.25)
             axes = [y for x in axes2D for y in x]
+            dateStr = ""
             for iAx, ax in enumerate(axes):
                 try:
                     statName = statNamesToDraw[iFig*nPerFig+iAx]
@@ -400,7 +432,22 @@ class RANKING(object):
                             print("Warning: Could not find stat to draw",e)
                     ax.relim()
                     if xDates:
-                        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%Y-%m-%d"))
+                        # xlim are floats with units of days
+                        xlim = ax.get_xlim()
+                        ndays = xlim[1]-xlim[0]
+                        # Round to midnight
+                        xlim = (math.floor(xlim[0]),math.ceil(xlim[1]))
+                        ax.set_xlim(xlim)
+                        if ndays > 1.:
+                            locator = matplotlib.dates.AutoDateLocator(minticks=3,maxticks=5,interval_multiples=True)
+                            ax.xaxis.set_major_locator(locator)
+                            ax.xaxis.set_minor_locator(matplotlib.dates.DayLocator(interval=1))
+                            ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%Y-%m-%d"))
+                        else:
+                            ax.xaxis.set_major_locator(matplotlib.dates.HourLocator(interval=6))
+                            ax.xaxis.set_minor_locator(matplotlib.dates.HourLocator(interval=1))
+                            ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%H:%M"))
+                            dateStr = " for "+str(matplotlib.dates.num2date(xlim[0]).strftime("%Y-%m-%d"))
                         for label in ax.get_xticklabels():
                             label.set_rotation(30)
                             label.set_ha("right")
@@ -409,7 +456,7 @@ class RANKING(object):
 
             plt.tight_layout()
             fig.subplots_adjust(top=0.95)
-            fig.suptitle(title,fontsize="large")
+            fig.suptitle(title+dateStr,fontsize="large")
             if len(sortedKeys) > 1 or not (sortedKeys[0] is None):
                 self.doLegend(fig,sortedKeys,patches=True,legendTitle=legendTitle)
             fig.savefig(outfileprefix+"_page{}.png".format(iFig))
@@ -585,14 +632,8 @@ class RANKING(object):
             else:
                 oldtimestamp = olddata["timestamp"]
                 newtimestamp = datadict["timestamp"]
-                try:
-                    oldtimestamp = datetime.datetime.strptime(oldtimestamp,"%Y-%m-%dT%H:%M:%S")
-                except ValueError:
-                    oldtimestamp = datetime.datetime.strptime(oldtimestamp,"%Y%m%dT%H%M%S")
-                try:
-                    newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y-%m-%dT%H:%M:%S")
-                except ValueError:
-                    newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y%m%dT%H%M%S")
+                oldtimestamp = datetimeFromTimestamp(oldtimestamp)
+                newtimestamp = datetimeFromTimestamp(newtimestamp)
                 if newtimestamp > oldtimestamp:
                   resultdict[serial] = datadict
         #print("result:")
@@ -639,14 +680,8 @@ class RANKING(object):
             else:
                 oldtimestamp = olddata["timestamp"]
                 newtimestamp = datadict["timestamp"]
-                try:
-                    oldtimestamp = datetime.datetime.strptime(oldtimestamp,"%Y-%m-%dT%H:%M:%S")
-                except ValueError:
-                    oldtimestamp = datetime.datetime.strptime(oldtimestamp,"%Y%m%dT%H%M%S")
-                try:
-                    newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y-%m-%dT%H:%M:%S")
-                except ValueError:
-                    newtimestamp = datetime.datetime.strptime(newtimestamp,"%Y%m%dT%H%M%S")
+                oldtimestamp = datetimeFromTimestamp(oldtimestamp)
+                newtimestamp = datetimeFromTimestamp(newtimestamp)
                 if newtimestamp > oldtimestamp:
                   resultdict[keyval][serial] = datadict
         #print(resultdict.keys())
@@ -700,9 +735,19 @@ def main():
     from ...configuration.argument_parser import ArgumentParser
     parser = ArgumentParser(description="Plots a ranking of ADCs")
     parser.add_argument("infilename",help="Input json file names and/or glob string.",nargs="+")
+    parser.add_argument("-f","--firstTime",help="Only accept times after this timestamp (uses filename)")
+    parser.add_argument("-l","--lastTime",help="Only accept times before this timestamp (uses filename)")
     args = parser.parse_args()
-  
-    ranking = RANKING(args.infilename)
+
+    print(args.firstTime,args.lastTime)
+    firstTime = None
+    lastTime = None
+    if args.firstTime:
+        firstTime = datetimeFromTimestamp(args.firstTime)
+    if args.lastTime:
+        lastTime = datetimeFromTimestamp(args.lastTime)
+
+    ranking = RANKING(args.infilename,firstTime,lastTime)
 
     latestData = ranking.getlatestdata()
     ranking.rank(latestData,"Ranking for Latest Timestamp","ADC_ranking")
@@ -736,11 +781,7 @@ def main():
 
     def getTimestamp(data):
         timestamp = data["timestamp"]
-        try:
-            timestamp = datetime.datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S")
-        except ValueError:
-            timestamp = datetime.datetime.strptime(timestamp,"%Y%m%dT%H%M%S")
-        return timestamp
+        return datetimeFromTimestamp(timestamp)
 
     data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["hostname"]))
     ranking.rankVVar(data,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp","ADCVTime_per_hostname",legendTitle="Hostname")
