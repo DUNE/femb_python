@@ -227,6 +227,7 @@ class RANKING(object):
                             print("Warning: Could not find stat to draw",e)
                     ax.relim()
                     ax.autoscale_view(False,True,True)
+                    ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=7))
                     #ax.set_ylim(0,ax.get_ylim()[1]*1.2)
                     self.set_xticks(ax)
             plt.tight_layout()
@@ -319,6 +320,7 @@ class RANKING(object):
                             print("Warning: Could not find stat to draw",e)
                     ax.relim()
                     ax.autoscale_view(False,True,True)
+                    ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=7))
                     #ax.set_ylim(0,ax.get_ylim()[1]*1.2)
                     self.set_xticks(ax)
             plt.tight_layout()
@@ -451,6 +453,8 @@ class RANKING(object):
                         for label in ax.get_xticklabels():
                             label.set_rotation(30)
                             label.set_ha("right")
+                    else:
+                            ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=7))
                     if xlims:
                         ax.set_xlim(*xlims)
 
