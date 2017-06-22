@@ -292,7 +292,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     sys.stdout.flush()
     sys.stderr.flush()
     for serial in summary.get_serials():
-      SUMMARY_PLOTS(summary.get_summary(serial),
+      SUMMARY_PLOTS(config,summary.get_summary(serial),
                 os.path.join(dataDir,"adcTest_{}_{}".format(startDateTime,serial)),
                 plotAll=True)
 

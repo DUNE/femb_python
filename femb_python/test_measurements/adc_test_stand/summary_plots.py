@@ -15,10 +15,11 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 from matplotlib.figure import Figure
+from .test_summary import ADC_TEST_SUMMARY
 
 class SUMMARY_PLOTS(object):
 
-    def __init__(self,stats,outfileprefix,plotAll=False):
+    def __init__(self,config,stats,outfileprefix,plotAll=False):
         try:
             stats["static"].keys()
         except KeyError:
@@ -27,7 +28,11 @@ class SUMMARY_PLOTS(object):
             stats["dynamic"].keys()
         except KeyError:
             print("No dynamic")
+        self.config = config
         self.stats = stats
+        self.checks = ADC_TEST_SUMMARY.checks["warm"]
+        if config.COLD:
+            self.checks = ADC_TEST_SUMMARY.checks["cold"]
         self.time = stats['timestamp']
         self.serial = stats['serial']
         self.outfileprefix = outfileprefix
@@ -129,6 +134,7 @@ class SUMMARY_PLOTS(object):
             except KeyError:
                 print("No staticSummary for iClock: ",iClock)
                 return
+        checks = self.checks["static"]
         ax1.set_xlabel("Channel")
         ax2.set_xlabel("Channel")
         ax3.set_xlabel("Channel")
@@ -217,13 +223,15 @@ class SUMMARY_PLOTS(object):
             newylim[0] = 0.1
         if ylim[1] < 100:
             newylim[1] = 100
+        self.plotChecks(ax1,checks,["DNLmax400","DNL75perc400"],newylim,clock=iClock)
         ax1.set_ylim(*newylim)
         ylim = ax2.get_ylim()
         newylim = [x for x in ylim]
         if ylim[0] > 0:
             newylim[0] = 0
-        if ylim[1] < 0.1:
-            newylim[1] = 0.1
+        if ylim[1] < 0.11:
+            newylim[1] = 0.11
+        self.plotChecks(ax2,checks,["stuckCodeFrac400"],newylim,clock=iClock)
         ax2.set_ylim(*newylim)
         ylim = ax3.get_ylim()
         newylim = [x for x in ylim]
@@ -231,6 +239,7 @@ class SUMMARY_PLOTS(object):
             newylim[0] = 1
         if ylim[1] < 1000:
             newylim[1] = 1000
+        self.plotChecks(ax3,checks,["INLabsMax400","INLabs75perc400"],newylim,clock=iClock)
         ax3.set_ylim(*newylim)
         ylim = ax4.get_ylim()
         newylim = [x for x in ylim]
@@ -238,7 +247,16 @@ class SUMMARY_PLOTS(object):
             newylim[0] = -100
         if ylim[1] < 400:
             newylim[1] = 400
+        self.plotChecks(ax4,checks,["minCode","maxCode"],newylim,clock=iClock)
         ax4.set_ylim(*newylim)
+        ylim = ax5.get_ylim()
+        newylim = [x for x in ylim]
+        if ylim[0] > -0.75:
+            newylim[0] = -0.75
+        if ylim[1] < 2.:
+            newylim[1] = 2.
+        self.plotChecks(ax5,checks,["minCodeV","maxCodeV"],ax5.get_ylim(),clock=iClock)
+        ax5.set_ylim(*newylim)
         self.doLegend(ax1,legendDict1)
         #self.doLegend(ax2,legendDict2)
         #self.doLegend(ax3,legendDict3)
@@ -256,6 +274,7 @@ class SUMMARY_PLOTS(object):
             except KeyError:
                 print("No dynamicSummary for iClock: ",iClock)
                 return
+        checks = self.checks["dynamic"]
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
         markerstyle = ['o','s','*','p','^']*10
         legendDict1 = {}
@@ -284,6 +303,7 @@ class SUMMARY_PLOTS(object):
             newylim[0] = 0
         if ylim[1] < 70:
             newylim[1] = 70
+        self.plotChecks(ax1,checks,["sinads"],newylim,clock=iClock)
         ax1.set_ylim(*newylim)
         ax1.set_xlabel("Channel")
         ax1.set_ylabel("SINAD [dBc]")
@@ -301,6 +321,7 @@ class SUMMARY_PLOTS(object):
                 ax1.set_visible(False)
                 print("No inputPinSummary for iClock: ",iClock)
                 return
+        checks = self.checks["inputPin"]
         ax1.set_xlabel("Channel")
         ax1.set_ylabel("Input Pin Mean [ADC]")
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
@@ -321,6 +342,7 @@ class SUMMARY_PLOTS(object):
             newylim[0] = 0
         if ylim[1] < 4000:
             newylim[1] = 4000
+        self.plotChecks(ax1,checks,["mean"],newylim,clock=iClock)
         ax1.set_ylim(*newylim)
         #self.doLegend(ax1,legendDict1)
 
@@ -334,6 +356,7 @@ class SUMMARY_PLOTS(object):
             except KeyError:
                 print("No dcSummary for iClock: ",iClock)
                 return
+        checks = self.checks["dc"]
         ax1.set_xlabel("Channel")
         ax1.set_ylabel("ADC Code")
         linestyle = ['solid',"dashed","dashdot","dotted"]*10
@@ -358,6 +381,7 @@ class SUMMARY_PLOTS(object):
             newylim[0] = -100
         if ylim[1] < 5000:
             newylim[1] = 5000
+        self.plotChecks(ax1,checks,["meanCodeFor1.6V","meanCodeFor0.2V"],newylim,clock=iClock)
         ax1.set_ylim(*newylim)
         ax1.legend(loc="best",fontsize="medium",frameon=False)
 
@@ -389,6 +413,48 @@ class SUMMARY_PLOTS(object):
         else:
             ax.legend(handles=self.legendHandles,loc="best",fontsize="medium",frameon=False)
 
+    def plotChecks(self,ax,checks,stats,ylim,clock=None):
+        maxBound = None
+        minBound = None
+        for stat in stats:
+            try:
+                check = checks[stat]
+            except KeyError:
+                continue
+            else:
+                checkDir = check[0]
+                checkVal = check[1]
+                checkConstraints = check[2]
+                if not (clock is None):
+                    try:
+                        if checkConstraints["clock"] != clock:
+                            continue
+                    except KeyError:
+                        pass
+                if stat == "maxCode":
+                    checkVal -= 4096
+                if checkDir == "lt":
+                    if maxBound is None:
+                        maxBound = checkVal
+                    else:
+                        maxBound = max(maxBound,checkVal)
+                if checkDir == "gt":
+                    if minBound is None:
+                        minBound = checkVal
+                    else:
+                        minBound = min(minBound,checkVal)
+        if (maxBound is None) and (minBound is None): 
+            return
+        elif maxBound is None:
+            ax.axhspan(ylim[0],minBound,alpha=0.3,color="r")
+        elif minBound is None:
+            ax.axhspan(maxBound,ylim[1],alpha=0.3,color="r")
+        elif maxBound < minBound:
+            ax.axhspan(maxBound,minBound,alpha=0.3,color="r")
+        else:
+            ax.axhspan(maxBound,ylim[1],alpha=0.3,color="r")
+            ax.axhspan(ylim[0],minBound,alpha=0.3,color="r")
+
 def main():
     from ...configuration.argument_parser import ArgumentParser
     from ...configuration import CONFIG
@@ -401,5 +467,5 @@ def main():
 
     with open(args.infilename) as infile:
         data = json.load(infile)
-        plotter = SUMMARY_PLOTS(data,os.path.splitext(args.infilename)[0],plotAll=args.plotAllOffsets)
+        plotter = SUMMARY_PLOTS(config,data,os.path.splitext(args.infilename)[0],plotAll=args.plotAllOffsets)
     
