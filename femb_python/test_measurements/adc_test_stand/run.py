@@ -146,6 +146,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     clocks = [0,1] # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
     offsets = range(-1,16)
     if singleConfig:
+        sampleRates = [2000000]
         clocks = [0]
         offsets = [-1]
 
@@ -185,6 +186,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                             clockExternal=clockExternal,testInput=1)
                 if not configSuccess:
                     continue
+                longRamp = (clock == 0 and offset == -1)
                 for iChip in range(config.NASICS):
                     print("Collecting data for sample rate: {} clock: {} offset: {} chip: {} ...".format(sampleRate, clock, offset, iChip))
                     sys.stdout.flush()
@@ -193,7 +195,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                     fileprefix = "adcTestData_{}_chip{}_adcClock{}_adcOffset{}_sampleRate{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset,sampleRate)
                     fileprefix = os.path.join(dataDir,fileprefix)
                     try:
-                        collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate)
+                        collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate,longRamp=longRamp)
                     except Exception as e:
                         isError[adcSerialNumbers[iChip]] = True
                         print("Error while collecting data, traceback in stderr.")
