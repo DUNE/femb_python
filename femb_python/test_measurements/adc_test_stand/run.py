@@ -283,7 +283,8 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     statsRawJsonFn = os.path.join(dataDir,statsRawJsonFn)
     with open(statsRawJsonFn,"w") as f:
         json.dump(allStatsRaw,f)
-    summary = ADC_TEST_SUMMARY(allStatsRaw,startDateTime,hostname,board_id,operator,sumatradict=sumatradict,isError=isError)
+    print("Summarizing all data...")
+    summary = ADC_TEST_SUMMARY(config,allStatsRaw,startDateTime,hostname,board_id,operator,sumatradict=sumatradict,isError=isError)
     summary.write_jsons(os.path.join(dataDir,"adcTest_{}".format(startDateTime)))
     print("Making summary plots...")
     sys.stdout.flush()

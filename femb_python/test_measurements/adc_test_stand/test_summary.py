@@ -26,7 +26,31 @@ import ROOT
 class ADC_TEST_SUMMARY(object):
 
     # Don't use _checks!!! Use checks
-    _checks = {
+    _checks = {}
+    _checks["warm"] = {
+        'static' : {
+            'DNLmax400': ["lt",28.,{}],
+            'DNL75perc400': ["lt",0.48,{}],
+            'stuckCodeFrac400': ["lt",0.1,{}],
+            'INLabsMax400': ["lt",60.,{"offset":-1}],
+            'INLabs75perc400': ["lt",50.,{"offset":-1}],
+            'minCode': ["lt",240.,{"offset":-1}],
+            'minCodeV': ["lt",0.2,{"offset":-1}],
+            'maxCode': ["gt",4090.,{"offset":-1}],
+            'maxCodeV': ["gt",1.3,{"offset":-1}],
+        },
+        'dynamic' : {
+            'sinads': ["gt",25.,{"offset":-1,"clock":0}],
+        },
+        'inputPin' : {
+            #'mean': ["lt",3000.,{}],
+        },
+        'dc' : {
+            "meanCodeFor0.2V": ["lt",800,{"offset":-1}],
+            "meanCodeFor1.6V": ["gt",3500,{"offset":-1}],
+        },
+    }
+    _checks["cold"] = {
         'static' : {
             'DNLmax400': ["lt",28.,{}],
             'DNL75perc400': ["lt",0.48,{}],
@@ -54,7 +78,8 @@ class ADC_TEST_SUMMARY(object):
     # shared by all instances of the class to be
     checks = MappingProxyType(_checks)
 
-    def __init__(self,allStatsRaw,testTime,hostname,board_id,operator,sumatradict=None,isError=None):
+    def __init__(self,config,allStatsRaw,testTime,hostname,board_id,operator,sumatradict=None,isError=None):
+        self.config = config
         self.allStatsRaw = allStatsRaw
         self.testTime = testTime
         self.hostname = hostname
@@ -83,7 +108,6 @@ class ADC_TEST_SUMMARY(object):
         from:
         self.allStatsRaw[sampleRate][clock][offset][chipSerial]
         """
-        print("Summarizing all data...")
         sys.stdout.flush()
         sys.stderr.flush()
         allStatsRaw = self.allStatsRaw
@@ -247,17 +271,19 @@ class ADC_TEST_SUMMARY(object):
             with open(filename,"w") as f:
                 json.dump(data,f)
 
-    def checkPass(self):
-        print("Checking if chip passes tests...")
+    def checkPass(self,verbose=False):
         sys.stdout.flush()
         sys.stderr.flush()
         self.testResults = {}
+        checks = self.checks["warm"]
+        if self.config.COLD:
+            checks = self.checks["cold"]
         for serial in self.get_serials():
             thisSummary = self.get_summary(serial)
             thisPass = True
             results = {}
-            for stat in self.checks['static']:
-                check = self.checks['static'][stat]
+            for stat in checks['static']:
+                check = checks['static'][stat]
                 statPass = True
                 for sampleRate in thisSummary['static']:
                     for clock in thisSummary['static'][sampleRate]:
@@ -290,8 +316,8 @@ class ADC_TEST_SUMMARY(object):
                     if not statPass:
                         break
                 results[stat] = statPass
-            for stat in self.checks['dynamic']:
-                check = self.checks['dynamic'][stat]
+            for stat in checks['dynamic']:
+                check = checks['dynamic'][stat]
                 statPass = True
                 for sampleRate in thisSummary['dynamic']:
                     for clock in thisSummary['dynamic'][sampleRate]:
@@ -330,8 +356,8 @@ class ADC_TEST_SUMMARY(object):
                     if not statPass:
                         break
                 results[stat] = statPass
-            for stat in self.checks['inputPin']:
-                check = self.checks['inputPin'][stat]
+            for stat in checks['inputPin']:
+                check = checks['inputPin'][stat]
                 statPass = True
                 for sampleRate in thisSummary['inputPin']:
                     for clock in thisSummary['inputPin'][sampleRate]:
@@ -364,8 +390,8 @@ class ADC_TEST_SUMMARY(object):
                     if not statPass:
                         break
                 results["inputPin_"+stat] = statPass
-            for stat in self.checks['dc']:
-                check = self.checks['dc'][stat]
+            for stat in checks['dc']:
+                check = checks['dc'][stat]
                 statPass = True
                 for sampleRate in thisSummary['dc']:
                     for clock in thisSummary['dc'][sampleRate]:
@@ -401,6 +427,19 @@ class ADC_TEST_SUMMARY(object):
             if not (self.isError is None):
                 results["noErrors"] = not self.isError[serial]
                 thisPass = thisPass and results["noErrors"]
+            if verbose:
+                allStats = sorted(list(results.keys()))
+                allPasses = [results[x] for x in allStats]
+                titleStr = "{:10} {:5}".format("Chip #","Pass")
+                testsStr = "{:10} {:<5}".format(serial,thisPass)
+                for stat in allStats:
+                    nameLen = len(stat)
+                    titleStr += (" {:"+str(nameLen)+"}")
+                    testsStr += (" {:<"+str(nameLen)+"}")
+                titleStr = titleStr.format(*allStats)
+                testsStr = testsStr.format(*allPasses)
+                print(titleStr)
+                print(testsStr)
             results["pass"] = thisPass
             self.testResults[serial] = results
 
@@ -411,7 +450,10 @@ def main():
 
     parser = ArgumentParser(description="Summarizes ADC Tests")
     parser.add_argument("jsonfile",help="json raw summary file location")
+    parser.add_argument("-t","--testOnly",help="Down output a json file, only run the test",action="store_true")
     args = parser.parse_args()
+
+    config = CONFIG()
 
     outdir, outprefix = os.path.split(args.jsonfile)
     outprefix = "ADC_Summary_"+os.path.splitext(outprefix)[0]
@@ -421,5 +463,7 @@ def main():
     with open(args.jsonfile) as jsonfile:
         data = json.load(jsonfile)
 
-    summary = ADC_TEST_SUMMARY(data,None,None,None,None)
-    summary.write_jsons(outprefix)
+    summary = ADC_TEST_SUMMARY(config,data,None,None,None,None)
+    if not args.testOnly:
+        summary.write_jsons(outprefix)
+    summary.checkPass(verbose=True)
