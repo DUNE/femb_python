@@ -136,7 +136,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
         corresponds to the input serial number list.  
     """
 
-    collect_data = COLLECT_DATA(config,100)
+    collect_data = COLLECT_DATA(config)
     static_tests = STATIC_TESTS(config)
     dynamic_tests = DYNAMIC_TESTS(config)
     baseline_rms = BASELINE_RMS()
