@@ -33,7 +33,7 @@ from ...configuration.config_base import FEMBConfigError
 
 def resetBoardAndProgramFirmware(config,sampleRate):
     programFunc = None
-    nTries = 5
+    nTries = 2
     for iPowerCycle in range(2):
         for iTry in range(iPowerCycle*nTries,nTries+iPowerCycle*nTries):
             sys.stdout.flush()
@@ -88,7 +88,7 @@ def configAdcAsic(config,sampleRate,offsetCurrent=None,
         enableOffsetCurrent = 1
     else:
         offsetCurrent = 0
-    nTries = 5
+    nTries = 2
     for iPowerCycle in range(2):
         for iTry in range(iPowerCycle*nTries,nTries+iPowerCycle*nTries):
             sys.stdout.flush()
@@ -154,6 +154,9 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     for adcSerialNumber in adcSerialNumbers:
         isError[adcSerialNumber] = False
     for sampleRate in sampleRates:
+        print("Programming firmware for sample rate: {} ...".format(sampleRate))
+        sys.stdout.flush()
+        sys.stderr.flush()
         resetAndProgramSuccess = resetBoardAndProgramFirmware(config,sampleRate)
         if not resetAndProgramSuccess:
             continue
@@ -173,6 +176,9 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                 clockFromFIFO=True
             for offset in offsets:
                 configStats = {}
+                print("Configuring ADC for sample rate: {} clock: {} offset: {} ...".format(sampleRate, clock, offset))
+                sys.stdout.flush()
+                sys.stderr.flush()
                 configSuccess = configAdcAsic(config,sampleRate,
                             offsetCurrent=offset,
                             clockMonostable=clockMonostable,clockFromFIFO=clockFromFIFO,
