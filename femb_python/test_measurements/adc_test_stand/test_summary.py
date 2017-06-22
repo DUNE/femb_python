@@ -52,25 +52,25 @@ class ADC_TEST_SUMMARY(object):
     }
     _checks["cold"] = {
         'static' : {
-            'DNLmax400': ["lt",28.,{}],
-            'DNL75perc400': ["lt",0.48,{}],
-            'stuckCodeFrac400': ["lt",0.1,{}],
-            'INLabsMax400': ["lt",60.,{"offset":-1}],
-            'INLabs75perc400': ["lt",50.,{"offset":-1}],
+            'DNLmax400': ["lt",200.,{}],
+            'DNL75perc400': ["lt",0.9,{}],
+            'stuckCodeFrac400': ["lt",0.95,{}],
+            'INLabsMax400': ["lt",1100.,{"offset":-1}],
+            'INLabs75perc400': ["lt",800.,{"offset":-1}],
             'minCode': ["lt",240.,{"offset":-1}],
             'minCodeV': ["lt",0.2,{"offset":-1}],
-            'maxCode': ["gt",4090.,{"offset":-1}],
-            'maxCodeV': ["gt",1.3,{"offset":-1}],
+            'maxCode': ["gt",3000.,{"offset":-1}],
+            'maxCodeV': ["gt",1.65,{"offset":-1}],
         },
         'dynamic' : {
-            'sinads': ["gt",25.,{"offset":-1,"clock":0}],
+            #'sinads': ["gt",25.,{"offset":-1,"clock":0}],
         },
         'inputPin' : {
             #'mean': ["lt",3000.,{}],
         },
         'dc' : {
-            "meanCodeFor0.2V": ["lt",800,{"offset":-1}],
-            "meanCodeFor1.6V": ["gt",3500,{"offset":-1}],
+            "meanCodeFor0.2V": ["lt",575,{"offset":-1}],
+            "meanCodeFor1.6V": ["gt",2750,{"offset":-1}],
         },
     }
 
