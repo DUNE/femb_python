@@ -111,29 +111,29 @@ The cuts to pass the test for an ADC ASIC:
 
 For all sample rates, clock types, offset currents, and channels:
 
-Statistic           | Cut
---------------------|------------
-DNLmax400           | < 28 LSBs
-DNL75perc400        | < 0.48 LSBs
-stuckCodeFrac400    | < 0.1
+Statistic           | Warm Cut    | Cold Cut    |
+--------------------|-------------|-------------|
+DNLmax400           | < 28 LSBs   | < 200 LSBs  |
+DNL75perc400        | < 0.48 LSBs | < 0.9 LSBs  |
+stuckCodeFrac400    | < 0.1       | < 0.95      |
 
 For all sample rates, clock types, and channels, only offset current off:
 
-Statistic           | Cut
---------------------|------------
-INLabsMax400        | < 60 LSBs
-INLabs75perc400     | < 50 LSBs
-minCode             | < 240
-minCodeV            | < 0.2 V
-maxCode             | > 4090
-maxCodeV            | > 1.3 V
-meanCodeFor0.2V     | < 800
-meanCodeFor1.6V     | > 3500
+Statistic           | Warm Cut  | Cold Cut      |
+--------------------|-----------|---------------|
+INLabsMax400        | < 60 LSBs | < 1100 LSBs   |
+INLabs75perc400     | < 50 LSBs | < 800 LSBs    |
+minCode             | < 240     | < 240         |
+minCodeV            | < 0.2 V   | < 0.2 V       |
+maxCode             | > 4090    | > 3000        |
+maxCodeV            | > 1.3 V   | > 1.65 V      |
+meanCodeFor0.2V     | < 800     | < 575         |
+meanCodeFor1.6V     | > 3500    | > 2750        |
 
 For all sample rates, signal frequencies, signal amplitudes, and channels, only
 offset current off and external clock:
 
-Statistic           | Cut
---------------------|------------
-SINAD               | > 25 dBc
+Statistic           | Warm Cut  | Cold Cut |
+--------------------|-----------|----------|
+SINAD               | > 25 dBc  | No cut   |
 
