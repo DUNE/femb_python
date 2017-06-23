@@ -215,17 +215,18 @@ class FEMB_UDP(object):
         if len(rawdataPackets) == 0:
             return None
 
-        dataPackets = []
-        for rawdata in rawdataPackets:
+        resultLength = 504 * len(rawdataPackets)
+        dataPackets = [0]*resultLength
+        for iPacket, rawdata in enumerate(rawdataPackets):
             if len(rawdata) < 1024:
                 dataPackets = None
                 return None
             data = struct.unpack_from(">512H",rawdata)
-            #print data[1]
-            data = data[8:]
-            #dataPackets.append(data)
-            dataPackets = dataPackets + list(data)
-
+            ##print data[1]
+            #data = data[8:]
+            ##dataPackets.append(data)
+            #dataPackets = dataPackets + list(data)
+            dataPackets[504*iPacket:504*(iPacket+1)] = data[8:]
         return dataPackets
 
     def get_data(self, num):
