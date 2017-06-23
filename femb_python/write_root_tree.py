@@ -73,7 +73,7 @@ class WRITE_ROOT_TREE(object):
             self.femb_config.selectChannel( self.iChip, ch)
             time.sleep(0.01)
             wf.clear()
-            npackets = min(self.femb.MAX_NUM_PACKETS,self.numpacketsrecord)
+            npackets = self.numpacketsrecord
             data = self.femb.get_data(npackets)
             for samp in data:
                 chNum = ((samp >> 12 ) & 0xF)
