@@ -385,44 +385,49 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
                 return
 
-        nTries = 2
-
         initLATCH1_4 = self.femb.read_reg ( self.REG_LATCHLOC1_4 )
         initLATCH5_8 = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
         initPHASE = self.femb.read_reg ( self.REG_CLKPHASE )
 
+        phases = [0,1]
+        if self.COLD:
+            phases = [0,1,0,1,0]
+
         #loop through sync parameters
-        for phase in range(0,2,1):
+        for shift in range(0,16,1):
+            shiftMask = (0x3F << 8*adcNum)
+            if ( adcNum < 4 ):
+                testShift = ( (initLATCH1_4 & ~(shiftMask)) | (shift << 8*adcNum) )
+                self.femb.write_reg ( self.REG_LATCHLOC1_4, testShift )
+                time.sleep(0.01)
+            else:
+                testShift = ( (initLATCH5_8 & ~(shiftMask)) | (shift << 8*adcNum) )
+                self.femb.write_reg ( self.REG_LATCHLOC5_8, testShift )
+                time.sleep(0.01)
+            for phase in phases:
                 clkMask = (0x1 << adcNum)
                 testPhase = ( (initPHASE & ~(clkMask)) | (phase << adcNum) ) 
                 self.femb.write_reg ( self.REG_CLKPHASE, testPhase )
                 time.sleep(0.01)
-                for shift in range(0,16,1):
-                        shiftMask = (0x3F << 8*adcNum)
-                        if ( adcNum < 4 ):
-                            testShift = ( (initLATCH1_4 & ~(shiftMask)) | (shift << 8*adcNum) )
-                            self.femb.write_reg ( self.REG_LATCHLOC1_4, testShift )
-                            time.sleep(0.01)
-                        else:
-                            testShift = ( (initLATCH5_8 & ~(shiftMask)) | (shift << 8*adcNum) )
-                            self.femb.write_reg ( self.REG_LATCHLOC5_8, testShift )
-                            time.sleep(0.01)
-                        for iTry in range(nTries):
-                            print("try {}/{} of phase: {} shift: {} testingUnsync...".format(iTry+1,nTries,phase,shift))
-                            #reset ADC ASIC
-                            self.femb.write_reg ( self.REG_ASIC_RESET, 1)
-                            time.sleep(0.01)
-                            self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
-                            time.sleep(0.01)
-                            self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
-                            time.sleep(0.01)
-                            #test link
-                            unsync = self.testUnsync(adcNum)
-                            if unsync == 0 :
-                                    print("FEMB_CONFIG--> ADC synchronized")
-                                    return
+                print("try shift: {} phase: {} testingUnsync...".format(shift,phase))
+                #reset ADC ASIC
+                self.femb.write_reg ( self.REG_ASIC_RESET, 1)
+                time.sleep(0.01)
+                self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
+                time.sleep(0.01)
+                self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
+                time.sleep(0.01)
+                #test link
+                unsync = self.testUnsync(adcNum)
+                if unsync == 0 :
+                    print("FEMB_CONFIG--> ADC synchronized")
+                    return
         #if program reaches here, sync has failed
         print("Error: FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc))
+        print("Setting back to original values: LATCHLOC1_4: {:#010x}, LATCHLOC5_8: {:#010x}, PHASE: {:#010x}".format,initLATCH1_4,initLATCH5_8,initPHASE)
+        self.femb.write_reg ( self.REG_LATCHLOC1_4, initLATCH1_4 )
+        self.femb.write_reg ( self.REG_LATCHLOC5_8, initLATCH5_8 )
+        self.femb.write_reg ( self.REG_CLKPHASE, initPHASE )
         if self.exitOnError:
             sys.exit(1)
         else:
