@@ -203,7 +203,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                         traceback.print_tb(e.__traceback__)
                         continue
                     print("Processing...")
-                    static_fns = list(glob.glob(fileprefix+"_functype3_*.root"))
+                    static_fns = list(glob.glob(fileprefix+"_functype3_freq734.*.root"))
                     assert(len(static_fns)==1)
                     static_fn = static_fns[0]
                     dc_fns = list(glob.glob(fileprefix+"_functype1_*.root"))
