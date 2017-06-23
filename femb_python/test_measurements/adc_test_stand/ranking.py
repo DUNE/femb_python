@@ -120,7 +120,7 @@ class RANKING(object):
 #        for stat in self.statsToDraw:
 #            self.statsToDraw[stat]["clocks"] = ["0"]
 
-    def rank(self,data,title,outfileprefix,legendTitle=""):
+    def histWorstChannel(self,data,title,outfileprefix,legendTitle=""):
         if type(data) is dict:
             pass
         elif type(data) is list:
@@ -203,6 +203,7 @@ class RANKING(object):
                     continue
                 else:
                     ax.set_ylabel("ASICs / bin")
+                    ax.set_yscale("log")
                     doMin = False
                     try:
                         doMin = self.statsToDraw[statName]["min"]
@@ -315,6 +316,7 @@ class RANKING(object):
                     ax.axis("off")
                     continue
                 else:
+                    ax.set_yscale("log")
                     ax.set_ylabel("Channels / bin")
                     ax.set_xlabel("{}".format(statName))
                     histRange = (min(allVals[statName]),max(allVals[statName]))
@@ -345,7 +347,7 @@ class RANKING(object):
             fig.savefig(outfileprefix+"_page{}.png".format(iFig))
             fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
 
-    def rankVVar(self,data,varfunc,title,outfileprefix,xlabel=None,xlims=None,legendTitle=""):
+    def worstChannelVVar(self,data,varfunc,title,outfileprefix,xlabel=None,xlims=None,legendTitle=""):
         if type(data) is dict:
             pass
         elif type(data) is list:
@@ -595,6 +597,9 @@ class RANKING(object):
                                         except KeyError:
                                             continue
                                         else:
+                                            if val is None:
+                                                print("Warning: None found in {} {} {} {} {} {}".format(clock,offset,stat,amp,freq,chan))
+                                                continue
                                             minVal = min(val,minVal)
                                             maxVal = max(val,maxVal)
                                             if getAll:
@@ -624,6 +629,9 @@ class RANKING(object):
                                     minVal = min(val,minVal)
                                     maxVal = max(val,maxVal)
                                     if getAll:
+                                        if val is None:
+                                            print("Warning: None found in {} {} {} {}".format(clock,offset,stat,chan))
+                                            continue
                                         try:
                                             result[statToDraw].append(val)
                                         except KeyError:
@@ -761,11 +769,13 @@ def main():
     exclusiveArgs.add_argument("--previousDay",help="Only accept timestamps from the previous day (midnight to midnight)",action="store_true")
     exclusiveArgs.add_argument("--thisWeek",help="Only accept timestamps from the current week (since Monday)",action="store_true")
     exclusiveArgs.add_argument("--previousWeek",help="Only accept timestamps from the previous week (Monday to Monday)",action="store_true")
+    exclusiveArgs.add_argument("--thisWeekFriday",help="Only accept timestamps from the current week (since Friday)",action="store_true")
+    exclusiveArgs.add_argument("--previousWeekFriday",help="Only accept timestamps from the previous week (Friday to Friday)",action="store_true")
     args = parser.parse_args()
 
     if args.firstTime or args.lastTime:
-        if args.today or args.previousDay or args.thisWeek or args.previousWeek:
-            print("Error: if --firstTime and/or --lastTime are set, then --today, --previousDay, --thisWeek, and --previousWeek must not be used")
+        if args.today or args.previousDay or args.thisWeek or args.previousWeek or args.thisWeekFriday or args.previousWeekFriday:
+            print("Error: if --firstTime and/or --lastTime are set, then --today, --previousDay, --thisWeek, --previousWeek, --thisWeekFriday, and --previousWeekFriday must not be used")
             sys.exit(1)
     firstTime = None
     lastTime = None
@@ -785,28 +795,42 @@ def main():
         lastTime = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
         lastTime -= datetime.timedelta(days=lastTime.weekday())
         firstTime = lastTime - datetime.timedelta(days=7)
+    if args.thisWeekFriday:
+        firstTime = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
+        thisWeekday = firstTime.weekday()
+        nDays = thisWeekday + (7-4)
+        if thisWeekday >= 4: #it's friday or weekend
+            nDays = thisWeekday - 4
+        firstTime -= datetime.timedelta(days=nDays)
+    if args.previousWeekFriday:
+        lastTime = datetime.datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)
+        thisWeekday = lastTime.weekday()
+        nDays = thisWeekday + (7-4)
+        if thisWeekday >= 4: #it's friday or weekend
+            nDays = thisWeekday - 4
+        lastTime -= datetime.timedelta(days=nDays)
+        firstTime = lastTime - datetime.timedelta(days=7)
     print("Using data from {} to {}".format(firstTime,lastTime))
 
     ranking = RANKING(args.infilename,firstTime,lastTime)
 
     latestData = ranking.getlatestdata()
-    ranking.rank(latestData,"Ranking for Latest Timestamp","ADC_ranking")
-    ranking.histAllChannels(latestData,"Channel Histogram for Latest Timestamp","ADC_chanHist")
+    ranking.histWorstChannel(latestData,"Worst Channel Histogram for Latest Timestamp","ADC_worstHist")
+    ranking.histAllChannels(latestData,"All Channel Histogram for Latest Timestamp","ADC_chanHist")
     for tlk in ["operator","hostname","board_id"]:
         print("Top Level Key: ",tlk)
         latestDataPerTLK = ranking.getlatestdataperkey(lambda x: str(x[tlk]))
-        ranking.rank(latestDataPerTLK,"Ranking for Latest Timestamp per {}".format(tlk),"ADC_per_{}_ranking".format(tlk),legendTitle=tlk)
-        ranking.histAllChannels(latestDataPerTLK,"Channel Histogram for Latest Timestamp per {}".format(tlk),"ADC_per_{}_chanHist".format(tlk),legendTitle=tlk)
+        ranking.histWorstChannel(latestDataPerTLK,"Worst Channel for Latest Timestamp per {}".format(tlk),"ADC_per_{}_worstHist".format(tlk),legendTitle=tlk)
+        ranking.histAllChannels(latestDataPerTLK,"All Channel Histogram for Latest Timestamp per {}".format(tlk),"ADC_per_{}_chanHist".format(tlk),legendTitle=tlk)
     smtkeys = [
-        "cold",
         "linux_username",
         "femb_config_name",
     ]
     for smtkey in smtkeys:
         print("Sumatra Key: ",smtkey)
         latestDataPerSMTKey = ranking.getlatestdataperkey(lambda x: str(x["sumatra"][smtkey]))
-        ranking.rank(latestDataPerSMTKey,"Ranking for Latest Timestamp per {}".format(smtkey),"ADC_per_{}_ranking".format(smtkey),legendTitle=smtkey)
-        ranking.histAllChannels(latestDataPerSMTKey,"Channel Histogram for Latest Timestamp per {}".format(smtkey),"ADC_per_{}_chanHist".format(smtkey),legendTitle=smtkey)
+        ranking.histWorstChannel(latestDataPerSMTKey,"Worst Channel for Latest Timestamp per {}".format(smtkey),"ADC_per_{}_worstHist".format(smtkey),legendTitle=smtkey)
+        ranking.histAllChannels(latestDataPerSMTKey,"All Channel Histogram for Latest Timestamp per {}".format(smtkey),"ADC_per_{}_chanHist".format(smtkey),legendTitle=smtkey)
     
     def getVersion(summaryDict):
         pathstr = summaryDict["sumatra"]["femb_python_location"]
@@ -816,18 +840,30 @@ def main():
         else:
             return "Not Using Official Release"
     latestDataPerVersion = ranking.getlatestdataperkey(getVersion)
-    ranking.rank(latestDataPerVersion,"Ranking for Latest Timestamp Per Software Version","ADC_per_version_ranking",legendTitle="femb_python version")
-    ranking.histAllChannels(latestDataPerVersion,"Histogram for Latest Timestamp Per Software Version","ADC_per_version_chanHist",legendTitle="femb_python version")
+    ranking.histWorstChannel(latestDataPerVersion,"Worst Channel for Latest Timestamp Per Software Version","ADC_per_version_worstHist",legendTitle="femb_python version")
+    ranking.histAllChannels(latestDataPerVersion,"All Channels for Latest Timestamp Per Software Version","ADC_per_version_chanHist",legendTitle="femb_python version")
+
+    def getTemperature(summaryDict):
+        cold = summaryDict["sumatra"]["cold"]
+        if cold is None:
+            return "Not Yet Implemented"
+        elif cold:
+            return "Cryogenic"
+        else:
+            return "Room Temperature"
+    latestDataPerTemp = ranking.getlatestdataperkey(getTemperature)
+    ranking.histWorstChannel(latestDataPerTemp,"Worst Channel for Latest Timestamp Per Temperature","ADC_per_temp_worstHist",legendTitle="Temperature")
+    ranking.histAllChannels(latestDataPerTemp,"All Channels for Latest Timestamp Per Temperature","ADC_per_temp_chanHist",legendTitle="Temperature")
+
 
     def getTimestamp(data):
         timestamp = data["timestamp"]
         return datetimeFromTimestamp(timestamp)
 
     data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["hostname"]))
-    ranking.rankVVar(data,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp","ADCVTime_per_hostname",legendTitle="Hostname")
-    data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["cold"]))
-    ranking.rankVVar(data,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp","ADCVTime_per_cold",legendTitle="Cryogenic")
+    ranking.worstChannelVVar(data,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp","ADCVTime_per_hostname",legendTitle="Hostname")
+    data = ranking.getalldataperkey(getTemperature)
+    ranking.worstChannelVVar(data,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp","ADCVTime_per_temp",legendTitle="Temperature")
 
-    data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["cold"]))
-    ranking.rankVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_cold",xlabel="Chip #",legendTitle="Cryogenic")
-    #ranking.rankVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_cold_zoom",xlabel="Chip #",xlims=(0,40),legendTitle="Cryogenic")
+    ranking.worstChannelVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_temp",xlabel="Chip #",legendTitle="Temperature")
+    ranking.worstChannelVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_temp_zoom",xlabel="Chip #",xlims=(0,50),legendTitle="Temperature")
