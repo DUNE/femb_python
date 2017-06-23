@@ -385,6 +385,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
                 return
 
+        nTries = 2
+
         initLATCH1_4 = self.femb.read_reg ( self.REG_LATCHLOC1_4 )
         initLATCH5_8 = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
         initPHASE = self.femb.read_reg ( self.REG_CLKPHASE )
@@ -405,19 +407,20 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                             testShift = ( (initLATCH5_8 & ~(shiftMask)) | (shift << 8*adcNum) )
                             self.femb.write_reg ( self.REG_LATCHLOC5_8, testShift )
                             time.sleep(0.01)
-                        print("trying phase: ",phase," shift: ",shift," testingUnsync...")
-                        #reset ADC ASIC
-                        self.femb.write_reg ( self.REG_ASIC_RESET, 1)
-                        time.sleep(0.01)
-                        self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
-                        time.sleep(0.01)
-                        self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
-                        time.sleep(0.01)
-                        #test link
-                        unsync = self.testUnsync(adcNum)
-                        if unsync == 0 :
-                                print("FEMB_CONFIG--> ADC synchronized")
-                                return
+                        for iTry in range(nTries):
+                            print("try {}/{} of phase: {} shift: {} testingUnsync...".format(iTry+1,nTries,phase,shift))
+                            #reset ADC ASIC
+                            self.femb.write_reg ( self.REG_ASIC_RESET, 1)
+                            time.sleep(0.01)
+                            self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
+                            time.sleep(0.01)
+                            self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
+                            time.sleep(0.01)
+                            #test link
+                            unsync = self.testUnsync(adcNum)
+                            if unsync == 0 :
+                                    print("FEMB_CONFIG--> ADC synchronized")
+                                    return
         #if program reaches here, sync has failed
         print("Error: FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc))
         if self.exitOnError:
