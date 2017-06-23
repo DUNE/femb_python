@@ -142,10 +142,15 @@ def main():
   parser.addNPacketsArgs(False,10)
   parser.add_argument("chip_number",help="ADC chip number to read out",type=int)
   parser.add_argument("outfilename",help="Output root file name")
+  parser.add_argument("-p", "--profiler",help="Enable python timing profiler and save to given file name",type=str,default=None)
   args = parser.parse_args()
 
   config = CONFIG()
 
   wrt = WRITE_ROOT_TREE(config,args.chip_number,args.outfilename,args.nPackets)
-  wrt.record_data_run()
+  if args.profiler:
+      import cProfile
+      cProfile.runctx('wrt.record_data_run()',globals(),locals(),args.profiler)
+  else:
+      wrt.record_data_run()
 
