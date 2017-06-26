@@ -484,21 +484,21 @@ void Analyze::identifyBadChannel(unsigned int chan, double baseMean, double base
 		isBadChannel = 1;
 
         //baseline additional cuts
-	if( baseMean < 2250 )
-		isBadChannel = 1;
-	if( baseMean > 8000 )
-		isBadChannel = 1;
-	if( baseMean > 3400 && baseMean < 7000 )
-		isBadChannel = 1;
+	//if( baseMean < 2250 )
+	//	isBadChannel = 1;
+	//if( baseMean > 8000 )
+	///	isBadChannel = 1;
+	//if( baseMean > 3400 && baseMean < 7000 )
+	//	isBadChannel = 1;
 
 	//RMS additional cuts
- 	if( baseRms > 40.4 )
-		isBadChannel = 1;
+ 	//if( baseRms > 40.4 )
+	//	isBadChannel = 1;
 
 	//gain additional cuts
-	if( gain > 200 )
+	if( gain > 400 )
 		isBadChannel = 1;
-	if( gain < 25 )
+	if( gain < 10 )
 		isBadChannel = 1;
 
 	badChannelMask[chan] = isBadChannel;
