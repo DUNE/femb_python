@@ -869,3 +869,22 @@ def main():
 
     ranking.worstChannelVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_temp",xlabel="Chip #",legendTitle="Temperature")
     ranking.worstChannelVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #","ADCVserial_per_temp_zoom",xlabel="Chip #",xlims=(0,50),legendTitle="Temperature")
+
+
+
+    #def getBoard_version(summaryDict):
+    #    #cold = summaryDict["sumatra"]["cold"]
+    #    #temp = None
+    #    #if cold is None:
+    #    #    temp= "Not Yet Implemented"
+    #    #elif cold:
+    #    #    temp= "Cryogenic"
+    #    #else:
+    #    #    temp= "Room Temperature"
+    #    board = summaryDict["board_id"]
+    #    version = getVersion(summaryDict)
+    #    return str(version) +" board "+ str(board)
+    #d = ranking.getlatestdataperkey(getBoard_version)
+    #ranking.histWorstChannel(d,"Worst Channel for Latest Timestamp Per Software Version & Board","ADC_per_version_board_worstHist",legendTitle="femb_python version & Board ID")
+    #ranking.histAllChannels(d,"All Channels for Latest Timestamp Per Software Version & Board","ADC_per_version_board_chanHist",legendTitle="femb_python version & Board ID")
+    #ranking.worstChannelVVar(d,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp","ADCVTime_per_version_board",legendTitle="femb_python version & Board ID")
