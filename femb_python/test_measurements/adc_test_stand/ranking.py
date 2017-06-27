@@ -129,6 +129,11 @@ class RANKING(object):
             raise TypeError("data should be list or dict")
         statNames = set()
         sortedKeys = sorted(list(data.keys()))
+        if data == {}:
+            return
+        elif len(sortedKeys) == 1:
+            if len(data[sortedKeys[0]]) == 0:
+                return
         maxValsPerCase = {}
         minValsPerCase = {}
         maxValsAll = {}
@@ -218,6 +223,12 @@ class RANKING(object):
                         nBins = 40 
                     hist, bin_edges = numpy.histogram(maxValsAll[statName],nBins,range=histRange)
                     if doMin:
+                        nVals = len(minValsAll[statName])
+                        nBins = 10
+                        if nVals > 30:
+                            nBins = 20
+                        if nVals > 100:
+                            nBins = 40 
                         histRange = (min(minValsAll[statName]),max(minValsAll[statName]))
                         hist, bin_edges = numpy.histogram(minValsAll[statName],nBins,range=histRange)
                     for iKey, key in enumerate(sortedKeys):
@@ -257,6 +268,11 @@ class RANKING(object):
         allValsPerCase = {}
         allVals = {}
         sortedKeys = sorted(list(data.keys()))
+        if data == {}:
+            return
+        elif len(sortedKeys) == 1:
+            if len(data[sortedKeys[0]]) == 0:
+                return
         for key in sortedKeys:
             datadicts = data[key]
             statsPerSerial = {}
@@ -361,6 +377,11 @@ class RANKING(object):
         minValsPerCase = {}
         varsPerCase = {}
         sortedKeys = sorted(list(data.keys()))
+        if data == {}:
+            return
+        elif len(sortedKeys) == 1:
+            if len(data[sortedKeys[0]]) == 0:
+                return
         for key in sortedKeys:
             datadicts = data[key]
             minLists = {}
