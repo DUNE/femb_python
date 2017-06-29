@@ -58,7 +58,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicGain = 0 #4.7,7.8,14,25
         self.feasicShape = 1 #0.5,1,2,3
         self.feasicAcdc = 0 #AC = 0, DC = 1
-        self.feasicBuf = 0 #0 = OFF, 1 = ON
+        self.feasicBuf = 1 #0 = OFF, 1 = ON
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
@@ -99,8 +99,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #self.femb.write_reg( self.REG_RESET, 2)
 
         #configure ASICs to default
-        print("Config FE ASIC SPI")
-        self.configFeAsic()
+        #print("Config FE ASIC SPI")
+        #self.configFeAsic()
     
     def turnOffAsics(self):
         self.femb.write_reg( self.REG_TST_SW, 0xF)

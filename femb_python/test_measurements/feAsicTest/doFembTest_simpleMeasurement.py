@@ -169,7 +169,7 @@ class FEMB_TEST_SIMPLE(object):
 
         #summary plot
         #print("SIMPLE MEASUREMENT - DISPLAYING SUMMARY PLOT, CLOSE PLOT TO CONTINUE")
-        #call(["display",str( self.write_data.filedir ) + str(newName) ])
+        #call(["display",str( newPath ) ])
 
         print("SIMPLE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1

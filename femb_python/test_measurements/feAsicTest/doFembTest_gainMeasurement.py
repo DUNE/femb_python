@@ -164,7 +164,7 @@ class FEMB_TEST_GAIN(object):
         #modify set of pulser configurations to record based on gain and baseline settings
         pMax = 64
         pMax200mV = [ 46 , 46, 36, 21 ]
-        pMax900mV = [ 64 , 46, 31, 16 ]
+        pMax900mV = [ 46 , 46, 31, 16 ]
         if ( int( self.base ) == 0 ) and ( int(self.gain) >= 0 ) and ( int(self.gain) < 4 ) :
           pMax = pMax200mV[ int(self.gain) ]
         if ( int( self.base ) == 1 ) and ( int(self.gain) >= 0 ) and ( int(self.gain) < 4 ) :
@@ -252,11 +252,12 @@ class FEMB_TEST_GAIN(object):
         self.jsondict['config_shape'] = str( self.shape )
         self.jsondict['config_base'] = str( self.base )
 
-        #parse the output results, kind of messy
-        listFile = self.outpathlabel + "-results.list"
+        if self.status_do_analysis == 1:
+          #parse the output results, kind of messy
+          listFile = self.outpathlabel + "-results.list"
 
-        lines = []
-        with open( listFile ) as infile:
+          lines = []
+          with open( listFile ) as infile:
             for line in infile:
                 line = line.strip('\n')
                 line = line.split(',') #measurements separated by commas
@@ -267,7 +268,8 @@ class FEMB_TEST_GAIN(object):
                         continue
                     parseline[ str(word[0]) ] = str(word[1])
                 lines.append(parseline)
-        self.jsondict['results'] = lines
+            self.jsondict['results'] = lines
+
         jsonoutput = json.dumps(self.jsondict, indent=4, sort_keys=True)
         #print( jsonoutput )
  

@@ -230,11 +230,13 @@ class FEMB_TEST_GAIN_EXTERNALDAC(object):
         self.jsondict['config_shape'] = str( self.shape )
         self.jsondict['config_base'] = str( self.base )
 
-        #parse the output results, kind of messy
-        listFile = self.outpathlabel + "-results.list"
 
-        lines = []
-        with open( listFile ) as infile:
+        if self.status_do_analysis == 1:
+          #parse the output results, kind of messy
+          listFile = self.outpathlabel + "-results.list"
+
+          lines = []
+          with open( listFile ) as infile:
             for line in infile:
                 line = line.strip('\n')
                 line = line.split(',') #measurements separated by commas
@@ -245,7 +247,8 @@ class FEMB_TEST_GAIN_EXTERNALDAC(object):
                         continue
                     parseline[ str(word[0]) ] = str(word[1])
                 lines.append(parseline)
-        self.jsondict['results'] = lines
+            self.jsondict['results'] = lines
+
         jsonoutput = json.dumps(self.jsondict, indent=4, sort_keys=True)
         #print( jsonoutput )
  

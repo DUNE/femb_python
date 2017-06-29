@@ -498,56 +498,57 @@ ASIC 3 ID: {asic3id}
         myfile.close()
         return
     
+    #generic_sequence(method, executable, gains, shapes, bases,leakage,leakagex10,buff,acdc, handler=None):
     def do_gain_enc_sequence(self):
         self.generic_sequence("gain_enc_sequence", "femb_feasic_gain",
                               #range(4), range(4), range(2), 0 , 0 , 0 , 0 , #original warm test
-                              range(4), [1], range(2), 0 , 0 , 0 , 0 , #cold test
+                              range(4), [1], range(2), 0 , 0 , 1 , 0 , #cold test
                               #[2] , [2] , [0] , 0 , 0 , 0 , 0 ,
                               handler=self.handle_gain_result)
         self.generic_sequence("gain_enc_sequence", "femb_feasic_gain",
-                              [2], [0], range(2), 0 , 0 , 0 , 0 , #cold test
+                              [2], [0], range(2), 0 , 0 , 1 , 0 , #cold test
                               handler=self.handle_gain_result)
         self.generic_sequence("gain_enc_sequence", "femb_feasic_gain",
-                              [2], [2], range(2), 0 , 0 , 0 , 0 , #cold test
+                              [2], [2], range(2), 0 , 0 , 1 , 0 , #cold test
                               handler=self.handle_gain_result)
         self.generic_sequence("gain_enc_sequence", "femb_feasic_gain",
-                              [2], [3], range(2), 0 , 0 , 0 , 0 , #cold test
+                              [2], [3], range(2), 0 , 0 , 1 , 0 , #cold test
                               handler=self.handle_gain_result)
         return
 
     def do_gain_enc_sequence_fpgadac(self):
         self.generic_sequence("gain_enc_sequence_fpgadac", "femb_feasic_gain_fpgadac",
                               #range(4), [1], [0] , 0 , 0 , 0 , 0 ,
-                              [2], [1], [0] , 0 , 0 , 0 , 0 , #cold test
+                              [2], [1], [0] , 0 , 0 , 1 , 0 , #cold test
                               handler=self.handle_gain_result)
         return
 
     def do_gain_enc_sequence_externaldac(self):
         self.generic_sequence("gain_enc_sequence_externaldac", "femb_feasic_gain_externaldac",
                               #range(4), [1], [0] , 0 , 0 , 0 , 0 ,
-                              [2], [1], [0] , 0 , 0 , 0 , 0 ,
+                              [2], [1], [0] , 0 , 0 , 1 , 0 ,
                               handler=self.handle_gain_result)
         return
 
     def do_gain_enc_sequence_check_configs(self):
         #leakage current tests
         self.generic_sequence("gain_enc_sequence_check_configs", "femb_feasic_gain",
-                              [2], [1], [0] , 1 , 0 , 0 , 0 ,
+                              [2], [1], [0] , 1 , 0 , 1 , 0 ,
                               handler=self.handle_gain_result)
         self.generic_sequence("gain_enc_sequence_check_configs", "femb_feasic_gain",
-                              [2], [1], [0] , 0 , 1 , 0 , 0 ,
+                              [2], [1], [0] , 0 , 1 , 1 , 0 ,
                               handler=self.handle_gain_result)
         self.generic_sequence("gain_enc_sequence_check_configs", "femb_feasic_gain",
-                              [2], [1], [0] , 1 , 1 , 0 , 0 ,
+                              [2], [1], [0] , 1 , 1 , 1 , 0 ,
                               handler=self.handle_gain_result)
         #buffer test
         self.generic_sequence("gain_enc_sequence_check_configs", "femb_feasic_gain",
-                              [2], [1], [0] , 0 , 0 , 1 , 0 ,
+                              [2], [1], [0] , 0 , 0 , 0 , 0 ,
                               handler=self.handle_gain_result)
         #acdc test
         self.generic_sequence("gain_enc_sequence_check_configs", "femb_feasic_gain",
                               #[2], [1], [0] , 0 , 0 , 0 , 1 ,
-                              range(4), [1], range(2) , 0 , 0 , 0 , 1 , #cold test
+                              [2], [1], [0] , 0 , 0 , 1 , 1 , #cold test
                               handler=self.handle_gain_result)        
         return
 

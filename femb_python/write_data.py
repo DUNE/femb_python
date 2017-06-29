@@ -60,6 +60,9 @@ class WRITE_DATA(object):
             return
         #print("write_data: Record data")
         data = self.femb.get_data_packets(self.numpacketsrecord)
+        if data == None :
+          print("write_data: Did not get any data, streaming might have failed!!!")
+          return
         for packet in data:
             #UDP packet header
             self.data_file.write(struct.pack('!H', 0x0))
