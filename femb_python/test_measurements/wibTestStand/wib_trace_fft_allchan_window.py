@@ -11,6 +11,10 @@ This module contains a class that displays a live ADC readout and its FFT for al
 13| 14| 15| 16                       
 
 Configurations handled elsewhere.
+
+TODO: a lot of overlap with trace_fft_window.py --> should refer to the copied
+functions from this file, so that any changes there are automatically imported here
+
 """
 from __future__ import division
 from __future__ import unicode_literals
@@ -39,6 +43,7 @@ matplotlib.rc('xtick',labelsize=8)
 matplotlib.rc('ytick',labelsize=8)
 
 from femb_python.femb_udp import FEMB_UDP
+#from femb_python.test_measurements.wibTestStand.wib_trace_fft_window import TRACE_FFT_WINDOW
 
 class TRACE_FFT_ALLCHAN_WINDOW(Tk.Frame):
   """
@@ -302,5 +307,5 @@ class TRACE_FFT_ALLCHAN_WINDOW(Tk.Frame):
 def main():
     window = Tk.Tk()
     window.title("FEMB Trace & FFT Viewer")
-    trace_fft = TRACE_FFT_WINDOW(window)
+    trace_fft = TRACE_FFT_ALLCHAN_WINDOW(window)
     window.mainloop()
