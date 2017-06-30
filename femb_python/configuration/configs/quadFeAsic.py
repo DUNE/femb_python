@@ -91,6 +91,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #reset pulser regs
         self.femb.write_reg( self.REG_TP_PERIOD_P , 0 )
         self.femb.write_reg( self.REG_TP_MODE , 0 )
+        self.femb.write_reg_bits( 17 , 8, 0xFF, 219 ) #DLY
+        self.femb.write_reg_bits( 17 , 16, 0xFFFF, 997 ) #FREQ
 
         #start ASICs
         self.femb.write_reg( self.REG_START, 1)
@@ -101,7 +103,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #configure ASICs to default
         #print("Config FE ASIC SPI")
         #self.configFeAsic()
-    
+
     def turnOffAsics(self):
         self.femb.write_reg( self.REG_TST_SW, 0xF)
         #pause after turning off ASICs
@@ -115,7 +117,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print( "turnOnAsic " + str(asicVal) )
         #self.femb.write_reg( self.REG_TST_SW, 0xF) #turn off all
         self.femb.write_reg_bits( self.REG_TST_SW , asicVal, 0x1, 0x0 )
-        time.sleep(1) #pause after turn on
+        time.sleep(2) #pause after turn on
 
         #start ASICs
         self.femb.write_reg( self.REG_START, 1)
@@ -390,5 +392,37 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits( 17 , 6, 0x1, 0x0 ) #ASIC test pulse enable/disable
         self.femb.write_reg_bits( 17 , 7, 0x1, enableVal ) #FPGA test pulse enable/disable
         self.femb.write_reg_bits( 17 , 0, 0x3F, dacVal ) #TP Amplitude
-        self.femb.write_reg_bits( 17 , 8, 0xFF, 219 ) #DLY
-        self.femb.write_reg_bits( 17 , 16, 0xFFFF, 500 ) #FREQ
+
+    def setExternalFpgaPulser(self,enable,dac):
+        enableVal = int(enable)
+        if (enableVal < 0 ) or (enableVal > 1 ) :
+                print( "femb_config_femb : setDacPulser - invalid enable value")
+                return
+        dacVal = int(dac)
+        if ( dacVal < 0 ) or ( dacVal > 0x3F ) :
+                print( "femb_config_femb : setDacPulser - invalid dac value")
+                return
+
+        if enableVal == 1 :
+                self.femb.write_reg( self.REG_TP_MODE, 0x7) #pulser enabled
+                self.femb.write_reg( 18, 0x1) #pulser enabled
+        else :
+                self.femb.write_reg( self.REG_TP_MODE, 0x0) #pulser disabled
+                self.femb.write_reg( 18, 0x0) #pulser enabled
+
+        asicWord = 0x0
+        if enableVal == 1 :
+                asicWord = asicWord + (0x2 << 8)
+        #reconfigure ASICs
+        self.femb.write_reg( self.REG_FESPI_BASE+4, asicWord )
+        self.femb.write_reg( self.REG_FESPI_BASE+9, asicWord )
+        self.femb.write_reg( self.REG_FESPI_BASE+14, asicWord )
+        self.femb.write_reg( self.REG_FESPI_BASE+19, asicWord )
+
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+        self.femb.write_reg( self.REG_ASIC_SPIPROG, 0)
+
+        self.femb.write_reg_bits( 17 , 6, 0x1, 0x0 ) #ASIC test pulse enable/disable
+        self.femb.write_reg_bits( 17 , 7, 0x1, enableVal ) #FPGA test pulse enable/disable
+        self.femb.write_reg_bits( 17 , 0, 0x3F, dacVal ) #TP Amplitude

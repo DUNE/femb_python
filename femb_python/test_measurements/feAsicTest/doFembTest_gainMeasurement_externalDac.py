@@ -125,6 +125,7 @@ class FEMB_TEST_GAIN_EXTERNALDAC(object):
         self.femb_config.setInternalPulser(0,0x0)
         self.femb_config.setDacPulser(0,0x0)
         self.femb_config.setFpgaPulser(0,0x0)
+        self.femb_config.setExternalFpgaPulser(0,0x0)
 
         #setup output file and record data
         self.write_data.filename = self.outpathlabel+".bin"
@@ -151,9 +152,11 @@ class FEMB_TEST_GAIN_EXTERNALDAC(object):
         self.femb_config.turnOnAsics()
         subrun = 1
         #loop over pulser configurations, each configuration is it's own subrun
-        for p in range(1,10,1):
-            pVal = 1024 + int(p)*256
-            self.femb_config.setDacPulser(1,pVal)
+        for p in range(1,0x3F,1):
+            #pVal = 1024 + int(p)*256
+            #self.femb_config.setDacPulser(1,pVal)
+            pVal = int(p)
+            self.femb_config.setExternalFpgaPulser(1,pVal)
             print("Pulse amplitude " + str(pVal) )
 
             #loop over channels

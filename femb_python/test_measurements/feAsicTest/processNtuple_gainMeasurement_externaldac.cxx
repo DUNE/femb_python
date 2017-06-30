@@ -90,7 +90,11 @@ class Analyze {
 	//Gain Measurement
 	TGraph *gPulseVsSignal[64];
 	TH2F *hPulseVsSignal[64];
-	double signalSizes[64];
+	double signalSizes[64] = {0.606,0.625,0.644,0.663,0.682,0.701,0.720,0.739,0.758,0.777,0.796,0.815,0.834,
+		0.853,0.872,0.891,0.909,0.928,0.947,0.966,0.985,1.004,1.023,1.042,1.061,1.080,1.099,1.118,1.137,
+		1.156,1.175,1.194,1.213,1.232,1.251,1.269,1.288,1.307,1.326,1.345,1.364,1.383,1.402,1.421,1.440,
+		1.459,1.478, 1.497,1.516,1.535,1.554,1.573,1.592,1.611,1.629,1.648,1.667,1.686,1.705,1.724,1.743,
+		1.762,1.781,1.800};
 
 	TH1F *hGainVsChan;
 	TH1F *hEncVsChan;
@@ -171,11 +175,16 @@ Analyze::Analyze(std::string inputFileName){
 	hGainVsChan = new TH1F("hGainVsChan","",numChan,0-0.5,numChan-0.5);
 	hEncVsChan = new TH1F("hEncVsChan","",numChan,0-0.5,numChan-0.5);
 
-	signalSizes[0] = 0.;
+	//signalSizes[0] = 0.;
+	//for(int sr = 1 ; sr < 64 ; sr++ ){
+  	//	signalSizes[sr] = 1024 + sr*256;//initial DAC value
+  	//	signalSizes[sr] = signalSizes[sr]*2.048/65535.; //conversion to V
+	//	signalSizes[sr] = signalSizes[sr]*624151; //coversion to e- assuming 1pF input capacitor
+        // }
+        double initVal = signalSizes[0];
+        signalSizes[0] = 0;
 	for(int sr = 1 ; sr < 64 ; sr++ ){
-  		signalSizes[sr] = 1024 + sr*256;//initial DAC value
-  		signalSizes[sr] = signalSizes[sr]*2.048/65535.; //conversion to V
-		signalSizes[sr] = signalSizes[sr]*624151; //coversion to e- assuming 1pF input capacitor
+  		signalSizes[sr] = (signalSizes[sr]-initVal)*1000.*6241.;//test capacitor, convert to e-
         }
 }
 
