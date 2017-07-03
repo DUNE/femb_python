@@ -9,276 +9,296 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 
-#We will keep track of test by lot number: Month-Year for now
-lotNumber = "03-2017"
 
-def turnPower(OnOrOff, iTest):
-	if(iTest == 1): 
-		functions.printSpecial("Checking/Setting Power Supply")
+class OSCILLATOR_TESTING(object):
 
-	#:INSTrument[:SELEct] CH- Select CH as the current channel
-	#powerChannels = [" CH1", " CH2", " CH3"]
-	powerChannels = [" CH1"]
-	for iChannel in powerChannels:
-		if(iTest == 1): 
-			powerSupplyDevice.write(":INST"+iChannel)
-			powerSupplyDevice.write(":INST?")
-			print("Checking %s" %(powerSupplyDevice.read().strip()))
+        def __init__(self, datadir="data", outlabel="oscillatorTesting"):
+                self.outpathlabel = os.path.join(datadir, outlabel)
 
-		#Enable and query the current output status
-		powerSupplyDevice.write(":OUTP"+iChannel+", "+OnOrOff)
-		time.sleep(1)
-		if(iTest == 1):
-			powerSupplyDevice.write(":OUTP?")
-			print("The channel is %s" %(powerSupplyDevice.read().strip()))
-		
-		if(OnOrOff is "ON"):
-			#Set and query the voltage setting value of the current channel
-			powerSupplyDevice.write(":VOLT 3.3")
-			if(iTest == 1):
-				powerSupplyDevice.write(":VOLT?")
-				print("Voltage is set to %f" %(float(powerSupplyDevice.read().strip())))
+                #Oscillator id for oscillator in each channel and thermal cycle for that oscillator
+                self.oscillatorId = [0, 0, 0, 0]
+                self.thermalCycle = [0, 0, 0, 0]
 
-		#Query the voltage measured on the output terminal
-		if(iTest == 1):
-			powerSupplyDevice.write(":MEAS:VOLT?")
-			print("Measured voltage is %f" %(float(powerSupplyDevice.read().strip())))
-
-		#Query the current measured on the output terminal
-		if(iTest == 1):
-			powerSupplyDevice.write(":MEAS:CURR?")
-	        	print("Measured current is %f" %(float(powerSupplyDevice.read().lstrip())))
-
-###########################################################################
-#Get devices that start with usbtmc in dev dir
-functions.printSpecial("Accessing devices of interest from dev dir")
-###########################################################################
-#Devices of interest are:
-#RIGOL DS1074B Digital Oscilloscope
-#RIGOL DP832 Programmable DC Power Supply
-###########################################################################
-powerSupplyDevice = None
-oscilloscopeDevice = None
-dirList = os.listdir("/dev")
-for fName in dirList:
-	if(fName.startswith("usbtmc")):
-		device = driverUSBTMC.DriverUSBTMC("/dev/" + fName)
-
-		#Get the manufacturer name, the model, the serial number, and
-		#the digital board version number in sequence
-		deviceID = device.getID()
-
-		if(deviceID.startswith("RIGOL TECHNOLOGIES,DP832")):
-			print("DC Power Supply found with identification %s" %(deviceID))
-			powerSupplyDevice = device
-	 	elif(deviceID.startswith("Rigol Technologies,DS1074B")):
-			print("Oscilloscope found with identification %s" %(deviceID))
-			oscilloscopeDevice = device
-
-if powerSupplyDevice is None or oscilloscopeDevice is None:
-	print("All devices of our interest not found!\nExiting!\n")
-	sys.exit(0)
-
-###########################################################################
-#Power cycle and take the measurements with oscilloscope
-###########################################################################
-#OscillatorId = number (1, 2, 3 ...) dot in LN2 number (1, 2, 3, 4, 5); example, 30.2 
-oscillatorId = str(input("Enter the oscillator id: "))
-
-#Power cycle 100 times in LN2
-totalTests = 100
-
-#Testing 100 MHz oscillators
-requiredFrequency = 100*(10**6)
-
-#Bookkeeping
-totalFails = 0
-totalCounts = 0
-totalFrequency = 0
-testResults = {}
-
-#Let the oscillator settle in LN2
-time.sleep(5)
-for iTest in range(1,totalTests+1,1):
-	###########################################################################
-	if(iTest == 1): 
-		functions.printSpecial("Starting test")
-	###########################################################################
-	turnPower("OFF", iTest)	
-	turnPower("ON", iTest)
+                self.powerSupplyDevice = None
+                self.oscilloscopeDevice = None
+                                
+        def turnPower(self, OnOrOff, iPowerCycle):
+	        if(iPowerCycle == 1): 
+		        functions.printSpecial("Checking/Setting Power Supply")
 	
-	###########################################################################
-	if(iTest == 1):
-		functions.printSpecial("Checking Oscilloscope")
-	###########################################################################
-
-	#Return data points currently displayed on the screen (600 points)
-	oscilloscopeDevice.write(":WAV:POIN:MODE NOR")
-
-	#Set the format of the waveform data to BYTE (int8: -128 to 127)
-	oscilloscopeDevice.write(":WAV:FORM BYTE")
-	oscilloscopeDevice.write(":WAV:FORM?")
-	if(iTest == 1):
-		print("Format of the waveform data is %s" %(oscilloscopeDevice.read().strip()))
-
-	#:MEASure:SOURce <source>- Select the measurement channel
-	#oscilloscopeChannels = [" CHAN1", " CHAN2", " CHAN3"]
-	oscilloscopeChannels = [" CHAN1"]
-
-	waveFormData = []
-	timeInterval = []
-	oscilloscopeFrequency = []
-	for iChannel in oscilloscopeChannels:
-		if(iTest == 1):
-			oscilloscopeDevice.write(":MEAS:SOUR"+iChannel)
-			oscilloscopeDevice.write(":MEAS:SOUR?")
-			print("Checking %s" %(oscilloscopeDevice.read().strip()))
-
-		#Measure the frequency of signal
-		oscilloscopeDevice.write(":MEAS:FREQ?"+iChannel)
-		oscilloscopeFrequency.append(oscilloscopeDevice.read())
-		if(iTest == 1):        	
-			print("Oscilloscope measured frequency is %.3e" %(float(oscilloscopeFrequency[-1])))
-
-		#Measure the time interval of the signal
-		oscilloscopeDevice.write(":WAV:XINC?"+iChannel)
-		timeInterval.append(oscilloscopeDevice.read())
-		if(iTest == 1):
-			print("Time interval is %.3e" %(float(timeInterval[-1])))
-
-		#Read in waveform data for the channel
-		oscilloscopeDevice.write(":WAV:DATA?"+iChannel)
-
-		#Create numpy array for each channel
-		waveFormData.append(np.frombuffer(oscilloscopeDevice.read(), "B"))
-
-	###########################################################################
-	if(iTest == 1):
-		print
-		functions.printSpecial("Data Analysis")
-	###########################################################################
-	iCount = 0
-	for iChannelData in waveFormData:
-		if(iTest == 1):
-			print("Analyzing oscillator id: %s" %(oscillatorId))
-		print("Test no. %s" %(iTest))
-		xPoints = []
-		yPoints = []
-		tempCount = 0
-		for iData in iChannelData:
-			yData = (iData & 0xFFF)
-			yPoints.append(yData)
-			xPoints.append(tempCount)
-			tempCount = tempCount + 1
+	        #:INSTrument[:SELEct] CH- Select CH as the current channel
+	        powerChannels = [" CH3"]
+	        for iChannel in powerChannels:
+	                if(iPowerCycle == 1): 
+	                        self.powerSupplyDevice.write(":INST"+iChannel)
+	                        self.powerSupplyDevice.write(":INST?")
+	                        print("Checking %s" %(self.powerSupplyDevice.read().strip().decode()))
 	
-		chFigure = plt.figure(figsize=(15, 15), dpi=50, facecolor='w', edgecolor='k') 
+	                #Enable and query the current output status
+	                self.powerSupplyDevice.write(":OUTP"+iChannel+", "+OnOrOff)
+	                time.sleep(1)
+	                if(iPowerCycle == 1):
+	                        self.powerSupplyDevice.write(":OUTP?")
+	                        print("The channel is %s" %(self.powerSupplyDevice.read().strip().decode()))
+			
+	                if(OnOrOff is "ON"):
+	                        #Set and query the voltage setting value of the current channel
+	                        self.powerSupplyDevice.write(":VOLT 3.3")
+	                        if(iPowerCycle == 1):
+	                                self.powerSupplyDevice.write(":VOLT?")
+	                                print("Voltage is set to %f" %(float(self.powerSupplyDevice.read().strip().decode())))
+	
+			#Query the voltage measured on the output terminal
+	                if(iPowerCycle == 1):
+	                        self.powerSupplyDevice.write(":MEAS:VOLT?")
+	                        print("Measured voltage is %f" %(float(self.powerSupplyDevice.read().strip().decode())))
+	
+			#Query the current measured on the output terminal
+	                if(iPowerCycle == 1):
+	                        self.powerSupplyDevice.write(":MEAS:CURR?")
+	                        print("Measured current is %f" %(float(self.powerSupplyDevice.read().lstrip().decode())))
+	
 
-		#The DFT assume that the signal is periodic on the interval 0 to N,
-		#where N is the total numbe fo data points in the signal 
-		yPoints = yPoints[28:428]
-		xPoints = xPoints[28:428]
-
-		#Plot Waveform data
-		axis1 = chFigure.add_subplot(2,1,1)
-		axis1.plot(xPoints, yPoints, 'ro', color='g', alpha=0.5)
-		functions.setTitle(axis1, 'Voltage (V)', '', '')
-		functions.setTicks(axis1)
-
-		#Peform FFT
-		timeScale = float(timeInterval[iCount])
-		signal = np.array(yPoints, dtype=float)
-		yFftPoints= np.fft.fft(signal)
-		nLengthData = signal.size
-		xFftPoints = np.fft.fftfreq(nLengthData, d=timeScale)
-
-		#One side frequency
-		#The zeo frequency is in the first postion of the array, 
-		#followed by the positve frequencies in acscending order, and then
-		#the negative frequencies in descending order 
-		xFftPoints = xFftPoints[range(nLengthData/2)]
-		yFftPoints = yFftPoints[range(nLengthData/2)]
-
-		axis2 = chFigure.add_subplot(2,1,2)
-		axis2.plot(xFftPoints, 20*np.log10(abs(yFftPoints)), color='g', alpha=0.5)
-		functions.setTitle(axis2, '', 'Frequency (Hz)', '')
-		functions.setTicks(axis2)	
-		axis2.set_xlim([0.0,0.75e9])
-		axis2.set_ylim([0.0,100.0])
-
-		chFigure.show()
-		time.sleep(1)
-		chFigure.savefig("../"+lotNumber+"/plots/Id_"+oscillatorId+"_test_"+str(iTest)+".png")
-		plt.close(chFigure)
-
-		#Need to store the frequency
-		#The zeroth coefficient is the average value of the signal over the interval	
-		yFftPoints = yFftPoints[1:]
-		xFftPoints = xFftPoints[1:]
-		maxY = np.argmax(abs(yFftPoints))
-		maxX = xFftPoints[maxY]
-		print('Oscilloscope measured frequency: %.3e' %(float(oscilloscopeFrequency[iCount].strip())))
-		print('FFT calculated frequency: %.3e' %(maxX))
-		print
+        def doTesting(self):                        
+		###########################################################################
+		#Get devices that start with usbtmc in dev dir
+                functions.printSpecial("Accessing devices of interest from dev dir")
+		###########################################################################
+		#Devices of interest are:
+		#RIGOL DS1074B Digital Oscilloscope
+		#RIGOL DP832 Programmable DC Power Supply
+		###########################################################################
+                #powerSupplyDevice = None
+                #oscilloscopeDevice = None
+                dirList = os.listdir("/dev")
+                for fName in dirList:
+                        if(fName.startswith("usbtmc")):
+                                device = driverUSBTMC.DriverUSBTMC("/dev/" + fName)
 		
-		if maxX != requiredFrequency:
-			totalFails = totalFails +1
-
-		if totalFails >= 1:
-			print('Fail!!! Exiting')
-			turnPower("OFF", 1)
-			sys.exit(0)
-
-		testResults[iTest] = maxX
+				#Get the manufacturer name, the model, the serial number, and
+				#the digital board version number in sequence
+                                deviceID = device.getID()
 		
-		totalCounts = totalCounts + 1
-		totalFrequency = totalFrequency + maxX
+                                if(deviceID.startswith(b"RIGOL TECHNOLOGIES,DP832")):
+                                        print("DC Power Supply found with identification %s" %(deviceID.decode()))
+                                        self.powerSupplyDevice = device
+                                elif(deviceID.startswith(b"Rigol Technologies,DS1074B")):
+                                        print("Oscilloscope found with identification %s" %(deviceID.decode()))
+                                        self.oscilloscopeDevice = device
 
-		iCount = iCount + 1
+                if self.powerSupplyDevice is None or self.oscilloscopeDevice is None:
+                        print("All devices of our interest not found!\nExiting!\n")
+                        sys.exit(0)
+		
+		###########################################################################
+		#Power cycle and take the measurements with oscilloscope
+		###########################################################################
+		#Power cycle 100 times in LN2
+                totalPowerCycle = 100
+		
+		#Testing 100 MHz oscillators
+                requiredFrequency = 100*(10**6)
+		
+		#Bookkeeping
+                totalFails = [0, 0, 0, 0]
+                totalCounts = [0, 0, 0, 0]
+                totalFrequency = [0, 0, 0, 0]
+                testResults = [{}, {}, {}, {}]
+		
+		#Let the oscillator settle in LN2
+                time.sleep(5)
+                for iPowerCycle in range(1,totalPowerCycle+1,1):
+			###########################################################################
+                        if(iPowerCycle == 1):
+                                functions.printSpecial("Starting test")
+			###########################################################################
+                        self.turnPower("OFF", iPowerCycle)	
+                        self.turnPower("ON", iPowerCycle)
+			
+			###########################################################################
+                        if(iPowerCycle == 1):
+                                functions.printSpecial("Checking Oscilloscope")
+			###########################################################################
+		
+			#Return data points currently displayed on the screen (600 points)
+                        self.oscilloscopeDevice.write(":WAV:POIN:MODE NOR")
+		
+			#Set the format of the waveform data to BYTE (int8: -128 to 127)
+                        self.oscilloscopeDevice.write(":WAV:FORM BYTE")
+                        if(iPowerCycle == 1):
+                                self.oscilloscopeDevice.write(":WAV:FORM?")
+                                print("Format of the waveform data is %s" %(self.oscilloscopeDevice.read().strip().decode()))
+		
+			#:MEASure:SOURce <source>- Select the measurement channel
+                        oscilloscopeChannels = [" CHAN1", " CHAN2", " CHAN3" , " CHAN4"]
 
-turnPower("OFF", 1)
-###########################################################################
-#Summary of results
-###########################################################################
-with open("../"+lotNumber+"/jsonFiles/"+oscillatorId+".json", 'wb') as outFile:
-	json.dump(testResults, outFile)
+                        waveFormData = []
+                        timeInterval = []
+                        oscilloscopeFrequency = []
+                        for iChannel in oscilloscopeChannels:
+                                self.oscilloscopeDevice.write(iChannel+":DISP ON")
+                                self.oscilloscopeDevice.write(":TRIG:EDGE:SOUR"+iChannel)
+                                self.oscilloscopeDevice.write(":MEAS:SOUR"+iChannel)
+                                if(iPowerCycle == 1):
+                                        self.oscilloscopeDevice.write(":MEAS:SOUR?"+iChannel)
+                                        print("Checking %s" %(self.oscilloscopeDevice.read().strip().decode()))
 
-functions.printSpecial("Printing results")
-averageFrequency = totalFrequency/totalCounts
-print
-if averageFrequency == requiredFrequency:
-	print("Oscillator %s Passed!!!" %(oscillatorId))
-else:
-	print("Oscillator %s Failsed!!!" %(oscillatorId))
-print
-print("Printing results of each test:")
-print(testResults)
-print
+                                if(iPowerCycle == 1):
+                                        self.oscilloscopeDevice.write("TRIG:EDGE:SOUR?"+iChannel)
+                                        print("Triggering on %s" %(self.oscilloscopeDevice.read().strip().decode()))
+                                        
+				#Measure the frequency of signal
+                                self.oscilloscopeDevice.write(":MEAS:FREQ?"+iChannel)
+                                oscilloscopeFrequency.append(self.oscilloscopeDevice.read())
+                                if(iPowerCycle == 1):        	
+                                        print("Oscilloscope measured frequency is %.3e" %(float(oscilloscopeFrequency[-1])))
+		
+				#Measure the time interval of the signal
+                                self.oscilloscopeDevice.write(":WAV:XINC?"+iChannel)
+                                timeInterval.append(self.oscilloscopeDevice.read())
+                                if(iPowerCycle == 1):
+                                        print("Time interval is %.3e" %(float(timeInterval[-1])))
+		
+				#Read in waveform data for the channel
+                                self.oscilloscopeDevice.write(":WAV:DATA?"+iChannel)
+				#Create numpy array for each channel
+                                waveFormData.append(np.frombuffer(self.oscilloscopeDevice.read(), "B"))
 
-#Noitfy with a beep: as PC doesn't have speakers, using RIGOl devices
-powerSupplyDevice.write("SYST:BEEP:IMM")
-oscilloscopeDevice.write("BEEP:ACT")
+                                time.sleep(1)
+                                self.oscilloscopeDevice.write(iChannel+":DISP OFF")
+                                
+			###########################################################################
+                        if(iPowerCycle == 1):
+                                print()
+                                functions.printSpecial("Data Analysis")
+			###########################################################################
+                        print("Test no. %s" %(iPowerCycle))
+                        print()
+                        
+                        iChannelNumber = 0
+                        for iChannelData in waveFormData:
+                                print("Analyzing oscillator id: %s" %(self.oscillatorId[iChannelNumber]))
+                                
+                                xPoints = []
+                                yPoints = []
+                                tempCount = [0, 0, 0, 0]
+                                for iData in iChannelData:
+                                        yData = (iData & 0xFFF)
+                                        yPoints.append(yData)
+                                        xPoints.append(tempCount[iChannelNumber])
+                                        tempCount[iChannelNumber] = tempCount[iChannelNumber] + 1
+			
+                                chFigure = plt.figure(figsize=(15, 15), dpi=50, facecolor='w', edgecolor='k') 
+		
+				#The DFT assume that the signal is periodic on the interval 0 to N,
+				#where N is the total numbe fo data points in the signal 
+                                yPoints = yPoints[28:428]
+                                xPoints = xPoints[28:428]
+		
+				#Plot Waveform data
+                                axis1 = chFigure.add_subplot(2,1,1)
+                                axis1.plot(xPoints, yPoints, 'ro', color='g', alpha=0.5)
+                                functions.setTitle(axis1, 'Voltage (V)', '', '')
+                                functions.setTicks(axis1)
+		
+				#Peform FFT
+                                timeScale = float(timeInterval[iChannelNumber])
+                                signal = np.array(yPoints, dtype=float)
+                                yFftPoints= np.fft.fft(signal)
+                                nLengthData = signal.size
+                                xFftPoints = np.fft.fftfreq(nLengthData, d=timeScale)
+		
+				#One side frequency
+				#The zeo frequency is in the first postion of the array, 
+				#followed by the positve frequencies in acscending order, and then
+				#the negative frequencies in descending order 
+                                xFftPoints = xFftPoints[range(nLengthData//2)]
+                                yFftPoints = yFftPoints[range(nLengthData//2)]
+		
+                                axis2 = chFigure.add_subplot(2,1,2)
+                                axis2.plot(xFftPoints, 20*np.log10(abs(yFftPoints)), color='g', alpha=0.5)
+                                functions.setTitle(axis2, '', 'Frequency (Hz)', '')
+                                functions.setTicks(axis2)	
+                                axis2.set_xlim([0.0,0.75e9])
+                                axis2.set_ylim([0.0,100.0])
+		
+                                chFigure.show()
+                                time.sleep(1)
+                                chFigure.savefig(self.outpathlabel+"_OscillatorId_"+str(self.oscillatorId[iChannelNumber])+"_ThermalCycle_"
+                                                 +str(self.thermalCycle[iChannelNumber])+"_PowerCycle_"+ str(iPowerCycle) +".png")
+                                plt.close(chFigure)
+		
+				#Need to store the frequency
+				#The zeroth coefficient is the average value of the signal over the interval	
+                                yFftPoints = yFftPoints[1:]
+                                xFftPoints = xFftPoints[1:]
+                                maxY = np.argmax(abs(yFftPoints))
+                                maxX = xFftPoints[maxY]
+                                print('Oscilloscope measured frequency: %.3e' %(float(oscilloscopeFrequency[iChannelNumber].strip())))
+                                print('FFT calculated frequency: %.3e' %(maxX))
+				
+                                if maxX != requiredFrequency:
+                                        totalFails[iChannelNumber] = totalFails[iChannelNumber] +1
+
+                                if totalFails[iChannelNumber] >= 1:
+                                        print('Oscillator id %s has failed' %(self.oscillatorId[iChannelNumber]))
+                                        # Do something else here
+                
+                                testResults[iChannelNumber][iPowerCycle] = maxX
+				
+                                totalCounts[iChannelNumber] = totalCounts[iChannelNumber] + 1
+                                totalFrequency[iChannelNumber] = totalFrequency[iChannelNumber] + maxX
+
+                                iChannelNumber = iChannelNumber + 1
+                                print()
+                self.turnPower("OFF", 1)
+                
+		###########################################################################
+		#Summary of results
+		###########################################################################
+                print()
+                functions.printSpecial("Printing results")
+                for iC in range(0, 4):                                                 
+                        with open(self.outpathlabel+"_OscillatorId_"+str(self.oscillatorId[iC])+"_ThermalCycle_"
+                                  +str(self.thermalCycle[iC])+".json", 'w') as outFile:
+                                json.dump(testResults[iC], outFile)
+	
+                        averageFrequency = totalFrequency[iC]/totalCounts[iC]
+                        print()
+                        if averageFrequency  == requiredFrequency:
+                                print("Oscillator %s Passed!!!" %(self.oscillatorId[iC]))
+                        else:		
+                                print("Oscillator %s Failed!!!" %(self.oscillatorId[iC]))
+                        print()
+                print()
+                
+		#Noitfy with a beep: as PC doesn't have speakers, using RIGOl devices
+                self.powerSupplyDevice.write("SYST:BEEP:IMM")
+                self.oscilloscopeDevice.write("BEEP:ACT")
 
 
+def main():
+        import json
 
+        params = json.loads(open(sys.argv[1]).read())
 
+        #Standard parameters for the codes: output dir and prefix
+        datadir = params['datadir']
+        outlabel = params['outlabel']
 
+        #Oscillator id for oscillator in each channel and thermal cycle for that oscillator
+        oscTest = OSCILLATOR_TESTING(datadir, outlabel)
+        oscTest.oscillatorId[0] = params['oscillator_in_channel_1_id']
+        oscTest.oscillatorId[1] = params['oscillator_in_channel_2_id']
+        oscTest.oscillatorId[2] = params['oscillator_in_channel_3_id']
+        oscTest.oscillatorId[3] = params['oscillator_in_channel_4_id']
+        oscTest.thermalCycle[0] = params['thermal_cycle_for_oscillator_in_channel_1']
+        oscTest.thermalCycle[1] = params['thermal_cycle_for_oscillator_in_channel_2']
+        oscTest.thermalCycle[2] = params['thermal_cycle_for_oscillator_in_channel_3']
+        oscTest.thermalCycle[3] = params['thermal_cycle_for_oscillator_in_channel_4']
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        #Begin testing
+        oscTest.doTesting()
+        
+if __name__ == '__main__':
+        main()

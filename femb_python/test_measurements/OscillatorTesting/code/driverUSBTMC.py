@@ -12,9 +12,10 @@ class DriverUSBTMC:
         self.FILE = os.open(deviceName, os.O_RDWR) 
                
     def write(self, writeCommand):
-        os.write(self.FILE, writeCommand);
+        bWriteCommand= str.encode(writeCommand)
+        os.write(self.FILE, bWriteCommand);
 
-    def read(self, readLength = 4000):
+    def read(self, readLength = 5000):
         return os.read(self.FILE, readLength)
 
     def getID(self):

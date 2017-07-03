@@ -1,7 +1,7 @@
 def printSpecial(printThis):
-    print "*" * 75
-    print printThis
-    print "*" * 75
+    print("*" * 75)
+    print(printThis)
+    print("*" * 75)
 
 def setTitle(axis, title, xAxis, yAxis):
     axis.set_title(title, fontsize=25)
