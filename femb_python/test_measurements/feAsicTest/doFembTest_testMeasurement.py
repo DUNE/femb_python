@@ -112,10 +112,10 @@ class FEMB_TEST_SIMPLE(object):
         self.femb_config.feasicGain = 1 #4.7,7.8,14,25
         self.femb_config.feasicShape = 2 #0.5,1,2,3
         self.femb_config.feasicBaseline = 1 #0 = 200mV, 1 = 900mV
-        self.femb_config.feasicLeakageVal = 0 #0 = 500pA, 1 = 100pA
-        self.femb_config.feasicLeakagex10Val = 0 #0 = x1, 1 = x10
-        self.femb_config.bufVal = 1 #0 = OFF, 1 = ON
-        self.femb_config.acdcVal = 0 #AC = 0, DC = 1
+        self.femb_config.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
+        self.femb_config.feasicLeakagex10 = 1 #0 = x1, 1 = x10
+        self.femb_config.feasicBuf = 1 #0 = OFF, 1 = ON
+        self.femb_config.feasicAcdc = 0 #AC = 0, DC = 1
         self.femb_config.feasicEnableTestInput = 1 #OFF = 0, ON = 1
         self.femb_config.configFeAsic()
 
@@ -123,7 +123,7 @@ class FEMB_TEST_SIMPLE(object):
         self.femb_config.setDacPulser(0,0x0)
         self.femb_config.setFpgaPulser(0,0x0)
         self.femb_config.setExternalFpgaPulser(0,0x0)
-        self.femb_config.setInternalPulser(1,0x10)
+        self.femb_config.setInternalPulser(1,0x5)
 
         #wait to make sure HS link is back on
         #sleep(0.5)

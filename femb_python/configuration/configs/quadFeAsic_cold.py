@@ -165,7 +165,7 @@ class FEMB_CONFIG(quadFeAsic.FEMB_CONFIG):
         self.femb.write_reg_bits( shiftRegNum , 26, 0x3, 0x0 ) #ADC 13
         self.femb.write_reg_bits( shiftRegNum , 28, 0x3, 0x0 ) #ADC 14
         self.femb.write_reg_bits( shiftRegNum , 30, 0x3, 0x0 ) #ADC 15
-        
+
 
         """
         #Warm values
