@@ -66,16 +66,24 @@ def main(**params):
     Main entry to the oscillator test script.
     '''
 
+    executable = "/bin/echo"
+    argstr = "cycle is {cycle} in {datadir} with {outlabel}"
+    use_sumatra = False
+    test_category = "notest"
+
     readymsg = "Start cycle {cycle}.  Are the oscillators cold and ready for testing? (y/n): "
     finishmsg = "Finished cycle {cycle}.  Are the oscillators removed from LN2? (y/n): "
 
+
     cycles = [Cycle(readymsg, finishmsg, cycle=n, datasubdir="cycle{cycle}") for n in range(3)]
-    r = runpolicy.make_runner("notest",False, executable="/bin/echo", argstr="cycle is {cycle} in {datadir} with {outlabel}", **params)
+    r = runpolicy.make_runner(test_category, use_sumatra,
+                                  executable=executable,
+                                  argstr=argstr, **params)
     s = Sequencer(cycles, r)
     s.run()
     
     
 if '__main__' == __name__:
-    main(datadisks=["/tmp"])
+    main()
     
     
