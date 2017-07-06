@@ -119,7 +119,7 @@ class OSCILLATOR_TESTING(object):
                         if(iPowerCycle == 1):
                                 functions.printSpecial("Checking Oscilloscope")
 			###########################################################################
-		
+                        
 			#Return data points currently displayed on the screen (600 points)
                         self.oscilloscopeDevice.write(":WAV:POIN:MODE NOR")
 		
@@ -128,17 +128,36 @@ class OSCILLATOR_TESTING(object):
                         if(iPowerCycle == 1):
                                 self.oscilloscopeDevice.write(":WAV:FORM?")
                                 print("Format of the waveform data is %s" %(self.oscilloscopeDevice.read().strip().decode()))
-		
+
+                        #Set the timebase scale as 5 ns
+                        self.oscilloscopeDevice.write(":TIM:SCAL 0.0000000005")
+                        if(iPowerCycle == 1):
+                                self.oscilloscopeDevice.write(":TIM:SCAL?")
+                                print("Timebase scale is %s" %(self.oscilloscopeDevice.read().strip().decode()))
+                                
 			#:MEASure:SOURce <source>- Select the measurement channel
                         oscilloscopeChannels = [" CHAN1", " CHAN2", " CHAN3" , " CHAN4"]
 
+                        #Turn off the display if any is on
+                        for iChannel in oscilloscopeChannels:
+                                self.oscilloscopeDevice.write(iChannel+":DISP OFF")
+                        
                         waveFormData = []
                         timeInterval = []
                         oscilloscopeFrequency = []
                         for iChannel in oscilloscopeChannels:
+                                #Turn on the display
                                 self.oscilloscopeDevice.write(iChannel+":DISP ON")
+                                #Set the vertical scale to 100 mV
+                                self.oscilloscopeDevice.write(iChannel+":SCAL 0.1")
+                                #Set the edge trigger source to the same channel
                                 self.oscilloscopeDevice.write(":TRIG:EDGE:SOUR"+iChannel)
                                 self.oscilloscopeDevice.write(":MEAS:SOUR"+iChannel)
+
+                                if(iPowerCycle == 1):
+                                        self.oscilloscopeDevice.write(iChannel+":SCAL?")
+                                        print("Vertical scale is %s" %(self.oscilloscopeDevice.read().strip().decode()))
+                                        
                                 if(iPowerCycle == 1):
                                         self.oscilloscopeDevice.write(":MEAS:SOUR?"+iChannel)
                                         print("Checking %s" %(self.oscilloscopeDevice.read().strip().decode()))
@@ -161,9 +180,16 @@ class OSCILLATOR_TESTING(object):
 		
 				#Read in waveform data for the channel
                                 self.oscilloscopeDevice.write(":WAV:DATA?"+iChannel)
+                                
 				#Create numpy array for each channel
-                                waveFormData.append(np.frombuffer(self.oscilloscopeDevice.read(), "B"))
+                                #Will exit if nothing to read due to a problem; like oscillator not in the socket, etc
+                                try:
+                                        waveFormData.append(np.frombuffer(self.oscilloscopeDevice.read(), "B"))
+                                except:
+                                        print("%s has a problem. Please check and retry again!\nExiting!\n" %(iChannel.strip()))
+                                        sys.exit(0)
 
+                                #Sleep 1 second and turn off the display for that channel        
                                 time.sleep(1)
                                 self.oscilloscopeDevice.write(iChannel+":DISP OFF")
                                 
