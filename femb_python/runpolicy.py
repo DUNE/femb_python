@@ -330,3 +330,66 @@ class SumatraRunner(Runner):
         self.exec(cmd, rundir)
         return
                 
+import os
+import getpass                            # for getuser
+
+def make_runner(test_category, use_sumatra=True, **params):
+    '''
+    Default parameters for a CE testing.  This enforces some
+    parameters to be added through the argument list and divines many
+    others from the environment.
+    '''
+    # Check out the data disk situation and find the most available disk
+
+
+    params["femb_config"] = os.environ["FEMB_CONFIG"]  # required
+
+    freedisks = list()
+    datadisks=["/tmp"]
+    hostname = os.uname()[1]
+    if hostname.startswith("hoth"):
+        datadisks = ["/dsk/1", "/dsk/2"]
+    for dd in datadisks:
+        stat = os.statvfs(dd)
+        MB = stat.f_bavail * stat.f_frsize >> 20
+        freedisks.append((MB, dd))
+    freedisks.sort()
+    params.update(lo_disk = freedisks[0][1], hi_disk = freedisks[-1][1])
+
+    now = time.time()
+    params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
+    params["session_start_unix"] = now
+
+    params["user"] = getpass.getuser()
+    if params["user"] == "oper":
+        params["datadisk"] = "{lo_disk}/data"
+    else:
+        params["datadisk"] = "{lo_disk}/tmp"
+
+    params.update(test_category = test_category,
+                      hostname = hostname,
+                      rundir = "/home/{user}/run",
+                      datasubdir = ".",
+                      outlabel = "",
+                      datadir = "{datadisk}/{user}/{test_category}/{femb_config}/{session_start_time}/{datasubdir}",
+                      paramfile = "{datadir}/params.json",
+                      smtname = "{test_category}",
+                      smttag = "{hostname},{datadisk}",
+                      femb_python_location = os.path.dirname(__file__))
+    
+    if not use_sumatra:
+        return DirectRunner(**params)
+
+    print ("Using Sumatra")
+    pghost = os.environ.get("PGHOST")
+    if pghost:
+        print (" with PostgreSQL database at %s" % pghost)
+        params.update(
+            smtstore="postgres://{pguser}@{pghost}/{pgdatabase}",
+            pguser = os.environ['PGUSER'],
+            pghost = os.environ['PGHOST'],
+            pgdatabase = os.environ['PGDATABASE'],
+        )
+    else:
+        print (" with Sqlite3 database in rundir")
+    return SumatraRunner(**params)

@@ -48,6 +48,9 @@ class GUI_WINDOW(Frame):
         #Define general commands column
         self.define_general_commands_column()
 
+        # fixme: a huge chunk of the following code is now generically
+        # available as runpolicy.make_runner().
+
         #define required variables
         self.params = dict(
             operator_name = "",
