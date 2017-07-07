@@ -65,17 +65,17 @@ def main(**params):
     '''
     Main entry to the oscillator test script.
     '''
+    executable = "femb_test_osc"
+    argstr = "{datadir} {outlabel} {cycle}"
 
-    executable = "/bin/echo"
-    argstr = "cycle is {cycle} in {datadir} with {outlabel}"
-    use_sumatra = False
+    use_sumatra = True
     test_category = "notest"
 
-    readymsg = "Start cycle {cycle}.  Are the oscillators cold and ready for testing? (y/n): "
-    finishmsg = "Finished cycle {cycle}.  Are the oscillators removed from LN2? (y/n): "
+    readymsg = "\n\nStartting thermal cycle {cycle}.\nAre the oscillators cold and ready for testing? (y/n):\n"
+    finishmsg = "\n\nFinished thermal cycle {cycle}.\nAre the oscillators removed from LN2? (y/n):\n"
 
 
-    cycles = [Cycle(readymsg, finishmsg, cycle=n, datasubdir="cycle{cycle}") for n in range(3)]
+    cycles = [Cycle(readymsg, finishmsg, cycle=n, datasubdir="cycle{cycle}") for n in range(1,4)]
     r = runpolicy.make_runner(test_category, use_sumatra,
                                   executable=executable,
                                   argstr=argstr, **params)

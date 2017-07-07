@@ -172,6 +172,7 @@ setup(
             'femb_feasic_gain_externaldac=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement_externalDac:main',
             'femb_control_power=femb_python.test_measurements.feAsicTest.doFemb_controlPower:main',
 
+            'femb_test_osc=femb_python.test_measurements.OscillatorTesting.code.testOscillator:main',
             'femb_osctest=femb_python.test_measurements.OscillatorTesting.otmain:main',
         ],
         #'gui_scripts': [

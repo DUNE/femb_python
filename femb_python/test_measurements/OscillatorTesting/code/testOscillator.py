@@ -1,7 +1,7 @@
 #!/usr/bin/env python33
 
-import driverUSBTMC
-import functions
+from . import driverUSBTMC
+from . import functions
 import os
 import sys
 import time
@@ -12,13 +12,11 @@ import matplotlib.pyplot as plt
 
 class OSCILLATOR_TESTING(object):
 
-        def __init__(self, datadir="data", outlabel="oscillatorTesting"):
+        def __init__(self, datadir="data", outlabel="OscillatorTesting", thermalCyc = 0):
                 self.outpathlabel = os.path.join(datadir, outlabel)
 
-                #Oscillator id for oscillator in each channel and thermal cycle for that oscillator
-                self.oscillatorId = [0, 0, 0, 0]
-                self.thermalCycle = [0, 0, 0, 0]
-
+                self.thermalCycle = thermalCyc
+                
                 self.powerSupplyDevice = None
                 self.oscilloscopeDevice = None
                                 
@@ -60,7 +58,10 @@ class OSCILLATOR_TESTING(object):
 	
 
         def doTesting(self):                        
-		###########################################################################
+                
+                timeStamp= time.strftime("%m_%d-%H_%M")
+                
+                ###########################################################################
 		#Get devices that start with usbtmc in dev dir
                 functions.printSpecial("Accessing devices of interest from dev dir")
 		###########################################################################
@@ -94,15 +95,12 @@ class OSCILLATOR_TESTING(object):
 		#Power cycle and take the measurements with oscilloscope
 		###########################################################################
 		#Power cycle 100 times in LN2
-                totalPowerCycle = 100
+                totalPowerCycle = 1#100
 		
 		#Testing 100 MHz oscillators
                 requiredFrequency = 100*(10**6)
 		
-		#Bookkeeping
-                totalFails = [0, 0, 0, 0]
-                totalCounts = [0, 0, 0, 0]
-                totalFrequency = [0, 0, 0, 0]
+		#Final result
                 testResults = [{}, {}, {}, {}]
 		
 		#Let the oscillator settle in LN2
@@ -202,8 +200,10 @@ class OSCILLATOR_TESTING(object):
                         print()
                         
                         iChannelNumber = 0
+                        oscillatorId = []
                         for iChannelData in waveFormData:
-                                print("Analyzing oscillator id: %s" %(self.oscillatorId[iChannelNumber]))
+                                oscillatorId.append(timeStamp + "-" + str(iChannelNumber + 1))
+                                print("Analyzing oscillator in Channel %s" %(iChannelNumber + 1))
                                 
                                 xPoints = []
                                 yPoints = []
@@ -250,10 +250,10 @@ class OSCILLATOR_TESTING(object):
 		
                                 chFigure.show()
                                 time.sleep(1)
-                                chFigure.savefig(self.outpathlabel+"_OscillatorId_"+str(self.oscillatorId[iChannelNumber])+"_ThermalCycle_"
-                                                 +str(self.thermalCycle[iChannelNumber])+"_PowerCycle_"+ str(iPowerCycle) +".png")
+                                chFigure.savefig(self.outpathlabel+"/OscillatorId_"+oscillatorId[iChannelNumber]+"_ThermalCycle_"
+                                                 +str(self.thermalCycle)+"_PowerCycle_"+ str(iPowerCycle) +".png")
                                 plt.close(chFigure)
-		
+                                 
 				#Need to store the frequency
 				#The zeroth coefficient is the average value of the signal over the interval	
                                 yFftPoints = yFftPoints[1:]
@@ -263,65 +263,33 @@ class OSCILLATOR_TESTING(object):
                                 print('Oscilloscope measured frequency: %.3e' %(float(oscilloscopeFrequency[iChannelNumber].strip())))
                                 print('FFT calculated frequency: %.3e' %(maxX))
 				
-                                if maxX != requiredFrequency:
-                                        totalFails[iChannelNumber] = totalFails[iChannelNumber] +1
-
-                                if totalFails[iChannelNumber] >= 1:
-                                        print('Oscillator id %s has failed' %(self.oscillatorId[iChannelNumber]))
-                                        # Do something else here
-                
                                 testResults[iChannelNumber][iPowerCycle] = maxX
 				
-                                totalCounts[iChannelNumber] = totalCounts[iChannelNumber] + 1
-                                totalFrequency[iChannelNumber] = totalFrequency[iChannelNumber] + maxX
-
                                 iChannelNumber = iChannelNumber + 1
                                 print()
                 self.turnPower("OFF", 1)
+                print()
                 
 		###########################################################################
-		#Summary of results
+		#Write summary of results in JSON file
 		###########################################################################
-                print()
-                functions.printSpecial("Printing results")
                 for iC in range(0, 4):                                                 
-                        with open(self.outpathlabel+"_OscillatorId_"+str(self.oscillatorId[iC])+"_ThermalCycle_"
-                                  +str(self.thermalCycle[iC])+".json", 'w') as outFile:
+                        with open(self.outpathlabel+"/OscillatorId_"+oscillatorId[iC]+"_ThermalCycle_"
+                                  +str(self.thermalCycle)+".json", 'w') as outFile:
                                 json.dump(testResults[iC], outFile)
-	
-                        averageFrequency = totalFrequency[iC]/totalCounts[iC]
-                        print()
-                        if averageFrequency  == requiredFrequency:
-                                print("Oscillator %s Passed!!!" %(self.oscillatorId[iC]))
-                        else:		
-                                print("Oscillator %s Failed!!!" %(self.oscillatorId[iC]))
-                        print()
-                print()
-                
+	                
 		#Noitfy with a beep: as PC doesn't have speakers, using RIGOl devices
                 self.powerSupplyDevice.write("SYST:BEEP:IMM")
                 self.oscilloscopeDevice.write("BEEP:ACT")
 
 
 def main():
-        import json
-
-        params = json.loads(open(sys.argv[1]).read())
-
-        #Standard parameters for the codes: output dir and prefix
-        datadir = params['datadir']
-        outlabel = params['outlabel']
-
-        #Oscillator id for oscillator in each channel and thermal cycle for that oscillator
-        oscTest = OSCILLATOR_TESTING(datadir, outlabel)
-        oscTest.oscillatorId[0] = params['oscillator_in_channel_1_id']
-        oscTest.oscillatorId[1] = params['oscillator_in_channel_2_id']
-        oscTest.oscillatorId[2] = params['oscillator_in_channel_3_id']
-        oscTest.oscillatorId[3] = params['oscillator_in_channel_4_id']
-        oscTest.thermalCycle[0] = params['thermal_cycle_for_oscillator_in_channel_1']
-        oscTest.thermalCycle[1] = params['thermal_cycle_for_oscillator_in_channel_2']
-        oscTest.thermalCycle[2] = params['thermal_cycle_for_oscillator_in_channel_3']
-        oscTest.thermalCycle[3] = params['thermal_cycle_for_oscillator_in_channel_4']
+        #Standard parameters for the codes: thermal cycle, output dir and prefix
+        datadir = sys.argv[0] 
+        outlabel = sys.argv[1]
+        thermalCyc = sys.argv[2]
+        
+        oscTest = OSCILLATOR_TESTING(datadir, outlabel, thermalCyc)
 
         #Begin testing
         oscTest.doTesting()
