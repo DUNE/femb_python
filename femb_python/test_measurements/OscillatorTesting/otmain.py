@@ -11,7 +11,7 @@ It maintains a state over a test sequence.
 from femb_python import runpolicy
 
 class Cycle(object):
-    def __init__(self, readymsg, finishmsg, **params):
+    def __init__(self, readymsg=None, finishmsg=None, **params):
         self._readymsg = readymsg
         self._finishmsg = finishmsg
         self._params = params;
@@ -23,13 +23,6 @@ class Cycle(object):
         ''' 
         return self._params
 
-
-    def _prompt(self, msg, respfunc=None, **params):
-        prompt = self._format(msg, **params)
-        resp = input(prompt)
-        if respfunc:
-            return respfunc(resp)
-        return
 
     def get_yes(self, msg, yes="y"):
         '''
@@ -46,9 +39,13 @@ class Cycle(object):
         '''
         params = runner.resolve(**self._params)
 
-        self.get_yes(self._readymsg.format(**params))
+        if self._readymsg:
+            self.get_yes(self._readymsg.format(**params))
+
         runner(**params)
-        self.get_yes(self._finishmsg.format(**params))
+
+        if self._finishmsg:
+            self.get_yes(self._finishmsg.format(**params))
         
 
 class Sequencer(object):
@@ -65,17 +62,36 @@ def main(**params):
     '''
     Main entry to the oscillator test script.
     '''
-    executable = "femb_test_osc"
-    argstr = "{datadir} {outlabel} {cycle}"
 
     use_sumatra = True
-    test_category = "notest"
+    test_category = "osc"                 # pick something
 
+    # for the main test script that gets run in 3 cycles
+    main_params = dict(params)
+    main_params.update(
+        executable = "femb_test_osc",
+        argstr = "{datadir} {outlabel} {cycle}",
+        datasubdir = "cycle{cycle}",      # use easy to guess sub directory for each cycle
+        outlabel = "cycle{cycle}",        # likewise, easy to guess files.
+    )                                     # note: cycle is filled in the loop below
+
+    # for the final summary script 
+    summary_params = dict(params)
+    summary_params.update(
+        executable = "femb_test_osc_summary",
+        argstr = "{datadir} {outlabel}",
+        datasubdir = "summary",
+        outlabel = "summary",
+    )
+
+    # make one Cycle for each, err, cycle of the main test
     readymsg = "\n\nStartting thermal cycle {cycle}.\nAre the oscillators cold and ready for testing? (y/n):\n"
     finishmsg = "\n\nFinished thermal cycle {cycle}.\nAre the oscillators removed from LN2? (y/n):\n"
+    cycles = [Cycle(readymsg, finishmsg, cycle=n, **main_params) for n in range(1,4)]
 
+    # and one for the summary
+    cycles.append(Cycle(**summary_params))
 
-    cycles = [Cycle(readymsg, finishmsg, cycle=n, datasubdir="cycle{cycle}") for n in range(1,4)]
     r = runpolicy.make_runner(test_category, use_sumatra,
                                   executable=executable,
                                   argstr=argstr, **params)
