@@ -34,11 +34,16 @@ GUITESTMODE=False
 class GUI_WINDOW(Frame):
 
     #GUI window defined entirely in init function
-    def __init__(self, master=None):
+    def __init__(self, master=None,forceQuick=False,forceLong=False):
         Frame.__init__(self,master)
         self.pack()
 
         self.config = CONFIG()
+
+        if forceQuick and forceLong:
+            raise Exception("Can't forceQuick and forceLong at the same time")
+        self.forceQuick = forceQuick
+        self.forceLong = forceLong
 
         self.timestamp = None
         self.result_labels = []
@@ -170,6 +175,14 @@ class GUI_WINDOW(Frame):
             cold = self.config.COLD
         except AttributeError:
             cold = None
+        quick = False
+        if self.forceQuick:
+            quick = True
+        elif self.forceLong:
+            quick = False
+        elif cold:
+            quick = True
+
         inputOptions = {
             "operator": operator,
             "board_id": boardid,
@@ -183,6 +196,7 @@ class GUI_WINDOW(Frame):
             "firmware_1MHz": firmware_1MHz,
             "firmware_2MHz": firmware_2MHz,
             "cold": cold,
+            "quick": quick,
         }
         if getCurrent:
             inputOptions["current"] = current
@@ -297,7 +311,6 @@ class GUI_WINDOW(Frame):
 
         runnerSetup = {
                                 "executable": "femb_adc_run",
-                                #"argstr": "--quick -j {paramfile}",
                                 "argstr": "-j {paramfile}",
                                 "basedir": self.data_base_dir,
                                 "rundir": "/home/{linux_username}/run",
@@ -338,12 +351,14 @@ class GUI_WINDOW(Frame):
             with open(outfilename) as outfile:
                 resultdict = json.load(outfile)
         except FileNotFoundError:
-            self.status_label["text"] = "Error: Board setup output not found. Report to shift leader"
-            self.status_label["fg"] = "#FFFFFF"
-            self.status_label["bg"] = "#FF0000"
             if not GUITESTMODE:
+                self.status_label["text"] = "Error: Board setup output not found. Report to shift leader"
+                self.status_label["fg"] = "#FFFFFF"
+                self.status_label["bg"] = "#FF0000"
                 self.config.POWERSUPPLYINTER.off()
-            return
+                return
+            else:
+                resultdict = {"pass":True}
         if resultdict["pass"]:
             self.current_label["state"] = "normal"
             self.current_entry["state"] = "normal"
@@ -464,7 +479,14 @@ class GUI_WINDOW(Frame):
         self.master.destroy()
 
 def main():
+    from ...configuration.argument_parser import ArgumentParser
+
+    parser = ArgumentParser(description="ADC test GUI")
+    parser.add_argument("-q","--forceQuick",help="Force to run only the ADC offset current off setting (normally runs all when warm)",action="store_true")
+    parser.add_argument("-l","--forceLong",help="Force to run over all ADC offset current settings (normally doesn't when cold)",action="store_true")
+    args = parser.parse_args()
+
     root = Tk()
     root.title("ADC Test GUI")
-    window = GUI_WINDOW(root)
+    window = GUI_WINDOW(root,forceLong=args.forceLong,forceQuick=args.forceQuick)
     root.mainloop() 
