@@ -70,31 +70,29 @@ def main(**params):
     main_params = dict(params)
     main_params.update(
         executable = "femb_test_osc",
-        argstr = "{datadir} {outlabel} {cycle}",
-        datasubdir = "cycle{cycle}",      # use easy to guess sub directory for each cycle
-        outlabel = "cycle{cycle}",        # likewise, easy to guess files.
-    )                                     # note: cycle is filled in the loop below
+        argstr = "{datadir} {outlabel}",
+        datasubdir = "OscillatorTestingThermalCycle{cycle}",      # use easy to guess sub directory for each cycle
+        outlabel = "ThermalCycle_{cycle}",                        # likewise, easy to guess files.
+    )                                                             # note: cycle is filled in the loop below
 
     # for the final summary script 
     summary_params = dict(params)
     summary_params.update(
         executable = "femb_test_osc_summary",
         argstr = "{datadir} {outlabel}",
-        datasubdir = "summary",
-        outlabel = "summary",
+        datasubdir = "OscillatorTestingSummary",
+        outlabel = "Summary",
     )
 
     # make one Cycle for each, err, cycle of the main test
-    readymsg = "\n\nStartting thermal cycle {cycle}.\nAre the oscillators cold and ready for testing? (y/n):\n"
-    finishmsg = "\n\nFinished thermal cycle {cycle}.\nAre the oscillators removed from LN2? (y/n):\n"
+    readymsg = "\n\nStarting thermal cycle {cycle}!\nAre the oscillators cold and ready for testing?\n(y/n): "
+    finishmsg = "\n\nFinished thermal cycle {cycle}!\nAre the oscillators removed from LN2?\n(y/n): "
     cycles = [Cycle(readymsg, finishmsg, cycle=n, **main_params) for n in range(1,4)]
 
     # and one for the summary
     cycles.append(Cycle(**summary_params))
 
-    r = runpolicy.make_runner(test_category, use_sumatra,
-                                  executable=executable,
-                                  argstr=argstr, **params)
+    r = runpolicy.make_runner(test_category, use_sumatra, **params)
     s = Sequencer(cycles, r)
     s.run()
     

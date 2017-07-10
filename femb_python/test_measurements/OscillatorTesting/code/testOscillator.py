@@ -12,11 +12,9 @@ import matplotlib.pyplot as plt
 
 class OSCILLATOR_TESTING(object):
 
-        def __init__(self, datadir="data", outlabel="OscillatorTesting", thermalCyc = 0):
+        def __init__(self, datadir="data", outlabel="OscillatorTesting"):
                 self.outpathlabel = os.path.join(datadir, outlabel)
 
-                self.thermalCycle = thermalCyc
-                
                 self.powerSupplyDevice = None
                 self.oscilloscopeDevice = None
                                 
@@ -95,7 +93,7 @@ class OSCILLATOR_TESTING(object):
 		#Power cycle and take the measurements with oscilloscope
 		###########################################################################
 		#Power cycle 100 times in LN2
-                totalPowerCycle = 1#100
+                totalPowerCycle = 100
 		
 		#Testing 100 MHz oscillators
                 requiredFrequency = 100*(10**6)
@@ -250,8 +248,7 @@ class OSCILLATOR_TESTING(object):
 		
                                 chFigure.show()
                                 time.sleep(1)
-                                chFigure.savefig(self.outpathlabel+"/OscillatorId_"+oscillatorId[iChannelNumber]+"_ThermalCycle_"
-                                                 +str(self.thermalCycle)+"_PowerCycle_"+ str(iPowerCycle) +".png")
+                                chFigure.savefig(self.outpathlabel+"_OscillatorId_"+oscillatorId[iChannelNumber]+"_PowerCycle_"+ str(iPowerCycle) +".png")
                                 plt.close(chFigure)
                                  
 				#Need to store the frequency
@@ -274,8 +271,7 @@ class OSCILLATOR_TESTING(object):
 		#Write summary of results in JSON file
 		###########################################################################
                 for iC in range(0, 4):                                                 
-                        with open(self.outpathlabel+"/OscillatorId_"+oscillatorId[iC]+"_ThermalCycle_"
-                                  +str(self.thermalCycle)+".json", 'w') as outFile:
+                        with open(self.outpathlabel+"_OscillatorId_"+oscillatorId[iC]+".json", 'w') as outFile:
                                 json.dump(testResults[iC], outFile)
 	                
 		#Noitfy with a beep: as PC doesn't have speakers, using RIGOl devices
@@ -284,12 +280,11 @@ class OSCILLATOR_TESTING(object):
 
 
 def main():
-        #Standard parameters for the codes: thermal cycle, output dir and prefix
-        datadir = sys.argv[0] 
-        outlabel = sys.argv[1]
-        thermalCyc = sys.argv[2]
+        #Standard parameters for the codes: output dir, outlabel (contains thermal cycle)
+        datadir = sys.argv[1] 
+        outlabel = sys.argv[2]
         
-        oscTest = OSCILLATOR_TESTING(datadir, outlabel, thermalCyc)
+        oscTest = OSCILLATOR_TESTING(datadir, outlabel)
 
         #Begin testing
         oscTest.doTesting()
