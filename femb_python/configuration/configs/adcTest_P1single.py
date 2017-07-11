@@ -116,6 +116,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg( self.REG_ASIC_RESET, 1)
             time.sleep(0.5)
 
+            readback = self.femb_read_reg(0)
+            if readback is None:
+                if self.exitOnError:
+                    print("FEMB_CONFIG: Error reading register 0, Exiting.")
+                    sys.exit(1)
+                else:
+                    raise ReadRegError("Couldn't read register 0")
+
             #Set ADC test pattern register
             self.femb.write_reg( 3, 0x01170000) # test pattern off
             #self.femb.write_reg( 3, 0x81170000) # test pattern on

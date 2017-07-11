@@ -116,7 +116,7 @@ def configAdcAsic(config,sampleRate,offsetCurrent=None,
     print("Unable to configAdcAsic.")
     return False
 
-def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,singleConfig=True,timestamp=None,sumatradict=None):
+def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,quick=False,timestamp=None,sumatradict=None):
     """
     Runs the ADC tests for all chips on the ADC test board.
 
@@ -127,9 +127,8 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     operator is the operator user name string
     board_id is the ID number of the test board
     hostname is the current computer name
-    singleConfig is a boolean. If True only test the ASICS with the external clock
-        and no offset current. If False test both clocks and all offset current
-        settings.
+    quick is a boolean. If True only test the ASICS with no offset current. If False test 
+        all offset current settings settings.
     sumatradict is a dictionary of options that will be written to the summary json
 
     returns a list of bools whether an asic passed the tests. The list
@@ -145,9 +144,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     sampleRates = [2000000,1000000]
     clocks = [0,1] # -1 undefined, 0 external, 1 internal monostable, 2 internal FIFO
     offsets = range(-1,16)
-    if singleConfig:
-        sampleRates = [2000000]
-        clocks = [0]
+    if quick:
         offsets = [-1]
 
     allStatsRaw = {}
@@ -311,7 +308,7 @@ def main():
     parser.add_argument("-s", "--serial",help="Chip serial number, use multiple times for multiple chips, e.g. -s 1 -s 2 -s 3 -s 4",action='append',default=[])
     parser.add_argument("-b", "--board",help="Test board serial number",default=None)
     parser.add_argument("-d", "--datadir",help="Directory for output data files",default="")
-    parser.add_argument("-q", "--quick",help="Only run a single configuration (normally runs all clocks and offsets)",action='store_true')
+    parser.add_argument("-q", "--quick",help="Only run offset current off (normally runs all offsets)",action='store_true')
     parser.add_argument("-p", "--profiler",help="Enable python timing profiler and save to given file name",type=str,default=None)
     parser.add_argument("-j", "--jsonfile",help="json options file location",default=None)
     args = parser.parse_args()
@@ -326,6 +323,7 @@ def main():
     boardid = args.board
     serialNumbers = args.serial
     dataDir = args.datadir
+    quick = args.quick
 
     options = None
 
@@ -339,6 +337,7 @@ def main():
                 boardid = options["board_id"]
                 serialNumbers = options["serials"]
                 dataDir = options["datadir"]
+                quick = options["quick"]
             except KeyError as e:
                 print("Error while parsing json input options: ",e)
                 sys.exit(1)
@@ -357,9 +356,9 @@ def main():
     try:
         if args.profiler:
             import cProfile
-            cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)',globals(),locals(),args.profiler)
+            cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,quick=quick,sumatradict=options)',globals(),locals(),args.profiler)
         else:
-            chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,singleConfig=args.quick,sumatradict=options)
+            chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,quick=quick,sumatradict=options)
     except Exception as e:
         print("Uncaught exception in runTests. Traceback in stderr.")
         sys.stderr.write("Uncaught exception in runTests: Error: {} {}\n".format(type(e),e))

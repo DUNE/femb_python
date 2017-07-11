@@ -26,6 +26,14 @@ import matplotlib.lines as mlines
 import matplotlib.dates
 from matplotlib.figure import Figure
 
+def getVersion(summaryDict):
+    pathstr = summaryDict["sumatra"]["femb_python_location"]
+    match = re.match(r"/opt/sw/releases/femb_python-(.*)/femb_python",pathstr)    
+    if match:
+        return match.group(1)
+    else:
+        return "Not Using Official Release"
+
 def datetimeFromTimestamp(timestamp):
     result = None
     try:
@@ -344,6 +352,9 @@ class RANKING(object):
                     if nVals > 100:
                         nBins = 40 
                     #print(allVals[statName])
+                    #print(outfileprefix,statName)
+                    #justinSilly = sorted(allVals[statName])
+                    #print(justinSilly[:10],justinSilly[-10:])
                     #print(nVals,histRange)
                     hist, bin_edges = numpy.histogram(allVals[statName],nBins,range=histRange)
                     for iKey, key in enumerate(sortedKeys):
@@ -631,6 +642,8 @@ class RANKING(object):
                                                 except KeyError:
                                                     result[statToDraw] = [val]
                 if not getAll:
+                    if minVal == 1e20: minVal = float('nan')
+                    if maxVal == -1e20: maxVal = float('nan')
                     result[statToDraw] = [minVal,maxVal]
             else:
                 minVal = 1e20
@@ -660,6 +673,8 @@ class RANKING(object):
                                         except KeyError:
                                             result[statToDraw] = [val]
                 if not getAll:
+                    if minVal == 1e20: minVal = float('nan')
+                    if maxVal == -1e20: maxVal = float('nan')
                     result[statToDraw] = [minVal,maxVal]
         return result
 
