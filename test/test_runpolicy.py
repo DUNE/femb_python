@@ -103,7 +103,18 @@ def test_with_sumatra_pgsql():
     r = make_runner(SumatraRunner, smtname="test_with_sumatra",
                     smtstore="postgres://cetester_bviren@hothstor2.phy.bnl.gov/cetest_bviren")
     r()
+
     
+def test_fail():
+    clear()
+    r = make_runner(SumatraRunner, smtname="test_fail", executable="/bin/false")
+    try:
+        r()
+    except RuntimeError:
+        print ("Test of /bin/false successfully failed.")
+        pass
+    else:
+        raise RuntimeError("test of /bin/false failed to fail")
 
 if '__main__' == __name__:
     test_basic()
@@ -111,3 +122,5 @@ if '__main__' == __name__:
     test_default_args_only()
     test_per_call_args()
     test_with_sumatra()
+    test_fail()
+    

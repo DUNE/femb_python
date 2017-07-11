@@ -107,14 +107,16 @@ class Runner(object):
         print ('Running "%s" in %s' % (cmdstr, cwd))
         if cwd == ".":
             print ("which is: %s" % os.path.realpath(cwd))
-        sc = subprocess.run(cmdstr, cwd=cwd, shell=shell)
+        self.last_sc = None
+        sc = subprocess.run(cmdstr, cwd=cwd, shell=shell,
+                                stderr=subprocess.PIPE)
         if sc.stdout:
-            print (sc.stdout)
+            print (sc.stdout.decode())
         if sc.stderr:
-            print (sc.stderr)
+            print (sc.stderr.decode())
         if sc.returncode != 0:
             raise RuntimeError('Failed to run "%s"' % cmdstr)
-
+        self.last_sc = sc
 
     def resolve(self, **user_params):
 
@@ -267,6 +269,13 @@ class SumatraRunner(Runner):
         self.exec(cfgcmd, params['rundir'])
             
         self.exec(cmd, params['rundir'])
+        # stupid smt run eats return code
+        err = self.last_sc.stderr.decode()
+        if err.startswith("WARNING:root:Returned:"):
+            parts = self.last_sc.stderr.split()
+            if parts[1] != "0":
+                raise RuntimeError('Failed to run "%s"' % cmd)
+                
             
     def cmdline(self, **params):
         '''
