@@ -1,10 +1,9 @@
 #!/usr/bin/env python33
 
+import os
 import sys
 import re
 import json
-#import numpy
-#import pandas
 from glob import glob
 
 class OSCILLATOR_TESTING_SUMMARY(object):
@@ -12,7 +11,8 @@ class OSCILLATOR_TESTING_SUMMARY(object):
         def __init__(self, datadir=None, outlabel=None):
                 self.datadir = datadir
                 self.outlabel = outlabel
-                                	
+                self.outpathlabel = os.path.join(datadir, outlabel)
+                                                	
         def doSummary(self):
                 #Testing 100 MHz oscillators
                 requiredFrequency = 100*(10**6)
@@ -61,6 +61,10 @@ class OSCILLATOR_TESTING_SUMMARY(object):
                                 resultArray[iChannelNumber][2].center(20), resultArray[iChannelNumber][3].center(20)))
                 print("*********************************************************************************")
                 print()
+                
+                #Save the result
+                with open(self.outpathlabel+".txt", 'w') as outFile:
+                        json.dump(resultArray, outFile)
 def main():
         #Standard parameters for the codes: output dir and outlabel
         datadir = sys.argv[1] 
