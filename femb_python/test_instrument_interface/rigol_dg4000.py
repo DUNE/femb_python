@@ -51,9 +51,13 @@ class RigolDG4000(object):
         Writes a command string to the function generator
         """
         #print("Writing command '{}'".format(command))
-        with open(self.filename,'w') as wfile:
-            wfile.write(command)
-            time.sleep(0.1)
+        try:
+            with open(self.filename,'w') as wfile:
+                wfile.write(command)
+        except BrokenPipeError as e:
+            print("Error while writing to function generator USB-TMC, reraising...")
+            raise e
+        time.sleep(0.1)
 
     def stop(self):
         """

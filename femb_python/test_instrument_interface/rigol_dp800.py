@@ -44,8 +44,12 @@ class RigolDP800(object):
         Writes a command string to the power supply
         """
         #print("Writing command '{}'".format(command))
-        with open(self.filename,'w') as wfile:
-            wfile.write(command)
+        try:
+            with open(self.filename,'w') as wfile:
+                wfile.write(command)
+        except BrokenPipeError as e:
+            print("Error while writing to power supply USB-TMC, reraising...")
+            raise e
 
     def on(self):
         """
