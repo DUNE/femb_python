@@ -116,7 +116,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg( self.REG_ASIC_RESET, 1)
             time.sleep(0.5)
 
-            readback = self.femb_read_reg(0)
+            readback = self.femb.read_reg(0)
             if readback is None:
                 if self.exitOnError:
                     print("FEMB_CONFIG: Error reading register 0, Exiting.")
