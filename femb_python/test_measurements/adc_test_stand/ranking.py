@@ -33,7 +33,6 @@ def getVersion(summaryDict):
         return match.group(1)
     else:
         return "Not Using Official Release"
-
 def datetimeFromTimestamp(timestamp):
     result = None
     try:
@@ -41,6 +40,29 @@ def datetimeFromTimestamp(timestamp):
     except ValueError:
         result = datetime.datetime.strptime(timestamp,"%Y-%m-%dT%H:%M:%S")
     return result
+def getTemperature(summaryDict):
+    cold = summaryDict["sumatra"]["cold"]
+    if cold is None:
+        return "Not Yet Implemented"
+    elif cold:
+        return "Cryogenic"
+    else:
+        return "Room Temperature"
+def getTimestamp(data):
+    timestamp = data["timestamp"]
+    return datetimeFromTimestamp(timestamp)
+def getBoard_version(summaryDict):
+    #cold = summaryDict["sumatra"]["cold"]
+    #temp = None
+    #if cold is None:
+    #    temp= "Not Yet Implemented"
+    #elif cold:
+    #    temp= "Cryogenic"
+    #else:
+    #    temp= "Room Temperature"
+    board = summaryDict["board_id"]
+    version = getVersion(summaryDict)
+    return str(version) +" board "+ str(board)
 
 class RANKING(object):
 
@@ -513,6 +535,110 @@ class RANKING(object):
             fig.savefig(outfileprefix+"_page{}.png".format(iFig))
             #fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
 
+    def rank(self,data,varfunc,varTitle,outfileprefix):
+        if type(data) is dict:
+            pass
+        elif type(data) is list:
+            data = {None:data}
+        else:
+            raise TypeError("data should be list or dict")
+        statNames = set()
+        maxValsPerCase = {}
+        minValsPerCase = {}
+        varsPerCase = {}
+        sortedKeys = sorted(list(data.keys()))
+        if data == {}:
+            return
+        elif len(sortedKeys) == 1:
+            if len(data[sortedKeys[0]]) == 0:
+                return
+        for key in sortedKeys:
+            datadicts = data[key]
+            minLists = {}
+            maxLists = {}
+            varLists = {}
+            for datadict in datadicts:
+                asic_stats = {}
+                serial = datadict["serial"]
+                static = datadict["static"]
+                asic_stats.update(self.getstats(static))
+                dynamic = datadict["dynamic"]
+                asic_stats.update(self.getstats(dynamic,True))
+                try:
+                    inputPin = datadict["inputPin"]
+                except KeyError:
+                    print("Warning: no input pin stats for chip",serial)
+                else:
+                    asic_stats.update(self.getstats(inputPin))
+                try:
+                    dc = datadict["dc"]
+                except KeyError:
+                    print("Warning: no dc stats for chip",serial)
+                else:
+                    asic_stats.update(self.getstats(dc))
+                for stat in asic_stats:
+                    statNames.add(stat)
+                    try:
+                        minLists[stat].append(asic_stats[stat][0])
+                    except KeyError:
+                        minLists[stat] = [ asic_stats[stat][0] ]
+                    try:
+                        maxLists[stat].append(asic_stats[stat][1])
+                    except KeyError:
+                        maxLists[stat] = [ asic_stats[stat][1] ]
+                    try:
+                        varLists[stat].append(varfunc(datadict))
+                    except KeyError:
+                        varLists[stat] = [ varfunc(datadict) ]
+            maxValsPerCase[key] = maxLists
+            minValsPerCase[key] = minLists
+            varsPerCase[key] = varLists
+        # Now make the rankings
+        with open(outfileprefix+".txt",'w') as outfile:
+            outfile.write("Timestamps ranked best to worst for each variable and case\n")
+            outfile.write("==========================================================\n")
+            for statName in sorted(self.statsToDraw):
+                doMin = False
+                try:
+                    doMin = self.statsToDraw[statName]["min"]
+                except KeyError:
+                    pass
+                for iKey, key in enumerate(sortedKeys):
+                    dataToRank = None
+                    try:
+                        if doMin: #min
+                            dataToRank = minValsPerCase[key][statName]
+                        else: #max
+                            dataToRank = maxValsPerCase[key][statName]
+                    except KeyError as e:
+                        print("Warning: Could not find stat to rank",e)
+                        continue
+                    varsToRank = varsPerCase[key][statName]
+                    varDataTuples = [(var,datum) for var, datum in zip(varsToRank,dataToRank)]
+                    def sortFunc(varDat):
+                        x = float(varDat[1])
+                        if numpy.isnan(x):
+                            if doMin:
+                                x = -1e20
+                            else:
+                                x = 1e20
+                        return x
+                    varDataTuples.sort(key=sortFunc)
+                    # Want best-to-worst
+                    if doMin:
+                        varDataTuples.reverse()
+                    titleStr = "{} for {}".format(statName,key)
+                    outfile.write(titleStr+'\n')
+                    outfile.write("-"*len(titleStr)+'\n')
+                    if len(varDataTuples) > 0:
+                        varLen = len(varDataTuples[0][0])
+                        varLen = max(varLen,len(varTitle))
+                        varLen += 3
+                        outfile.write(("{0:"+str(varLen)+"} {1}\n").format(varTitle,statName))
+                        for v,d in varDataTuples:
+                            outfile.write(("{0:"+str(varLen)+"} {1:.5g}\n").format(v,d))
+                    outfile.write("\n")
+
     def set_xticks(self,ax):
         xlim = ax.get_xlim()
         xticks = numpy.linspace(xlim[0],xlim[1],4)
@@ -870,33 +996,15 @@ def main():
             ranking.histWorstChannel(latestDataPerSMTKey,"Worst Channel for Latest Timestamp per {}".format(smtkey),args.outprefix+"ADC_per_{}_worstHist".format(smtkey),legendTitle=smtkey)
             ranking.histAllChannels(latestDataPerSMTKey,"All Channel Histogram for Latest Timestamp per {}".format(smtkey),args.outprefix+"ADC_per_{}_chanHist".format(smtkey),legendTitle=smtkey)
     
-    def getVersion(summaryDict):
-        pathstr = summaryDict["sumatra"]["femb_python_location"]
-        match = re.match(r"/opt/sw/releases/femb_python-(.*)/femb_python",pathstr)    
-        if match:
-            return match.group(1)
-        else:
-            return "Not Using Official Release"
     latestDataPerVersion = ranking.getlatestdataperkey(getVersion)
     ranking.histWorstChannel(latestDataPerVersion,"Worst Channel for Latest Timestamp Per Software Version",args.outprefix+"ADC_per_version_worstHist",legendTitle="femb_python version")
     ranking.histAllChannels(latestDataPerVersion,"All Channels for Latest Timestamp Per Software Version",args.outprefix+"ADC_per_version_chanHist",legendTitle="femb_python version")
 
-    def getTemperature(summaryDict):
-        cold = summaryDict["sumatra"]["cold"]
-        if cold is None:
-            return "Not Yet Implemented"
-        elif cold:
-            return "Cryogenic"
-        else:
-            return "Room Temperature"
+
     latestDataPerTemp = ranking.getlatestdataperkey(getTemperature)
     ranking.histWorstChannel(latestDataPerTemp,"Worst Channel for Latest Timestamp Per Temperature",args.outprefix+"ADC_per_temp_worstHist",legendTitle="Temperature")
     ranking.histAllChannels(latestDataPerTemp,"All Channels for Latest Timestamp Per Temperature",args.outprefix+"ADC_per_temp_chanHist",legendTitle="Temperature")
 
-
-    def getTimestamp(data):
-        timestamp = data["timestamp"]
-        return datetimeFromTimestamp(timestamp)
 
     data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["hostname"]))
     ranking.worstChannelVVar(data,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp",args.outprefix+"ADCVTime_per_hostname",legendTitle="Hostname")
@@ -906,21 +1014,13 @@ def main():
     ranking.worstChannelVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #",args.outprefix+"ADCVserial_per_temp",xlabel="Chip #",legendTitle="Temperature")
     #ranking.worstChannelVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #",args.outprefix+"ADCVserial_per_temp_zoom",xlabel="Chip #",xlims=(0,50),legendTitle="Temperature")
 
-    def getBoard_version(summaryDict):
-        #cold = summaryDict["sumatra"]["cold"]
-        #temp = None
-        #if cold is None:
-        #    temp= "Not Yet Implemented"
-        #elif cold:
-        #    temp= "Cryogenic"
-        #else:
-        #    temp= "Room Temperature"
-        board = summaryDict["board_id"]
-        version = getVersion(summaryDict)
-        return str(version) +" board "+ str(board)
-
     if args.all:
         d = ranking.getlatestdataperkey(getBoard_version)
         ranking.histWorstChannel(d,"Worst Channel for Latest Timestamp Per Software Version & Board",args.outprefix+"ADC_per_version_board_worstHist",legendTitle="femb_python version & Board ID")
         ranking.histAllChannels(d,"All Channels for Latest Timestamp Per Software Version & Board",args.outprefix+"ADC_per_version_board_chanHist",legendTitle="femb_python version & Board ID")
         ranking.worstChannelVVar(d,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp",args.outprefix+"ADCVTime_per_version_board",legendTitle="femb_python version & Board ID")
+
+    data = ranking.getalldataperkey(getTemperature)
+    ranking.rank(data,lambda x: "{} {}".format(getTimestamp(x).strftime("%Y%m%dT%H%M%S"),x['serial']),
+                    "Timestamp       Chip ID",
+                    args.outprefix+"RankingVTime_per_temp")
