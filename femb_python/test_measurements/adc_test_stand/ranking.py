@@ -234,20 +234,23 @@ class RANKING(object):
                         nBins = 20
                     if nVals > 100:
                         nBins = 40 
-                    print("histRange: ",histRange)
                     hist, bin_edges = numpy.histogram(allVals,nBins,range=histRange)
                     for iKey, key in enumerate(sortedKeys):
                         try:
+                            dataToPlot = None
                             if doMin: #min
-                                if len(minValsPerCase[key][statName])>0:
-                                    ax.hist(minValsPerCase[key][statName],bin_edges,range=histRange,histtype="step",color=self.colors[iKey])
-                                    ax.set_xlabel("min({})".format(statName))
+                                dataToPlot = minValsPerCase[key][statName]
+                                ax.set_xlabel("min({})".format(statName))
                             else: #max
-                                if len(maxValsPerCase[key][statName])>0:
-                                    ax.hist(maxValsPerCase[key][statName],bin_edges,range=histRange,histtype="step",color=self.colors[iKey])
-                                    ax.set_xlabel("max({})".format(statName))
+                                dataToPlot = maxValsPerCase[key][statName]
+                                ax.set_xlabel("max({})".format(statName))
                         except KeyError as e:
                             print("Warning: Could not find stat to draw",e)
+                        else:
+                            dataToPlot = numpy.array(dataToPlot)
+                            dataToPlot = dataToPlot[numpy.isfinite(dataToPlot)]
+                            if len(dataToPlot)>0:
+                                ax.hist(dataToPlot,bin_edges,range=histRange,histtype="step",color=self.colors[iKey])
                     ax.relim()
                     ax.autoscale_view(False,True,True)
                     ax.set_ylim(bottom=0.5)
@@ -353,9 +356,14 @@ class RANKING(object):
                     hist, bin_edges = numpy.histogram(allTheseVals,nBins,range=histRange)
                     for iKey, key in enumerate(sortedKeys):
                         try:
-                            ax.hist(allValsPerCase[key][statName],bin_edges,range=histRange,histtype="step",color=self.colors[iKey])
+                            dataToPlot = allValsPerCase[key][statName]
                         except KeyError as e:
                             print("Warning: Could not find stat to draw",e)
+                        else:
+                            dataToPlot = numpy.array(dataToPlot)
+                            dataToPlot = dataToPlot[numpy.isfinite(dataToPlot)]
+                            if len(dataToPlot)>0:
+                                ax.hist(dataToPlot,bin_edges,range=histRange,histtype="step",color=self.colors[iKey])
                     ax.relim()
                     ax.autoscale_view(False,True,True)
                     ax.set_ylim(bottom=0.5)
@@ -455,27 +463,22 @@ class RANKING(object):
                     xDates = False
                     for iKey, key in enumerate(sortedKeys):
                         try:
+                            dataToPlot = None
                             if doMin: #min
-                                if len(minValsPerCase[key][statName])>0:
-                                    if type(varsPerCase[key][statName][0]) == datetime.datetime:
-                                        xDates = True
-                                        ax.plot_date(varsPerCase[key][statName],minValsPerCase[key][statName],color=self.colors[iKey],markersize=3,markeredgewidth=0)
-                                    else:
-                                        ax.scatter(varsPerCase[key][statName],minValsPerCase[key][statName],color=self.colors[iKey],s=5)
-                                        ax.set_xlabel(xlabel)
-                                    ax.set_ylabel("min({})".format(statName))
+                                dataToPlot = minValsPerCase[key][statName]
+                                ax.set_ylabel("min({})".format(statName))
                             else: #max
-                                if len(maxValsPerCase[key][statName])>0:
-                                    if type(varsPerCase[key][statName][0]) == datetime.datetime:
-                                        xDates = True
-                                        ax.plot_date(varsPerCase[key][statName],maxValsPerCase[key][statName],color=self.colors[iKey],markersize=3,markeredgewidth=0)
-                                        ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%Y%m%dT%H%M"))
-                                    else:
-                                        ax.scatter(varsPerCase[key][statName],maxValsPerCase[key][statName],color=self.colors[iKey],s=5)
-                                        ax.set_xlabel(xlabel)
-                                    ax.set_ylabel("max({})".format(statName))
+                                dataToPlot = maxValsPerCase[key][statName]
+                                ax.set_ylabel("max({})".format(statName))
                         except KeyError as e:
                             print("Warning: Could not find stat to draw",e)
+                        else:
+                            if type(varsPerCase[key][statName][0]) == datetime.datetime:
+                                xDates = True
+                                ax.plot_date(varsPerCase[key][statName],dataToPlot,color=self.colors[iKey],markersize=3,markeredgewidth=0)
+                            else:
+                                ax.scatter(varsPerCase[key][statName],dataToPlot,color=self.colors[iKey],s=5)
+                                ax.set_xlabel(xlabel)
                     ax.relim()
                     if xDates:
                         # xlim are floats with units of days
