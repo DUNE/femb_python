@@ -222,23 +222,20 @@ class RANKING(object):
                         doMin = self.statsToDraw[statName]["min"]
                     except KeyError:
                         pass
-                    histRange = (min(maxValsAll[statName]),max(maxValsAll[statName]))
-                    nVals = len(maxValsAll[statName])
+                    allVals = maxValsAll[statName]
+                    if doMin:
+                        allVals = minValsAll[statName]
+                    allVals = numpy.array(allVals)
+                    allValsFinite = allVals[numpy.isfinite(allVals)]
+                    histRange = (min(allValsFinite),max(allValsFinite))
+                    nVals = len(allVals)
                     nBins = 10
                     if nVals > 30:
                         nBins = 20
                     if nVals > 100:
                         nBins = 40 
-                    hist, bin_edges = numpy.histogram(maxValsAll[statName],nBins,range=histRange)
-                    if doMin:
-                        nVals = len(minValsAll[statName])
-                        nBins = 10
-                        if nVals > 30:
-                            nBins = 20
-                        if nVals > 100:
-                            nBins = 40 
-                        histRange = (min(minValsAll[statName]),max(minValsAll[statName]))
-                        hist, bin_edges = numpy.histogram(minValsAll[statName],nBins,range=histRange)
+                    print("histRange: ",histRange)
+                    hist, bin_edges = numpy.histogram(allVals,nBins,range=histRange)
                     for iKey, key in enumerate(sortedKeys):
                         try:
                             if doMin: #min
@@ -344,19 +341,16 @@ class RANKING(object):
                     ax.set_yscale("log")
                     ax.set_ylabel("Channels / bin")
                     ax.set_xlabel("{}".format(statName))
-                    histRange = (min(allVals[statName]),max(allVals[statName]))
-                    nVals = len(allVals[statName])
+                    allTheseVals = numpy.array(allVals[statName])
+                    allTheseValsFinite = allTheseVals[numpy.isfinite(allTheseVals)]
+                    histRange = (min(allTheseValsFinite),max(allTheseValsFinite))
+                    nVals = len(allTheseVals)
                     nBins = 10
                     if nVals > 30:
                         nBins = 20
                     if nVals > 100:
                         nBins = 40 
-                    #print(allVals[statName])
-                    #print(outfileprefix,statName)
-                    #justinSilly = sorted(allVals[statName])
-                    #print(justinSilly[:10],justinSilly[-10:])
-                    #print(nVals,histRange)
-                    hist, bin_edges = numpy.histogram(allVals[statName],nBins,range=histRange)
+                    hist, bin_edges = numpy.histogram(allTheseVals,nBins,range=histRange)
                     for iKey, key in enumerate(sortedKeys):
                         try:
                             ax.hist(allValsPerCase[key][statName],bin_edges,range=histRange,histtype="step",color=self.colors[iKey])
