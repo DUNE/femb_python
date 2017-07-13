@@ -87,7 +87,7 @@ class OSCILLATOR_TESTING(object):
 
                 if self.powerSupplyDevice is None or self.oscilloscopeDevice is None:
                         print("All devices of our interest not found!\nExiting!\n")
-                        sys.exit(0)
+                        sys.exit(1)
 		
 		###########################################################################
 		#Power cycle and take the measurements with oscilloscope
@@ -183,7 +183,7 @@ class OSCILLATOR_TESTING(object):
                                         waveFormData.append(np.frombuffer(self.oscilloscopeDevice.read(), "B"))
                                 except:
                                         print("%s has a problem. Please check and retry again!\nExiting!\n" %(iChannel.strip()))
-                                        sys.exit(0)
+                                        sys.exit(1)
 
                                 #Sleep 1 second and turn off the display for that channel        
                                 time.sleep(1)
