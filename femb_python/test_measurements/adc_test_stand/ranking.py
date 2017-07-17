@@ -535,7 +535,7 @@ class RANKING(object):
             fig.savefig(outfileprefix+"_page{}.png".format(iFig))
             #fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
 
-    def rank(self,data,varfunc,varTitle,outfileprefix):
+    def rank(self,data,varfunc,varTitle,fileTitle,outfileprefix):
         if type(data) is dict:
             pass
         elif type(data) is list:
@@ -595,8 +595,8 @@ class RANKING(object):
             varsPerCase[key] = varLists
         # Now make the rankings
         with open(outfileprefix+".txt",'w') as outfile:
-            outfile.write("Timestamps ranked best to worst for each variable and case\n")
-            outfile.write("==========================================================\n")
+            outfile.write(fileTitle+"\n")
+            outfile.write(("="*len(fileTitle))+"\n")
             for statName in sorted(self.statsToDraw):
                 doMin = False
                 try:
@@ -1023,4 +1023,11 @@ def main():
     data = ranking.getalldataperkey(getTemperature)
     ranking.rank(data,lambda x: "{} {}".format(getTimestamp(x).strftime("%Y%m%dT%H%M%S"),x['serial']),
                     "Timestamp       Chip ID",
-                    args.outprefix+"RankingVTime_per_temp")
+                    "Timestamps ranked best to worst for each variable and case",
+                    args.outprefix+"RankingTimestampVTime_per_temp")
+
+    data = ranking.getlatestdataperkey(getTemperature)
+    ranking.rank(data,lambda x: "{} {}".format(getTimestamp(x).strftime("%Y%m%dT%H%M%S"),x['serial']),
+                    "Timestamp       Chip ID",
+                    "Chip IDs ranked best to worst for each variable and case (Latest timestamp per chip ID)",
+                    args.outprefix+"RankingLatestVTime_per_temp")
