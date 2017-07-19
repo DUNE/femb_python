@@ -183,6 +183,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             #Write ADC ASIC SPI
             print("FEMB_CONFIG--> Program ADC ASIC SPI")
+            self.femb.write_reg ( self.REG_ASIC_RESET, 1)
+            time.sleep(0.1)
             self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
             time.sleep(0.1)
             self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
@@ -443,10 +445,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def extClock(self, enable=False, 
                 period=500, mult=1, 
-                offset_rst=0, offset_read=460, offset_msb=200, offset_lsb=450,
-                width_rst=60, width_read=30, width_msb=300, width_lsb=50,
-                offset_lsb_1st_1=50, width_lsb_1st_1=160,
-                offset_lsb_1st_2=450, width_lsb_1st_2=50,
+                offset_rst=0, offset_read=480, offset_msb=230, offset_lsb=480,
+                width_rst=50, width_read=20, width_msb=270, width_lsb=20,
+                offset_lsb_1st_1=50, width_lsb_1st_1=190,
+                offset_lsb_1st_2=480, width_lsb_1st_2=20,
                 inv_rst=True, inv_read=True, inv_msb=False, inv_lsb=False, inv_lsb_1st=False):
         """
         Programs external clock. All non-boolean arguments except mult are in nanoseconds
