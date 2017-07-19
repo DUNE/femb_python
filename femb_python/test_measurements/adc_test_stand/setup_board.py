@@ -18,7 +18,7 @@ from subprocess import CalledProcessError
 import numpy
 import matplotlib.pyplot as plt
 import ROOT
-from ...configuration.config_base import InitBoardError, SyncADCError, ConfigADCError
+from ...configuration.config_base import InitBoardError, SyncADCError, ConfigADCError, ReadRegError
 
 def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,timestamp=None,sumatradict=None):
     """
@@ -48,6 +48,7 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                 "sumatra": sumatradict,
              }
     result["pass"] = False;
+    result["readReg"] = None;
     result["init"] = None;
     result["configADC"] = None;
     result["sync"] = None;
@@ -57,6 +58,13 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
         config.resetBoard()
         try:
             config.initBoard()
+        except ReadRegError:
+            print("Board/chip Failure: couldn't read a register so couldn't initialize board.")
+            result["init"] = False;
+            result["readReg"] = False;
+            json.dump(result,outfile)
+            config.POWERSUPPLYINTER.off()
+            return
         except InitBoardError:
             print("Board/chip Failure: couldn't initialize board.")
             result["init"] = False;
@@ -73,6 +81,7 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
         else:
             result["init"] = True;
             result["configADC"] = True;
+            result["readReg"] = True;
         try:
             config.syncADC()
         except SyncADCError:
