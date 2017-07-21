@@ -1020,6 +1020,11 @@ def main():
         ranking.histAllChannels(d,"All Channels for Latest Timestamp Per Software Version & Board",args.outprefix+"ADC_per_version_board_chanHist",legendTitle="femb_python version & Board ID")
         ranking.worstChannelVVar(d,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp",args.outprefix+"ADCVTime_per_version_board",legendTitle="femb_python version & Board ID")
 
+        d = ranking.getlatestdataperkey(getVersion)
+        ranking.histWorstChannel(d,"Worst Channel for Latest Timestamp Per Software Version",args.outprefix+"ADC_per_version_worstHist",legendTitle="femb_python version")
+        ranking.histAllChannels(d,"All Channels for Latest Timestamp Per Software Version",args.outprefix+"ADC_per_version_chanHist",legendTitle="femb_python version")
+        ranking.worstChannelVVar(d,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp",args.outprefix+"ADCVTime_per_version",legendTitle="femb_python version")
+
     data = ranking.getalldataperkey(getTemperature)
     ranking.rank(data,lambda x: "{} {}".format(getTimestamp(x).strftime("%Y%m%dT%H%M%S"),x['serial']),
                     "Timestamp       Chip ID",
