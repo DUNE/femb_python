@@ -643,6 +643,64 @@ class RANKING(object):
                             outfile.write(("{0:"+str(varLen)+"} {1:.5g}\n").format(v,d))
                     outfile.write("\n")
 
+    def channelCorrelationPlots(self,data,title,outfileprefix,legendTitle=""):
+        if type(data) is dict:
+            pass
+        elif type(data) is list:
+            data = {None:data}
+        else:
+            raise TypeError("data should be list or dict")
+        statNames = set()
+        maxValsPerCase = {}
+        minValsPerCase = {}
+        varsPerCase = {}
+        sortedKeys = sorted(list(data.keys()))
+        if data == {}:
+            return
+        elif len(sortedKeys) == 1:
+            if len(data[sortedKeys[0]]) == 0:
+                return
+        for key in sortedKeys:
+            datadicts = data[key]
+            dataPerSerial = {}
+            for datadict in datadicts:
+                serial = datadict["serial"]
+                static = datadict["static"]
+                try:
+                    chanData = static["2000000"]["0"]["-1"]["stuckCodeFrac400"]
+                except KeyError as e:
+                    pass
+                else:
+                    if len(chanData) == 16:
+                        dataPerSerial[serial] = chanData
+            nChips = len(dataPerSerial)
+            histogram = numpy.zeros((16,16))
+            for serial in dataPerSerial:
+                chanData = numpy.array(dataPerSerial[serial])
+                #print("chanData")
+                #print(chanData)
+                chanDataBroad = numpy.broadcast_to(chanData,(16,16))
+                #print("chanDataBroad")
+                #print(chanDataBroad)
+                avgArray = 0.5*(chanDataBroad+chanDataBroad.T)
+                #print("avgArray")
+                #print(avgArray)
+                histogram += avgArray
+            # diagonals are average STF for that channel
+            histogram /= nChips
+            fig, ax = plt.subplots()
+            c = ax.pcolor(histogram,cmap="viridis")
+            ax.set_xlabel("Channel Number")
+            ax.set_ylabel("Channel Number")
+            cbar = fig.colorbar(c)
+            cbar.set_label("Average Stuck Code Fraction")
+            if key == None:
+                fig.suptitle(title)
+                fig.savefig(outfileprefix+".png")
+            else:
+                fig.suptitle(title+" "+key)
+                fig.savefig(outfileprefix+"_"+key+".png")
+
     def set_xticks(self,ax):
         xlim = ax.get_xlim()
         xticks = numpy.linspace(xlim[0],xlim[1],4)
@@ -1000,6 +1058,7 @@ def main():
     ranking = RANKING(args.infilename,firstTime,lastTime)
 
     latestData = ranking.getlatestdata()
+    ranking.channelCorrelationPlots(latestData,"Channel Correlations for Latest Timestamp","ADC_corrHist")
     ranking.histWorstChannel(latestData,"Worst Channel Histogram for Latest Timestamp","ADC_worstHist")
     ranking.histAllChannels(latestData,"All Channel Histogram for Latest Timestamp","ADC_chanHist")
     ranking.histAllChannels(latestData,"Average Channel Histogram for Latest Timestamp","ADC_avgHist",averageOverChannels=True)
@@ -1022,11 +1081,13 @@ def main():
     latestDataPerVersion = ranking.getlatestdataperkey(getVersion)
     ranking.histWorstChannel(latestDataPerVersion,"Worst Channel for Latest Timestamp Per Software Version",args.outprefix+"ADC_per_version_worstHist",legendTitle="femb_python version")
     ranking.histAllChannels(latestDataPerVersion,"All Channels for Latest Timestamp Per Software Version",args.outprefix+"ADC_per_version_chanHist",legendTitle="femb_python version")
+    #ranking.channelCorrelationPlots(latestDataPerVersion,"Channel Correlation for Timestamp for femb_python version",args.outprefix+"ADC_per_version_corrHist")
 
 
     latestDataPerTemp = ranking.getlatestdataperkey(getTemperature)
     ranking.histWorstChannel(latestDataPerTemp,"Worst Channel for Latest Timestamp Per Temperature",args.outprefix+"ADC_per_temp_worstHist",legendTitle="Temperature")
     ranking.histAllChannels(latestDataPerTemp,"All Channels for Latest Timestamp Per Temperature",args.outprefix+"ADC_per_temp_chanHist",legendTitle="Temperature")
+    ranking.channelCorrelationPlots(latestDataPerTemp,"Channel Correlation for Timestamp for Temperature",args.outprefix+"ADC_per_temp_corrHist")
 
 
     data = ranking.getalldataperkey(lambda x: str(x["sumatra"]["hostname"]))
