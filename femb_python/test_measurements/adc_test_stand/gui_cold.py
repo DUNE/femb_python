@@ -28,8 +28,9 @@ from ...configuration import CONFIG
 from .setup_board import setup_board
 from .run import runTests
 from ...runpolicy import DirectRunner, SumatraRunner
+from ...trace_fft_window import TRACE_FFT_WINDOW
 
-GUITESTMODE=False
+GUITESTMODE=True
 
 class GUI_WINDOW(Frame):
 
@@ -43,6 +44,7 @@ class GUI_WINDOW(Frame):
         self.forceLong = forceLong
 
         self.timestamp = None
+        self.waveform_window = None
         self.result_labels = []
         self.display_procs = []
         #Define general commands column
@@ -98,20 +100,45 @@ class GUI_WINDOW(Frame):
         self.coolboard_label = Label(self,text="",width=30,fg="#0000FF")
         self.coolboard_label.grid(row=23,column=columnbase,columnspan=2)
 
+        self.resetwaveform_button = Button(self, text="Restart Waveform Viwer", command=self.reset_waveform_viewer,width=25,state="disabled")
+        self.resetwaveform_button.grid(row=24,column=columnbase,columnspan=2,pady=30)
+
+        # Adding ASIC/channel select
+
+        self.selectSocket_label = Label(self,text="View Socket:",state="disabled")
+        self.selectSocket_label.grid(sticky=E,row=26,column=columnbase+0)
+        self.selectSocket_entry = Spinbox(self,from_=0,to=self.config.NASICS-1,insertwidth=1,width=4,state="disabled")
+        self.selectSocket_entry.grid(sticky=W,row=26,column=columnbase+1)
+        if self.config.NASICS == 1:
+            self.selectSocket_label.grid_forget()
+            self.selectSocket_entry.grid_forget()
+
+        self.selectChannel_label = Label(self,text="View Channel:",state="disabled")
+        self.selectChannel_label.grid(sticky=E,row=28,column=columnbase+0)
+
+        self.selectChannel_entry = Spinbox(self,from_=0,to=15,insertwidth=3,width=4,state="disabled")
+        self.selectChannel_entry.grid(sticky=W,row=28,column=columnbase+1)
+
+        self.selectChannel_button = Button(self, text="Select Channel to View", command=self.call_selectChannel,width=25,state="disabled")
+        self.selectChannel_button.grid(row=30,column=columnbase,columnspan=2)
+
+        self.selectChannel_result = Label(self, text="")
+        self.selectChannel_result.grid(sticky=W,row=32,column=columnbase)
+
         # Adding electronics ID and read entry box
         self.current_label = Label(self,text="CH2 Current [A]:",width=25,state="disabled")
-        self.current_label.grid(sticky=W,row=25,column=columnbase+0)
+        self.current_label.grid(sticky=W,row=34,column=columnbase+0)
 
         self.current_entry = Entry(self,width=25,state="disabled")
-        self.current_entry.grid(sticky=W,row=25,column=columnbase+1)
+        self.current_entry.grid(sticky=W,row=34,column=columnbase+1)
 
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        self.start_button.grid(row=27,column=columnbase,columnspan=2,pady=30)
+        self.start_button.grid(row=36,column=columnbase,columnspan=2,pady=30)
         self.reset_button = Button(self, text="Reset & Power-off", command=self.reset,width=25,bg="#FF8000")
-        self.reset_button.grid(row=29,column=columnbase,columnspan=2)
+        self.reset_button.grid(row=38,column=columnbase,columnspan=2)
 
         self.runid_label = Label(self, text="")
-        self.runid_label.grid(row=31,column=columnbase,columnspan=2,pady=20)
+        self.runid_label.grid(row=40,column=columnbase,columnspan=2,pady=20)
 
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
         self.status_label.grid(row=100,column=columnbase,columnspan=2)
@@ -219,6 +246,9 @@ class GUI_WINDOW(Frame):
         print("POWER DOWN")
         if not GUITESTMODE:
             self.config.POWERSUPPLYINTER.off()
+            self.config.FUNCGENINTER.stop()
+        if self.waveform_window:
+            self.waveform_window.destroy()
         self.timestamp = None
         for i in reversed(range(len(self.display_procs))):
             tmp = self.display_procs.pop(i)
@@ -251,6 +281,13 @@ class GUI_WINDOW(Frame):
         self.current_entry["state"] = "disabled"
         #self.operator_entry.delete(0,END)
         #self.boardid_entry.delete(0,END)
+        self.resetwaveform_button["state"] = "disabled"
+        self.selectSocket_label["state"] = "disabled"
+        self.selectSocket_entry["state"] = "disabled"
+        self.selectChannel_label["state"] = "disabled"
+        self.selectChannel_entry["state"] = "disabled"
+        self.selectChannel_button["state"] = "disabled"
+        self.selectChannel_result["text"] = ""
         for i in range(self.config.NASICS):
             self.asic_labels[i]["state"] = "normal"
             self.asic_entries[i]["state"] = "normal"
@@ -260,6 +297,8 @@ class GUI_WINDOW(Frame):
 
     def prepare_board(self):
         self.timestamp = None # get new timestamp for each prepare board
+        if self.waveform_window:
+          self.waveform_window.destroy()
         inputOptions = self.get_options()
         if inputOptions is None:
             print("ENTER REQUIRED INFO")
@@ -267,6 +306,13 @@ class GUI_WINDOW(Frame):
             self.status_label["fg"] = "#FF0000"
             return
         print("BEGIN PREPARE")
+        self.resetwaveform_button["state"] = "disabled"
+        self.selectSocket_label["state"] = "disabled"
+        self.selectSocket_entry["state"] = "disabled"
+        self.selectChannel_label["state"] = "disabled"
+        self.selectChannel_entry["state"] = "disabled"
+        self.selectChannel_button["state"] = "disabled"
+        self.selectChannel_result["text"] = ""
         self.status_label["text"] = "POWERING UP BOARD..."
         self.status_label["fg"] = "#000000"
         self.runid_label["text"] = "Run ID: "+ inputOptions["runid"]
@@ -300,6 +346,10 @@ class GUI_WINDOW(Frame):
             self.done_preparing_board(params)
 
     def start_measurements(self):
+        if self.waveform_window:
+            self.waveform_window.destroy()
+        if not GUITESTMODE:
+            self.config.FUNCGENINTER.stop()
         inputOptions = self.get_options(getCurrent=True)
         if inputOptions is None:
             print("ENTER REQUIRED INFO")
@@ -313,6 +363,13 @@ class GUI_WINDOW(Frame):
         self.prepare_button["bg"] = self.bkg_color
         self.prepare_button["activebackground"] = self.activebkg_color
         self.coolboard_label["text"] = ""
+        self.resetwaveform_button["state"] = "disabled"
+        self.selectSocket_label["state"] = "disabled"
+        self.selectSocket_entry["state"] = "disabled"
+        self.selectChannel_label["state"] = "disabled"
+        self.selectChannel_entry["state"] = "disabled"
+        self.selectChannel_button["state"] = "disabled"
+        self.selectChannel_result["text"] = ""
 
         print("BEGIN TESTS")
         self.status_label["text"] = "TESTS IN PROGRESS..."
@@ -387,9 +444,19 @@ class GUI_WINDOW(Frame):
             self.boardid_entry["state"] = "disabled"
             self.reset_button["bg"] ="#FF9900"
             self.reset_button["activebackground"] ="#FFCF87"
+            self.resetwaveform_button["state"] = "normal"
+            self.selectSocket_label["state"] = "normal"
+            self.selectSocket_entry["state"] = "normal"
+            self.selectChannel_label["state"] = "normal"
+            self.selectChannel_entry["state"] = "normal"
+            self.selectChannel_button["state"] = "normal"
+            self.selectChannel_result["text"] = ""
             for i in range(self.config.NASICS):
                 self.asic_labels[i]["state"] = "disabled"
                 self.asic_entries[i]["state"] = "disabled"
+            if not GUITESTMODE:
+                self.config.FUNCGENINTER.startSin(1000,0.6,0.7)
+            self.reset_waveform_viewer()
         else:
             columnbase = 0
             rowbase = 50
@@ -483,6 +550,39 @@ class GUI_WINDOW(Frame):
         print(imgfilenames)
         for imgfilename in imgfilenames:
             self.display_procs.append(subprocess.Popen(["eog",imgfilename]))
+
+    def reset_waveform_viewer(self):
+        if self.waveform_window:
+          self.waveform_window.destroy()
+        self.waveform_window = Toplevel(self)
+        self.waveform_window.title("Trace FFT Window")
+        self.waveform_viewer = TRACE_FFT_WINDOW(self.waveform_window)
+
+    def call_selectChannel(self):
+        asic = None
+        chan = None
+        if self.config.NASICS == 1:
+            asic = 0
+        else:
+            try:
+              asic = int(self.selectSocket_entry.get())
+            except ValueError:
+              self.selectChannel_result["text"] = "Error asic must be an int"
+              return
+        try:
+          chan = int(self.selectChannel_entry.get())
+        except ValueError:
+          self.selectChannel_result["text"] = "Error channel must be an int"
+          return
+        message = ""
+        if asic < 0 or asic >= self.config.NASICS:
+          self.selectChannel_result["text"] = "Error asic only from 0 to {}".format(self.config.NASICS - 1)
+          return
+        if chan < 0 or chan >= 16:
+          self.selectChannel_result["text"] = "Error channel only from 0 to 15"
+          return
+        self.config.selectChannel(asic,chan)
+        self.selectChannel_result["text"] = ""
 
     def exit(self,*args, **kargs):
         if not GUITESTMODE:
