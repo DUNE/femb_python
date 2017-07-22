@@ -287,7 +287,7 @@ class RANKING(object):
             fig.savefig(outfileprefix+"_page{}.png".format(iFig))
             #fig.savefig(outfileprefix+"_page{}.pdf".format(iFig))
 
-    def histAllChannels(self,data,title,outfileprefix,legendTitle=""):
+    def histAllChannels(self,data,title,outfileprefix,legendTitle="",averageOverChannels=False):
         if type(data) is dict:
             pass
         elif type(data) is list:
@@ -310,21 +310,21 @@ class RANKING(object):
                 asic_stats = {}
                 serial = datadict["serial"]
                 static = datadict["static"]
-                asic_stats.update(self.getstats(static,getAll=True))
+                asic_stats.update(self.getstats(static,getAll=True,getMean=averageOverChannels))
                 dynamic = datadict["dynamic"]
-                asic_stats.update(self.getstats(dynamic,dynamic=True,getAll=True))
+                asic_stats.update(self.getstats(dynamic,dynamic=True,getAll=True,getMean=averageOverChannels))
                 try:
                     inputPin = datadict["inputPin"]
                 except KeyError:
                     print("Warning: now input pin stats for chip",serial)
                 else:
-                    asic_stats.update(self.getstats(inputPin,getAll=True))
+                    asic_stats.update(self.getstats(inputPin,getAll=True,getMean=averageOverChannels))
                 try:
                     dc = datadict["dc"]
                 except KeyError:
                     print("Warning: now input pin stats for chip",serial)
                 else:
-                    asic_stats.update(self.getstats(dc,getAll=True))
+                    asic_stats.update(self.getstats(dc,getAll=True,getMean=averageOverChannels))
                 statsPerSerial[serial] = asic_stats
                 for stat in asic_stats:
                     statNames.add(stat)
@@ -364,8 +364,12 @@ class RANKING(object):
                     continue
                 else:
                     ax.set_yscale("log")
-                    ax.set_ylabel("Channels / bin")
-                    ax.set_xlabel("{}".format(statName))
+                    if averageOverChannels:
+                        ax.set_ylabel("ASICs / bin")
+                        ax.set_xlabel("avg({})".format(statName))
+                    else:
+                        ax.set_ylabel("Channels / bin")
+                        ax.set_xlabel("{}".format(statName))
                     allTheseVals = numpy.array(allVals[statName])
                     allTheseValsFinite = allTheseVals[numpy.isfinite(allTheseVals)]
                     histRange = (min(allTheseValsFinite),max(allTheseValsFinite))
@@ -667,7 +671,7 @@ class RANKING(object):
         else:
             ax.legend(handles=self.legendHandles,loc="best",fontsize="medium",frameon=False,ncol=ncol,title=legendTitle)
 
-    def getstats(self,data,dynamic=False,getAll=False):
+    def getstats(self,data,dynamic=False,getAll=False,getMean=False):
         statsToDraw = self.statsToDraw
         result = {}
         stats = []
@@ -748,6 +752,7 @@ class RANKING(object):
                                 continue
                             for clock in thisClocks:
                                 for offset in thisOffsets:
+                                    chanVals = []
                                     for chan in range(16):
                                         try:
                                             val = thisData[clock][offset][stat][amp][freq][chan]
@@ -759,12 +764,20 @@ class RANKING(object):
                                                 continue
                                             minVal = min(val,minVal)
                                             maxVal = max(val,maxVal)
-                                            if getAll:
-                                                try:
-                                                    result[statToDraw].append(val)
-                                                except KeyError:
-                                                    result[statToDraw] = [val]
-                if not getAll:
+                                            if getAll or getMean:
+                                                chanVals.append(val)
+                                    if getMean:
+                                        meanChanVal = numpy.mean(chanVals)
+                                        try:
+                                            result[statToDraw].append(meanChanVal)
+                                        except KeyError:
+                                            result[statToDraw] = [meanChanVal]
+                                    elif getAll:
+                                        try:
+                                            result[statToDraw].extend(chanVals)
+                                        except KeyError:
+                                            result[statToDraw] = chanVals
+                if not (getAll or getMean):
                     if minVal == 1e20: minVal = float('nan')
                     if maxVal == -1e20: maxVal = float('nan')
                     result[statToDraw] = [minVal,maxVal]
@@ -779,23 +792,32 @@ class RANKING(object):
                         thisData = data[sampleRate]
                     for clock in thisClocks:
                         for offset in thisOffsets:
+                            chanVals = []
                             for chan in range(16):
                                 try:
                                     val = thisData[clock][offset][stat][chan]
                                 except KeyError:
                                     continue
                                 else:
+                                    if val is None:
+                                        print("Warning: None found in {} {} {} {}".format(clock,offset,stat,chan))
+                                        continue
                                     minVal = min(val,minVal)
                                     maxVal = max(val,maxVal)
-                                    if getAll:
-                                        if val is None:
-                                            print("Warning: None found in {} {} {} {}".format(clock,offset,stat,chan))
-                                            continue
-                                        try:
-                                            result[statToDraw].append(val)
-                                        except KeyError:
-                                            result[statToDraw] = [val]
-                if not getAll:
+                                    if getAll or getMean:
+                                        chanVals.append(val)
+                            if getMean:
+                                meanChanVal = numpy.mean(chanVals)
+                                try:
+                                    result[statToDraw].append(meanChanVal)
+                                except KeyError:
+                                    result[statToDraw] = [meanChanVal]
+                            elif getAll:
+                                try:
+                                    result[statToDraw].extend(chanVals)
+                                except KeyError:
+                                    result[statToDraw] = chanVals
+                if not (getAll or getMean):
                     if minVal == 1e20: minVal = float('nan')
                     if maxVal == -1e20: maxVal = float('nan')
                     result[statToDraw] = [minVal,maxVal]
@@ -980,6 +1002,7 @@ def main():
     latestData = ranking.getlatestdata()
     ranking.histWorstChannel(latestData,"Worst Channel Histogram for Latest Timestamp","ADC_worstHist")
     ranking.histAllChannels(latestData,"All Channel Histogram for Latest Timestamp","ADC_chanHist")
+    ranking.histAllChannels(latestData,"Average Channel Histogram for Latest Timestamp","ADC_avgHist",averageOverChannels=True)
     for tlk in ["operator","hostname","board_id"]:
         print("Top Level Key: ",tlk)
         latestDataPerTLK = ranking.getlatestdataperkey(lambda x: str(x[tlk]))
