@@ -674,26 +674,27 @@ class RANKING(object):
                     if len(chanData) == 16:
                         dataPerSerial[serial] = chanData
             nChips = len(dataPerSerial)
-            histogram = numpy.zeros((16,16))
-            for serial in dataPerSerial:
+            allData = numpy.zeros((16,nChips))
+            for iSerial, serial in enumerate(dataPerSerial):
                 chanData = numpy.array(dataPerSerial[serial])
-                #print("chanData")
-                #print(chanData)
-                chanDataBroad = numpy.broadcast_to(chanData,(16,16))
-                #print("chanDataBroad")
-                #print(chanDataBroad)
-                avgArray = 0.5*(chanDataBroad+chanDataBroad.T)
-                #print("avgArray")
-                #print(avgArray)
-                histogram += avgArray
-            # diagonals are average STF for that channel
-            histogram /= nChips
-            fig, ax = plt.subplots()
-            c = ax.pcolor(histogram,cmap="viridis")
-            ax.set_xlabel("Channel Number")
-            ax.set_ylabel("Channel Number")
+                allData[:,iSerial] = chanData
+            meanVals = numpy.mean(allData,axis=1)
+            corrMatrix = numpy.corrcoef(allData)
+            fig, (ax1,ax2) = plt.subplots(2,figsize=(8,8))
+            ax1.plot(list(meanVals)+[meanVals[-1]],c="b",ls="-",drawstyle="steps-post")
+            ax1.set_xlabel("Channel Number")
+            ax1.set_ylabel("Mean Stuck Code Fraction")
+            ylim = ax1.get_ylim()
+            newylim = [x for x in ylim]
+            if ylim[1] < 0.2:
+                newylim[1] = 0.2
+            newylim[0] = 0.
+            ax1.set_ylim(*newylim)
+            c = ax2.pcolor(corrMatrix,cmap="viridis",vmin=0.,vmax=1.)
+            ax2.set_xlabel("Channel Number")
+            ax2.set_ylabel("Channel Number")
             cbar = fig.colorbar(c)
-            cbar.set_label("Average Stuck Code Fraction")
+            cbar.set_label("Stuck Code Fraction Correlation")
             if key == None:
                 fig.suptitle(title)
                 fig.savefig(outfileprefix+".png")
