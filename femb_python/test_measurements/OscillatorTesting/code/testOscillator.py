@@ -183,7 +183,7 @@ class OSCILLATOR_TESTING(object):
                                 while (tries < 5 and not success):
                                         try:
                                                 waveFormData.append(np.frombuffer(self.oscilloscopeDevice.read(), "B"))
-                                                sucess = 1
+                                                success = 1
                                         except:
                                                 print("Trying again...")
                                                 time.sleep(5)
