@@ -9,7 +9,6 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 class OSCILLATOR_TESTING(object):
 
         def __init__(self, datadir="data", outlabel="OscillatorTesting"):
@@ -179,11 +178,20 @@ class OSCILLATOR_TESTING(object):
                                 
 				#Create numpy array for each channel
                                 #Will exit if nothing to read due to a problem; like oscillator not in the socket, etc
-                                try:
-                                        waveFormData.append(np.frombuffer(self.oscilloscopeDevice.read(), "B"))
-                                except:
+                                tries = 0
+                                success = 0
+                                while (tries < 5 and not success):
+                                        try:
+                                                waveFormData.append(np.frombuffer(self.oscilloscopeDevice.read(), "B"))
+                                                sucess = 1
+                                        except:
+                                                print("Trying again...")
+                                                time.sleep(5)
+                                                tries += 1
+                                if (not success):
                                         print("%s has a problem. Please check and retry again!\nExiting!\n" %(iChannel.strip()))
                                         sys.exit(1)
+                                        
 
                                 #Sleep 1 second and turn off the display for that channel        
                                 time.sleep(1)
