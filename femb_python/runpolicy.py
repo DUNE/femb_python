@@ -348,11 +348,14 @@ def make_runner(test_category, use_sumatra=True, **params):
     parameters to be added through the argument list and divines many
     others from the environment.
     '''
+
+    try:
+        params["femb_config"] = os.environ["FEMB_CONFIG"]  # required
+    except KeyError:
+        print( "ERROR RUNPOLICY - Please set the environment variable FEMB_CONFIG" )
+        return None
+
     # Check out the data disk situation and find the most available disk
-
-
-    params["femb_config"] = os.environ["FEMB_CONFIG"]  # required
-
     freedisks = list()
     datadisks=["/tmp"]
     hostname = os.uname()[1]
