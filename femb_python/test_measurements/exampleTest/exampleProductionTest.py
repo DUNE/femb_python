@@ -64,7 +64,7 @@ def main(**params):
     tests = []
 
     #Test 0
-    params_test_0 = dicr(params)
+    params_test_0 = dict(params)
     params_test_0.update(
         executable = "femb_example_test",      # the program or script actually running the test
         argstr="{paramfile}",        #provide parameter file as argument
@@ -74,7 +74,7 @@ def main(**params):
     tests.append( Test(**params_test_0) )
 
     #Test 1
-    params_test_1 = dicr(params)
+    params_test_1 = dict(params)
     params_test_1.update( executable = "femb_example_test", argstr="{paramfile}", datadir = "exampleTest_test_1", outlabel = "exampleTest_test_1",)
     tests.append( Test(**params_test_1) )
 

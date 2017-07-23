@@ -89,8 +89,8 @@ def main():
             print( "EXAMPLE TEST - datadir not defined, return" )
             return None
 
-        if 'outputlabel' in params:
-            outputlabel = params['outputlabel']
+        if 'outlabel' in params:
+            outlabel = params['outlabel']
         else:
             print( "EXAMPLE TEST - outputlabel not defined, return" )
             return None
