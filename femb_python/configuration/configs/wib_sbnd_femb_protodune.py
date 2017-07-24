@@ -154,6 +154,30 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #EXTERNAL CLOCK STUFF
 
+    #Test FEMB SPI working
+    def checkFembSpi(self,femb):
+        fembVal = int(femb)
+
+        print("About to check SPI:",self.femb.read_reg(8))
+
+        print("Check ASIC SPI")
+        for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
+            val = self.femb.read_reg( regNum)
+            if (val == None) or (val == -1):
+                print("Error - FEMB register interface is not working.")
+                continue
+        #    print( str(hex(val)) )            
+
+        print("Check ASIC SPI Readback")
+        for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
+            val = self.femb.read_reg( regNum)
+            if (val == None) or (val == -1):
+                print("Error - FEMB register interface is not working.")
+                continue
+        #    print( str(hex(val)) )
+        
+        #Compare input to output
+        
     #FEMB power enable on WIB
     def powerOnFemb(self,femb):
         fembVal = int(femb)
@@ -174,9 +198,38 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits(8 , regBase + 3, 0x1, 1 ) #1.5V
         self.femb.write_reg_bits(8 , 16 + fembVal, 0x1, 1 ) #BIAS enable
 
+        print("FEMB Power on: ", hex(self.femb.read_reg(8)))        
+        
         #return register interface to FEMB
         self.selectFemb(self.fembNum)
 
+
+
+    def powerOffFemb(self,femb):
+        fembVal = int(femb)
+        if (fembVal < 0) or (fembVal > 3 ):
+            return
+
+        #set UDP ports to WIB registers
+        self.femb.UDP_PORT_WREG = 32000
+        self.femb.UDP_PORT_RREG = 32001
+        self.femb.UDP_PORT_RREGRESP = 32002
+
+        regBase = int( fembVal * 4)
+
+        #FEMB power disable
+        self.femb.write_reg_bits(8 , 16 + fembVal, 0x1, 0 ) #BIAS
+        self.femb.write_reg_bits(8 , regBase + 0, 0x1, 0 ) #3.6V
+        self.femb.write_reg_bits(8 , regBase + 1, 0x1, 0 ) #2.8V
+        self.femb.write_reg_bits(8 , regBase + 2, 0x1, 0 ) #2.5V
+        self.femb.write_reg_bits(8 , regBase + 3, 0x1, 0 ) #1.5V
+
+        print("FEMB Power off: ", hex(self.femb.read_reg(8)))        
+        
+        #return register interface to FEMB
+        self.selectFemb(self.fembNum)
+
+        
     def selectChannel(self,asic,chan):
         print("Select channel")
         asicVal = int(asic)
@@ -298,13 +351,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
 
     def doAsicConfig(self):
-        print("Check ASIC SPI")
-        #for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
-        #    val = self.femb.read_reg( regNum)
-        #    if (val == None) or (val == -1):
-        #        print("Error - FEMB register interface is not working.")
-        #        continue
-        #    print( str(hex(val)) )
 
         #Write ADC ASIC SPI
         print("Program ASIC SPI")
@@ -315,13 +361,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         time.sleep(0.1)
 
-        #print("Check ASIC SPI Readback")
-        #for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
-        #    val = self.femb.read_reg( regNum)
-        #    if (val == None) or (val == -1):
-        #        print("Error - FEMB register interface is not working.")
-        #        continue
-        #    print( str(hex(val)) )
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
         print("Set Pulser")

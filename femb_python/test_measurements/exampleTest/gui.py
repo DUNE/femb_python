@@ -187,6 +187,6 @@ def main():
     args = parser.parse_args()
 
     root = Tk()
-    root.title("ADC Test GUI")
+    root.title("FEMB Test GUI")
     window = GUI_WINDOW(root)
     root.mainloop() 
