@@ -26,7 +26,7 @@ import subprocess
 #import the test module
 import femb_python
 from ...configuration import CONFIG
-from .exampleProductionTest import main as maintest
+from .fembTest import main as maintest
 
 class GUI_WINDOW(Frame):
 
@@ -73,6 +73,12 @@ class GUI_WINDOW(Frame):
 
         self.fmid_entry = Entry(self,width=25)
         self.fmid_entry.grid(sticky=W,row=5,column=columnbase+1)
+
+        self.wibslot_label = Label(self,text="WIB Slot:",width=25)
+        self.wibslot_label.grid(sticky=W,row=6,column=columnbase+0)
+
+        self.wibslot_entry = Entry(self,width=25)
+        self.wibslot_entry.grid(sticky=W,row=6,column=columnbase+1)
         
         # Adding electronics ID and read entry box
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
@@ -92,6 +98,7 @@ class GUI_WINDOW(Frame):
         boxid = self.boxid_entry.get()
         amid = self.amid_entry.get()
         fmid = self.fmid_entry.get()
+        wibslot = self.wibslot_entry.get()
 
         variables = [operator,boxid,amid,fmid]
         for var in variables:
@@ -101,12 +108,14 @@ class GUI_WINDOW(Frame):
         print("CE Box ID: '{}'".format(boxid))
         print("Analog MB ID: '{}'".format(amid))
         print("FPGA Mezz ID: '{}'".format(fmid))
+        print("WIB Slot: '{}'".format(wibslot))        
 
         inputOptions = {
             "operator": operator,
             "box_id": boxid,
             "fm_id": fmid,
             "am_id": amid,
+            "wibslot": wibslot
         }
         print(inputOptions)
         return inputOptions
@@ -136,6 +145,7 @@ class GUI_WINDOW(Frame):
         self.amid_entry["state"] = "normal"
         self.fmid_label["state"] = "normal"
         self.fmid_entry["state"] = "normal"
+        self.wibslot_entry["state"] = "normal"        
 
         self.boxid_entry.delete(0,END)
         self.amid_entry.delete(0,END)
