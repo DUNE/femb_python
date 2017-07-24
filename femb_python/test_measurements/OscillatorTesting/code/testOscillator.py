@@ -147,6 +147,9 @@ class OSCILLATOR_TESTING(object):
                                 self.oscilloscopeDevice.write(":TRIG:EDGE:SOUR"+iChannel)
                                 self.oscilloscopeDevice.write(":MEAS:SOUR"+iChannel)
 
+                                #For some cranky oscillators
+                                time.sleep(1)
+                                
                                 if(iPowerCycle == 1):
                                         self.oscilloscopeDevice.write(iChannel+":SCAL?")
                                         print("Vertical scale is %s" %(self.oscilloscopeDevice.read().strip().decode()))
@@ -170,15 +173,15 @@ class OSCILLATOR_TESTING(object):
                                 timeInterval.append(self.oscilloscopeDevice.read())
                                 if(iPowerCycle == 1):
                                         print("Time interval is %.3e" %(float(timeInterval[-1])))
-		
-				#Read in waveform data for the channel
-                                self.oscilloscopeDevice.write(":WAV:DATA?"+iChannel)
-                                
+		                        
 				#Create numpy array for each channel
                                 #Will exit if nothing to read due to a problem; like oscillator not in the socket, etc
                                 tries = 0
                                 success = 0
                                 while (tries < 5 and not success):
+                                        #Read in waveform data for the channel
+                                        self.oscilloscopeDevice.write(":WAV:DATA?"+iChannel)
+
                                         try:
                                                 waveFormData.append(np.frombuffer(self.oscilloscopeDevice.read(), "B"))
                                                 success = 1
@@ -191,7 +194,6 @@ class OSCILLATOR_TESTING(object):
                                         print("%s has a problem. Please check and retry again!\nExiting!\n" %(iChannel.strip()))
                                         sys.exit(1)
                                         
-
                                 #Sleep 0.5 second and turn off the display for that channel        
                                 time.sleep(0.5)
                                 self.oscilloscopeDevice.write(iChannel+":DISP OFF")
