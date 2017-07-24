@@ -9,6 +9,7 @@ It maintains a state over a test sequence.
 '''
 
 from femb_python import runpolicy
+import time
 
 class Test(object):
     def __init__(self, **params):
@@ -46,6 +47,9 @@ def main(**params):
     use_sumatra = False
     test_category = "example"      # pick something
 
+    now = time.time()
+    params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
+    
     #parameters specific for a general test, more are defined by runpolicy runner
     #this example uses replacement fields to make it easier to define each individual test
     #main_params = dict(params)
@@ -63,19 +67,22 @@ def main(**params):
     #Explicitly define list of production tests to perform
     tests = []
 
-    #Test 0
+    #Test 0: Power cycle test
     params_test_0 = dict(params)
+    paramfile = "{datadir}/params.json"
+    
     params_test_0.update(
-        executable = "femb_example_test",      # the program or script actually running the test
+        executable = "femb_power_cycle_test",      # the program or script actually running the test
         argstr="{paramfile}",        #provide parameter file as argument
-        datadir = "exampleTest_test_0",      # use easy to guess sub directory for each test, recommend defining it here
-        outlabel = "exampleTest_test_0",       # likewise, easy to guess files, recommend defining it here
+        datasubdir = "powerCycleTest0",      # use easy to guess sub directory for each test, recommend defining it here
+        outlabel = "powerCycleTest0",     # likewise, easy to guess files, recommend defining it here
     )                                               # note: "test" is filled in the loop below
+    
     tests.append( Test(**params_test_0) )
-
+    
     #Test 1
     params_test_1 = dict(params)
-    params_test_1.update( executable = "femb_example_test", argstr="{paramfile}", datadir = "exampleTest_test_1", outlabel = "exampleTest_test_1",)
+    params_test_1.update( executable = "femb_example_test", argstr="{paramfile}", datasubdir = "exampleTest_test_1", outlabel = "exampleTest_test_1",)
     tests.append( Test(**params_test_1) )
 
     ##add more test as needed

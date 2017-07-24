@@ -159,9 +159,6 @@ class OSCILLATOR_TESTING(object):
                                         self.oscilloscopeDevice.write("TRIG:EDGE:SOUR?"+iChannel)
                                         print("Triggering on %s" %(self.oscilloscopeDevice.read().strip().decode()))
 
-                                #Sleep 3 mins        
-                                time.sleep(3)
-                                
 				#Measure the frequency of signal
                                 self.oscilloscopeDevice.write(":MEAS:FREQ?"+iChannel)
                                 oscilloscopeFrequency.append(self.oscilloscopeDevice.read())
@@ -195,8 +192,8 @@ class OSCILLATOR_TESTING(object):
                                         sys.exit(1)
                                         
 
-                                #Sleep 1 second and turn off the display for that channel        
-                                time.sleep(1)
+                                #Sleep 0.5 second and turn off the display for that channel        
+                                time.sleep(0.5)
                                 self.oscilloscopeDevice.write(iChannel+":DISP OFF")
                                 
 			###########################################################################
@@ -257,7 +254,7 @@ class OSCILLATOR_TESTING(object):
                                 axis2.set_ylim([0.0,100.0])
 		
                                 chFigure.show()
-                                time.sleep(1)
+                                time.sleep(0.5)
                                 chFigure.savefig(self.outpathlabel+"_OscillatorId_"+oscillatorId[iChannelNumber]+"_PowerCycle_"+ str(iPowerCycle) +".png")
                                 plt.close(chFigure)
                                  

@@ -177,6 +177,8 @@ setup(
             # example production test
             'femb_example_production_test=femb_python.test_measurements.exampleTest.exampleProductionTest:main',
             'femb_example_test=femb_python.test_measurements.exampleTest.code.femb_example_test:main',
+            'femb_power_cycle_test=femb_python.test_measurements.exampleTest.code.femb_power_cycle_test:main',
+            'femb_prod_gui=femb_python.test_measurements.exampleTest.gui:main',            
 
             # what the shifters run:
             'femb_osctest=femb_python.test_measurements.OscillatorTesting.otmain:main',
