@@ -93,14 +93,15 @@ class GUI_WINDOW(Frame):
         self.status_label.grid(row=100,column=columnbase,columnspan=2)
         self.bkg_color = self.status_label.cget("background")
 
-    def get_options(self,getCurrent=False):
+    def get_options(self):
         operator = self.operator_entry.get()
         boxid = self.boxid_entry.get()
         amid = self.amid_entry.get()
         fmid = self.fmid_entry.get()
         wibslot = self.wibslot_entry.get()
 
-        variables = [operator,boxid,amid,fmid]
+        variables = [operator,boxid,amid,fmid,wibslot]
+
         for var in variables:
             if var == "" :
                 return
@@ -156,10 +157,11 @@ class GUI_WINDOW(Frame):
 
     def start_measurements(self):
         params = self.get_options()
+
         if params is None:
             print("ENTER REQUIRED INFO")
             return
-
+        
         print("BEGIN TESTS")
         self.status_label["text"] = "TESTS IN PROGRESS..."
         self.status_label["fg"] = "#000000"

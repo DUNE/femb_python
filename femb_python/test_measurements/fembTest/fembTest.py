@@ -49,18 +49,30 @@ def main(**params):
 
     #check for any required input paramaters here ie board id etc
 
-    #operator
-    #board ID
-    #femb slot #
-    #ASICs?
-
+    if (not params['operator']):
+        print ("Operator data not entered")
+        return -99
+    if (not params['box_id']):
+        print ("Box ID data not entered")        
+        return -99
+    if (not params['am_id']):
+        print ("Analog MB ID data not entered")                
+        return -99
+    if (not params['fm_id']):
+        print ("FPGA Mezz data not entered")                
+        return -99
+    if (not params['wibslot']):
+        print ("WIB Slot data not entered")        
+        return -99
+        
     #Explicitly define list of production tests to perform
     tests = []
 
-    #Test 0:
+    #Test 0
     params_test_0 = dict(params)
-    params_test_0.update( executable="femb_test_simple", argstr="{paramfile}", datasubdir="fembTest_test_0", outlabel="fembTest_test_0", fembNum=1)
+    params_test_0.update( executable="femb_power_cycle_test", argstr="{paramfile}", datasubdir="fembTest_test_0", outlabel="fembTest_test_0", fembNum=params['wibslot'])
     tests.append( Test(**params_test_0) )
+    
 
     ##add more test as needed
 

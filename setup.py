@@ -177,7 +177,7 @@ setup(
             # example production test
             'femb_example_production_test=femb_python.test_measurements.exampleTest.exampleProductionTest:main',
             'femb_example_test=femb_python.test_measurements.exampleTest.code.femb_example_test:main',
-            'femb_power_cycle_test=femb_python.test_measurements.exampleTest.code.femb_power_cycle_test:main',
+            'femb_power_cycle_test=femb_python.test_measurements.fembTest.code.femb_power_cycle_test:main',
             'femb_prod_gui=femb_python.test_measurements.fembTest.gui:main',
 
             #femb production test
