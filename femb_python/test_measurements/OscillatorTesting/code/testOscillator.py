@@ -158,7 +158,10 @@ class OSCILLATOR_TESTING(object):
                                 if(iPowerCycle == 1):
                                         self.oscilloscopeDevice.write("TRIG:EDGE:SOUR?"+iChannel)
                                         print("Triggering on %s" %(self.oscilloscopeDevice.read().strip().decode()))
-                                        
+
+                                #Sleep 3 mins        
+                                time.sleep(3)
+                                
 				#Measure the frequency of signal
                                 self.oscilloscopeDevice.write(":MEAS:FREQ?"+iChannel)
                                 oscilloscopeFrequency.append(self.oscilloscopeDevice.read())
