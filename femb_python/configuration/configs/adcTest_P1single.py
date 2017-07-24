@@ -49,9 +49,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC1_4_data = 0x6
         self.REG_LATCHLOC5_8_data = 0x0
         self.REG_CLKPHASE_data = 0xfffc0000
-        self.REG_LATCHLOC1_4_data_1MHz = 0x4
+        self.REG_LATCHLOC1_4_data_1MHz = 0x5
         self.REG_LATCHLOC5_8_data_1MHz = 0x0
-        self.REG_CLKPHASE_data_1MHz = 0xfffc0001
+        self.REG_CLKPHASE_data_1MHz = 0xffff0000
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
 
         ##################################
