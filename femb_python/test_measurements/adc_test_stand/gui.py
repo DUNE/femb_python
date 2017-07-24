@@ -25,8 +25,6 @@ import subprocess
 #import the test module
 import femb_python
 from ...configuration import CONFIG
-from .setup_board import setup_board
-from .run import runTests
 from ...runpolicy import DirectRunner, SumatraRunner
 
 GUITESTMODE=False

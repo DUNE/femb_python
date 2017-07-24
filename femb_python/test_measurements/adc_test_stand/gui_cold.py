@@ -25,12 +25,10 @@ import subprocess
 #import the test module
 import femb_python
 from ...configuration import CONFIG
-from .setup_board import setup_board
-from .run import runTests
 from ...runpolicy import DirectRunner, SumatraRunner
 from ...trace_fft_window import TRACE_FFT_WINDOW
 
-GUITESTMODE=True
+GUITESTMODE=False
 
 class GUI_WINDOW(Frame):
 
@@ -299,6 +297,9 @@ class GUI_WINDOW(Frame):
         self.timestamp = None # get new timestamp for each prepare board
         if self.waveform_window:
           self.waveform_window.destroy()
+        for i in reversed(range(len(self.result_labels))):
+            tmp = self.result_labels.pop(i)
+            tmp.destroy()
         inputOptions = self.get_options()
         if inputOptions is None:
             print("ENTER REQUIRED INFO")
@@ -319,7 +320,7 @@ class GUI_WINDOW(Frame):
 
         self.update_idletasks()
         runnerSetup = {
-                                "executable": "femb_adc_setup_board",
+                                "executable": "femb_adc_setup_board_cold",
                                 "argstr": "-j {paramfile}",
                                 "basedir": self.data_base_dir,
                                 "rundir": "/home/{linux_username}/run",
@@ -350,6 +351,9 @@ class GUI_WINDOW(Frame):
             self.waveform_window.destroy()
         if not GUITESTMODE:
             self.config.FUNCGENINTER.stop()
+        for i in reversed(range(len(self.result_labels))):
+            tmp = self.result_labels.pop(i)
+            tmp.destroy()
         inputOptions = self.get_options(getCurrent=True)
         if inputOptions is None:
             print("ENTER REQUIRED INFO")
