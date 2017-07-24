@@ -66,8 +66,6 @@ class OSCILLATOR_TESTING(object):
 		#RIGOL DS1074B Digital Oscilloscope
 		#RIGOL DP832 Programmable DC Power Supply
 		###########################################################################
-                #powerSupplyDevice = None
-                #oscilloscopeDevice = None
                 dirList = os.listdir("/dev")
                 for fName in dirList:
                         if(fName.startswith("usbtmc")):
@@ -188,7 +186,8 @@ class OSCILLATOR_TESTING(object):
                                                 print("Trying again...")
                                                 time.sleep(5)
                                                 tries += 1
-                                if (not success):
+                                                
+                                if (not success and iPowerCycle == 1):
                                         print("%s has a problem. Please check and retry again!\nExiting!\n" %(iChannel.strip()))
                                         sys.exit(1)
                                         
