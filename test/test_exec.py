@@ -12,6 +12,14 @@ def test_simple():
     sc = commands.execute(cmdstr)
     assert (sc == 0)
 
+def test_alternating():
+    """
+    Test simple poll-based execution
+    """
+    cmdstr = "echo o1 && sleep 1 && echo e2 1>&2 && sleep 1 && echo o3 && echo e3 1>&2"
+    sc = commands.execute(cmdstr)
+    assert (sc == 0)
+
 def test_fail():
     """
     Test simple poll-based execution
@@ -27,6 +35,7 @@ def test_fail():
 
 if '__main__' == __name__:
     test_simple()
+    test_alternating()
     test_fail()
 
     
