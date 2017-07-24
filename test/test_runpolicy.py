@@ -116,6 +116,8 @@ def test_fail():
     else:
         raise RuntimeError("test of /bin/false failed to fail")
 
+
+
 if '__main__' == __name__:
     test_basic()
     test_direct()

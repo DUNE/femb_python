@@ -9,7 +9,9 @@ Runner for more information.
 import os
 import json
 import time
-import subprocess
+#import subprocess
+from . import commands
+from collections import namedtuple
 
 class Runner(object):
     '''A Runner runs a program as governed by a parameter set.
@@ -105,18 +107,26 @@ class Runner(object):
         Wrap up the low level running of some command
         '''
         print ('Running "%s" in %s' % (cmdstr, cwd))
+
         if cwd == ".":
             print ("which is: %s" % os.path.realpath(cwd))
-        self.last_sc = None
-        sc = subprocess.run(cmdstr, cwd=cwd, shell=shell,
-                                stderr=subprocess.PIPE)
-        if sc.stdout:
-            print (sc.stdout.decode())
-        if sc.stderr:
-            print (sc.stderr.decode())
-        if sc.returncode != 0:
-            raise RuntimeError('Failed to run "%s"' % cmdstr)
-        self.last_sc = sc
+
+        stdout = list()
+        stderr = list()
+
+        def out(oline, eline):
+            if oline:
+                stdout.append(oline)
+                print ("Output: %s" % oline)
+            if eline:
+                stderr.append(eline)
+                print ("Error: %s" % eline)
+        rc = commands.execute(cmdstr, shell=shell, cwd=cwd, out=out)
+
+        stdout = '\n'.join(stdout)
+        stderr = '\n'.join(stderr)
+        
+        self.last_sc = namedtuple("outerr","stdout stderr rc")(stdout, stderr, rc)
 
     def resolve(self, **user_params):
 
@@ -270,7 +280,7 @@ class SumatraRunner(Runner):
             
         self.exec(cmd, params['rundir'])
         # stupid smt run eats return code
-        err = self.last_sc.stderr.decode()
+        err = self.last_sc.stderr
         if err.startswith("WARNING:root:Returned:"):
             parts = self.last_sc.stderr.split()
             if parts[1] != "0":
