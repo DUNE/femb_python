@@ -1,5 +1,5 @@
 """
-ADC Test Stand GUI
+ADC Test Stand GUI for Cold Tests
 """
 from __future__ import division
 from __future__ import print_function
@@ -26,24 +26,23 @@ import subprocess
 import femb_python
 from ...configuration import CONFIG
 from ...runpolicy import DirectRunner, SumatraRunner
+from ...trace_fft_window import TRACE_FFT_WINDOW
 
 GUITESTMODE=False
 
 class GUI_WINDOW(Frame):
 
     #GUI window defined entirely in init function
-    def __init__(self, master=None,forceQuick=False,forceLong=False):
+    def __init__(self, master=None,forceLong=False):
         Frame.__init__(self,master)
         self.pack()
 
         self.config = CONFIG()
 
-        if forceQuick and forceLong:
-            raise Exception("Can't forceQuick and forceLong at the same time")
-        self.forceQuick = forceQuick
         self.forceLong = forceLong
 
         self.timestamp = None
+        self.waveform_window = None
         self.result_labels = []
         self.display_procs = []
         #Define general commands column
@@ -88,23 +87,56 @@ class GUI_WINDOW(Frame):
             self.asic_labels.append(label)
             self.asic_entries.append(asic_entry)
 
-        self.prepare_button = Button(self, text="Power-up Board", command=self.prepare_board,width=25)
-        self.prepare_button.grid(row=20,column=columnbase,columnspan=2,pady=30)
+        self.beforeprepare_label = Label(self,text="",width=30)
+        self.beforeprepare_label.grid(row=21,column=columnbase,columnspan=2)
+
+        self.prepare_button_text = "Power-up & Setup Board"
+        self.prepare_button = Button(self, text=self.prepare_button_text, command=self.prepare_board,width=25)
+        self.prepare_button.grid(row=22,column=columnbase,columnspan=2)
+        self.activebkg_color = self.prepare_button.cget("activebackground")
+
+        self.coolboard_label = Label(self,text="",width=30,fg="#0000FF")
+        self.coolboard_label.grid(row=23,column=columnbase,columnspan=2)
+
+        self.resetwaveform_button = Button(self, text="Restart Waveform Viwer", command=self.reset_waveform_viewer,width=25,state="disabled")
+        self.resetwaveform_button.grid(row=24,column=columnbase,columnspan=2,pady=30)
+
+        # Adding ASIC/channel select
+
+        self.selectSocket_label = Label(self,text="View Socket:",state="disabled")
+        self.selectSocket_label.grid(sticky=E,row=26,column=columnbase+0)
+        self.selectSocket_entry = Spinbox(self,from_=0,to=self.config.NASICS-1,insertwidth=1,width=4,state="disabled")
+        self.selectSocket_entry.grid(sticky=W,row=26,column=columnbase+1)
+        if self.config.NASICS == 1:
+            self.selectSocket_label.grid_forget()
+            self.selectSocket_entry.grid_forget()
+
+        self.selectChannel_label = Label(self,text="View Channel:",state="disabled")
+        self.selectChannel_label.grid(sticky=E,row=28,column=columnbase+0)
+
+        self.selectChannel_entry = Spinbox(self,from_=0,to=15,insertwidth=3,width=4,state="disabled")
+        self.selectChannel_entry.grid(sticky=W,row=28,column=columnbase+1)
+
+        self.selectChannel_button = Button(self, text="Select Channel to View", command=self.call_selectChannel,width=25,state="disabled")
+        self.selectChannel_button.grid(row=30,column=columnbase,columnspan=2)
+
+        self.selectChannel_result = Label(self, text="")
+        self.selectChannel_result.grid(sticky=W,row=32,column=columnbase)
 
         # Adding electronics ID and read entry box
         self.current_label = Label(self,text="CH2 Current [A]:",width=25,state="disabled")
-        self.current_label.grid(sticky=W,row=21,column=columnbase+0)
+        self.current_label.grid(sticky=W,row=34,column=columnbase+0)
 
         self.current_entry = Entry(self,width=25,state="disabled")
-        self.current_entry.grid(sticky=W,row=21,column=columnbase+1)
+        self.current_entry.grid(sticky=W,row=34,column=columnbase+1)
 
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        self.start_button.grid(row=22,column=columnbase,columnspan=2,pady=30)
+        self.start_button.grid(row=36,column=columnbase,columnspan=2,pady=30)
         self.reset_button = Button(self, text="Reset & Power-off", command=self.reset,width=25,bg="#FF8000")
-        self.reset_button.grid(row=24,column=columnbase,columnspan=2)
+        self.reset_button.grid(row=38,column=columnbase,columnspan=2)
 
         self.runid_label = Label(self, text="")
-        self.runid_label.grid(row=25,column=columnbase,columnspan=2,pady=20)
+        self.runid_label.grid(row=40,column=columnbase,columnspan=2,pady=20)
 
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
         self.status_label.grid(row=100,column=columnbase,columnspan=2)
@@ -173,13 +205,9 @@ class GUI_WINDOW(Frame):
             cold = self.config.COLD
         except AttributeError:
             cold = None
-        quick = False
-        if self.forceQuick:
-            quick = True
-        elif self.forceLong:
+        quick = True
+        if self.forceLong:
             quick = False
-        elif cold:
-            quick = True
 
         inputOptions = {
             "operator": operator,
@@ -216,6 +244,9 @@ class GUI_WINDOW(Frame):
         print("POWER DOWN")
         if not GUITESTMODE:
             self.config.POWERSUPPLYINTER.off()
+            self.config.FUNCGENINTER.stop()
+        if self.waveform_window:
+            self.waveform_window.destroy()
         self.timestamp = None
         for i in reversed(range(len(self.display_procs))):
             tmp = self.display_procs.pop(i)
@@ -233,6 +264,10 @@ class GUI_WINDOW(Frame):
         self.status_label["bg"] = self.bkg_color
         self.runid_label["text"] = ""
         self.prepare_button["state"] = "normal"
+        self.prepare_button["text"] = self.prepare_button_text
+        self.prepare_button["bg"] = self.bkg_color
+        self.prepare_button["activebackground"] = self.activebkg_color
+        self.coolboard_label["text"] = ""
         self.start_button["state"] = "disabled"
         self.operator_label["state"] = "normal"
         self.operator_entry["state"] = "normal"
@@ -244,14 +279,27 @@ class GUI_WINDOW(Frame):
         self.current_entry["state"] = "disabled"
         #self.operator_entry.delete(0,END)
         #self.boardid_entry.delete(0,END)
+        self.resetwaveform_button["state"] = "disabled"
+        self.selectSocket_label["state"] = "disabled"
+        self.selectSocket_entry["state"] = "disabled"
+        self.selectChannel_label["state"] = "disabled"
+        self.selectChannel_entry["state"] = "disabled"
+        self.selectChannel_button["state"] = "disabled"
+        self.selectChannel_result["text"] = ""
         for i in range(self.config.NASICS):
             self.asic_labels[i]["state"] = "normal"
             self.asic_entries[i]["state"] = "normal"
-            self.asic_entries[i].delete(0,END)
+            #self.asic_entries[i].delete(0,END)
         self.reset_button["bg"] ="#FF9900"
         self.reset_button["activebackground"] ="#FFCF87"
 
     def prepare_board(self):
+        self.timestamp = None # get new timestamp for each prepare board
+        if self.waveform_window:
+          self.waveform_window.destroy()
+        for i in reversed(range(len(self.result_labels))):
+            tmp = self.result_labels.pop(i)
+            tmp.destroy()
         inputOptions = self.get_options()
         if inputOptions is None:
             print("ENTER REQUIRED INFO")
@@ -259,13 +307,20 @@ class GUI_WINDOW(Frame):
             self.status_label["fg"] = "#FF0000"
             return
         print("BEGIN PREPARE")
+        self.resetwaveform_button["state"] = "disabled"
+        self.selectSocket_label["state"] = "disabled"
+        self.selectSocket_entry["state"] = "disabled"
+        self.selectChannel_label["state"] = "disabled"
+        self.selectChannel_entry["state"] = "disabled"
+        self.selectChannel_button["state"] = "disabled"
+        self.selectChannel_result["text"] = ""
         self.status_label["text"] = "POWERING UP BOARD..."
         self.status_label["fg"] = "#000000"
         self.runid_label["text"] = "Run ID: "+ inputOptions["runid"]
 
         self.update_idletasks()
         runnerSetup = {
-                                "executable": "femb_adc_setup_board",
+                                "executable": "femb_adc_setup_board_cold",
                                 "argstr": "-j {paramfile}",
                                 "basedir": self.data_base_dir,
                                 "rundir": "/home/{linux_username}/run",
@@ -292,6 +347,13 @@ class GUI_WINDOW(Frame):
             self.done_preparing_board(params)
 
     def start_measurements(self):
+        if self.waveform_window:
+            self.waveform_window.destroy()
+        if not GUITESTMODE:
+            self.config.FUNCGENINTER.stop()
+        for i in reversed(range(len(self.result_labels))):
+            tmp = self.result_labels.pop(i)
+            tmp.destroy()
         inputOptions = self.get_options(getCurrent=True)
         if inputOptions is None:
             print("ENTER REQUIRED INFO")
@@ -301,6 +363,17 @@ class GUI_WINDOW(Frame):
         self.current_label["state"] = "disabled"
         self.current_entry["state"] = "disabled"
         self.start_button["state"] = "disabled"
+        self.prepare_button["state"] = "disabled"
+        self.prepare_button["bg"] = self.bkg_color
+        self.prepare_button["activebackground"] = self.activebkg_color
+        self.coolboard_label["text"] = ""
+        self.resetwaveform_button["state"] = "disabled"
+        self.selectSocket_label["state"] = "disabled"
+        self.selectSocket_entry["state"] = "disabled"
+        self.selectChannel_label["state"] = "disabled"
+        self.selectChannel_entry["state"] = "disabled"
+        self.selectChannel_button["state"] = "disabled"
+        self.selectChannel_result["text"] = ""
 
         print("BEGIN TESTS")
         self.status_label["text"] = "TESTS IN PROGRESS..."
@@ -357,32 +430,52 @@ class GUI_WINDOW(Frame):
                 return
             else:
                 resultdict = {"pass":True}
+                #resultdict = {"pass":False}
         if resultdict["pass"]:
             self.current_label["state"] = "normal"
             self.current_entry["state"] = "normal"
             self.status_label["text"] = "Power up success, enter CH2 Current"
             self.status_label["fg"] = "#000000"
-            self.prepare_button["state"] = "disabled"
+            self.prepare_button["state"] = "normal"
+            self.prepare_button["text"] = "Re-"+self.prepare_button_text
+            self.prepare_button["bg"] ="#FF9900"
+            self.prepare_button["activebackground"] ="#FFCF87"
+            self.coolboard_label["text"] = "If waveform looks okay, \nbegin cooling board \n(see shifter instructions)"
             self.start_button["state"] = "normal"
             self.operator_label["state"] = "disabled"
             self.operator_entry["state"] = "disabled"
             self.boardid_label["state"] = "disabled"
             self.boardid_entry["state"] = "disabled"
+            self.reset_button["bg"] ="#FF9900"
+            self.reset_button["activebackground"] ="#FFCF87"
+            self.resetwaveform_button["state"] = "normal"
+            self.selectSocket_label["state"] = "normal"
+            self.selectSocket_entry["state"] = "normal"
+            self.selectChannel_label["state"] = "normal"
+            self.selectChannel_entry["state"] = "normal"
+            self.selectChannel_button["state"] = "normal"
+            self.selectChannel_result["text"] = ""
             for i in range(self.config.NASICS):
                 self.asic_labels[i]["state"] = "disabled"
                 self.asic_entries[i]["state"] = "disabled"
+            if not GUITESTMODE:
+                self.config.FUNCGENINTER.startSin(1000,0.6,0.7)
+            self.reset_waveform_viewer()
         else:
             columnbase = 0
             rowbase = 50
             label = Label(self, text="FAIL to setup board",bg="#FF0000")
             label.grid(row=rowbase+2,column=columnbase,columnspan=2)
             self.result_labels.append(label)
-            label = Label(self, text="Report to shift leader",bg="#FF0000")
+            label = Label(self, text="Try re-power-up & setup board again",bg="#FF0000")
             label.grid(row=rowbase+3,column=columnbase,columnspan=2)
             self.result_labels.append(label)
-            self.prepare_button["state"] = "disabled"
-            self.reset_button["bg"] ="#00CC00"
-            self.reset_button["activebackground"] = "#A3CCA3"
+            self.prepare_button["state"] = "normal"
+            self.prepare_button["text"] = "Re-"+self.prepare_button_text
+            self.prepare_button["bg"] ="#00CC00"
+            self.prepare_button["activebackground"] = "#A3CCA3"
+            self.reset_button["bg"] ="#FF9900"
+            self.reset_button["activebackground"] ="#FFCF87"
 
     def done_measuring(self,params):
         print("TESTS COMPLETE")
@@ -462,6 +555,39 @@ class GUI_WINDOW(Frame):
         for imgfilename in imgfilenames:
             self.display_procs.append(subprocess.Popen(["eog",imgfilename]))
 
+    def reset_waveform_viewer(self):
+        if self.waveform_window:
+          self.waveform_window.destroy()
+        self.waveform_window = Toplevel(self)
+        self.waveform_window.title("Trace FFT Window")
+        self.waveform_viewer = TRACE_FFT_WINDOW(self.waveform_window)
+
+    def call_selectChannel(self):
+        asic = None
+        chan = None
+        if self.config.NASICS == 1:
+            asic = 0
+        else:
+            try:
+              asic = int(self.selectSocket_entry.get())
+            except ValueError:
+              self.selectChannel_result["text"] = "Error asic must be an int"
+              return
+        try:
+          chan = int(self.selectChannel_entry.get())
+        except ValueError:
+          self.selectChannel_result["text"] = "Error channel must be an int"
+          return
+        message = ""
+        if asic < 0 or asic >= self.config.NASICS:
+          self.selectChannel_result["text"] = "Error asic only from 0 to {}".format(self.config.NASICS - 1)
+          return
+        if chan < 0 or chan >= 16:
+          self.selectChannel_result["text"] = "Error channel only from 0 to 15"
+          return
+        self.config.selectChannel(asic,chan)
+        self.selectChannel_result["text"] = ""
+
     def exit(self,*args, **kargs):
         if not GUITESTMODE:
             self.config.POWERSUPPLYINTER.off()
@@ -479,12 +605,11 @@ class GUI_WINDOW(Frame):
 def main():
     from ...configuration.argument_parser import ArgumentParser
 
-    parser = ArgumentParser(description="ADC test GUI")
-    parser.add_argument("-q","--forceQuick",help="Force to run only the ADC offset current off setting (normally runs all when warm)",action="store_true")
-    parser.add_argument("-l","--forceLong",help="Force to run over all ADC offset current settings (normally doesn't when cold)",action="store_true")
+    parser = ArgumentParser(description="ADC cold test GUI")
+    parser.add_argument("-l","--forceLong",help="Force to run over all ADC offset current settings (normally doesn't)",action="store_true")
     args = parser.parse_args()
 
     root = Tk()
-    root.title("ADC Test GUI")
-    window = GUI_WINDOW(root,forceLong=args.forceLong,forceQuick=args.forceQuick)
+    root.title("ADC Cold Test GUI")
+    window = GUI_WINDOW(root,forceLong=args.forceLong)
     root.mainloop() 

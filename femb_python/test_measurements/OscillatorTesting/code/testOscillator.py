@@ -66,8 +66,6 @@ class OSCILLATOR_TESTING(object):
 		#RIGOL DS1074B Digital Oscilloscope
 		#RIGOL DP832 Programmable DC Power Supply
 		###########################################################################
-                #powerSupplyDevice = None
-                #oscilloscopeDevice = None
                 dirList = os.listdir("/dev")
                 for fName in dirList:
                         if(fName.startswith("usbtmc")):
@@ -160,7 +158,7 @@ class OSCILLATOR_TESTING(object):
                                 if(iPowerCycle == 1):
                                         self.oscilloscopeDevice.write("TRIG:EDGE:SOUR?"+iChannel)
                                         print("Triggering on %s" %(self.oscilloscopeDevice.read().strip().decode()))
-                                        
+
 				#Measure the frequency of signal
                                 self.oscilloscopeDevice.write(":MEAS:FREQ?"+iChannel)
                                 oscilloscopeFrequency.append(self.oscilloscopeDevice.read())
@@ -183,18 +181,19 @@ class OSCILLATOR_TESTING(object):
                                 while (tries < 5 and not success):
                                         try:
                                                 waveFormData.append(np.frombuffer(self.oscilloscopeDevice.read(), "B"))
-                                                sucess = 1
+                                                success = 1
                                         except:
                                                 print("Trying again...")
                                                 time.sleep(5)
                                                 tries += 1
-                                if (not success):
+                                                
+                                if (not success and iPowerCycle == 1):
                                         print("%s has a problem. Please check and retry again!\nExiting!\n" %(iChannel.strip()))
                                         sys.exit(1)
                                         
 
-                                #Sleep 1 second and turn off the display for that channel        
-                                time.sleep(1)
+                                #Sleep 0.5 second and turn off the display for that channel        
+                                time.sleep(0.5)
                                 self.oscilloscopeDevice.write(iChannel+":DISP OFF")
                                 
 			###########################################################################
@@ -255,7 +254,7 @@ class OSCILLATOR_TESTING(object):
                                 axis2.set_ylim([0.0,100.0])
 		
                                 chFigure.show()
-                                time.sleep(1)
+                                time.sleep(0.5)
                                 chFigure.savefig(self.outpathlabel+"_OscillatorId_"+oscillatorId[iChannelNumber]+"_PowerCycle_"+ str(iPowerCycle) +".png")
                                 plt.close(chFigure)
                                  
