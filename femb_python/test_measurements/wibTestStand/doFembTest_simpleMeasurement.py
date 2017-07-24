@@ -38,6 +38,7 @@ class FEMB_TEST(object):
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
+        self.fembNum = 0
 
         self.cppfr = CPP_FILE_RUNNER()
 
@@ -52,6 +53,9 @@ class FEMB_TEST(object):
             print(" Please check that femb_python package directory structure is intact.")
             return
 
+        #select femb
+        self.femb_config.selectFemb(self.fembNum)
+
         #check if register interface is working
         print("Checking register interface")
         regVal = self.femb_config.femb.read_reg(5)
@@ -61,10 +65,13 @@ class FEMB_TEST(object):
             return
         print("Read register 5, value = " + str( hex( regVal ) ) )
 
+        #for regNum in range (0,1024,1):
+        #    regVal = self.femb_config.femb.read_reg(regNum)
+        #    print(str(regNum) + "\t" + str( hex( regVal ) ) )
+
         #initialize FEMB to known state
         print("Initializing board")
-        #self.femb_config.initBoard()
-        self.femb_config.initFemb(self.femb_config.fembNum)
+        self.femb_config.initFemb(self.fembNum)
 
         #check if data streaming is working
         print("Checking data streaming")
@@ -180,7 +187,7 @@ class FEMB_TEST(object):
 def main():
 
     femb_test = FEMB_TEST()
-    femb_test.femb_config.selectFemb(0)
+    femb_test.fembNum = 1
     femb_test.check_setup()
     femb_test.record_data()
     femb_test.do_analysis()

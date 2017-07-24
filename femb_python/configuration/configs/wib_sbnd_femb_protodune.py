@@ -1,3 +1,9 @@
+#!/usr/bin/env python33
+
+"""
+Configuration for ProtoDUNE FEMB + SBND WIB Setup
+"""
+
 from __future__ import print_function
 from __future__ import division
 from __future__ import unicode_literals
@@ -13,53 +19,65 @@ import sys
 import string
 import time
 from femb_python.femb_udp import FEMB_UDP
+from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 
-class FEASIC_CH_CONFIG(object):
-    def __init__(self, num, regNum, regPos):
-        numVal = int(num)
-        regNumVal = int(regNum)
-        regPosVal = int(regPos)
+class FEMB_CONFIG(FEMB_CONFIG_BASE):
+
+    #__INIT__#
+    def __init__(self):
+        #declare basic system parameters
+        self.NFEMBS = 4
+        self.NASICS = 8
+        self.NASICCH = 16
+
+        #declare board specific registers
+        self.FEMB_VER = "WIB_SBND"
+        self.REG_RESET = 0
+        self.REG_ASIC_RESET = 1
+        self.REG_ASIC_SPIPROG = 2
+
+        self.REG_LATCHLOC_3_TO_0 = 4
+        self.REG_LATCHLOC_7_TO_4 = 14
+
+        self.REG_FPGA_TP_EN = 16
+        self.REG_ASIC_TP_EN = 16
+        self.REG_DAC_SELECT = 16
+        self.REG_TP = 5
+
+        self.CLK_SELECT = 6
+        self.CLK_SELECT2 = 15
+
+        self.REG_SEL_ASIC = 7
+        self.REG_SEL_ASIC_LSB = 8
+
+        self.REG_WIB_MODE = 8
+        self.REG_ADC_DISABLE = 8
+
+        self.REG_HS_DATA = 9
+
+        #EXTERNAL CLOCK STUFF HERE
+
+        self.REG_SPI_BASE = 512
+        self.REG_SPI_RDBACK_BASE = 592
+
+        self.fembNum = 0
+
+        #initialize FEMB UDP object
+        self.femb = FEMB_UDP()
+        self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
+        self.femb.UDP_PORT_RREG = 32001
+        self.femb.UDP_PORT_RREGRESP = 32002
+
+        #ASIC config variables
+        self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
+        self.feasicLeakagex10 = 0 #0 = pA, 1 = pA*10
+        self.feasicAcdc = 0 #AC = 0, DC = 1
         
-        self.chan_num = numVal
-        self.STS = 0
-        self.NC = 0
-        self.SG = 0
-        self.ST = 0
-        self.SDC = 0
-        self.SBF = 0
-        self.regNum = regNumVal
-        self.regPos = regPosVal
-        self.regval = 0
-
-    #sts=test input, snc = baseline, sg = gain, st = shaping time, sdc = coupling, sbf = buffer amplifier
-    def set_fechn_reg(self, sts=0, snc=0, sg=0, st=0, sdc=0, sdf=0 ):
-        testVal = int(sts)
-        if (testVal < 0 ) or (testVal > 1):
-                return
-        baseVal = int(snc)
-        if (baseVal < 0 ) or (baseVal > 1):
-                return
-        gainVal = int(sg)
-        if (gainVal < 0 ) or (gainVal > 3):
-                return
-        shapeVal = int(st)
-        if (shapeVal < 0 ) or (shapeVal > 3):
-                return
-        acdcVal = int(sdc)
-        if (acdcVal < 0 ) or (acdcVal > 1):
-                return
-        bufVal = int(sdf)
-        if (bufVal < 0 ) or (bufVal > 1):
-                return
-
-        gainArray = [0,2,1,3]
-        shapeArray = [2,0,3,1] #I don't know why
-        baseVal = 1 - baseVal #want 0 = 200mV, 1 = 900mV
-
-        self.regval = ((testVal & 0x01)<<7) + ((baseVal & 0x01)<<6) + ((gainArray[gainVal] & 0x03)<<4) +\
-                  ((shapeArray[shapeVal] & 0x03)<<2)  + ((acdcVal & 0x01)<<1) + ((bufVal & 0x01)<<0)
-
-class FEMB_CONFIG(object):
+        self.feasicEnableTestInput = 1 #0 = disabled, 1 = enabled
+        self.feasicBaseline = 0 #0 = 200mV, 1 = 900mV
+        self.feasicGain = 1 #4.7,7.8,14,25
+        self.feasicShape = 3 #0.5,1,2,3
+        self.feasicBuf = 0 #0 = OFF, 1 = ON
 
     def resetBoard(self):
         print("Reset")
@@ -77,6 +95,7 @@ class FEMB_CONFIG(object):
         self.femb.UDP_PORT_WREG = 32000
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
+        self.femb.REG_SLEEP = 0.001
 
         #register 2, LED
         self.femb.write_reg_bits(2 , 0, 0xFF, 0 )
@@ -92,8 +111,14 @@ class FEMB_CONFIG(object):
 
     def initFemb(self,femb):
         fembVal = int(femb)
-        if (fembVal < 0) or (fembVal > 3 ):
+        if (fembVal < 0) or (fembVal >= self.NFEMBS ):
             return
+
+        #FEMB power enable on WIB
+        self.powerOnFemb(fembVal)
+
+        #Make sure register interface is for correct FEMB
+        self.selectFemb(fembVal)
 
         #check if FEMB register interface is working
         self.selectFemb(fembVal)
@@ -104,76 +129,30 @@ class FEMB_CONFIG(object):
             print(" Will not initialize FEMB.")       
             return
 
-        #FEMB power enable on WIB
-        self.powerOnFemb(fembVal)
-
-        #Make sure register interface is for correct FEMB
-        self.selectFemb(fembVal)
-
         #turn off pulser
-        self.femb.write_reg_bits( 16, 0,0x1,0) #test pulse enable
-        self.femb.write_reg_bits( 16, 1,0x1,0) #test pulse enable
-        self.femb.write_reg_bits( 16, 8,0x1,0) #test pulse enable
-        self.femb.write_reg_bits( 5, 0,0x1F,0x00) #test pulse amplitude
-        self.femb.write_reg_bits( 5, 16,0xFFFF,0x100) #test pulse frequency
-        self.femb.write_reg_bits( 5, 8,0xFF,0x00) #test pulse delay
+        self.femb.write_reg_bits( self.REG_FPGA_TP_EN, 0,0x1,0) #test pulse enable
+        self.femb.write_reg_bits( self.REG_ASIC_TP_EN, 1,0x1,0) #test pulse enable
+        self.femb.write_reg_bits( self.REG_DAC_SELECT, 8,0x1,0) #test pulse enable
+        self.femb.write_reg_bits( self.REG_TP, 0,0x1F,0x00) #test pulse amplitude
+        self.femb.write_reg_bits( self.REG_TP, 16,0xFFFF,0x100) #test pulse frequency
+        self.femb.write_reg_bits( self.REG_TP, 8,0xFF,0x00) #test pulse delay
 
         #phase control
-        self.femb.write_reg_bits(6 , 0, 0xFF, 0xAF ) #clock select
-        self.femb.write_reg_bits(15 , 0, 0xFF, 0xAF ) #clock select 2
-
-        self.femb.write_reg_bits(4 , 0, 0xFFFFFFFF, 0x00000000 )
-        self.femb.write_reg_bits(14 , 0, 0xFFFFFFFF, 0x00000000 )
+        self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0x2 ) #clock select
+        self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0x0 ) #clock select 2
+        self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
+        self.femb.write_reg_bits(self.REG_LATCHLOC_7_TO_4 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
 
         #enable streaming
-        self.femb.write_reg_bits(9 , 0, 0x1, 1 ) #Enable streaming
-        self.femb.write_reg_bits(9 , 3, 0x1, 1 ) #Enable ADC data
+        self.femb.write_reg_bits(self.REG_HS_DATA , 0, 0x1, 1 ) #Enable streaming
+        self.femb.write_reg_bits(self.REG_HS_DATA , 3, 0x1, 1 ) #Enable ADC data
 
         #Set FE ASIC SPI configuration registers
-        self.configFeAsic(0,0,0)
+        self.configFeAsic()
 
         #Set ADC SPI configuration registers
-        """
-        self.femb.write_reg_bits(512, 0, 0xFFFFFFFF, 0xc0c0c0c)
-        self.femb.write_reg_bits(513, 0, 0xFFFFFFFF, 0xc0c0c0c)
-        self.femb.write_reg_bits(514, 0, 0xFFFFFFFF, 0xc0c0c0c)
-        self.femb.write_reg_bits(515, 0, 0xFFFFFFFF, 0xc0c0c0c)
-        self.femb.write_reg_bits(516, 0, 0xFFFFFFFF, 0xc0c0c0c)
-        self.femb.write_reg_bits(517, 0, 0xFFFFFFFF, 0xc0c0c0c)
-        self.femb.write_reg_bits(518, 0, 0xFFFFFFFF, 0xc0c0c0c)
-        self.femb.write_reg_bits(519, 0, 0xFFFFFFFF, 0xc0c0c0c)
-        self.femb.write_reg_bits(520, 0, 0xFFFFFFFF, 0x19351935)
-        self.femb.write_reg_bits(521, 0, 0xFFFFFFFF, 0x18181818)
-        self.femb.write_reg_bits(522, 0, 0xFFFFFFFF, 0x18181818)
-        self.femb.write_reg_bits(523, 0, 0xFFFFFFFF, 0x18181818)
-        self.femb.write_reg_bits(524, 0, 0xFFFFFFFF, 0x18181818)
-        self.femb.write_reg_bits(525, 0, 0xFFFFFFFF, 0x18181818)
-        self.femb.write_reg_bits(526, 0, 0xFFFFFFFF, 0x18181818)
-        self.femb.write_reg_bits(527, 0, 0xFFFFFFFF, 0x18181818)
-        self.femb.write_reg_bits(528, 0, 0xFFFFFFFF, 0x6a186a18)
-        self.femb.write_reg_bits(529, 0, 0xFFFFFFFF, 0x30323032)
-        self.femb.write_reg_bits(530, 0, 0xFFFFFFFF, 0x30303030)
-        self.femb.write_reg_bits(531, 0, 0xFFFFFFFF, 0x30303030)
-        self.femb.write_reg_bits(532, 0, 0xFFFFFFFF, 0x30303030)
-        self.femb.write_reg_bits(533, 0, 0xFFFFFFFF, 0x30303030)
-        self.femb.write_reg_bits(534, 0, 0xFFFFFFFF, 0x30303030)
-        self.femb.write_reg_bits(535, 0, 0xFFFFFFFF, 0x30303030)
-        self.femb.write_reg_bits(536, 0, 0xFFFFFFFF, 0x30303030)
-        self.femb.write_reg_bits(537, 0, 0xFFFFFFFF, 0x64d464d4)
-        self.femb.write_reg_bits(538, 0, 0xFFFFFFFF, 0x60606060)
-        self.femb.write_reg_bits(539, 0, 0xFFFFFFFF, 0x60606060)
-        self.femb.write_reg_bits(540, 0, 0xFFFFFFFF, 0x60606060)
-        self.femb.write_reg_bits(541, 0, 0xFFFFFFFF, 0x60606060)
-        self.femb.write_reg_bits(542, 0, 0xFFFFFFFF, 0x60606060)
-        self.femb.write_reg_bits(543, 0, 0xFFFFFFFF, 0x60606060)
-        self.femb.write_reg_bits(544, 0, 0xFFFFFFFF, 0x60606060)
-        self.femb.write_reg_bits(545, 0, 0xFFFFFFFF, 0xa860a860)
-        self.femb.write_reg_bits(546, 0, 0xFFFFFFFF, 0x90009)
-        """
 
-        #do the actual SPI programming
-        #self.doFeAsicConfig()
-        #self.doAdcAsicConfig()
+        #EXTERNAL CLOCK STUFF
 
     #FEMB power enable on WIB
     def powerOnFemb(self,femb):
@@ -201,8 +180,8 @@ class FEMB_CONFIG(object):
     def selectChannel(self,asic,chan):
         print("Select channel")
         asicVal = int(asic)
-        if (asicVal < 0 ) or (asicVal > 7):
-                return
+        if (asicVal < 0 ) or (asicVal > self.NASICS):
+            return
 
         #set UDP ports to WIB
         self.femb.UDP_PORT_WREG = 32000
@@ -213,113 +192,136 @@ class FEMB_CONFIG(object):
         print("Selecting ASIC " + str(asicVal) )
         self.femb.write_reg_bits(self.REG_SEL_ASIC , self.REG_SEL_ASIC_LSB, 0xF, asicVal )
 
+        #Note: WIB data format streams all 16 channels, don't need to select specific channel
+
         #set UDP ports back to normal
         self.selectFemb(self.fembNum)
     
-    def configFeAsic(self,gain,shape,base):
-        gainVal = int(gain)
-        if (gainVal < 0 ) or (gainVal > 3):
+    def configFeAsic(self):
+        print("CONFIG ASICs")
+        #configure ASICs to default
+
+        #global config varibles
+        feasicLeakageVal = int( self.feasicLeakage ) #0 = 500pA, 1 = 100pA
+        feasicLeakagex10Val = int( self.feasicLeakagex10 ) #0 = x1, 1 = x10
+        acdcVal = int( self.feasicAcdc ) #DC = 0, AC = 1
+        
+        #channel specific variables
+        testVal = int( self.feasicEnableTestInput )
+        baseVal = int( self.feasicBaseline ) #0 = 900mV, 1 = 200mV
+        gainVal = int( self.feasicGain )
+        shapeVal = int( self.feasicShape )
+        bufVal = int( self.feasicBuf ) #0 = OFF, 1 = ON
+
+        if (testVal < 0 ) or (testVal > 1):
                 return
-        shapeVal = int(shape)
-        if (shapeVal < 0 ) or (shapeVal > 3):
-                return
-        baseVal = int(base)
         if (baseVal < 0 ) or (baseVal > 1):
                 return
+        if (gainVal < 0 ) or (gainVal > 3):
+                return
+        if (shapeVal < 0 ) or (shapeVal > 3):
+                return
+        if (acdcVal < 0 ) or (acdcVal > 1):
+                return
+        if (bufVal < 0 ) or (bufVal > 1):
+                return
+        if (feasicLeakageVal < 0 ) or (feasicLeakageVal > 1 ):
+                return
+        if (feasicLeakagex10Val < 0) or (feasicLeakagex10Val > 1):
+                return
 
-        #get ASIC channel config register SPI values        
-        chReg = 0x0
+        chReg = 0
+        #test capacitor, bit 7
+        chReg = chReg + ((testVal & 0x01)<<7)
+
+        #baseline control, bit 6
+        baseVal = 1 - baseVal #assign 0 = 200mV, 1 = 900mV
+        chReg = chReg +  ((baseVal & 0x01)<<6)
+ 
+        #gain control, bits 4-5
         gainArray = [0,2,1,3]
+        chReg = chReg + ((gainArray[gainVal] & 0x03)<<4)
+
+        #shape control, bits 2-3
         shapeArray = [2,0,3,1] #I don't know why
-        chReg = (gainArray[gainVal] << 4 ) + (shapeArray[shapeVal] << 2)
+        chReg = chReg + ((shapeArray[shapeVal] & 0x03)<<2)
 
-        if (baseVal == 0) :
-                chReg = chReg + 0x40
+        #buffer control, bit 0
+        chReg = chReg + ((bufVal & 0x01)<<0)
 
-        #enable test capacitor here
-        chReg = chReg + 0x80 #enabled
-        #chReg = chReg + 0x0 #disabled
+        #construct the channel word
+        chWord = (chReg << 24 ) + (chReg << 16) + (chReg << 8 ) + chReg
 
-        #need better organization of SPI, just store in words for now
-        word1 = chReg + (chReg << 8) + (chReg << 16) + (chReg << 24)
-        #word2 = (chReg << 8) + (chReg << 24)
-        #word3 = chReg + (chReg << 16)
-        word2 = 0x02010201
-        word3 = 0x02010201
+        asicReg = int(0)
+        #asicReg = int(0x0A00)
+        
+        #leakage control 1, bit 0
+        asicReg = asicReg + ((feasicLeakageVal & 0x01)<<0)
+ 
+        #leakage control 2, bit 4
+        asicReg = asicReg + ((feasicLeakagex10Val & 0x01)<<4)
+
+        #AC/DC control
+
+        #monitor control, bits 1-2
+
+        #internal DAC enable, bit 8
+
+        #external DAC enable, bit 9
+
+        #DAC OUTPUT bits 8-9 , 0xA00 = external DAC
 
         #turn off HS data before register writes
         self.femb.write_reg_bits(9 , 0, 0x1, 0 )
         print("HS link turned off")
         time.sleep(2)
 
-        print("Config FE ASIC SPI")
-        for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+7+1,1):
-                self.femb.write_reg( regNum, word1)
-        self.femb.write_reg( self.REG_FESPI_BASE+8, word2 )
-        for regNum in range(self.REG_FESPI_BASE+9,self.REG_FESPI_BASE+16+1,1):
-                self.femb.write_reg( regNum, word1)
-        self.femb.write_reg( self.REG_FESPI_BASE+17, word3 )
-        for regNum in range(self.REG_FESPI_BASE+18,self.REG_FESPI_BASE+25+1,1):
-                self.femb.write_reg( regNum, word1)
-        self.femb.write_reg( self.REG_FESPI_BASE+26, word2 )
-        for regNum in range(self.REG_FESPI_BASE+27,self.REG_FESPI_BASE+34+1,1):
-                self.femb.write_reg( regNum, word1)
-        self.femb.write_reg( self.REG_FESPI_BASE+35, word3 )
+        #write SPI regs - very rough version
+        chWord = (chReg << 24 ) + (chReg << 16) + (chReg << 8 ) + chReg
+        for asic in range(0,self.NASICS,1):
+            baseReg = self.REG_SPI_BASE + int(asic)*9
+            self.femb.write_reg_bits( baseReg + 4 , 16, 0xFF, chReg ) #ch0
+            self.femb.write_reg_bits( baseReg + 4 , 24, 0xFF, chReg ) #ch1
+            self.femb.write_reg( baseReg + 5 ,  chWord) #ch2-5
+            self.femb.write_reg( baseReg + 6 ,  chWord) #ch6-9
+            self.femb.write_reg( baseReg + 7 ,  chWord) #ch10-13
+            self.femb.write_reg_bits( baseReg + 8 , 0, 0xFF, chReg ) #ch14
+            self.femb.write_reg_bits( baseReg + 8 , 8, 0xFF, chReg ) #ch15
+            self.femb.write_reg_bits( baseReg + 8 , 16, 0xFFFF, asicReg ) #ASIC gen reg
 
-        self.doFeAsicConfig()
+        #run the SPI programming
+        self.doAsicConfig()
 
         #turn HS link back on
         print("HS link turned back on")
         time.sleep(2)
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
 
-    def doFeAsicConfig(self):
-        print("Check FE ASIC SPI")
-        for regNum in range(self.REG_FESPI_BASE,self.REG_FESPI_BASE+35,1):
-            val = self.femb.read_reg( regNum)
-            if (val == None) or (val == -1):
-                print("Error - FEMB register interface is not working.")
-                continue
-            print( str(hex(val)) )
-
-        #Write FE ASIC SPI
-        print("Program FE ASIC SPI")
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
-        time.sleep(0.1)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 2)
-        time.sleep(0.1)
-
-        print("Check FE ASIC SPI Readback")
-        for regNum in range(self.REG_FESPI_RDBACK_BASE,self.REG_FESPI_RDBACK_BASE+35,1):
-            val = self.femb.read_reg( regNum)
-            if (val == None) or (val == -1):
-                print("Error - FEMB register interface is not working.")
-                continue
-            print( str(hex(val)) )
-
-    def doAdcAsicConfig(self):
-        print("Check ADC ASIC SPI")
-        for regNum in range(self.REG_ADCSPI_BASE,self.REG_ADCSPI_BASE+35,1):
-            val = self.femb.read_reg( regNum)
-            if (val == None) or (val == -1):
-                print("Error - FEMB register interface is not working.")
-                continue
-            print( str(hex(val)) )
+    def doAsicConfig(self):
+        print("Check ASIC SPI")
+        #for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
+        #    val = self.femb.read_reg( regNum)
+        #    if (val == None) or (val == -1):
+        #        print("Error - FEMB register interface is not working.")
+        #        continue
+        #    print( str(hex(val)) )
 
         #Write ADC ASIC SPI
-        print("Program ADC ASIC SPI")
+        print("Program ASIC SPI")
+        self.femb.write_reg( self.REG_ASIC_RESET, 1)
+        time.sleep(0.1)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         time.sleep(0.1)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         time.sleep(0.1)
 
-        print("Check ADC ASIC SPI Readback")
-        for regNum in range(self.REG_ADCSPI_RDBACK_BASE,self.REG_ADCSPI_RDBACK_BASE+35,1):
-            val = self.femb.read_reg( regNum)
-            if (val == None) or (val == -1):
-                print("Error - FEMB register interface is not working.")
-                continue
-            print( str(hex(val)) )
+        #print("Check ASIC SPI Readback")
+        #for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
+        #    val = self.femb.read_reg( regNum)
+        #    if (val == None) or (val == -1):
+        #        print("Error - FEMB register interface is not working.")
+        #        continue
+        #    print( str(hex(val)) )
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
         print("Set Pulser")
@@ -329,7 +331,8 @@ class FEMB_CONFIG(object):
 
     def selectFemb(self, fembIn):
         fembVal = int( fembIn)
-        if (fembVal < 0) or (fembVal > 3 ):
+        if (fembVal < 0) or (fembVal > self.NFEMBS ):
+            print("Invalid FEMB # requested")
             return
         
         self.fembNum = fembVal
@@ -362,11 +365,15 @@ class FEMB_CONFIG(object):
             self.femb.UDP_PORT_RREG = 32065
             self.femb.UDP_PORT_RREGRESP = 32066
 
+        #slow down register interface for FEMBs
+        self.femb.REG_SLEEP = 0.05
+
     def initSI5338(self):
         #set UDP ports to WIB
         self.femb.UDP_PORT_WREG = 32000
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
+        self.femb.REG_SLEEP = 0.001
        
         #disable all outputs
         #i2c_reg_wr(i2c_bus_base_addr, si5338_i2c_addr, 230, 0x10);
@@ -487,48 +494,3 @@ class FEMB_CONFIG(object):
 
         self.femb.write_reg( 10, 1)
         self.femb.write_reg( 10, 0)
-
-    #__INIT__#
-    def __init__(self):
-        #declare board specific registers
-        self.FEMB_VER = "WIB_SBND"
-        self.REG_RESET = 0
-
-        self.REG_ASIC_RESET = 1
-        self.REG_ASIC_SPIPROG = 2
-
-        self.REG_SEL_ASIC = 7
-        self.REG_SEL_ASIC_LSB = 8
-  
-        self.REG_WIB_MODE = 8
-
-        self.REG_FESPI_BASE = 592
-        self.REG_ADCSPI_BASE = 512
-        self.REG_FESPI_RDBACK_BASE = 632
-        self.REG_ADCSPI_RDBACK_BASE = 552
-
-        self.fembNum = 0
-
-        #initialize FEMB UDP object
-        self.femb = FEMB_UDP()
-        self.femb.UDP_PORT_WREG = 32016
-        self.femb.UDP_PORT_RREG = 32017
-        self.femb.UDP_PORT_RREGRESP = 32018
-
-        #initialiuze ASIC ch objects, specify SPI register number (firmware specific!!!)
-        self.feasic_ch_list = []
-        for ch in range(0,128,1):
-          chVal = int(ch)
-          if (chVal < 0 ) or (chVal > 127 ):
-            continue
-
-          #seriously messy mapping between ch # and register bits
-          regGrp = int( ( chVal % 64 ) / 16 )
-          regGrpLine =  7 - int( ( chVal % 16 ) / 2 )
-          regGrpBase = [27,18,9,0]
-
-          regNum = self.REG_FESPI_BASE + regGrpBase[ regGrp ] + regGrpLine
-          regPos = (1 - chVal % 2 )*8 + int(chVal / 64 )*16
-
-          feasic_ch = FEASIC_CH_CONFIG(ch, regNum, regPos)
-          self.feasic_ch_list.append(feasic_ch)

@@ -174,6 +174,10 @@ setup(
             'femb_feasic_gain_externaldac=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement_externalDac:main',
             'femb_control_power=femb_python.test_measurements.feAsicTest.doFemb_controlPower:main',
 
+            # example production test
+            'femb_example_production_test=femb_python.test_measurements.exampleTest.exampleProductionTest:main',
+            'femb_example_test=femb_python.test_measurements.exampleTest.code.femb_example_test:main',
+
             # what the shifters run:
             'femb_osctest=femb_python.test_measurements.OscillatorTesting.otmain:main',
             # the main tester
