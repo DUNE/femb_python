@@ -138,8 +138,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits( self.REG_TP, 8,0xFF,0x00) #test pulse delay
 
         #phase control
-        self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0x2 ) #clock select
-        self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0x0 ) #clock select 2
+        self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0x0 ) #clock select
+        self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0xF0 ) #clock select 2
         self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
         self.femb.write_reg_bits(self.REG_LATCHLOC_7_TO_4 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
 
