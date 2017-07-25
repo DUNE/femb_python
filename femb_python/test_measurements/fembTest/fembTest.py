@@ -48,7 +48,6 @@ def main(**params):
     test_category = "femb"      # pick something
 
     #check for any required input paramaters here ie board id etc
-
     if (not params['operator']):
         print ("Operator data not entered")
         return -99
@@ -64,7 +63,7 @@ def main(**params):
     if (not params['wibslot']):
         print ("WIB Slot data not entered")        
         return -99
-        
+   
     #Explicitly define list of production tests to perform
     tests = []
 
@@ -73,8 +72,13 @@ def main(**params):
     params_test_0.update( executable="femb_power_cycle_test", argstr="{paramfile}", datasubdir="fembTest_test_0", outlabel="fembTest_test_0", fembNum=params['wibslot'])
     tests.append( Test(**params_test_0) )
     
-
-    ##add more test as needed
+    #Test 1 - gain enc example
+    params_test_1 = dict(params)
+    params_test_1.update( executable="femb_test_gainenc", argstr="{paramfile}", datasubdir="fembTest_gainenc_test", 
+                          outlabel="fembTest_gainenc_test", fembNum=params['wibslot'], gain=2, shape=1, base=0)
+    #params_test_1.update( executable="femb_test_gainenc", argstr="{paramfile}", datasubdir="fembTest_gainenc_test", 
+    #                      outlabel="fembTest_gainenc_test", fembNum=1, gain=2, shape=1, base=1)
+    tests.append( Test(**params_test_1) )
 
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)

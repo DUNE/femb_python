@@ -55,6 +55,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.REG_HS_DATA = 9
 
+        self.INT_TP_EN = 18
+        self.EXT_TP_EN = 18
+
         #EXTERNAL CLOCK STUFF HERE
 
         self.REG_SPI_BASE = 512
@@ -231,7 +234,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         
     def selectChannel(self,asic,chan):
-        print("Select channel")
+        #print("Select channel")
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal > self.NASICS):
             return
@@ -242,7 +245,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.UDP_PORT_RREGRESP = 32002
 
         #select ASIC
-        print("Selecting ASIC " + str(asicVal) )
+        #print("Selecting ASIC " + str(asicVal) )
         self.femb.write_reg_bits(self.REG_SEL_ASIC , self.REG_SEL_ASIC_LSB, 0xF, asicVal )
 
         #Note: WIB data format streams all 16 channels, don't need to select specific channel
@@ -533,3 +536,69 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.femb.write_reg( 10, 1)
         self.femb.write_reg( 10, 0)
+
+    def setFpgaPulser(self,enable,dac):
+        enableVal = int(enable)
+        if (enableVal < 0 ) or (enableVal > 1 ) :
+                print( "femb_config_femb : setFpgaPulser - invalid enable value")
+                return
+        dacVal = int(dac)
+        if ( dacVal < 0 ) or ( dacVal > 0x3F ) :
+                print( "femb_config_femb : setFpgaPulser - invalid dac value")
+                return
+
+        #set pulser enable bit
+        if enableVal == 1 :
+                self.femb.write_reg( self.EXT_TP_EN, 0x2) #pulser enabled, bit 0 is FPGA pulser NOT enabled
+        else :
+                self.femb.write_reg( self.EXT_TP_EN, 0x3) #pulser disabled
+
+        #connect channel test input to external pin
+        for asic in range(0,self.NASICS,1):
+            baseReg = self.REG_SPI_BASE + int(asic)*9
+            if enableVal == 1:
+                self.femb.write_reg_bits( baseReg + 8 , 24, 0x3, 0x2 ) #ASIC gen reg
+            else:
+                self.femb.write_reg_bits( baseReg + 8 , 24, 0x3, 0x0 ) #ASIC gen reg
+
+        self.doAsicConfig()
+
+        self.femb.write_reg_bits( self.REG_FPGA_TP_EN, 0,0x3,0x1) #test pulse enable
+        self.femb.write_reg_bits( self.REG_FPGA_TP_EN, 8,0x1,1) #test pulse enable
+        self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, dacVal ) #TP Amplitude
+        self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
+        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 997 ) #FREQ
+
+    def setInternalPulser(self,enable,dac):
+        enableVal = int(enable)
+        if (enableVal < 0 ) or (enableVal > 1 ) :
+                print( "femb_config_femb : setInternalPulser - invalid enable value")
+                return
+        dacVal = int(dac)
+        if ( dacVal < 0 ) or ( dacVal > 0x3F ) :
+                print( "femb_config_femb : setInternalPulser - invalid dac value")
+                return
+
+        #set pulser enable bit
+        if enableVal == 1 :
+                self.femb.write_reg( self.INT_TP_EN, 0x2) #pulser enabled
+        else :
+                self.femb.write_reg( self.INT_TP_EN, 0x3) #pulser disabled
+
+        dacVal = (dacVal & 0x3F)
+        newDacVal = int('{:08b}'.format(dacVal)[::-1], 2)
+
+        #connect channel test input to external pin
+        for asic in range(0,self.NASICS,1):
+            baseReg = self.REG_SPI_BASE + int(asic)*9
+            if enableVal == 1:
+                self.femb.write_reg_bits( baseReg + 8 , 24, 0x3, 0x2 ) #ASIC gen reg
+            else:
+                self.femb.write_reg_bits( baseReg + 8 , 24, 0x3, 0x0 ) #ASIC gen reg
+
+        self.doAsicConfig()
+
+        self.femb.write_reg_bits( self.REG_FPGA_TP_EN , 0, 0x3, 0x1 )
+        self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, dacVal ) #TP Amplitude
+        self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
+        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 997 ) #FREQ
