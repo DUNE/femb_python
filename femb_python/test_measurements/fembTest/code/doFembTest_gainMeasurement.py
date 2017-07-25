@@ -30,15 +30,16 @@ class FEMB_TEST_GAIN(object):
 
     def __init__(self, datadir="data", outlabel="gainMeasurement",fembNum=0):
         #set internal variables
-        self.outlabel = outlabel
-        self.outpathlabel = os.path.join(datadir, outlabel)
+        self.datadir = datadir
+        self.outlabel = outlabel + str("_femb_") + str(fembNum)
+        self.outpathlabel = os.path.join(self.datadir, self.outlabel)
         self.fembNum = int(fembNum)
 
         print( "FEMB # " + str(fembNum) )
 
         #import femb_udp modules from femb_udp package
         self.femb_config = CONFIG()
-        self.write_data = WRITE_DATA(datadir)
+        self.write_data = WRITE_DATA(self.datadir)
         #set appropriate packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000
         self.cppfr = CPP_FILE_RUNNER()
@@ -164,7 +165,7 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.setFpgaPulser(0,0x0)
 
         #record data
-        self.write_data.numpacketsrecord = 1000
+        self.write_data.numpacketsrecord = 500
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -234,6 +235,9 @@ class FEMB_TEST_GAIN(object):
         self.status_do_analysis = 1
 
     def archive_results(self):
+        if self.status_check_setup == 0 :
+             print("Check setup status is 0, not archiving data")
+             return
         #if self.status_do_analysis == 0:
         #    print("Please analyze data before archiving results")
         #    return
@@ -279,28 +283,35 @@ class FEMB_TEST_GAIN(object):
         self.status_archive_results = 1
 
 def main():
+    #default data taking parameters
     datadir = "data"
-    fembNum = 1
+    #wibslots = [0,1,2,3]
+    wibslots = [1]
     gain = 2
     shape = 1
     base = 0
+
+    #get parameters from input JSON file
     if len(sys.argv) == 2 :
-      params = json.loads(open(sys.argv[1]).read())
-      datadir = params['datadir']
-      fembNum = params['fembNum']
-      gain = params['gain']
-      shape = params['shape']
-      base = params['base']
+        params = json.loads(open(sys.argv[1]).read())
+        datadir = params['datadir']
+        fembNum = params['fembNum']
+        wibslots = params['wibslots']
+        gain = params['gain']
+        shape = params['shape']
+        base = params['base']
 
-    femb_test = FEMB_TEST_GAIN(datadir,"gainMeasurement",fembNum)
-    femb_test.gain = gain
-    femb_test.shape = shape
-    femb_test.base = base
+    #actually run the test, one per FEMB slot
+    for femb in wibslots:
+        femb_test = FEMB_TEST_GAIN(datadir,"gainMeasurement",femb)
+        femb_test.gain = gain
+        femb_test.shape = shape
+        femb_test.base = base
 
-    femb_test.check_setup()
-    femb_test.record_data()
-    femb_test.do_analysis()
-    femb_test.archive_results()
+        femb_test.check_setup()
+        femb_test.record_data()
+        femb_test.do_analysis()
+        femb_test.archive_results()
 
 if __name__ == '__main__':
     main()

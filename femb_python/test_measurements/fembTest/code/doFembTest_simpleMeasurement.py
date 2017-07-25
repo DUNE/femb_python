@@ -30,8 +30,9 @@ class FEMB_TEST_SIMPLE(object):
 
     def __init__(self, datadir="data", outlabel="simpleMeasurement",fembNum=0):
         #set internal variables
-        self.outlabel = outlabel
-        self.outpathlabel = os.path.join(datadir, outlabel)
+        self.datadir = datadir
+        self.outlabel = outlabel + str("_femb_") + str(fembNum)
+        self.outpathlabel = os.path.join(self.datadir, self.outlabel)
         self.fembNum = int(fembNum)
 
         print("Test type\t" + str(self.outlabel) )
@@ -123,7 +124,7 @@ class FEMB_TEST_SIMPLE(object):
         #MEASUREMENT SECTION
         print("SIMPLE MEASUREMENT - RECORDING DATA")
 
-        self.femb_config.setInternalPulser(1,0x3F)
+        self.femb_config.setFpgaPulser(1,0x10)
 
         #wait to make sure HS link is back on after check_setup
         sleep(0.5)
@@ -210,19 +211,22 @@ def main():
     '''
     Run a simple FEMB measurement.
     '''
-
+    #default parameters
     datadir = "data"
-    fembNum = 1
+    wibslots = [1]
+
     if len(sys.argv) == 2 :
-      params = json.loads(open(sys.argv[1]).read())
-      datadir = params['datadir']
-      fembNum = params['fembNum']
+        params = json.loads(open(sys.argv[1]).read())
+        datadir = params['datadir']
+        wibslots = params['wibslots']
       
-    femb_test = FEMB_TEST_SIMPLE(datadir,"simpleMeasurement",fembNum)
-    femb_test.check_setup()
-    femb_test.record_data()
-    femb_test.do_analysis()
-    femb_test.archive_results()
+    #actually run the test, one per FEMB slot
+    for femb in wibslots:
+        femb_test = FEMB_TEST_SIMPLE(datadir,"simpleMeasurement",femb)
+        femb_test.check_setup()
+        femb_test.record_data()
+        femb_test.do_analysis()
+        femb_test.archive_results()
 
 if __name__ == '__main__':
     main()

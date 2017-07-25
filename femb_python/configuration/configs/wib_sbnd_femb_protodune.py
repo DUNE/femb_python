@@ -206,8 +206,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #return register interface to FEMB
         self.selectFemb(self.fembNum)
 
-
-
     def powerOffFemb(self,femb):
         fembVal = int(femb)
         if (fembVal < 0) or (fembVal > 3 ):
@@ -575,7 +573,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits( self.REG_FPGA_TP_EN, 8,0x1,1) #test pulse enable
         self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, dacVal ) #TP Amplitude
         self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
-        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 997 ) #FREQ
+        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 197 ) #FREQ
 
     def setInternalPulser(self,enable,dac):
         enableVal = int(enable)
@@ -615,4 +613,4 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits( self.REG_DAC_SELECT, 8,0x1,0) #test pulse enable
         self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, dacVal ) #TP Amplitude
         self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
-        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 997 ) #FREQ
+        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 197 ) #FREQ
