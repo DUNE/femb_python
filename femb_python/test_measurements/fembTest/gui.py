@@ -186,7 +186,7 @@ class GUI_WINDOW(Frame):
         self.status_label["text"] = "TESTS IN PROGRESS..."
         self.status_label["fg"] = "#000000"
         self.update_idletasks()
-        #maintest(**params)
+        maintest(**params)
         self.done_measuring(params)
         
     def done_measuring(self,params):
