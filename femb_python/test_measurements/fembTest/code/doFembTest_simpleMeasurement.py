@@ -84,6 +84,7 @@ class FEMB_TEST_SIMPLE(object):
 
         #do firmware version check HERE
         self.femb_config.selectFemb(self.fembNum)
+        #regVal = self.femb_config.femb.read_reg(257)
 
         #initialize FEMB to known state
         print("Initializing board")
@@ -122,6 +123,8 @@ class FEMB_TEST_SIMPLE(object):
         #MEASUREMENT SECTION
         print("SIMPLE MEASUREMENT - RECORDING DATA")
 
+        self.femb_config.setInternalPulser(1,0x3F)
+
         #wait to make sure HS link is back on after check_setup
         sleep(0.5)
 
@@ -129,14 +132,13 @@ class FEMB_TEST_SIMPLE(object):
         self.write_data.filename = self.outlabel+".bin"
         print("Recording " + self.write_data.filename )
 
-        #setup output file
         isOpen = self.write_data.open_file()
         if isOpen == 0 :
             print( "Error running doFembTest - Could not open output data file for writing, ending test" )
         subrun = 0
 
         #record data
-        self.write_data.numpacketsrecord = 10
+        self.write_data.numpacketsrecord = 100
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -210,7 +212,7 @@ def main():
     '''
 
     datadir = "data"
-    fembNum = 0
+    fembNum = 1
     if len(sys.argv) == 2 :
       params = json.loads(open(sys.argv[1]).read())
       datadir = params['datadir']

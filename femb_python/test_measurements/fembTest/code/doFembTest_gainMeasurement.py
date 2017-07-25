@@ -279,7 +279,6 @@ class FEMB_TEST_GAIN(object):
         self.status_archive_results = 1
 
 def main():
-
     datadir = "data"
     fembNum = 1
     gain = 2

@@ -355,6 +355,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def doAsicConfig(self):
 
+        #for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
+        #    regVal = self.femb.read_reg( regNum)
+        #    print( str(regNum) + "\t" + str(hex(regVal)) )
+
         #Write ADC ASIC SPI
         print("Program ASIC SPI")
         self.femb.write_reg( self.REG_ASIC_RESET, 1)
@@ -363,6 +367,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(0.1)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         time.sleep(0.1)
+
+        #for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
+        #    regVal = self.femb.read_reg( regNum)
+        #    print( str(regNum) + "\t" + str(hex(regVal)) )
 
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
@@ -581,24 +589,30 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #set pulser enable bit
         if enableVal == 1 :
-                self.femb.write_reg( self.INT_TP_EN, 0x2) #pulser enabled
+                self.femb.write_reg( self.INT_TP_EN, 0x1) #pulser enabled
         else :
                 self.femb.write_reg( self.INT_TP_EN, 0x3) #pulser disabled
 
         dacVal = (dacVal & 0x3F)
         newDacVal = int('{:08b}'.format(dacVal)[::-1], 2)
 
+        asicWord = ((newDacVal << 8 ) & 0xFFFF)
+        if enableVal == 1 :
+                asicWord = asicWord + (0x1 << 8)
+
         #connect channel test input to external pin
         for asic in range(0,self.NASICS,1):
             baseReg = self.REG_SPI_BASE + int(asic)*9
             if enableVal == 1:
-                self.femb.write_reg_bits( baseReg + 8 , 24, 0x3, 0x2 ) #ASIC gen reg
+                self.femb.write_reg_bits( baseReg + 8 , 24, 0xFF, newDacVal )
+                self.femb.write_reg_bits( baseReg + 8 , 24, 0x3, 0x1 ) #ASIC gen reg
             else:
-                self.femb.write_reg_bits( baseReg + 8 , 24, 0x3, 0x0 ) #ASIC gen reg
+                self.femb.write_reg_bits( baseReg + 8 , 24, 0xFF, 0x0 ) #ASIC gen reg
 
         self.doAsicConfig()
 
-        self.femb.write_reg_bits( self.REG_FPGA_TP_EN , 0, 0x3, 0x1 )
+        self.femb.write_reg_bits( self.REG_ASIC_TP_EN , 0, 0x3, 0x2 )
+        self.femb.write_reg_bits( self.REG_DAC_SELECT, 8,0x1,0) #test pulse enable
         self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, dacVal ) #TP Amplitude
         self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
         self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 997 ) #FREQ
