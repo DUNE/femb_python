@@ -295,7 +295,6 @@ def main():
     if len(sys.argv) == 2 :
         params = json.loads(open(sys.argv[1]).read())
         datadir = params['datadir']
-        fembNum = params['fembNum']
         wibslots = params['wibslots']
         gain = params['gain']
         shape = params['shape']

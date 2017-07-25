@@ -136,7 +136,7 @@ class GUI_WINDOW(Frame):
             "box_id": boxid,
             "fm_id": fmid,
             "am_id": amid,
-            "ctbool": self.ct_bool,
+            "testtemp": temp,
             "wibslots": wibslots_filled
         }
         print(inputOptions)

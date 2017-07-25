@@ -21,13 +21,13 @@ class FEMB_POWER_CYCLE_TEST(object):
             for ifemb in wibslots:
                 self.config.powerOffFemb(ifemb)
                 self.config.powerOnFemb(ifemb)                                
-            datadir = params['datadir']
-            label = "simpleMeasurement"+str(icycle)
-            femb_test = FEMB_TEST_SIMPLE(datadir,label,fembNum)
-            femb_test.check_setup()
-            femb_test.record_data()
-            femb_test.do_analysis()
-            femb_test.archive_results()
+                datadir = params['datadir']
+                label = "simpleMeasurement_cycle_"+str(icycle)
+                femb_test = FEMB_TEST_SIMPLE(datadir,label,ifemb)
+                femb_test.check_setup()
+                femb_test.record_data()
+                femb_test.do_analysis()
+                femb_test.archive_results()
                 
 
 def main():

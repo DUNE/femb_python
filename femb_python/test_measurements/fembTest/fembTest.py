@@ -42,7 +42,7 @@ def main(**params):
     '''
     Main entry to the test script.
     '''
-    print( "EXAMPLE PRODUCTION TEST - START")
+    print( "FEMB PRODUCTION TEST - START")
 
     use_sumatra = True
     test_category = "femb"      # pick something
@@ -60,22 +60,19 @@ def main(**params):
     if (not params['fm_id']):
         print ("FPGA Mezz data not entered")                
         return -99
-    if (not params['wibslot']):
-        print ("WIB Slot data not entered")        
-        return -99
    
     #Explicitly define list of production tests to perform
     tests = []
 
     #Test 0
     params_test_0 = dict(params)
-    params_test_0.update( executable="femb_power_cycle_test", argstr="{paramfile}", datasubdir="fembTest_test_0", outlabel="fembTest_test_0", fembNum=params['wibslot'])
+    params_test_0.update( executable="femb_power_cycle_test", argstr="{paramfile}", datasubdir="fembTest_powercycle_test", outlabel="fembTest_powercycle_test")
     tests.append( Test(**params_test_0) )
     
     #Test 1 - gain enc example
     params_test_1 = dict(params)
     params_test_1.update( executable="femb_test_gainenc", argstr="{paramfile}", datasubdir="fembTest_gainenc_test", 
-                          outlabel="fembTest_gainenc_test", fembNum=params['wibslot'], gain=2, shape=1, base=0)
+                          outlabel="fembTest_gainenc_test", gain=2, shape=1, base=0)
     #params_test_1.update( executable="femb_test_gainenc", argstr="{paramfile}", datasubdir="fembTest_gainenc_test", 
     #                      outlabel="fembTest_gainenc_test", fembNum=1, gain=2, shape=1, base=1)
     tests.append( Test(**params_test_1) )
@@ -83,12 +80,12 @@ def main(**params):
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)
     if r == None:
-      print("EXAMPLE PRODUCTION TEST - ERROR: runpolicy runner could not be defined, production test not started.")
+      print("FEMB PRODUCTION TEST - ERROR: runpolicy runner could not be defined, production test not started.")
       return
     s = Sequencer(tests, r)
     s.run()
 
-    print( "EXAMPLE PRODUCTION TEST - DONE")
+    print( "FEMB PRODUCTION TEST - DONE")
     
 if '__main__' == __name__:
     main()
