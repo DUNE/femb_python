@@ -15,10 +15,10 @@ class FEMB_POWER_CYCLE_TEST(object):
         
     def callit(self,params):
 
-        fembNum = params['fembNum']
-        
+        wibslots = params['wibslots']
+
         for icycle in range(0,self.ntries):
-            for ifemb in range(0,4):
+            for ifemb in wibslots:
                 self.config.powerOffFemb(ifemb)
                 self.config.powerOnFemb(ifemb)                                
             datadir = params['datadir']
@@ -32,7 +32,7 @@ class FEMB_POWER_CYCLE_TEST(object):
 
 def main():
         '''
-        Run an example measurement.
+        Run the power cycle measurement.
         '''
         print( "POWER CYLCE TEST START")
         for arg in sys.argv :

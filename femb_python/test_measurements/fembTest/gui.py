@@ -74,11 +74,24 @@ class GUI_WINDOW(Frame):
         self.fmid_entry = Entry(self,width=25)
         self.fmid_entry.grid(sticky=W,row=5,column=columnbase+1)
 
-        self.wibslot_label = Label(self,text="WIB Slot:",width=25)
-        self.wibslot_label.grid(sticky=W,row=6,column=columnbase+0)
+        self.wibslot0 = IntVar()
+        self.wibslot1 = IntVar()
+        self.wibslot2 = IntVar()
+        self.wibslot3 = IntVar()
+        self.wibslot0_button = Checkbutton(self,text="WIB Slot 0", variable=self.wibslot0)
+        self.wibslot1_button = Checkbutton(self,text="WIB Slot 1", variable=self.wibslot1)
+        self.wibslot2_button = Checkbutton(self,text="WIB Slot 2", variable=self.wibslot2)
+        self.wibslot3_button = Checkbutton(self,text="WIB Slot 3", variable=self.wibslot3)
+        self.wibslot0_button.grid(sticky=W,row=7,column=columnbase)
+        self.wibslot1_button.grid(sticky=W,row=8,column=columnbase)
+        self.wibslot2_button.grid(sticky=W,row=9,column=columnbase)
+        self.wibslot3_button.grid(sticky=W,row=10,column=columnbase)
 
-        self.wibslot_entry = Entry(self,width=25)
-        self.wibslot_entry.grid(sticky=W,row=6,column=columnbase+1)
+        self.ct_bool = StringVar()
+        self.temp_radio1 = Radiobutton(self, text="Room Temperature", variable=self.ct_bool, value=0)
+        self.temp_radio2 = Radiobutton(self, text="Cryo Temperature", variable=self.ct_bool, value=1)
+        self.temp_radio1.grid(sticky=W,row=7,column=columnbase+1)
+        self.temp_radio2.grid(sticky=W,row=8,column=columnbase+1)
         
         # Adding electronics ID and read entry box
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
@@ -98,10 +111,16 @@ class GUI_WINDOW(Frame):
         boxid = self.boxid_entry.get()
         amid = self.amid_entry.get()
         fmid = self.fmid_entry.get()
-        wibslot = self.wibslot_entry.get()
 
-        variables = [operator,boxid,amid,fmid,wibslot]
-
+        wibslots_all = [self.wibslot0.get(), self.wibslot1.get(), self.wibslot2.get(), self.wibslot3.get()]
+        wibslots_filled = [x for x in range(len(wibslots_all)) if wibslots_all[x]==1]
+        
+        variables = [operator,boxid,amid,fmid,self.ct_bool,wibslots_filled]
+        if self.ct_bool:
+            temp = "CT"
+        else:
+            temp = "RT"
+        
         for var in variables:
             if var == "" :
                 return
@@ -109,14 +128,16 @@ class GUI_WINDOW(Frame):
         print("CE Box ID: '{}'".format(boxid))
         print("Analog MB ID: '{}'".format(amid))
         print("FPGA Mezz ID: '{}'".format(fmid))
-        print("WIB Slot: '{}'".format(wibslot))        
+        print("Test temperature: '{}'".format(temp))
+        print("WIB Slots Filled: ", wibslots_filled)
 
         inputOptions = {
             "operator": operator,
             "box_id": boxid,
             "fm_id": fmid,
             "am_id": amid,
-            "wibslot": wibslot
+            "ctbool": self.ct_bool,
+            "wibslots": wibslots_filled
         }
         print(inputOptions)
         return inputOptions
@@ -146,7 +167,6 @@ class GUI_WINDOW(Frame):
         self.amid_entry["state"] = "normal"
         self.fmid_label["state"] = "normal"
         self.fmid_entry["state"] = "normal"
-        self.wibslot_entry["state"] = "normal"        
 
         self.boxid_entry.delete(0,END)
         self.amid_entry.delete(0,END)
