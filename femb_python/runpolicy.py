@@ -7,6 +7,7 @@ Runner for more information.
 
 '''
 import os
+import sys
 import json
 import time
 #import subprocess
@@ -113,15 +114,18 @@ class Runner(object):
 
         stdout = list()
         stderr = list()
+        def output(text):
+            if not text: return
+            stdout.append(text)
+            sys.stdout.write("Output: " + text)
+            sys.stdout.flush()
+        def errput(text):
+            if not text: return
+            stderr.append(text)
+            sys.stderr.write("Error: " + text)
 
-        def out(oline, eline):
-            if oline:
-                stdout.append(oline)
-                print ("Output: %s" % oline)
-            if eline:
-                stderr.append(eline)
-                print ("Error: %s" % eline)
-        rc = commands.execute(cmdstr, shell=shell, cwd=cwd, out=out)
+        rc = commands.execute(cmdstr, output, errput,
+                                  shell=shell, cwd=cwd)
 
         stdout = '\n'.join(stdout)
         stderr = '\n'.join(stderr)

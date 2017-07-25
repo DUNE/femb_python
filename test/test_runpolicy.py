@@ -116,13 +116,37 @@ def test_fail():
     else:
         raise RuntimeError("test of /bin/false failed to fail")
 
+def test_live():
+    clear()
+    testdir = os.path.dirname(os.path.realpath(__file__))
+    prog = os.path.join(testdir, "live-spew.sh")
+    r = make_runner(SumatraRunner, smtname="test_live",
+                        executable=prog, argstr="",
+                        #stdout="/tmp/out1.log", stderr="/tmp/err1.log"
+                        )
+    r()
 
+    f = make_runner(SumatraRunner, smtname="test_live",
+                        executable=prog, argstr="fail",
+                        stdout="/dev/stdout", stderr="/dev/stderr"
+                        #stdout="/tmp/out2.log", stderr="/tmp/err2.log"
+                        )
+    try:
+        f()
+    except RuntimeError:
+        print ("Test of failure successfully failed.")
+        pass
+    else:
+        raise RuntimeError("test of failure failed to fail")
+    
+    
 
 if '__main__' == __name__:
+
     test_basic()
     test_direct()
     test_default_args_only()
     test_per_call_args()
     test_with_sumatra()
     test_fail()
-    
+    test_live()    
