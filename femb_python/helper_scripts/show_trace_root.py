@@ -15,6 +15,8 @@ def loadWaveform(filename):
     result[freq][amp][iChip][iChan][iSample]
     """
     f = ROOT.TFile(filename)
+    if f.IsZombie():
+        raise FileNotFoundError(filename)
     tree =  f.Get("femb_wfdata")
     metadataTree = f.Get("metadata")
     metadatas = []
@@ -66,15 +68,9 @@ def loadWaveform(filename):
         calibInters = None
     return result, metadata, voltages, calibSlopes, calibInters
 
-def main():
-    from ..configuration.argument_parser import ArgumentParser
-    parser = ArgumentParser(description="Displays a trace from a root file")
-    parser.add_argument("infilename",help="file name to read the waveform from")
-    parser.add_argument("--sampleMax",help="Show from 0 to <sampleMax> on the x-axis",type=int,default=None)
-    parser.add_argument("--fullADCRange",help="Show full y-axis 0 to 4095.",action="store_true")
-    
-    args = parser.parse_args()
-    waveforms, metadata, voltages, calibSlopes, calibInters = loadWaveform(args.infilename)
+def show_trace_root(infilename,sampleMax=None,fullADCRange=False):
+
+    waveforms, metadata, voltages, calibSlopes, calibInters = loadWaveform(infilename)
 
     fig, axs = plt.subplots(4,4)
     fig2, axs2 = plt.subplots(4,4)
@@ -85,10 +81,10 @@ def main():
       ax = axs[iChan // 4][iChan % 4]
       ax2 = axs2[iChan // 4][iChan % 4]
       waveform = waveforms[iChan]
-      if args.fullADCRange:
+      if fullADCRange:
         ax.set_ylim(0,4096)
-      if args.sampleMax:
-          ax.set_xlim(0,args.sampleMax)
+      if sampleMax:
+          ax.set_xlim(0,sampleMax)
       if not (voltages is None):
         if not (calibSlopes is None):
             ax.plot(numpy.array(voltages[iChan])/calibSlopes[iChan]-calibInters[iChan]/calibSlopes[iChan],"-g")
@@ -126,3 +122,18 @@ def main():
         ax.set_ylabel("ADC Code")
         ax2.set_ylabel("Power")
     plt.show()
+
+def main():
+    from ..configuration.argument_parser import ArgumentParser
+    parser = ArgumentParser(description="Displays a trace from a root file")
+    parser.add_argument("infilename",help="file name to read the waveform from")
+    parser.add_argument("--sampleMax",help="Show from 0 to <sampleMax> on the x-axis",type=int,default=None)
+    parser.add_argument("--fullADCRange",help="Show full y-axis 0 to 4095.",action="store_true")
+    
+    args = parser.parse_args()
+
+    try:
+        show_trace_root(args.infilename,args.sampleMax,args.fullADCRange)
+    except Exception as e:
+        print("{}: {}".format(type(e).__name__,e))
+
