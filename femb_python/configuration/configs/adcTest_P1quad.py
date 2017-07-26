@@ -37,7 +37,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.REG_RESET = 0 # bit 0 system, 1 reg, 2 alg, 3 udp
         self.REG_PWR_CTRL = 1  # bit 0-3 pwr, 8-15 blue LEDs near buttons
-        self.REG_ASIC_SPIPROG_ADC_RESET = 2 # bit 0 FE SPI, 1 ADC SPI, 4 FE ASIC RESET, 5 ADC ASIC RESET, 6 SOFT ADC RESET
+        self.REG_ASIC_SPIPROG_RESET = 2 # bit 0 FE SPI, 1 ADC SPI, 4 FE ASIC RESET, 5 ADC ASIC RESET, 6 SOFT ADC RESET
         self.REG_SEL_CH = 3 # bit 0-7 chip, 8-15 channel, 31 WIB mode
 
         self.REG_FESPI_BASE = 0x250 # 592 in decimal
@@ -96,24 +96,21 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_RESET, 2)
         time.sleep(1.)
 
-        #Time stamp reset
-        #femb.write_reg( 0, 4)
-        #time.sleep(0.5)
-        
-        #Reset ADC ASICs
-        self.femb.write_reg( self.REG_ASIC_RESET, 1)
-        time.sleep(0.5)
-
     def initBoard(self):
+        self.turnOnAsics()
+
         nRetries = 5
         for iRetry in range(nRetries):
             #set up default registers
-            
-            #Reset ADC ASICs
-            self.femb.write_reg( self.REG_ASIC_RESET, 1)
+
+            #Reset ASICs
+            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 1 << 4) # reset FE
+            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 1 << 5) # reset ADC
             time.sleep(0.5)
 
-            readback = self.femb.read_reg(0)
+            # test readback
+            time.sleep(5.)
+            readback = self.femb.read_reg(1)
             if readback is None:
                 if self.exitOnError:
                     print("FEMB_CONFIG: Error reading register 0, Exiting.")
@@ -121,42 +118,41 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 else:
                     raise ReadRegError("Couldn't read register 0")
 
-            #Set ADC test pattern register
-            self.femb.write_reg( 3, 0x01170000) # test pattern off
-            #self.femb.write_reg( 3, 0x81170000) # test pattern on
-
-            #Set ADC latch_loc and clock phase
-            if self.SAMPLERATE == 1e6:
-                self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data_1MHz)
-                self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data_1MHz)
-                self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data_1MHz)
-            else: # use 2 MHz values
-                self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data)
-                self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data)
-                self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data)
-
-            #internal test pulser control
-            self.femb.write_reg( 5, 0x00000000)
-            self.femb.write_reg( 13, 0x0) #enable
+#            #Set ADC test pattern register
+#            self.femb.write_reg( 3, 0x01170000) # test pattern off
+#            #self.femb.write_reg( 3, 0x81170000) # test pattern on
+#
+#            #Set ADC latch_loc and clock phase
+#            if self.SAMPLERATE == 1e6:
+#                self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data_1MHz)
+#                self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data_1MHz)
+#                self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data_1MHz)
+#            else: # use 2 MHz values
+#                self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data)
+#                self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data)
+#                self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data)
+#
+#            #internal test pulser control
+#            self.femb.write_reg( 5, 0x00000000)
+#            self.femb.write_reg( 13, 0x0) #enable
 
             #Set test and readout mode register
-            self.femb.write_reg( self.REG_HS, 0x0) # 0 readout all 15 channels, 1 readout only selected one
-            self.femb.write_reg( self.REG_SEL_CH, 0x0000) #11-8 = channel select, 3-0 = ASIC select
+            self.femb.write_reg( self.REG_SEL_CH, 1 << 31) # WIB readout mode
 
-            #Set number events per header
-            self.femb.write_reg( 8, 0x0)
+#            #Set number events per header
+#            self.femb.write_reg( 8, 0x0)
 
-            #Configure ADC (and external clock inside)
-            try:
-                self.configAdcAsic()
-                #self.configAdcAsic(clockMonostable=True)
-            except ReadRegError:
-                continue
-            # Check that board streams data
-            data = self.femb.get_data(1)
-            if data == None:
-                print("Board not streaming data, retrying initialization...")
-                continue # try initializing again
+#            #Configure ADC (and external clock inside)
+#            try:
+#                self.configAdcAsic()
+#                #self.configAdcAsic(clockMonostable=True)
+#            except ReadRegError:
+#                continue
+#            # Check that board streams data
+#            data = self.femb.get_data(1)
+#            if data == None:
+#                print("Board not streaming data, retrying initialization...")
+#                continue # try initializing again
             print("FEMB_CONFIG--> Reset FEMB is DONE")
             return
         print("Error: Board not streaming data after trying to initialize {} times.".format(nRetries))
@@ -550,7 +546,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg(reg,val)
 
     def turnOffAsics(self):
-        self.femb.write_reg( self.REG_PWR_CTRL, 0x0)
+        oldReg = self.femb.read_reg(self.REG_PWR_CTRL)
+        newReg = oldReg & 0xFFFFFFF0
+        self.femb.write_reg( self.REG_PWR_CTRL, newReg)
         #pause after turning off ASICs
         time.sleep(2)
         #self.femb.write_reg(self.REG_RESET, 4) # bit 2 is ASIC reset as far as I can see
@@ -571,9 +569,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def turnOnAsics(self):
         print( "turnOnAsics 0-{}".format(int(self.NASICS -1)))
 
-        regVal = int(2**self.NASICS - 1)
-        self.femb.write_reg( self.REG_PWR_CTRL, regVal)
+        oldReg = self.femb.read_reg(self.REG_PWR_CTRL)
+        newReg = oldReg | int(2**self.NASICS - 1)
+        self.femb.write_reg( self.REG_PWR_CTRL, newReg)
 
         #pause after turning on ASICs
-        time.sleep(2)
+        time.sleep(5)
         #self.femb.write_reg(self.REG_RESET, 4) # bit 2 is ASIC reset as far as I can see
