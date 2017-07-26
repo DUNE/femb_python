@@ -348,9 +348,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
 
     def doAsicConfig(self):
-        for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
-            regVal = self.femb.read_reg( regNum)
-            print( str(regNum) + "\t" + str(hex(regVal)) )
+        #for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
+        #    regVal = self.femb.read_reg( regNum)
+        #    print( str(regNum) + "\t" + str(hex(regVal)) )
 
         #Write ADC ASIC SPI
         print("Program ASIC SPI")
@@ -361,9 +361,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         time.sleep(0.1)
 
-        for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
-            regVal = self.femb.read_reg( regNum)
-            print( str(regNum) + "\t" + str(hex(regVal)) )
+        #for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
+        #    regVal = self.femb.read_reg( regNum)
+        #    print( str(regNum) + "\t" + str(hex(regVal)) )
 
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
@@ -611,8 +611,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, dacVal ) #TP Amplitude
         self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 31 ) #DLY
         self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 1000 ) #FREQ
-        regVal = self.femb.read_reg( self.REG_TP )
-        print( hex(regVal) )
 
     def checkFirmwareVersion(self):
         #set UDP ports to WIB

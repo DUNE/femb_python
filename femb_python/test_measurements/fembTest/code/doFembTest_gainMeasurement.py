@@ -58,6 +58,7 @@ class FEMB_TEST_GAIN(object):
         self.leakagex10 = 0
         self.buffer = 0
         self.acdc = 0
+        self.useInternalPulser = 0
 
         #json output, note module version number defined here
         self.jsondict = {'type':'fembTest_gain'}
@@ -162,6 +163,7 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.configFeAsic()
 
         #disable pulser
+        self.femb_config.setInternalPulser(0,0x0)
         self.femb_config.setFpgaPulser(0,0x0)
 
         #record data
@@ -183,9 +185,12 @@ class FEMB_TEST_GAIN(object):
         subrun = 1
 
         #loop over pulser configurations, each configuration is it's own subrun
-        for p in range(0,20,1):
+        for p in range(0,10,1):
             pVal = int(p)
-            self.femb_config.setFpgaPulser(1,pVal)
+            if self.useInternalPulser == False :
+                self.femb_config.setFpgaPulser(1,pVal)
+            else:
+                self.femb_config.setInternalPulser(1,pVal)
             print("Pulse amplitude " + str(pVal) )
 
             #loop over channels
@@ -291,15 +296,28 @@ def main():
     gain = 2
     shape = 1
     base = 1
+    useInternalPulser = False
 
     #get parameters from input JSON file
     if len(sys.argv) == 2 :
         params = json.loads(open(sys.argv[1]).read())
-        datadir = params['datadir']
-        wibslots = params['wibslots']
-        gain = params['gain']
-        shape = params['shape']
-        base = params['base']
+        if 'datadir' in params:
+            datadir = params['datadir']
+        if 'wibslots' in params:
+            wibslots = params['wibslots']
+        if 'gain' in params:
+            gain = params['gain']
+        if 'shape' in params:
+            shape = params['shape']
+        if 'base' in params:
+            base = params['base']
+        if 'useInternalPulser' in params:
+            useInternalPulser = params['useInternalPulser']
+
+    #do some sanity checks
+    if len(wibslots) > 4 :
+        print("doFembTest - Invalid # of FEMBs specified")
+        return
 
     #actually run the test, one per FEMB slot
     for femb in wibslots:
@@ -307,6 +325,7 @@ def main():
         femb_test.gain = gain
         femb_test.shape = shape
         femb_test.base = base
+        femb_test.useInternalPulser = useInternalPulser
 
         femb_test.check_setup()
         femb_test.record_data()
