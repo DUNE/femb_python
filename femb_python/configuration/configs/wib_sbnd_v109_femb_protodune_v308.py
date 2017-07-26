@@ -77,9 +77,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicAcdc = 0 #AC = 0, DC = 1
         
         self.feasicEnableTestInput = 1 #0 = disabled, 1 = enabled
-        self.feasicBaseline = 0 #0 = 200mV, 1 = 900mV
-        self.feasicGain = 1 #4.7,7.8,14,25
-        self.feasicShape = 3 #0.5,1,2,3
+        self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV
+        self.feasicGain = 3 #4.7,7.8,14,25
+        self.feasicShape = 2 #0.5,1,2,3
         self.feasicBuf = 0 #0 = OFF, 1 = ON
 
     def resetBoard(self):
@@ -348,9 +348,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
 
     def doAsicConfig(self):
-        #for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
-        #    regVal = self.femb.read_reg( regNum)
-        #    print( str(regNum) + "\t" + str(hex(regVal)) )
+        for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
+            regVal = self.femb.read_reg( regNum)
+            print( str(regNum) + "\t" + str(hex(regVal)) )
 
         #Write ADC ASIC SPI
         print("Program ASIC SPI")
@@ -361,9 +361,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         time.sleep(0.1)
 
-        #for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
-        #    regVal = self.femb.read_reg( regNum)
-        #    print( str(regNum) + "\t" + str(hex(regVal)) )
+        for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
+            regVal = self.femb.read_reg( regNum)
+            print( str(regNum) + "\t" + str(hex(regVal)) )
 
 
     def setInternalPulser(self,pulserEnable,pulseHeight):
@@ -552,7 +552,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #set pulser enable bit
         if enableVal == 1 :
-            self.femb.write_reg( self.EXT_TP_EN, 0x2) #pulser enabled, bit 0 is FPGA pulser NOT enabled
+            self.femb.write_reg( self.EXT_TP_EN, 0x2) #this register is confusing, check
         else :
             self.femb.write_reg( self.EXT_TP_EN, 0x3) #pulser disabled
 
@@ -584,7 +584,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #set pulser enable bit
         if enableVal == 1 :
-                self.femb.write_reg( self.INT_TP_EN, 0x1) #pulser enabled
+                self.femb.write_reg( self.INT_TP_EN, 0x2) #this register is confusing, check
         else :
                 self.femb.write_reg( self.INT_TP_EN, 0x3) #pulser disabled
 
@@ -609,8 +609,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits( self.REG_ASIC_TP_EN , 0, 0x3, 0x2 )
         self.femb.write_reg_bits( self.REG_DAC_SELECT, 8,0x1,0) #test pulse enable
         self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, dacVal ) #TP Amplitude
-        self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
-        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 197 ) #FREQ
+        self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 31 ) #DLY
+        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 1000 ) #FREQ
+        regVal = self.femb.read_reg( self.REG_TP )
+        print( hex(regVal) )
 
     def checkFirmwareVersion(self):
         #set UDP ports to WIB
