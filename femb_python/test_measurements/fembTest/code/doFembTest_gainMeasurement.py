@@ -90,13 +90,12 @@ class FEMB_TEST_GAIN(object):
             print("Error running doFembTest - Invalid FEMB # specified.")
             return    
 
-        #do firmware version check HERE
+        #assign FEMB # to test 
         self.femb_config.selectFemb(self.fembNum)
 
         #initialize FEMB to known state
         print("Initializing board")
-        #self.femb_config.initBoard()
-        self.femb_config.initFemb(self.fembNum)
+        self.femb_config.initFemb()
 
         #check if data streaming is working
         print("Checking data streaming")
@@ -104,14 +103,10 @@ class FEMB_TEST_GAIN(object):
         if testData == None:
             print("Error running doFembTest - FEMB is not streaming data.")
             print(" Turn on and initialize FEMB UDP readout.")
-            #print(" This script will exit now")
-            #sys.exit(0)
             return
         if len(testData) == 0:
             print("Error running doFembTest - FEMB is not streaming data.")
             print(" Turn on and initialize FEMB UDP readout.")
-            #print(" This script will exit now")
-            #sys.exit(0)
             return
 
         print("Received data packet " + str(len(testData[0])) + " bytes long")
@@ -119,8 +114,12 @@ class FEMB_TEST_GAIN(object):
         #check for analysis executables
         if not self.cppfr.exists('test_measurements/fembTest/code/parseBinaryFile'):    
             print('parseBinaryFile not found, run setup.sh')
-            #sys.exit(0)
             return
+
+        #test firmware versions
+        if self.femb_config.checkFirmwareVersion() == False:
+            print('Error running doFembTest - Invalid firmware and/or register read error')
+            return     
 
         print("GAIN MEASUREMENT - READOUT STATUS OK" + "\n")
         self.status_check_setup = 1
@@ -132,6 +131,7 @@ class FEMB_TEST_GAIN(object):
         if self.status_record_data == 1:
             print("Data already recorded. Reset/restat GUI to begin a new measurement")
             return
+
         #MEASUREMENT SECTION
         print("GAIN MEASUREMENT - RECORDING DATA")
 
@@ -158,7 +158,7 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.feasicLeakagex10Val = self.leakagex10
         self.femb_config.bufVal = self.buffer
         self.femb_config.acdcVal = self.acdc
-        self.femb_config.feasicEnableTestInput = 0
+        self.femb_config.feasicEnableTestInput = 0 #important
         self.femb_config.configFeAsic()
 
         #disable pulser
@@ -177,7 +177,7 @@ class FEMB_TEST_GAIN(object):
           self.femb_config.selectChannel(asic,asicCh)
           self.write_data.record_data(subrun, asic, asicCh)
 
-        #turn ASICs back on, start pulser section
+        #turn ASIC test input on, start pulser section
         self.femb_config.feasicEnableTestInput = 1
         self.femb_config.configFeAsic()
         subrun = 1
@@ -200,7 +200,7 @@ class FEMB_TEST_GAIN(object):
         self.write_data.close_file()
 
         #turn off FEMB
-        self.femb_config.powerOffFemb(self.fembNum)        
+        self.femb_config.powerOffFemb(self.fembNum)
 
         print("GAIN MEASUREMENT - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1
@@ -290,7 +290,7 @@ def main():
     wibslots = [1]
     gain = 2
     shape = 1
-    base = 0
+    base = 1
 
     #get parameters from input JSON file
     if len(sys.argv) == 2 :

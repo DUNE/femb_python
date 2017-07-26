@@ -83,13 +83,12 @@ class FEMB_TEST_SIMPLE(object):
             print("Error running doFembTest - Invalid FEMB # specified.")
             return    
 
-        #do firmware version check HERE
+        #assign FEMB # to test 
         self.femb_config.selectFemb(self.fembNum)
-        #regVal = self.femb_config.femb.read_reg(257)
 
         #initialize FEMB to known state
         print("Initializing board")
-        self.femb_config.initFemb( self.fembNum )
+        self.femb_config.initFemb()
 
         #check if data streaming is working
         print("Checking data streaming")
@@ -109,6 +108,11 @@ class FEMB_TEST_SIMPLE(object):
         if not self.cppfr.exists('test_measurements/fembTest/code/parseBinaryFile'):    
             print('parseBinaryFile not found, run setup.sh')
             return
+
+        #test firmware versions
+        if self.femb_config.checkFirmwareVersion() == False:
+            print('Error running doFembTest - Invalid firmware and/or register read error')
+            return     
 
         print("SIMPLE MEASUREMENT - READOUT STATUS OK" + "\n")
         self.status_check_setup = 1
