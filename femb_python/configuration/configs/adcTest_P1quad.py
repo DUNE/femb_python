@@ -309,9 +309,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         """
         asic is chip number 0 to 7
         chan is channel within asic from 0 to 15
-        hsmode: if 0 then streams all channels of a chip, if 1 only te selected channel. defaults to 1
+        hsmode: if 0 then WIB streaming mode, if 1 only the selected channel. defaults to 1
         """
-        hsmodeVal = int(hsmode) & 1;
+        hsmodeVal = int(hsmode) & 1 # only 1 bit
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
                 print( "femb_config_femb : selectChan - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
@@ -323,8 +323,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #print( "Selecting ASIC " + str(asicVal) + ", channel " + str(chVal))
 
-        self.femb.write_reg ( self.REG_HS, hsmodeVal)
-        regVal = (chVal << 8 ) + asicVal
+        regVal = asicVal + (chVal << 8 ) + (hsmodeVal << 31)
         self.femb.write_reg( self.REG_SEL_CH, regVal)
 
     def syncADC(self):
