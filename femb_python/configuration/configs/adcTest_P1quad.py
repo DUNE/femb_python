@@ -40,20 +40,26 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_ASIC_SPIPROG_RESET = 2 # bit 0 FE SPI, 1 ADC SPI, 4 FE ASIC RESET, 5 ADC ASIC RESET, 6 SOFT ADC RESET
         self.REG_SEL_CH = 3 # bit 0-7 chip, 8-15 channel, 31 WIB mode
 
+        self.REG_DAC1 = 4 # bit 0-15 DAC val, 16-19 tp mode select, 31 set dac
+        self.REG_DAC2 = 5 # bit 0-15 tp period, 16-31 tp shift
+
+        self.REG_ADC_TST_PATT = 6 # bit 0-11 tst patt, 16 enable
+        self.REG_ADC_CLK = 7 # bit 0-3 adc clk sel, 8 clk speed sel
+        self.REG_LATCHLOC = 8 # bit 0-7 ADC1, 8-15 ADC2, 16-23 ADC3, 24-31 ADC4
+
+        self.REG_STOP_ADC = 0 # header check + busy check
+        
+        self.REG_LATCHLOC_data_2MHz = 0x0
+        self.REG_LATCHLOC_data_1MHz = 0x0
+        self.REG_LATCHLOC_data_2MHz_cold = 0x0
+        self.REG_LATCHLOC_data_1MHz_cold = 0x0
+
+        self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
+
         self.REG_FESPI_BASE = 0x250 # 592 in decimal
         self.REG_ADCSPI_BASE = 0x200 # 512 in decimal
         self.REG_FESPI_RDBACK_BASE = 0x278 # 632 in decimal
         self.REG_ADCSPI_RDBACK_BASE = 0x228 # 552 in decimal
-        self.REG_LATCHLOC1_4 = 4
-        self.REG_LATCHLOC5_8 = 14
-        self.REG_CLKPHASE = 6
-        self.REG_LATCHLOC1_4_data = 0x6
-        self.REG_LATCHLOC5_8_data = 0x0
-        self.REG_CLKPHASE_data = 0xfffc0000
-        self.REG_LATCHLOC1_4_data_1MHz = 0x5
-        self.REG_LATCHLOC5_8_data_1MHz = 0x0
-        self.REG_CLKPHASE_data_1MHz = 0xffff0000
-        self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
 
         ##################################
         # external clock control registers
