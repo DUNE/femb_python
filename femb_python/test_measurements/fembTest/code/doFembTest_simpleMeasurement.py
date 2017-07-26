@@ -124,8 +124,6 @@ class FEMB_TEST_SIMPLE(object):
         #MEASUREMENT SECTION
         print("SIMPLE MEASUREMENT - RECORDING DATA")
 
-        self.femb_config.setFpgaPulser(1,0x10)
-
         #wait to make sure HS link is back on after check_setup
         sleep(0.5)
 
@@ -149,6 +147,8 @@ class FEMB_TEST_SIMPLE(object):
           self.femb_config.selectChannel(asic,asicCh)
           self.write_data.record_data(subrun, asic, asicCh)
         self.write_data.close_file()
+
+        self.femb_config.powerOffFemb(self.fembNum)
 
         print("SIMPLE MEASUREMENT - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1

@@ -200,6 +200,7 @@ class FEMB_TEST_GAIN(object):
         self.write_data.close_file()
 
         #turn off FEMB
+        self.femb_config.powerOffFemb(self.fembNum)        
 
         print("GAIN MEASUREMENT - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1

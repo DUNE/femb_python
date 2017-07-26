@@ -68,14 +68,17 @@ def main(**params):
     params_test_0 = dict(params)
     params_test_0.update( executable="femb_power_cycle_test", argstr="{paramfile}", datasubdir="fembTest_powercycle_test", outlabel="fembTest_powercycle_test")
     tests.append( Test(**params_test_0) )
-    
-    #Test 1 - gain enc example
-    params_test_1 = dict(params)
-    params_test_1.update( executable="femb_test_gainenc", argstr="{paramfile}", datasubdir="fembTest_gainenc_test", 
-                          outlabel="fembTest_gainenc_test", gain=2, shape=1, base=0)
-    #params_test_1.update( executable="femb_test_gainenc", argstr="{paramfile}", datasubdir="fembTest_gainenc_test", 
-    #                      outlabel="fembTest_gainenc_test", fembNum=1, gain=2, shape=1, base=1)
-    tests.append( Test(**params_test_1) )
+
+    #ENC Measurements: Loop over gain and shaping times
+
+    testoffset = 0
+    params_test = dict(params)
+    for s in range(0,4):
+        for g in range(2,4):
+            params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
+                                datasubdir="fembTest_gainenc_test_g"+str(g)+"_s"+str(s), 
+                                outlabel="fembTest_gainenc_test", gain=g, shape=s, base=0)
+            tests.append( Test(**params_test) )
 
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)
