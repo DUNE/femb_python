@@ -43,7 +43,9 @@ class GUI_WINDOW(Frame):
         self.forceLong = forceLong
 
         self.timestamp = None
-        self.waveform_window = None
+        self.waveform_window = None # for live waveform
+        self.waveform_root_windows = [] # for ROOT files
+        self.waveform_root_viewers = [] # for ROOT files
         self.result_labels = []
         self.display_procs = []
         #Define general commands column
@@ -133,6 +135,9 @@ class GUI_WINDOW(Frame):
 
         self.start_david_adams_button = Button(self, text="Collect David Adams Data", command=self.start_david_adams,width=25)
         self.start_david_adams_button.grid(row=36,column=columnbase,columnspan=2,pady=30)
+
+        self.retry_david_adams_label = Label(self,text="",width=30,fg="#0000FF")
+        self.retry_david_adams_label.grid(row=37,column=columnbase,columnspan=2)
 
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
         self.start_button.grid(row=38,column=columnbase,columnspan=2,pady=30)
@@ -252,6 +257,10 @@ class GUI_WINDOW(Frame):
             self.config.FUNCGENINTER.stop()
         if self.waveform_window:
             self.waveform_window.destroy()
+        for iWin in reversed(range(len(self.waveform_root_windows))):
+            win = self.waveform_root_windows.pop(iWin)
+            win.destroy()
+        self.waveform_root_viewers = []
         self.timestamp = None
         for i in reversed(range(len(self.display_procs))):
             tmp = self.display_procs.pop(i)
@@ -273,6 +282,7 @@ class GUI_WINDOW(Frame):
         self.prepare_button["bg"] = self.bkg_color
         self.prepare_button["activebackground"] = self.activebkg_color
         self.coolboard_label["text"] = ""
+        self.retry_david_adams_label["text"] = ""
         self.start_button["state"] = "disabled"
         self.start_david_adams_button["state"] = "disabled"
         self.operator_label["state"] = "normal"
@@ -303,6 +313,10 @@ class GUI_WINDOW(Frame):
         self.timestamp = None # get new timestamp for each prepare board
         if self.waveform_window:
           self.waveform_window.destroy()
+        for iWin in reversed(range(len(self.waveform_root_windows))):
+            win = self.waveform_root_windows.pop(iWin)
+            win.destroy()
+        self.waveform_root_viewers = []
         for i in reversed(range(len(self.result_labels))):
             tmp = self.result_labels.pop(i)
             tmp.destroy()
@@ -355,6 +369,10 @@ class GUI_WINDOW(Frame):
     def start_david_adams(self):
         if self.waveform_window:
             self.waveform_window.destroy()
+        for iWin in reversed(range(len(self.waveform_root_windows))):
+            win = self.waveform_root_windows.pop(iWin)
+            win.destroy()
+        self.waveform_root_viewers = []
         if not GUITESTMODE:
             self.config.FUNCGENINTER.stop()
         for i in reversed(range(len(self.result_labels))):
@@ -374,6 +392,7 @@ class GUI_WINDOW(Frame):
         self.prepare_button["bg"] = self.bkg_color
         self.prepare_button["activebackground"] = self.activebkg_color
         self.coolboard_label["text"] = ""
+        self.retry_david_adams_label["text"] = ""
         self.resetwaveform_button["state"] = "disabled"
         self.selectSocket_label["state"] = "disabled"
         self.selectSocket_entry["state"] = "disabled"
@@ -418,6 +437,10 @@ class GUI_WINDOW(Frame):
     def start_measurements(self):
         if self.waveform_window:
             self.waveform_window.destroy()
+        for iWin in reversed(range(len(self.waveform_root_windows))):
+            win = self.waveform_root_windows.pop(iWin)
+            win.destroy()
+        self.waveform_root_viewers = []
         if not GUITESTMODE:
             self.config.FUNCGENINTER.stop()
         for i in reversed(range(len(self.result_labels))):
@@ -437,6 +460,7 @@ class GUI_WINDOW(Frame):
         self.prepare_button["bg"] = self.bkg_color
         self.prepare_button["activebackground"] = self.activebkg_color
         self.coolboard_label["text"] = ""
+        self.retry_david_adams_label["text"] = ""
         self.resetwaveform_button["state"] = "disabled"
         self.selectSocket_label["state"] = "disabled"
         self.selectSocket_entry["state"] = "disabled"
@@ -511,6 +535,7 @@ class GUI_WINDOW(Frame):
             self.prepare_button["bg"] ="#FF9900"
             self.prepare_button["activebackground"] ="#FFCF87"
             self.coolboard_label["text"] = "If waveform looks okay, \nbegin cooling board \n(see shifter instructions)"
+            self.retry_david_adams_label["text"] = ""
             self.start_button["state"] = "normal"
             self.start_david_adams_button["state"] = "normal"
             self.operator_label["state"] = "disabled"
@@ -551,24 +576,39 @@ class GUI_WINDOW(Frame):
     def done_david_adams(self,params):
         print("David Adams COMPLETE")
         self.status_label["text"] = "Collect David Adams data done"
-        self.reset_button["bg"] ="#00CC00"
-        self.reset_button["activebackground"] = "#A3CCA3"
         datadir = params["datadir"]
         timestamp = params["timestamp"]
-        #datadir = "/home/jhugon/data/adc/hothdaq4/olddata/2017-06-02T14:24:54"
-        #timestamp = "2017-06-02T14:24:54"
-        #datadir = "/home/jhugon/data/adc/hothdaq3/Data/2017-06-08T13:04:41"
-        #timestamp = "2017-06-08T13:04:41"
-        outfileglob = "adcTest_{}_*.json".format(timestamp)
-        outfileglob = os.path.join(datadir,outfileglob)
-        #print(outfileglob)
-        outfilenames = glob.glob(outfileglob)
+        outfilenames = []
+        if GUITESTMODE:
+            outfilenames = ["/home/jhugon/dune/coldelectronics/femb_python/test0.root"]
+        else:
+            outfileglob = "adcDavidAdamsOnlyData_{}_*.json".format(timestamp)
+            outfileglob = os.path.join(datadir,outfileglob)
+            outfilenames = glob.glob(outfileglob)
         print(outfilenames)
         if len(outfilenames) != self.config.NASICS:
             self.status_label["text"] = "Error: Test output not found. Try again and/or reconfiguring"
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
             return
+        else: # good
+            self.prepare_button["state"] = "normal"
+            self.prepare_button["text"] = "Re-"+self.prepare_button_text
+            self.prepare_button["bg"] ="#FF9900"
+            self.prepare_button["activebackground"] ="#FFCF87"
+            self.start_button["state"] = "normal"
+            self.start_david_adams_button["state"] = "normal"
+            self.retry_david_adams_label["text"] = 'If displayed waveform looks\nlike a pretty good ramp up and down,\npress "Start Tests", else\ntry to collect David Adams data again'
+            for iWin in reversed(range(len(self.waveform_root_windows))):
+                win = self.waveform_root_windows.pop(iWin)
+                win.destroy()
+            self.waveform_root_viewers = []
+            for outfilename in outfilenames:
+                win = Toplevel(self)
+                win.title("David Adams Data Window")
+                viewer = TRACE_ROOT_WINDOW(outfilename,master=win,fullADCRange=True)
+                self.waveform_root_windows.append(win)
+                self.waveform_root_viewers.append(viewer)
 
     def done_measuring(self,params):
         print("TESTS COMPLETE")
