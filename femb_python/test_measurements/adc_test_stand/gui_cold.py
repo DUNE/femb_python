@@ -29,7 +29,7 @@ from ...runpolicy import DirectRunner, SumatraRunner
 from ...trace_fft_window import TRACE_FFT_WINDOW
 from ...helper_scripts.show_trace_root import TRACE_ROOT_WINDOW, FFT_ROOT_WINDOW
 
-GUITESTMODE=False
+GUITESTMODE=True
 
 class GUI_WINDOW(Frame):
 
@@ -124,20 +124,24 @@ class GUI_WINDOW(Frame):
         self.selectChannel_result = Label(self, text="")
         self.selectChannel_result.grid(sticky=W,row=32,column=columnbase)
 
-        # Adding electronics ID and read entry box
+        # DC Current box
         self.current_label = Label(self,text="CH2 Current [A]:",width=25,state="disabled")
         self.current_label.grid(sticky=W,row=34,column=columnbase+0)
 
         self.current_entry = Entry(self,width=25,state="disabled")
         self.current_entry.grid(sticky=W,row=34,column=columnbase+1)
 
+        self.start_david_adams_button = Button(self, text="Collect David Adams Data", command=self.start_david_adams,width=25)
+        self.start_david_adams_button.grid(row=36,column=columnbase,columnspan=2,pady=30)
+
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        self.start_button.grid(row=36,column=columnbase,columnspan=2,pady=30)
+        self.start_button.grid(row=38,column=columnbase,columnspan=2,pady=30)
+
         self.reset_button = Button(self, text="Reset & Power-off", command=self.reset,width=25,bg="#FF8000")
-        self.reset_button.grid(row=38,column=columnbase,columnspan=2)
+        self.reset_button.grid(row=40,column=columnbase,columnspan=2)
 
         self.runid_label = Label(self, text="")
-        self.runid_label.grid(row=40,column=columnbase,columnspan=2,pady=20)
+        self.runid_label.grid(row=44,column=columnbase,columnspan=2,pady=20)
 
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
         self.status_label.grid(row=100,column=columnbase,columnspan=2)
@@ -270,6 +274,7 @@ class GUI_WINDOW(Frame):
         self.prepare_button["activebackground"] = self.activebkg_color
         self.coolboard_label["text"] = ""
         self.start_button["state"] = "disabled"
+        self.start_david_adams_button["state"] = "disabled"
         self.operator_label["state"] = "normal"
         self.operator_entry["state"] = "normal"
         self.boardid_label["state"] = "normal"
@@ -347,6 +352,69 @@ class GUI_WINDOW(Frame):
         else:
             self.done_preparing_board(params)
 
+    def start_david_adams(self):
+        if self.waveform_window:
+            self.waveform_window.destroy()
+        if not GUITESTMODE:
+            self.config.FUNCGENINTER.stop()
+        for i in reversed(range(len(self.result_labels))):
+            tmp = self.result_labels.pop(i)
+            tmp.destroy()
+        inputOptions = self.get_options(getCurrent=True)
+        if inputOptions is None:
+            print("ENTER REQUIRED INFO")
+            self.status_label["text"] = "ENTER FLOAT FOR CURRENT"
+            self.status_label["fg"] = "#FF0000"
+            return
+        self.current_label["state"] = "disabled"
+        self.current_entry["state"] = "disabled"
+        self.start_button["state"] = "disabled"
+        self.start_david_adams_button["state"] = "disabled"
+        self.prepare_button["state"] = "disabled"
+        self.prepare_button["bg"] = self.bkg_color
+        self.prepare_button["activebackground"] = self.activebkg_color
+        self.coolboard_label["text"] = ""
+        self.resetwaveform_button["state"] = "disabled"
+        self.selectSocket_label["state"] = "disabled"
+        self.selectSocket_entry["state"] = "disabled"
+        self.selectChannel_label["state"] = "disabled"
+        self.selectChannel_entry["state"] = "disabled"
+        self.selectChannel_button["state"] = "disabled"
+        self.selectChannel_result["text"] = ""
+
+        print("BEGIN DAVID ADAMS")
+        self.status_label["text"] = "COLLECT DAVID ADAMS IN PROGRESS..."
+        self.status_label["fg"] = "#000000"
+        self.update_idletasks()
+
+        runnerSetup = {
+                                "executable": "femb_adc_run_david_adams_only",
+                                "argstr": "-j {paramfile}",
+                                "basedir": self.data_base_dir,
+                                "rundir": "/home/{linux_username}/run",
+                                "datadir": "{basedir}/{linux_username}/adcasic/{femb_config_name}/{timestamp}",
+                                "paramfile": "{datadir}/david_adams_only_params.json",
+                                "smtname": "adc",
+                                "smttag": "{hostname}",
+                            }
+        runner = SumatraRunner(**runnerSetup)
+        try:
+            if GUITESTMODE:
+                params = runner.resolve(**inputOptions) # use to test GUI w/o running test
+            else:
+                params = runner(**inputOptions)
+        except RuntimeError:
+            self.status_label["text"] = "Error in david adams only program. Report to shift leader"
+            self.status_label["fg"] = "#FFFFFF"
+            self.status_label["bg"] = "#FF0000"
+            if not GUITESTMODE:
+                self.config.POWERSUPPLYINTER.off()
+            return
+        else:
+            if not GUITESTMODE:
+                self.config.POWERSUPPLYINTER.off()
+            self.done_david_adams(params)
+
     def start_measurements(self):
         if self.waveform_window:
             self.waveform_window.destroy()
@@ -364,6 +432,7 @@ class GUI_WINDOW(Frame):
         self.current_label["state"] = "disabled"
         self.current_entry["state"] = "disabled"
         self.start_button["state"] = "disabled"
+        self.start_david_adams_button["state"] = "disabled"
         self.prepare_button["state"] = "disabled"
         self.prepare_button["bg"] = self.bkg_color
         self.prepare_button["activebackground"] = self.activebkg_color
@@ -443,6 +512,7 @@ class GUI_WINDOW(Frame):
             self.prepare_button["activebackground"] ="#FFCF87"
             self.coolboard_label["text"] = "If waveform looks okay, \nbegin cooling board \n(see shifter instructions)"
             self.start_button["state"] = "normal"
+            self.start_david_adams_button["state"] = "normal"
             self.operator_label["state"] = "disabled"
             self.operator_entry["state"] = "disabled"
             self.boardid_label["state"] = "disabled"
@@ -477,6 +547,28 @@ class GUI_WINDOW(Frame):
             self.prepare_button["activebackground"] = "#A3CCA3"
             self.reset_button["bg"] ="#FF9900"
             self.reset_button["activebackground"] ="#FFCF87"
+
+    def done_david_adams(self,params):
+        print("David Adams COMPLETE")
+        self.status_label["text"] = "Collect David Adams data done"
+        self.reset_button["bg"] ="#00CC00"
+        self.reset_button["activebackground"] = "#A3CCA3"
+        datadir = params["datadir"]
+        timestamp = params["timestamp"]
+        #datadir = "/home/jhugon/data/adc/hothdaq4/olddata/2017-06-02T14:24:54"
+        #timestamp = "2017-06-02T14:24:54"
+        #datadir = "/home/jhugon/data/adc/hothdaq3/Data/2017-06-08T13:04:41"
+        #timestamp = "2017-06-08T13:04:41"
+        outfileglob = "adcTest_{}_*.json".format(timestamp)
+        outfileglob = os.path.join(datadir,outfileglob)
+        #print(outfileglob)
+        outfilenames = glob.glob(outfileglob)
+        print(outfilenames)
+        if len(outfilenames) != self.config.NASICS:
+            self.status_label["text"] = "Error: Test output not found. Try again and/or reconfiguring"
+            self.status_label["fg"] = "#FFFFFF"
+            self.status_label["bg"] = "#FF0000"
+            return
 
     def done_measuring(self,params):
         print("TESTS COMPLETE")
