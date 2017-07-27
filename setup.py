@@ -145,6 +145,7 @@ setup(
             'femb_adc_baseline_rms=femb_python.test_measurements.adc_test_stand.baseline_rms:main',
             'femb_adc_dc_tests=femb_python.test_measurements.adc_test_stand.dc_tests:main',
             'femb_adc_run=femb_python.test_measurements.adc_test_stand.run:main',
+            'femb_adc_run_david_adams_only=femb_python.test_measurements.adc_test_stand.run_david_adams_only:main',
             'femb_adc_setup_board=femb_python.test_measurements.adc_test_stand.setup_board:main',
             'femb_adc_setup_board_cold=femb_python.test_measurements.adc_test_stand.setup_board_cold:main',
             'femb_adc_test_summary=femb_python.test_measurements.adc_test_stand.test_summary:main',

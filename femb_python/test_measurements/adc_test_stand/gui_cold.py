@@ -27,6 +27,7 @@ import femb_python
 from ...configuration import CONFIG
 from ...runpolicy import DirectRunner, SumatraRunner
 from ...trace_fft_window import TRACE_FFT_WINDOW
+from ...helper_scripts.show_trace_root import TRACE_ROOT_WINDOW, FFT_ROOT_WINDOW
 
 GUITESTMODE=False
 
