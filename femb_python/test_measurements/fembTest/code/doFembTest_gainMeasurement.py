@@ -60,6 +60,7 @@ class FEMB_TEST_GAIN(object):
         self.acdc = 0
         self.useInternalPulser = False
         self.useExtAdcClock = True
+        self.isRoomTemp = True
 
         #json output, note module version number defined here
         self.jsondict = {'type':'fembTest_gain'}
@@ -162,6 +163,7 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.acdcVal = self.acdc
         self.femb_config.feasicEnableTestInput = 0 #important
         self.femb_config.useExtAdcClock = self.useExtAdcClock
+        self.femb_config.isRoomTemp = self.isRoomTemp
         self.femb_config.configFeAsic()
 
         #disable pulser
@@ -300,6 +302,7 @@ def main():
     base = 1
     useInternalPulser = False
     useExtAdcClock = True
+    isRoomTemp = True
 
     #get parameters from input JSON file
     if len(sys.argv) == 2 :
@@ -318,6 +321,8 @@ def main():
             useInternalPulser = params['useInternalPulser']
         if 'useExtAdcClock' in params:
             useExtAdcClock = params['useExtAdcClock']
+        if 'isRoomTemp' in params:
+            isRoomTemp = params['isRoomTemp']
 
     #do some sanity checks
     if len(wibslots) > 4 :
@@ -332,6 +337,7 @@ def main():
         femb_test.base = base
         femb_test.useInternalPulser = useInternalPulser
         femb_test.useExtAdcClock = useExtAdcClock
+        femb_test.isRoomTemp = isRoomTemp
 
         femb_test.check_setup()
         femb_test.record_data()
