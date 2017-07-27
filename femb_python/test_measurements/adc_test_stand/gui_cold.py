@@ -43,6 +43,7 @@ class GUI_WINDOW(Frame):
         self.forceLong = forceLong
 
         self.timestamp = None
+        self.iTry = 1
         self.waveform_window = None # for live waveform
         self.waveform_root_windows = [] # for ROOT files
         self.waveform_root_viewers = [] # for ROOT files
@@ -262,6 +263,7 @@ class GUI_WINDOW(Frame):
             win.destroy()
         self.waveform_root_viewers = []
         self.timestamp = None
+        self.iTry = 1
         for i in reversed(range(len(self.display_procs))):
             tmp = self.display_procs.pop(i)
             tmp.terminate()
@@ -311,6 +313,7 @@ class GUI_WINDOW(Frame):
 
     def prepare_board(self):
         self.timestamp = None # get new timestamp for each prepare board
+        self.iTry = 1
         if self.waveform_window:
           self.waveform_window.destroy()
         for iWin in reversed(range(len(self.waveform_root_windows))):
@@ -415,7 +418,9 @@ class GUI_WINDOW(Frame):
                                 "paramfile": "{datadir}/david_adams_only_params.json",
                                 "smtname": "adc",
                                 "smttag": "{hostname}",
+                                "iTry": self.iTry,
                             }
+        self.iTry += 1
         runner = SumatraRunner(**runnerSetup)
         try:
             if GUITESTMODE:
@@ -432,6 +437,7 @@ class GUI_WINDOW(Frame):
         else:
             if not GUITESTMODE:
                 self.config.POWERSUPPLYINTER.off()
+            print(params)
             self.done_david_adams(params)
 
     def start_measurements(self):
@@ -578,11 +584,12 @@ class GUI_WINDOW(Frame):
         self.status_label["text"] = "Collect David Adams data done"
         datadir = params["datadir"]
         timestamp = params["timestamp"]
+        iTry = params["iTry"]
         outfilenames = []
         if GUITESTMODE:
             outfilenames = ["/home/jhugon/dune/coldelectronics/femb_python/test0.root"]
         else:
-            outfileglob = "adcDavidAdamsOnlyData_{}_*.json".format(timestamp)
+            outfileglob = "adcDavidAdamsOnlyData_{}_*_try{}.root".format(timestamp,iTry)
             outfileglob = os.path.join(datadir,outfileglob)
             outfilenames = glob.glob(outfileglob)
         print(outfilenames)

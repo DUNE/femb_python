@@ -24,7 +24,7 @@ import ROOT
 from .collect_data import COLLECT_DATA 
 from ...configuration.config_base import FEMBConfigError
 
-def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,quick=False,timestamp=None,sumatradict=None):
+def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,quick=False,timestamp=None,sumatradict=None,iTry=1):
     """
     Runs the ADC tests for all chips on the ADC test board.
 
@@ -50,17 +50,18 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     offset = -1
 
     for iChip in range(config.NASICS):
-        print("Collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} ...".format(sampleRate, clock, offset, iChip))
+        print("Collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} iTry: {}...".format(sampleRate, clock, offset, iChip,iTry))
         sys.stdout.flush()
         sys.stderr.flush()
         chipStats = {}
         fileprefix = "adcDavidAdamsOnlyData_{}_chip{}_adcClock{}_adcOffset{}_sampleRate{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset,sampleRate)
         fileprefix = os.path.join(dataDir,fileprefix)
+        filesuffix = "_try{}".format(iTry)
         try:
-            collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate,longRampOnly=True)
+            collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate,longRampOnly=True,filesuffix=filesuffix)
         except Exception as e:
             print("Error while collecting David Adams data, traceback in stderr.")
-            sys.stderr.write("Error collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} Error: {} {}\n".format(sampleRate, clock, offset, iChip,type(e),e))
+            sys.stderr.write("Error collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} iTry: {} Error: {} {}\n".format(sampleRate, clock, offset, iChip, iTry, type(e),e))
             traceback.print_tb(e.__traceback__)
             continue
 
@@ -93,6 +94,7 @@ def main():
     boardid = args.board
     serialNumbers = args.serial
     dataDir = args.datadir
+    iTry = 1
 
     options = None
 
@@ -106,6 +108,7 @@ def main():
                 boardid = options["board_id"]
                 serialNumbers = options["serials"]
                 dataDir = options["datadir"]
+                iTry = options["iTry"]
             except KeyError as e:
                 print("Error while parsing json input options: ",e)
                 sys.exit(1)
@@ -124,9 +127,9 @@ def main():
     try:
         if args.profiler:
             import cProfile
-            cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,quick=quick,sumatradict=options)',globals(),locals(),args.profiler)
+            cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,quick=quick,sumatradict=options,iTry=iTry)',globals(),locals(),args.profiler)
         else:
-            chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,quick=quick,sumatradict=options)
+            chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,quick=quick,sumatradict=options,iTry=iTry)
     except Exception as e:
         print("Uncaught exception in runTests. Traceback in stderr.")
         sys.stderr.write("Uncaught exception in runTests: Error: {} {}\n".format(type(e),e))
