@@ -44,7 +44,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_DAC2 = 5 # bit 0-15 tp period, 16-31 tp shift
 
         self.REG_ADC_TST_PATT = 6 # bit 0-11 tst patt, 16 enable
-        self.REG_ADC_CLK = 7 # bit 0-3 adc clk sel, 8 clk speed sel
+        self.REG_ADC_CLK = 7 # bit 0-3 clk phase, 8 clk speed sel
         self.REG_LATCHLOC = 8 # bit 0-7 ADC1, 8-15 ADC2, 16-23 ADC3, 24-31 ADC4
 
         self.REG_STOP_ADC = 0 # header check + busy check
@@ -53,6 +53,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC_data_1MHz = 0x0
         self.REG_LATCHLOC_data_2MHz_cold = 0x0
         self.REG_LATCHLOC_data_1MHz_cold = 0x0
+
+        self.REG_CLKPHASE_data_2MHz = 0x0
+        self.REG_CLKPHASE_data_1MHz = 0x0
+        self.REG_CLKPHASE_data_2MHz_cold = 0x0
+        self.REG_CLKPHASE_data_1MHz_cold = 0x0
 
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
 
@@ -124,9 +129,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 else:
                     raise ReadRegError("Couldn't read register 0")
 
-#            #Set ADC test pattern register
-#            self.femb.write_reg( 3, 0x01170000) # test pattern off
-#            #self.femb.write_reg( 3, 0x81170000) # test pattern on
+            #Set ADC test pattern register
+            self.femb.write_reg( 3, 12) # test pattern off
+            #self.femb.write_reg( 3, 12+(1 << 16)) # test pattern on
 #
 #            #Set ADC latch_loc and clock phase
 #            if self.SAMPLERATE == 1e6:
@@ -335,10 +340,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def syncADC(self):
         #turn on ADC test mode
         print("FEMB_CONFIG--> Start sync ADC")
-        reg3 = self.femb.read_reg (3)
-        newReg3 = ( reg3 | 0x80000000 )
 
-        self.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
+        originalTestPatternReg = self.femb.read_reg (self.REG_ADC_TST_PATT)
+        newReg = ( originalTestPatternReg | (1 << 16) )
+        self.femb.write_reg(self.REG_ADC_TST_PATT,newReg) # - enable ADC test pattern
         time.sleep(0.1)                
 
         alreadySynced = True
@@ -349,23 +354,30 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 alreadySynced = False
                 print("FEMB_CONFIG--> ADC not synced, try to fix")
                 self.fixUnsync(a)
-        latchloc1_4 = self.femb.read_reg ( self.REG_LATCHLOC1_4 ) 
-        latchloc5_8 = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
-        clkphase    = self.femb.read_reg ( self.REG_CLKPHASE )
+        latchloc = None
+        phase = None
+        latchloc = self.femb.read_reg ( self.REG_LATCHLOC ) 
+        clkphase = self.femb.read_reg ( self.REG_ADC_CLK ) & 0x1111
         if self.SAMPLERATE == 1e6:
-            self.REG_LATCHLOC1_4_data_1MHz = latchloc1_4
-            self.REG_LATCHLOC5_8_data_1MHz = latchloc5_8
-            self.REG_CLKPHASE_data_1MHz    = clkphase
+            if self.COLD:
+                self.REG_LATCHLOC_data_1MHz_cold = latchloc
+                self.REG_CLKPHASE_data_1MHz_cold = clkphase
+            else:
+                self.REG_LATCHLOC_data_1MHz = latchloc
+                self.REG_CLKPHASE_data_1MHz = clkphase
         else: # 2 MHz
-            self.REG_LATCHLOC1_4_data = latchloc1_4
-            self.REG_LATCHLOC5_8_data = latchloc5_8
-            self.REG_CLKPHASE_data    = clkphase
-        print("FEMB_CONFIG--> Latch latency {:#010x} {:#010x} Phase: {:#010x}".format(latchloc1_4,
-                        latchloc5_8, clkphase))
-        self.femb.write_reg ( 3, (reg3&0x7fffffff) )
-        self.femb.write_reg ( 3, (reg3&0x7fffffff) )
+            if self.COLD:
+                self.REG_LATCHLOC_data_2MHZ_cold = latchloc
+                self.REG_CLKPHASE_data_2MHZ_cold = clkphase
+            else:
+                self.REG_LATCHLOC_data_2MHZ = latchloc
+                self.REG_CLKPHASE_data_2MHZ = clkphase
+        print("FEMB_CONFIG--> Latch latency {:#010x} Phase: {:#010x}".format(
+                        latchloc, clkphase))
+        self.femb.write_reg ( self.REG_ADC_TST_PATT, originalTestPatternReg )
+        self.femb.write_reg ( self.REG_ADC_TST_PATT, originalTestPatternReg )
         print("FEMB_CONFIG--> End sync ADC")
-        return not alreadySynced,latchloc1_4,latchloc5_8 ,clkphase
+        return not alreadySynced,latchloc,clkphase
 
     def testUnsync(self, adc):
         print("Starting testUnsync adc: ",adc)
@@ -406,37 +418,30 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
                 return
 
-        initLATCH1_4 = self.femb.read_reg ( self.REG_LATCHLOC1_4 )
-        initLATCH5_8 = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
-        initPHASE = self.femb.read_reg ( self.REG_CLKPHASE )
+        initLATCH = self.femb.read_reg ( self.REG_LATCHLOC )
+        initPHASE = self.femb.read_reg ( self.REG_ADC_CLK ) # remember bit 16 sample rate
 
+        #phases = [0,1,0,1,0]
         phases = [0,1]
-        if self.COLD:
-            phases = [0,1,0,1,0]
 
         #loop through sync parameters
         for shift in range(0,16,1):
-            shiftMask = (0x3F << 8*adcNum)
-            if ( adcNum < 4 ):
-                testShift = ( (initLATCH1_4 & ~(shiftMask)) | (shift << 8*adcNum) )
-                self.femb.write_reg ( self.REG_LATCHLOC1_4, testShift )
-                time.sleep(0.01)
-            else:
-                testShift = ( (initLATCH5_8 & ~(shiftMask)) | (shift << 8*adcNum) )
-                self.femb.write_reg ( self.REG_LATCHLOC5_8, testShift )
-                time.sleep(0.01)
+            shiftMask = (0xFF << 8*adcNum)
+            testShift = ( (initLATCH1_4 & ~(shiftMask)) | (shift << 8*adcNum) )
+            self.femb.write_reg ( self.REG_LATCHLOC, testShift )
+            time.sleep(0.01)
             for phase in phases:
                 clkMask = (0x1 << adcNum)
                 testPhase = ( (initPHASE & ~(clkMask)) | (phase << adcNum) ) 
-                self.femb.write_reg ( self.REG_CLKPHASE, testPhase )
+                self.femb.write_reg ( self.REG_ADC_CLK, testPhase )
                 time.sleep(0.01)
                 print("try shift: {} phase: {} testingUnsync...".format(shift,phase))
                 #reset ADC ASIC
-                self.femb.write_reg ( self.REG_ASIC_RESET, 1)
+                self.femb.write_reg ( self.REG_ASIC_SPIPROG_RESET, 1 << 5) # reset ADC
                 time.sleep(0.01)
-                self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
+                self.femb.write_reg ( self.REG_ASIC_SPIPROG_RESET, 1 << 1) # prog ADC SPI
                 time.sleep(0.01)
-                self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
+                self.femb.write_reg ( self.REG_ASIC_SPIPROG_RESET, 1 << 1) # prog ADC SPI
                 time.sleep(0.01)
                 #test link
                 unsync = self.testUnsync(adcNum)
@@ -445,10 +450,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                     return
         #if program reaches here, sync has failed
         print("Error: FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc))
-        print("Setting back to original values: LATCHLOC1_4: {:#010x}, LATCHLOC5_8: {:#010x}, PHASE: {:#010x}".format,initLATCH1_4,initLATCH5_8,initPHASE)
-        self.femb.write_reg ( self.REG_LATCHLOC1_4, initLATCH1_4 )
-        self.femb.write_reg ( self.REG_LATCHLOC5_8, initLATCH5_8 )
-        self.femb.write_reg ( self.REG_CLKPHASE, initPHASE )
+        print("Setting back to original values: LATCHLOC: {:#010x}, PHASE: {:#010x}".format,initLATCH,initPHASE & 0xF)
+        self.femb.write_reg ( self.REG_LATCHLOC, initLATCH )
+        self.femb.write_reg ( self.REG_ADC_CLK, initPHASE )
         if self.exitOnError:
             sys.exit(1)
         else:
@@ -549,6 +553,20 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             val = int(val) & 0xFFFF # only 16 bits for some reason
             #print("ExtClock Register {0:12} number {1:3} set to {2:5} = {2:#06x}".format(name,reg,val))
             self.femb.write_reg(reg,val)
+
+    def writeSPItoASICS(self):
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,3)
+        time.sleep(0.1)
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,2)
+        time.sleep(0.1)
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+
+        syncVar = self.femb.read_reg(self.REG_ASIC_SPIPROG_RESET)
+        if syncVar is None:
+            print("FEMB_CONFIG--> Result of writing SPI: {:#010x}".format(syncVar))
+        else:
+            print("FEMB_CONFIG--> Result of writing SPI: None")
 
     def turnOffAsics(self):
         oldReg = self.femb.read_reg(self.REG_PWR_CTRL)
