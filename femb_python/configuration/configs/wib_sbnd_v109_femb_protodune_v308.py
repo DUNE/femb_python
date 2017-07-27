@@ -58,8 +58,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.INT_TP_EN = 18
         self.EXT_TP_EN = 18
 
-        #EXTERNAL CLOCK STUFF HERE
-
         self.REG_SPI_BASE = 512
         self.REG_SPI_RDBACK_BASE = 592
 
@@ -693,4 +691,157 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.selectFemb(fembVal)
         return results
+
+    def ext_clk_config_femb(self):
+        #EXTERNAL CLOCK VARIABLES
+        ####################external clock timing
+        clk_period = 5 #ns
+        self.clk_dis = 0 #0 --> enable, 1 disable
+        self.d14_rst_oft  = 0   // clk_period   
+        self.d14_rst_wdt  = (50  // clk_period ) -1   
+        self.d14_rst_inv  = 1  
+        self.d14_read_oft = 480 // clk_period    
+        self.d14_read_wdt = 20  // clk_period    
+        self.d14_read_inv = 1 
+        self.d14_idxm_oft = 230 // clk_period    
+        self.d14_idxm_wdt = 270 // clk_period    
+        self.d14_idxm_inv = 0 
+        self.d14_idxl_oft = 480 // clk_period    
+        self.d14_idxl_wdt = 20  // clk_period    
+        self.d14_idxl_inv = 0 
+        self.d14_idl0_oft = 50  // clk_period    
+        self.d14_idl0_wdt = (190 // clk_period ) -1   
+        self.d14_idl1_oft = 480 // clk_period
+        self.d14_idl1_wdt = 20  // clk_period    
+        self.d14_idl_inv  = 0      
+
+        self.d58_rst_oft  = 0   // clk_period 
+        self.d58_rst_wdt  = (50  // clk_period ) -1
+        self.d58_rst_inv  = 1  
+        self.d58_read_oft = 480 // clk_period 
+        self.d58_read_wdt = 20  // clk_period 
+        self.d58_read_inv = 1 
+        self.d58_idxm_oft = 230 // clk_period 
+        self.d58_idxm_wdt = 270 // clk_period 
+        self.d58_idxm_inv = 0 
+        self.d58_idxl_oft = 480 // clk_period 
+        self.d58_idxl_wdt = 20  // clk_period 
+        self.d58_idxl_inv = 0 
+        self.d58_idl0_oft = 50  // clk_period 
+        self.d58_idl0_wdt = (190 // clk_period ) -1
+        self.d58_idl1_oft = 480 // clk_period
+        self.d58_idl1_wdt = 20  // clk_period 
+        self.d58_idl_inv  = 0       
+
+        ####################external clock phase
+        self.d14_read_step = 4
+        self.d14_read_ud   = 0
+        self.d14_idxm_step = 6
+        self.d14_idxm_ud   = 0
+        self.d14_idxl_step = 0
+        self.d14_idxl_ud   = 0
+        self.d14_idl0_step = 6
+        self.d14_idl0_ud   = 0
+        self.d14_idl1_step = 14
+        self.d14_idl1_ud   = 0
+        self.d14_phase_en = 1
+
+        self.d58_read_step = 12
+        self.d58_read_ud   = 0
+        self.d58_idxm_step = 17
+        self.d58_idxm_ud   = 0
+        self.d58_idxl_step = 3
+        self.d58_idxl_ud   = 0
+        self.d58_idl0_step = 18
+        self.d58_idl0_ud   = 0
+        self.d58_idl1_step = 16
+        self.d58_idl1_ud   = 0
+        self.d58_phase_en = 1
+        #END EXTERNAL CLOCK VARIABLES
+
+        #config timing
+        d14_inv = (self.d14_rst_inv<<0) + (self.d14_read_inv<<1)+ (self.d14_idxm_inv<<2)+ (self.d14_idxl_inv<<3)+ (self.d14_idl_inv<<4)
+        d58_inv = (self.d58_rst_inv<<0) + (self.d58_read_inv<<1)+ (self.d58_idxm_inv<<2)+ (self.d58_idxl_inv<<3)+ (self.d58_idl_inv<<4)
+        d_inv = d58_inv + ( d14_inv<<5)
+
+        addr_data = self.clk_dis + (d_inv << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 21, addr_data)
+        self.femb.write_reg( 21, addr_data)
+
+        addr_data = self.d58_rst_oft + (self.d14_rst_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 22, addr_data)
+        self.femb.write_reg( 22, addr_data)
+
+        addr_data = self.d58_rst_wdt + (self.d14_rst_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 23, addr_data)
+        self.femb.write_reg( 23, addr_data)
+
+        addr_data = self.d58_read_oft + (self.d14_read_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 24, addr_data)
+        self.femb.write_reg( 24, addr_data)
+
+        addr_data = self.d58_read_wdt + (self.d14_read_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 25, addr_data)
+        self.femb.write_reg( 25, addr_data)
+
+        addr_data = self.d58_idxm_oft + (self.d14_idxm_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 26, addr_data)
+        self.femb.write_reg( 26, addr_data)
+
+        addr_data = self.d58_idxm_wdt + (self.d14_idxm_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 27, addr_data)
+        self.femb.write_reg( 27, addr_data)
+
+        addr_data = self.d58_idxl_oft + (self.d14_idxl_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 28, addr_data)
+        self.femb.write_reg( 28, addr_data)
+
+        addr_data = self.d58_idxl_wdt + (self.d14_idxl_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 29, addr_data)
+        self.femb.write_reg( 29, addr_data)
+
+        addr_data = self.d58_idl0_oft + (self.d14_idl0_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 30, addr_data)
+        self.femb.write_reg( 30, addr_data)
+
+        addr_data = self.d58_idl0_wdt + (self.d14_idl0_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 31, addr_data)
+        self.femb.write_reg( 31, addr_data)
+
+        addr_data = self.d58_idl1_oft + (self.d14_idl1_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 32, addr_data)
+        self.femb.write_reg( 32, addr_data)
+
+        addr_data = self.d58_idl1_wdt + (self.d14_idl1_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 33, addr_data)
+        self.femb.write_reg( 33, addr_data)
+
+        #config phase 
+        for i in range(4):
+            addr_data = self.d14_read_step + (self.d14_idxm_step <<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 35, addr_data)
+            self.femb.write_reg( 35, addr_data)
+
+            addr_data = self.d14_idxl_step + (self.d14_idl0_step <<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 36, addr_data)
+            self.femb.write_reg( 36, addr_data)
+             
+            self.d14_phase_en = self.d14_phase_en ^ 1
+            d14_ud = self.d14_read_ud + (self.d14_idxm_ud<<1) + (self.d14_idxl_ud<<2)+ (self.d14_idl0_ud<<3)+ (self.d14_idl1_ud<<4) + (self.d14_phase_en <<15)
+            addr_data = self.d14_idl1_step + (d14_ud<<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 37, addr_data)
+            self.femb.write_reg( 37, addr_data)
+
+            addr_data = self.d58_read_step + (self.d58_idxm_step <<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 38, addr_data)
+            self.femb.write_reg( 38, addr_data)
+
+            addr_data = self.d58_idxl_step + (self.d58_idl0_step <<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 39, addr_data)
+            self.femb.write_reg( 39, addr_data)
             
+            self.d58_phase_en = self.d58_phase_en ^ 1
+            d58_ud = self.d58_read_ud + (self.d58_idxm_ud<<1) + (self.d58_idxl_ud<<2)+ (self.d58_idl0_ud<<3)+ (self.d58_idl1_ud<<4) + (self.d58_phase_en <<15)
+            addr_data = self.d58_idl1_step + (d58_ud <<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 40, addr_data)
+            self.femb.write_reg( 40, addr_data)
