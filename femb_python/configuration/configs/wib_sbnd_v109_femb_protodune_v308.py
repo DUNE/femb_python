@@ -643,3 +643,54 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #good firmware id
         return True
+
+    def readCurrent(self,femb):
+
+        self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
+        self.femb.UDP_PORT_RREG = 32001
+        self.femb.UDP_PORT_RREGRESP = 32002
+        
+        fembVal = int(femb)
+
+        pwrSelBase = 1 + fembVal*6
+        print(femb, pwrSelBase)
+        results = []
+
+        self.femb.write_reg_bits( 5 , 0, 0xFF, 0)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+
+        time.sleep(1)
+        val = self.femb.read_reg(6)
+        val = self.femb.read_reg(6)        
+        val1 = (val & 0xFFFF)
+        val2 = ((val >> 16) & 0xFFFF)
+        results.append(val)
+        #print( "FEMB " + str(fembVal) + "\t 0 \t" + str(val) + "\t" + str(val1) + "\t" + str(val2) )        
+        
+        for pwrSel in range(pwrSelBase, pwrSelBase+6, 1):
+            self.femb.write_reg_bits( 5 , 0, 0xFF, pwrSel )
+            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            
+            time.sleep(1)
+            val = self.femb.read_reg(6)
+            val = self.femb.read_reg(6)
+            if val == None :
+                return
+            val1 = (val & 0xFFFF)
+            val2 = ((val >> 16) & 0xFFFF)
+            #print( "FEMB " + str(fembVal) + "\t" + str(pwrSel) + "\t" + str(val) + "\t" + str(val1) + "\t" + str(val2) )
+            results.append(val)
+
+        self.selectFemb(fembVal)
+        return results
+            

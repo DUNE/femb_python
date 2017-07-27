@@ -116,7 +116,7 @@ class GUI_WINDOW(Frame):
         wibslots_filled = [x for x in range(len(wibslots_all)) if wibslots_all[x]==1]
         
         variables = [operator,boxid,amid,fmid,self.ct_bool,wibslots_filled]
-        if self.ct_bool:
+        if (self.ct_bool.get() == "1"):
             temp = "CT"
         else:
             temp = "RT"

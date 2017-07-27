@@ -71,14 +71,24 @@ def main(**params):
 
     #ENC Measurements: Loop over gain and shaping times
 
-    testoffset = 0
     params_test = dict(params)
-    for s in range(0,4):
-        for g in range(2,4):
-            params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
-                                datasubdir="fembTest_gainenc_test_g"+str(g)+"_s"+str(s), 
-                                outlabel="fembTest_gainenc_test", gain=g, shape=s, base=0)
-            tests.append( Test(**params_test) )
+    pulser_setting = [True, False]
+    pulser_text = ["intpulse","extpulse"]
+    i = 0
+    for pulser in pulser_setting:
+        for s in range(0,4):
+            for g in range(2,4):
+                params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
+                                    datasubdir="fembTest_gainenc_test_g"+str(g)+"_s"+str(s)+"_"+pulser_text[i], 
+                                    outlabel="fembTest_gainenc_test", gain=g, shape=s, base=0, useInternalPulser=pulser)
+                tests.append( Test(**params_test) )
+        i+=1
+    #Current Measurement
+    params_test_current = dict(params)
+    params_test_current.update( executable="femb_check_current", argstr="{paramfile}",
+                                datasubdir="fembTest_check_current_test",
+                                outlabel="fembTest_check_current_test")
+    tests.append( Test(**params_test_current) )    
 
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)
