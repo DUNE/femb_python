@@ -184,6 +184,7 @@ setup(
             'femb_test_simple=femb_python.test_measurements.fembTest.code.doFembTest_simpleMeasurement:main',
             'femb_test_gainenc=femb_python.test_measurements.fembTest.code.doFembTest_gainMeasurement:main',
             'femb_power_cycle_test=femb_python.test_measurements.fembTest.code.femb_power_cycle_test:main',
+            'femb_check_current=femb_python.test_measurements.fembTest.code.femb_check_current:main',
             'femb_prod_gui=femb_python.test_measurements.fembTest.gui:main',
 
             # what the shifters run:

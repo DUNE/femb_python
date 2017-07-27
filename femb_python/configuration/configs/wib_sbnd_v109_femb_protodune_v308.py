@@ -77,9 +77,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicAcdc = 0 #AC = 0, DC = 1
         
         self.feasicEnableTestInput = 1 #0 = disabled, 1 = enabled
-        self.feasicBaseline = 0 #0 = 200mV, 1 = 900mV
-        self.feasicGain = 1 #4.7,7.8,14,25
-        self.feasicShape = 3 #0.5,1,2,3
+        self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV
+        self.feasicGain = 3 #4.7,7.8,14,25
+        self.feasicShape = 2 #0.5,1,2,3
         self.feasicBuf = 0 #0 = OFF, 1 = ON
 
     def resetBoard(self):
@@ -552,7 +552,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #set pulser enable bit
         if enableVal == 1 :
-            self.femb.write_reg( self.EXT_TP_EN, 0x2) #pulser enabled, bit 0 is FPGA pulser NOT enabled
+            self.femb.write_reg( self.EXT_TP_EN, 0x2) #this register is confusing, check
         else :
             self.femb.write_reg( self.EXT_TP_EN, 0x3) #pulser disabled
 
@@ -584,7 +584,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #set pulser enable bit
         if enableVal == 1 :
-                self.femb.write_reg( self.INT_TP_EN, 0x1) #pulser enabled
+                self.femb.write_reg( self.INT_TP_EN, 0x2) #this register is confusing, check
         else :
                 self.femb.write_reg( self.INT_TP_EN, 0x3) #pulser disabled
 
@@ -609,8 +609,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits( self.REG_ASIC_TP_EN , 0, 0x3, 0x2 )
         self.femb.write_reg_bits( self.REG_DAC_SELECT, 8,0x1,0) #test pulse enable
         self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, dacVal ) #TP Amplitude
-        self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
-        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 197 ) #FREQ
+        self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 31 ) #DLY
+        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 1000 ) #FREQ
 
     def checkFirmwareVersion(self):
         #set UDP ports to WIB
@@ -643,3 +643,54 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #good firmware id
         return True
+
+    def readCurrent(self,femb):
+
+        self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
+        self.femb.UDP_PORT_RREG = 32001
+        self.femb.UDP_PORT_RREGRESP = 32002
+        
+        fembVal = int(femb)
+
+        pwrSelBase = 1 + fembVal*6
+        print(femb, pwrSelBase)
+        results = []
+
+        self.femb.write_reg_bits( 5 , 0, 0xFF, 0)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+
+        time.sleep(1)
+        val = self.femb.read_reg(6)
+        val = self.femb.read_reg(6)        
+        val1 = (val & 0xFFFF)
+        val2 = ((val >> 16) & 0xFFFF)
+        results.append(val)
+        #print( "FEMB " + str(fembVal) + "\t 0 \t" + str(val) + "\t" + str(val1) + "\t" + str(val2) )        
+        
+        for pwrSel in range(pwrSelBase, pwrSelBase+6, 1):
+            self.femb.write_reg_bits( 5 , 0, 0xFF, pwrSel )
+            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            
+            time.sleep(1)
+            val = self.femb.read_reg(6)
+            val = self.femb.read_reg(6)
+            if val == None :
+                return
+            val1 = (val & 0xFFFF)
+            val2 = ((val >> 16) & 0xFFFF)
+            #print( "FEMB " + str(fembVal) + "\t" + str(pwrSel) + "\t" + str(val) + "\t" + str(val1) + "\t" + str(val2) )
+            results.append(val)
+
+        self.selectFemb(fembVal)
+        return results
+            

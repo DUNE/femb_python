@@ -221,8 +221,15 @@ def main():
 
     if len(sys.argv) == 2 :
         params = json.loads(open(sys.argv[1]).read())
-        datadir = params['datadir']
-        wibslots = params['wibslots']
+        if 'datadir' in params:
+            datadir = params['datadir']
+        if 'wibslots' in params:
+            wibslots = params['wibslots']
+
+    #do some sanity checks
+    if len(wibslots) > 4 :
+        print("doFembTest - Invalid # of FEMBs specified")
+        return
       
     #actually run the test, one per FEMB slot
     for femb in wibslots:
