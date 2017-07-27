@@ -62,6 +62,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_SPI_RDBACK_BASE = 592
 
         self.fembNum = 0
+        self.useExtAdcClock = 1
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
@@ -145,12 +146,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits(self.REG_HS_DATA , 0, 0x1, 1 ) #Enable streaming
         self.femb.write_reg_bits(self.REG_HS_DATA , 3, 0x1, 1 ) #Enable ADC data
 
+        #EXTERNAL CLOCK STUFF
+        if self.useExtAdcClock == 1 :
+            self.ext_clk_config_femb()
+
         #Set FE ASIC SPI configuration registers
         self.configFeAsic()
-
-        #Set ADC SPI configuration registers
-
-        #EXTERNAL CLOCK STUFF
 
     #Test FEMB SPI working
     def checkFembSpi(self):        
@@ -319,6 +320,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #DAC OUTPUT bits 8-9 , 0xA00 = external DAC
 
+        #ADC ASIC config
+        adc_globalReg = 0x2080
+        if self.useExtAdcClock == 1:
+            adc_globalReg = 0xa880
+
         #turn off HS data before register writes
         self.femb.write_reg_bits(9 , 0, 0x1, 0 )
         print("HS link turned off")
@@ -328,6 +334,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         chWord = (chReg << 24 ) + (chReg << 16) + (chReg << 8 ) + chReg
         for asic in range(0,self.NASICS,1):
             baseReg = self.REG_SPI_BASE + int(asic)*9
+            self.femb.write_reg_bits( baseReg + 4 , 0, 0xFFFF, adc_globalReg ) #ADC ASIC global registers
             self.femb.write_reg_bits( baseReg + 4 , 16, 0xFF, chReg ) #ch0
             self.femb.write_reg_bits( baseReg + 4 , 24, 0xFF, chReg ) #ch1
             self.femb.write_reg( baseReg + 5 ,  chWord) #ch2-5
