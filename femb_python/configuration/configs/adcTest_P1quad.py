@@ -132,17 +132,23 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             #Set ADC test pattern register
             self.femb.write_reg( 3, 12) # test pattern off
             #self.femb.write_reg( 3, 12+(1 << 16)) # test pattern on
-#
-#            #Set ADC latch_loc and clock phase
-#            if self.SAMPLERATE == 1e6:
-#                self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data_1MHz)
-#                self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data_1MHz)
-#                self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data_1MHz)
-#            else: # use 2 MHz values
-#                self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data)
-#                self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data)
-#                self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data)
-#
+
+            #Set ADC latch_loc and clock phase and sample rate
+            if self.SAMPLERATE == 1e6:
+                if self.COLD:
+                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_1MHz_cold)
+                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz_cold & 0xF))
+                else:
+                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_1MHz)
+                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz & 0xF))
+            else: # use 2 MHz values
+                if self.COLD:
+                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz_cold)
+                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz_cold & 0xF) + (1 << 8))
+                else:
+                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz)
+                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF + (1 << 8)))
+
 #            #internal test pulser control
 #            self.femb.write_reg( 5, 0x00000000)
 #            self.femb.write_reg( 13, 0x0) #enable
@@ -159,6 +165,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 #                #self.configAdcAsic(clockMonostable=True)
 #            except ReadRegError:
 #                continue
+            self.writeSPItoASICS()
+
 #            # Check that board streams data
 #            data = self.femb.get_data(1)
 #            if data == None:
