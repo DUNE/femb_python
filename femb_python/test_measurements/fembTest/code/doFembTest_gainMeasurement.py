@@ -58,7 +58,8 @@ class FEMB_TEST_GAIN(object):
         self.leakagex10 = 0
         self.buffer = 0
         self.acdc = 0
-        self.useInternalPulser = 0
+        self.useInternalPulser = False
+        self.useExtAdcClock = True
 
         #json output, note module version number defined here
         self.jsondict = {'type':'fembTest_gain'}
@@ -160,6 +161,7 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.bufVal = self.buffer
         self.femb_config.acdcVal = self.acdc
         self.femb_config.feasicEnableTestInput = 0 #important
+        self.femb_config.useExtAdcClock = self.useExtAdcClock
         self.femb_config.configFeAsic()
 
         #disable pulser
@@ -297,6 +299,7 @@ def main():
     shape = 1
     base = 1
     useInternalPulser = False
+    useExtAdcClock = True
 
     #get parameters from input JSON file
     if len(sys.argv) == 2 :
@@ -313,6 +316,8 @@ def main():
             base = params['base']
         if 'useInternalPulser' in params:
             useInternalPulser = params['useInternalPulser']
+        if 'useExtAdcClock' in params:
+            useExtAdcClock = params['useExtAdcClock']
 
     #do some sanity checks
     if len(wibslots) > 4 :
@@ -326,6 +331,7 @@ def main():
         femb_test.shape = shape
         femb_test.base = base
         femb_test.useInternalPulser = useInternalPulser
+        femb_test.useExtAdcClock = useExtAdcClock
 
         femb_test.check_setup()
         femb_test.record_data()

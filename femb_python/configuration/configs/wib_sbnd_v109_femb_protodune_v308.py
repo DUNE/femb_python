@@ -62,7 +62,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_SPI_RDBACK_BASE = 592
 
         self.fembNum = 0
-        self.useExtAdcClock = 1
+        self.useExtAdcClock = True
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
@@ -147,8 +147,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits(self.REG_HS_DATA , 3, 0x1, 1 ) #Enable ADC data
 
         #EXTERNAL CLOCK STUFF
-        if self.useExtAdcClock == 1 :
-            self.ext_clk_config_femb()
+        self.ext_clk_config_femb()
 
         #Set FE ASIC SPI configuration registers
         self.configFeAsic()
@@ -322,7 +321,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #ADC ASIC config
         adc_globalReg = 0x2080
-        if self.useExtAdcClock == 1:
+        if self.useExtAdcClock == True:
             adc_globalReg = 0xa880
 
         #turn off HS data before register writes
