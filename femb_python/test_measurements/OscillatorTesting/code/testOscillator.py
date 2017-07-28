@@ -89,8 +89,8 @@ class OSCILLATOR_TESTING(object):
 		###########################################################################
 		#Power cycle and take the measurements with oscilloscope
 		###########################################################################
-		#Power cycle 100 times in LN2
-                totalPowerCycle = 100
+		#Power cycle 50 times in LN2
+                totalPowerCycle = 50
 		
 		#Testing 100 MHz oscillators
                 requiredFrequency = 100*(10**6)
@@ -187,7 +187,7 @@ class OSCILLATOR_TESTING(object):
                                                 success = 1
                                         except:
                                                 print("Trying again...")
-                                                time.sleep(5)
+                                                time.sleep(1)
                                                 tries += 1
                                                 
                                 if (not success and iPowerCycle == 1):
