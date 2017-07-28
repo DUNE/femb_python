@@ -145,6 +145,7 @@ setup(
             'femb_adc_baseline_rms=femb_python.test_measurements.adc_test_stand.baseline_rms:main',
             'femb_adc_dc_tests=femb_python.test_measurements.adc_test_stand.dc_tests:main',
             'femb_adc_run=femb_python.test_measurements.adc_test_stand.run:main',
+            'femb_adc_run_david_adams_only=femb_python.test_measurements.adc_test_stand.run_david_adams_only:main',
             'femb_adc_setup_board=femb_python.test_measurements.adc_test_stand.setup_board:main',
             'femb_adc_setup_board_cold=femb_python.test_measurements.adc_test_stand.setup_board_cold:main',
             'femb_adc_test_summary=femb_python.test_measurements.adc_test_stand.test_summary:main',
@@ -183,6 +184,7 @@ setup(
             'femb_test_simple=femb_python.test_measurements.fembTest.code.doFembTest_simpleMeasurement:main',
             'femb_test_gainenc=femb_python.test_measurements.fembTest.code.doFembTest_gainMeasurement:main',
             'femb_power_cycle_test=femb_python.test_measurements.fembTest.code.femb_power_cycle_test:main',
+            'femb_check_current=femb_python.test_measurements.fembTest.code.femb_check_current:main',
             'femb_prod_gui=femb_python.test_measurements.fembTest.gui:main',
 
             # what the shifters run:

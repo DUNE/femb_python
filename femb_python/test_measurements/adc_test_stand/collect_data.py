@@ -29,7 +29,7 @@ class COLLECT_DATA(object):
         self.maxTries = 1000
         self.nBits = 12
 
-    def getData(self,outPrefix,iChip,adcSerial=-1,adcOffset=-2,adcClock=-1,sampleRate=-1,longRamp=False):
+    def getData(self,outPrefix,iChip,adcSerial=-1,adcOffset=-2,adcClock=-1,sampleRate=-1,longRamp=False,longRampOnly=False):
         """
         Creates data files starting with outPrefix for iChip for ramp and sin inputs
         """
@@ -41,9 +41,12 @@ class COLLECT_DATA(object):
         offsetV = (xLow + xHigh)*0.5
         amplitudeV = (xHigh - xLow)*0.5
         ## Created functions to ease profiling
-        self.getRamp(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,xLow,xHigh,amplitudeV,offsetV)
-        if longRamp:
+        if longRamp or longRampOnly:
             self.getRamp(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,xLow,xHigh,amplitudeV,offsetV,longRamp=True)
+        if longRampOnly:
+            self.funcgen.stop()
+            return
+        self.getRamp(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,xLow,xHigh,amplitudeV,offsetV)
         self.getDC(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate)
         amplitudeV *= 0.6
         self.getSin(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,amplitudeV,offsetV)

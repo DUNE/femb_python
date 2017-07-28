@@ -44,20 +44,20 @@ def main(**params):
     '''
     print( "FEMB PRODUCTION TEST - START")
 
-    use_sumatra = True
+    use_sumatra = False
     test_category = "femb"      # pick something
 
     #check for any required input paramaters here ie board id etc
     if (not params['operator']):
         print ("Operator data not entered")
         return -99
-    if (not params['box_id']):
+    if (not params['box_ids']):
         print ("Box ID data not entered")        
         return -99
-    if (not params['am_id']):
+    if (not params['am_ids']):
         print ("Analog MB ID data not entered")                
         return -99
-    if (not params['fm_id']):
+    if (not params['fm_ids']):
         print ("FPGA Mezz data not entered")                
         return -99
    
@@ -71,14 +71,27 @@ def main(**params):
 
     #ENC Measurements: Loop over gain and shaping times
 
-    testoffset = 0
     params_test = dict(params)
-    for s in range(0,4):
-        for g in range(2,4):
-            params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
-                                datasubdir="fembTest_gainenc_test_g"+str(g)+"_s"+str(s), 
-                                outlabel="fembTest_gainenc_test", gain=g, shape=s, base=0)
-            tests.append( Test(**params_test) )
+    pulser_setting = [True, False]
+    pulser_text = ["intpulse","extpulse"]
+    i = 0
+    for pulser in pulser_setting:
+        for s in range(0,4):
+        #for s in range(2,3):
+            for g in range(2,4):
+            #for g in range(2,3):
+                params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
+                                    datasubdir="fembTest_gainenc_test_g"+str(g)+"_s"+str(s)+"_"+pulser_text[i], 
+                                    outlabel="fembTest_gainenc_test_"+pulser_text[i], gain=g, shape=s, base=0, useInternalPulser=pulser_setting[i])
+                tests.append( Test(**params_test) )
+        i+=1
+
+    #Current Measurement
+    params_test_current = dict(params)
+    params_test_current.update( executable="femb_check_current", argstr="{paramfile}",
+                                datasubdir="fembTest_check_current_test",
+                                outlabel="fembTest_check_current_test")
+    tests.append( Test(**params_test_current) )    
 
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)
