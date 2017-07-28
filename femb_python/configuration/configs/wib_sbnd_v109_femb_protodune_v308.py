@@ -666,42 +666,47 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         results = []
 
         self.femb.write_reg_bits( 5 , 0, 0xFF, 0)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 1)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 1)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-
-        time.sleep(1)
-        val = self.femb.read_reg(6)
-        val = self.femb.read_reg(6)        
-        val1 = (val & 0xFFFF)
-        val2 = ((val >> 16) & 0xFFFF)
+        tryagain = True
+        tries = 0
+        while (tryagain and tries < 2):
+            tries += 1
+            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+            #self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            time.sleep(1)
+            val = self.femb.read_reg(6)
+            val = self.femb.read_reg(6)
+            val1 = (val & 0xFFFF)
+            val2 = ((val >> 16) & 0xFFFF)
+            if ( (val1 >> 15)==1 and (val2 >> 15)==1 ):
+                tryagain = False
+            
         results.append(val)
         #print( "FEMB " + str(fembVal) + "\t 0 \t" + str(val) + "\t" + str(val1) + "\t" + str(val2) )        
         
         for pwrSel in range(pwrSelBase, pwrSelBase+6, 1):
             self.femb.write_reg_bits( 5 , 0, 0xFF, pwrSel )
-            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-            self.femb.write_reg_bits( 5 , 16, 0x1, 1)
-            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-            self.femb.write_reg_bits( 5 , 16, 0x1, 1)
-            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-            
-            time.sleep(1)
-            val = self.femb.read_reg(6)
-            val = self.femb.read_reg(6)
-            if val == None :
-                return
-            val1 = (val & 0xFFFF)
-            val2 = ((val >> 16) & 0xFFFF)
-            #print( "FEMB " + str(fembVal) + "\t" + str(pwrSel) + "\t" + str(val) + "\t" + str(val1) + "\t" + str(val2) )
+            tryagain = True
+            tries = 0
+            while (tryagain and tries < 2):
+                tries += 1
+                self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+                self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+                #self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+                time.sleep(1)
+                val = self.femb.read_reg(6)
+                val = self.femb.read_reg(6)
+                val1 = (val & 0xFFFF)
+                val2 = ((val >> 16) & 0xFFFF)
+                if ( (val1 >> 15)==1 and (val2 >> 15)==1 ):
+                    tryagain = False
+
+                #print( "FEMB " + str(fembVal) + "\t" + str(pwrSel) + "\t" + str(val) + "\t" + str(val2) + "\t" + str(val1) )
             results.append(val)
 
         self.selectFemb(fembVal)
         return results
+    
 
     def ext_clk_config_femb(self):
         #EXTERNAL CLOCK VARIABLES

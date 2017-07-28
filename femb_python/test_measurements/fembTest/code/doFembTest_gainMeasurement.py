@@ -309,6 +309,8 @@ def main():
         params = json.loads(open(sys.argv[1]).read())
         if 'datadir' in params:
             datadir = params['datadir']
+        if 'outlabel' in params:
+            outlabel = params['outlabel']
         if 'wibslots' in params:
             wibslots = params['wibslots']
         if 'gain' in params:

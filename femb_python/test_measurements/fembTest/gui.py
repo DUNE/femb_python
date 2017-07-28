@@ -128,7 +128,7 @@ class GUI_WINDOW(Frame):
         print("CE Box ID: '{}'".format(boxid))
         print("Analog MB ID: '{}'".format(amid))
         print("FPGA Mezz ID: '{}'".format(fmid))
-        print("Test temperature: '{}'".format(temp))
+        print("Room temp?: '{}'".format(isRoomTemp))
         print("WIB Slots Filled: ", wibslots_filled)
 
         inputOptions = {
@@ -136,7 +136,7 @@ class GUI_WINDOW(Frame):
             "box_id": boxid,
             "fm_id": fmid,
             "am_id": amid,
-            "isRoomTemp": temp,
+            "isRoomTemp": isRoomTemp,
             "wibslots": wibslots_filled
         }
         print(inputOptions)
