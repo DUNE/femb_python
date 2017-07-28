@@ -46,12 +46,23 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC1_4 = 4
         self.REG_LATCHLOC5_8 = 14
         self.REG_CLKPHASE = 6
+
         self.REG_LATCHLOC1_4_data = 0x6
         self.REG_LATCHLOC5_8_data = 0x0
         self.REG_CLKPHASE_data = 0xfffc0000
+
         self.REG_LATCHLOC1_4_data_1MHz = 0x5
         self.REG_LATCHLOC5_8_data_1MHz = 0x0
         self.REG_CLKPHASE_data_1MHz = 0xffff0000
+
+        self.REG_LATCHLOC1_4_data_cold = 0x6
+        self.REG_LATCHLOC5_8_data_cold = 0x0
+        self.REG_CLKPHASE_data_cold = 0xfffc0000
+
+        self.REG_LATCHLOC1_4_data_1MHz_cold = 0x4
+        self.REG_LATCHLOC5_8_data_1MHz_cold = 0x0
+        self.REG_CLKPHASE_data_1MHz_cold = 0xfffc0001
+
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
 
         ##################################
@@ -133,13 +144,23 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             #Set ADC latch_loc and clock phase
             if self.SAMPLERATE == 1e6:
-                self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data_1MHz)
-                self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data_1MHz)
-                self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data_1MHz)
+                if self.COLD:
+                    self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data_1MHz_cold)
+                    self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data_1MHz_cold)
+                    self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data_1MHz_cold)
+                else:
+                    self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data_1MHz)
+                    self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data_1MHz)
+                    self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data_1MHz)
             else: # use 2 MHz values
-                self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data)
-                self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data)
-                self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data)
+                if self.COLD:
+                    self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data_cold)
+                    self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data_cold)
+                    self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data_cold)
+                else:
+                    self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data)
+                    self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data)
+                    self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data)
 
             #internal test pulser control
             self.femb.write_reg( 5, 0x00000000)
@@ -358,13 +379,23 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         latchloc5_8 = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
         clkphase    = self.femb.read_reg ( self.REG_CLKPHASE )
         if self.SAMPLERATE == 1e6:
-            self.REG_LATCHLOC1_4_data_1MHz = latchloc1_4
-            self.REG_LATCHLOC5_8_data_1MHz = latchloc5_8
-            self.REG_CLKPHASE_data_1MHz    = clkphase
+            if self.COLD:
+                self.REG_LATCHLOC1_4_data_1MHz_cold = latchloc1_4
+                self.REG_LATCHLOC5_8_data_1MHz_cold = latchloc5_8
+                self.REG_CLKPHASE_data_1MHz_cold    = clkphase
+            else:
+                self.REG_LATCHLOC1_4_data_1MHz = latchloc1_4
+                self.REG_LATCHLOC5_8_data_1MHz = latchloc5_8
+                self.REG_CLKPHASE_data_1MHz    = clkphase
         else: # 2 MHz
-            self.REG_LATCHLOC1_4_data = latchloc1_4
-            self.REG_LATCHLOC5_8_data = latchloc5_8
-            self.REG_CLKPHASE_data    = clkphase
+            if self.COLD:
+                self.REG_LATCHLOC1_4_data_cold = latchloc1_4
+                self.REG_LATCHLOC5_8_data_cold = latchloc5_8
+                self.REG_CLKPHASE_data_cold    = clkphase
+            else:
+                self.REG_LATCHLOC1_4_data = latchloc1_4
+                self.REG_LATCHLOC5_8_data = latchloc5_8
+                self.REG_CLKPHASE_data    = clkphase
         print("FEMB_CONFIG--> Latch latency {:#010x} {:#010x} Phase: {:#010x}".format(latchloc1_4,
                         latchloc5_8, clkphase))
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
