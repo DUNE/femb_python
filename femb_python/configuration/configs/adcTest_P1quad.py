@@ -103,12 +103,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             #set up default registers
 
             #Reset ASICs
-            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 1 << 4) # reset FE
-            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 1 << 5) # reset ADC
-            time.sleep(0.5)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x30) # reset FE and ADC
+            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
+            time.sleep(0.1)
 
             # test readback
-            time.sleep(5.)
+            #time.sleep(5.)
             readback = self.femb.read_reg(1)
             if readback is None:
                 if self.exitOnError:
@@ -137,18 +137,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                     self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz)
                     self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF + (1 << 8)))
 
-#            #internal test pulser control
-#            self.femb.write_reg( 5, 0x00000000)
-#            self.femb.write_reg( 13, 0x0) #enable
-
             #Set test and readout mode register
             self.femb.write_reg( self.REG_SEL_CH, 1 << 31) # WIB readout mode
-
-#            #Set number events per header
-#            self.femb.write_reg( 8, 0x0)
-
-            print("SPI Status:          {:#010x}".format(self.femb.read_reg(2)))
-            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(9)))
 
             #Configure ADC (and external clock inside)
             try:
@@ -157,15 +147,17 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             except ReadRegError:
                 continue
 
-            #self.femb.write_reg(self.REG_STOP_ADC,1)
-            print("SPI Status:          {:#010x}".format(self.femb.read_reg(2)))
             print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(9)))
 
-#            # Check that board streams data
-#            data = self.femb.get_data(1)
-#            if data == None:
-#                print("Board not streaming data, retrying initialization...")
-#                continue # try initializing again
+            self.selectChannel(0,0,hsmode=0)
+
+            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(9)))
+
+            # Check that board streams data
+            data = self.femb.get_data(1)
+            if data == None:
+                print("Board not streaming data, retrying initialization...")
+                continue # try initializing again
             print("FEMB_CONFIG--> Reset FEMB is DONE")
             return
         print("Error: Board not streaming data after trying to initialize {} times.".format(nRetries))
@@ -190,7 +182,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                     self.femb.write_reg(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg])
                     time.sleep(0.05)
 
-            self.writeSPItoASICS()
+            
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,3)
+            time.sleep(0.1)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,2)
+            time.sleep(0.1)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+
+            self.printSyncRegister()
 
             ##enable streaming
             ##self.femb.write_reg( 9, 0x1)
@@ -331,8 +331,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #print( "Selecting ASIC " + str(asicVal) + ", channel " + str(chVal))
 
+        self.femb.write_reg( self.REG_STOP_ADC, 1)
+        time.sleep(0.05)
+
         regVal = asicVal + (chVal << 8 ) + (hsmodeVal << 31)
         self.femb.write_reg( self.REG_SEL_CH, regVal)
+        time.sleep(0.05)
+
+        self.femb.write_reg( self.REG_STOP_ADC, 0)
 
     def syncADC(self):
         #turn on ADC test mode
@@ -556,21 +562,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 val = tup[1]
                 writeRegAndPrint(name,regBase+iReg,val)
 
-    def writeSPItoASICS(self):
-        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
-        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,3)
-        time.sleep(0.1)
-        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,2)
-        time.sleep(0.1)
-        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
-
-        #time.sleep(0.5)
-        #syncVar = self.femb.read_reg(self.REG_ASIC_SPIPROG_RESET)
-        #if syncVar is None:
-        #    print("FEMB_CONFIG--> Result of writing SPI: {:#010x}".format(syncVar))
-        #else:
-        #    print("FEMB_CONFIG--> Result of writing SPI: None")
-
     def turnOffAsics(self):
         oldReg = self.femb.read_reg(self.REG_PWR_CTRL)
         newReg = oldReg & 0xFFFFFFF0
@@ -602,3 +593,28 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #pause after turning on ASICs
         time.sleep(5)
         #self.femb.write_reg(self.REG_RESET, 4) # bit 2 is ASIC reset as far as I can see
+
+    def printSyncRegister(self):
+        reg = self.femb.read_reg(self.REG_ASIC_SPIPROG_RESET)
+        if reg is None:
+            print("Error: can't read back sync register")
+            if self.exitOnError:
+                return
+            else:
+                raise ReadRegError
+        print("Sync Status:")
+        print("  Register 2: {:#010x}".format(reg))
+        reg = reg >> 16
+        adc0 = ((reg >> 0) & 1)== 1
+        fe0 = ((reg >> 1) & 1)== 1
+        adc1 = ((reg >> 2) & 1)== 1
+        fe1 = ((reg >> 3) & 1)== 1
+        adc2 = ((reg >> 4) & 1)== 1
+        fe2 = ((reg >> 5) & 1)== 1
+        adc3 = ((reg >> 6) & 1)== 1
+        fe3 = ((reg >> 7) & 1)== 1
+
+        print("  ADC 0:",adc0,"FE 0:",fe0)
+        print("  ADC 1:",adc1,"FE 1:",fe1)
+        print("  ADC 2:",adc2,"FE 2:",fe2)
+        print("  ADC 3:",adc3,"FE 3:",fe3)
