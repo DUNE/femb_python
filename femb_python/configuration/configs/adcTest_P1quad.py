@@ -66,28 +66,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_FESPI_RDBACK_BASE = 0x278 # 632 in decimal
         self.REG_ADCSPI_RDBACK_BASE = 0x228 # 552 in decimal
 
-        ##################################
-        # external clock control registers
-        ##################################
+        self.REG_EXTCLK_START = 10
         self.FPGA_FREQ_MHZ = 200 # frequency of FPGA clock in MHz
-        self.REG_EXTCLK_RD_EN_OFF = 23
-        self.REG_EXTCLK_ADC_OFF = 21
-        self.REG_EXTCLK_ADC_WID = 22
-        self.REG_EXTCLK_MSB_OFF = 25
-        self.REG_EXTCLK_MSB_WID = 26
-        self.REG_EXTCLK_PERIOD = 20
-        self.REG_EXTCLK_LSB_FC_WID2 = 32
-        self.REG_EXTCLK_LSB_FC_OFF1 = 29
-        self.REG_EXTCLK_RD_EN_WID = 24
-        self.REG_EXTCLK_LSB_FC_WID1 = 30
-        self.REG_EXTCLK_LSB_FC_OFF2 = 31
-        self.REG_EXTCLK_LSB_S_WID = 28
-        self.REG_EXTCLK_LSB_S_OFF = 27
-        self.REG_EXTCLK_INV = 33
-        ##################################
-        ##################################
 
-        self.NASICS = 4
+        self.NASICS = 3
         self.FUNCGENINTER = Keysight_33600A("/dev/usbtmc1",1)
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
@@ -167,8 +149,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             #Configure ADC (and external clock inside)
             try:
-                #self.configAdcAsic()
-                self.configAdcAsic(clockMonostable=True)
+                self.configAdcAsic()
+                #self.configAdcAsic(clockMonostable=True)
             except ReadRegError:
                 continue
 
@@ -479,9 +461,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 inv_rst=True, inv_read=True, inv_msb=False, inv_lsb=False, inv_lsb_1st=False):
         """
         Programs external clock. All non-boolean arguments except mult are in nanoseconds
+        IDXM = msb
+        IDXL = lsb
+        IDL = lsb_1st
         """
 
-        return
         rd_en_off = 0
         adc_off = 0
         adc_wid = 0
@@ -499,41 +483,44 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         if enable:
             clock = 1./self.FPGA_FREQ_MHZ * 1000. # clock now in ns
-            #print("FPGA Clock freq: {} MHz period: {} ns".format(self.FPGA_FREQ_MHZ,clock))
-            #print("ExtClock option mult: {}".format(mult))
-            #print("ExtClock option period: {} ns".format(period))
-            #print("ExtClock option offset_read: {} ns".format(offset_read))
-            #print("ExtClock option offset_rst: {} ns".format(offset_rst))
-            #print("ExtClock option offset_msb: {} ns".format(offset_msb))
-            #print("ExtClock option offset_lsb: {} ns".format(offset_lsb))
-            #print("ExtClock option offset_lsb_1st_1: {} ns".format(offset_lsb_1st_1))
-            #print("ExtClock option offset_lsb_1st_2: {} ns".format(offset_lsb_1st_2))
-            #print("ExtClock option width_read: {} ns".format(width_read))
-            #print("ExtClock option width_rst: {} ns".format(width_rst))
-            #print("ExtClock option width_msb: {} ns".format(width_msb))
-            #print("ExtClock option width_lsb: {} ns".format(width_lsb))
-            #print("ExtClock option width_lsb_1st_1: {} ns".format(width_lsb_1st_1))
-            #print("ExtClock option width_lsb_1st_2: {} ns".format(width_lsb_1st_2))
-            #print("ExtClock option inv_rst: {}".format(inv_rst))
-            #print("ExtClock option inv_read: {}".format(inv_read))
-            #print("ExtClock option inv_msb: {}".format(inv_msb))
-            #print("ExtClock option inv_lsb: {}".format(inv_lsb))
-            #print("ExtClock option inv_lsb_1st: {}".format(inv_lsb_1st))
+            print("FPGA Clock freq: {} MHz period: {} ns".format(self.FPGA_FREQ_MHZ,clock))
+            print("ExtClock option mult: {}".format(mult))
+            print("ExtClock option period: {} ns".format(period))
+            print("ExtClock option offset_read: {} ns".format(offset_read))
+            print("ExtClock option offset_rst: {} ns".format(offset_rst))
+            print("ExtClock option offset_msb: {} ns".format(offset_msb))
+            print("ExtClock option offset_lsb: {} ns".format(offset_lsb))
+            print("ExtClock option offset_lsb_1st_1: {} ns".format(offset_lsb_1st_1))
+            print("ExtClock option offset_lsb_1st_2: {} ns".format(offset_lsb_1st_2))
+            print("ExtClock option width_read: {} ns".format(width_read))
+            print("ExtClock option width_rst: {} ns".format(width_rst))
+            print("ExtClock option width_msb: {} ns".format(width_msb))
+            print("ExtClock option width_lsb: {} ns".format(width_lsb))
+            print("ExtClock option width_lsb_1st_1: {} ns".format(width_lsb_1st_1))
+            print("ExtClock option width_lsb_1st_2: {} ns".format(width_lsb_1st_2))
+            print("ExtClock option inv_rst: {}".format(inv_rst))
+            print("ExtClock option inv_read: {}".format(inv_read))
+            print("ExtClock option inv_msb: {}".format(inv_msb))
+            print("ExtClock option inv_lsb: {}".format(inv_lsb))
+            print("ExtClock option inv_lsb_1st: {}".format(inv_lsb_1st))
             denominator = clock/mult
-            #print("ExtClock denominator: {} ns".format(denominator))
+            print("ExtClock denominator: {} ns".format(denominator))
             period_val = period // denominator
-            rd_en_off =  offset_read // denominator
-            adc_off =  offset_rst // denominator
-            adc_wid =  width_rst // denominator
-            msb_off = offset_msb  // denominator
-            msb_wid = width_msb  // denominator
-            lsb_fc_wid2 = width_lsb_1st_2 // denominator
-            lsb_fc_off1 = offset_lsb_1st_1 // denominator
-            rd_en_wid = width_read // denominator
-            lsb_fc_wid1 = width_lsb_1st_1 // denominator
-            lsb_fc_off2 = offset_lsb_1st_2 // denominator
-            lsb_s_wid = width_lsb // denominator
-            lsb_s_off = offset_lsb // denominator
+            print("ExtClock period: {} ns".format(period_val))
+
+            rd_off      = int(offset_read // denominator) & 0xFFFF
+            rst_off     = int(offset_rst // denominator) & 0xFFFF
+            rst_wid     = int(width_rst // denominator) & 0xFFFF
+            msb_off     = int(offset_msb // denominator) & 0xFFFF
+            msb_wid     = int(width_msb // denominator) & 0xFFFF
+            lsb_fc_wid2 = int(width_lsb_1st_2 // denominator) & 0xFFFF
+            lsb_fc_off1 = int(offset_lsb_1st_1 // denominator) & 0xFFFF
+            rd_wid      = int(width_read // denominator) & 0xFFFF
+            lsb_fc_wid1 = int(width_lsb_1st_1 // denominator) & 0xFFFF
+            lsb_fc_off2 = int(offset_lsb_1st_2 // denominator) & 0xFFFF
+            lsb_wid     = int(width_lsb // denominator) & 0xFFFF
+            lsb_off     = int(offset_lsb // denominator) & 0xFFFF
+
             if inv_rst:
               inv += 1 << 0
             if inv_read:
@@ -545,27 +532,31 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             if inv_lsb_1st:
               inv += 1 << 4
 
-
         regsValsToWrite = [
-            ("rd_en_off",self.REG_EXTCLK_RD_EN_OFF, rd_en_off),
-            ("adc_off",self.REG_EXTCLK_ADC_OFF, adc_off),
-            ("adc_wid",self.REG_EXTCLK_ADC_WID, adc_wid),
-            ("msb_off",self.REG_EXTCLK_MSB_OFF, msb_off),
-            ("msb_wid",self.REG_EXTCLK_MSB_WID, msb_wid),
-            ("period",self.REG_EXTCLK_PERIOD, period_val),
-            ("lsb_fc_wid2",self.REG_EXTCLK_LSB_FC_WID2, lsb_fc_wid2),
-            ("lsb_fc_off1",self.REG_EXTCLK_LSB_FC_OFF1, lsb_fc_off1),
-            ("rd_en_wid",self.REG_EXTCLK_RD_EN_WID, rd_en_wid),
-            ("lsb_fc_wid1",self.REG_EXTCLK_LSB_FC_WID1, lsb_fc_wid1),
-            ("lsb_fc_off2",self.REG_EXTCLK_LSB_FC_OFF2, lsb_fc_off2),
-            ("lsb_s_wid",self.REG_EXTCLK_LSB_S_WID, lsb_s_wid),
-            ("lsb_s_off",self.REG_EXTCLK_LSB_S_OFF, lsb_s_off),
-            ("inv",self.REG_EXTCLK_INV, inv),
+            ("inv", inv),
         ]
-        for name,reg,val in regsValsToWrite:
-            val = int(val) & 0xFFFF # only 16 bits for some reason
-            #print("ExtClock Register {0:12} number {1:3} set to {2:5} = {2:#06x}".format(name,reg,val))
-            self.femb.write_reg(reg,val)
+        for i in range(3): # NASICs with ext clock
+            iStr = str(i)
+            asicRegs = [
+                ("RST_ADC"+iStr,(rst_wid << 16) | rst_off),
+                ("READ_ADC"+iStr,(rd_wid << 16) | rd_off),
+                ("IDXM_ADC"+iStr,(msb_wid << 16) | msb_off), # msb
+                ("IDXL_ADC"+iStr,(lsb_wid << 16) | lsb_off), # lsb
+                ("IDL1_ADC"+iStr,(lsb_fc_wid1 << 16) | lsb_fc_off1), # lsb_fc_1
+                ("IDL2_ADC"+iStr,(lsb_fc_wid2 << 16) | lsb_fc_off2), # lsb_fc_1
+                ("pll_STEP0_ADC"+iStr,0),
+                ("pll_STEP1_ADC"+iStr,0),
+                ("pll_STEP2_ADC"+iStr,0),
+            ]
+            regsValsToWrite += asicRegs
+
+        for iReg, tup in enumerate(regsValsToWrite):
+            name = tup[0]
+            val = tup[1]
+            reg = iReg + self.REG_EXTCLK_START
+            print("ExtClock Register {0:15} number {1:3} set to {2:10} = {2:#010x}".format(name,reg,val))
+            #print("ExtClock Register {0:15} number {1:3} set to {2:#034b}".format(name,reg,val))
+            self.femb.write_reg(iReg,val)
 
     def writeSPItoASICS(self):
         self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
