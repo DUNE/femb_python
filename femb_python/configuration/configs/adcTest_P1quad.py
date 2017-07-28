@@ -117,7 +117,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         print("Firmware Version: ",self.femb.read_reg(self.REG_FIRMWARE_VERSION) & 0xFFFF)
 
-        #self.turnOnAsics()
+        self.turnOnAsics()
 
         nRetries = 2
         for iRetry in range(nRetries):
@@ -156,7 +156,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             except ReadRegError:
                 continue
 
-            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(self.REG_STOP_ADC)))
+            print("Header & Busy Check: {0:#010x} = {0:#034b}".format(self.femb.read_reg(self.REG_STOP_ADC)))
             print("ADC Soft Reset...")
 
             self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 1 << 6) # ADC soft reset
@@ -165,7 +165,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             time.sleep(0.1)
 
             self.printSyncRegister()
-            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(self.REG_STOP_ADC)))
+            print("Header & Busy Check: {0:#010x} = {0:#034b}".format(self.femb.read_reg(self.REG_STOP_ADC)))
 
             print("Set packed readout mode...")
             self.selectChannel(0,0,hsmode=0) # packed many channels
@@ -174,17 +174,17 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             time.sleep(0.1)
             self.printSyncRegister()
-            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(self.REG_STOP_ADC)))
+            print("Header & Busy Check: {0:#010x} = {0:#034b}".format(self.femb.read_reg(self.REG_STOP_ADC)))
             time.sleep(0.1)
             print("Stop ADC...")
             self.femb.write_reg(self.REG_STOP_ADC,1)
             time.sleep(0.1)
-            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(self.REG_STOP_ADC)))
+            print("Header & Busy Check: {0:#010x} = {0:#034b}".format(self.femb.read_reg(self.REG_STOP_ADC)))
             time.sleep(0.1)
             print("Start ADC...")
             self.femb.write_reg(self.REG_STOP_ADC,0)
             time.sleep(0.1)
-            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(self.REG_STOP_ADC)))
+            print("Header & Busy Check: {0:#010x} = {0:#034b}".format(self.femb.read_reg(self.REG_STOP_ADC)))
             time.sleep(0.1)
 
             # Check that board streams data
@@ -590,8 +590,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 return
             else:
                 raise ReadRegError
-        print("Sync Status:")
-        print("  Register 2: {:#010x}".format(reg))
+        print("Register 2: {:#010x}".format(reg))
+        print("ADC Sync Bits: {:#010b} (0 is good)".format(reg >> 24))
+        print("ASIC Readback Status:")
         reg = reg >> 16
         adc0 = ((reg >> 0) & 1)== 1
         fe0 = ((reg >> 1) & 1)== 1
