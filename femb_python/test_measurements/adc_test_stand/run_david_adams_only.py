@@ -24,7 +24,7 @@ import ROOT
 from .collect_data import COLLECT_DATA 
 from ...configuration.config_base import FEMBConfigError
 
-def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,quick=False,timestamp=None,sumatradict=None,iTry=1):
+def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,timestamp=None,sumatradict=None,iTry=1):
     """
     Runs the ADC tests for all chips on the ADC test board.
 
@@ -35,7 +35,6 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     operator is the operator user name string
     board_id is the ID number of the test board
     hostname is the current computer name
-    quick is a boolean. If True only test the ASICS with no offset current. If False test 
         all offset current settings settings.
     sumatradict is a dictionary of options that will be written to the summary json
 
@@ -58,7 +57,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
         fileprefix = os.path.join(dataDir,fileprefix)
         filesuffix = "_try{}".format(iTry)
         try:
-            collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate,longRampOnly=True,filesuffix=filesuffix)
+            collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate,longRampOnly=True,outSuffix=filesuffix)
         except Exception as e:
             print("Error while collecting David Adams data, traceback in stderr.")
             sys.stderr.write("Error collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} iTry: {} Error: {} {}\n".format(sampleRate, clock, offset, iChip, iTry, type(e),e))
@@ -127,9 +126,9 @@ def main():
     try:
         if args.profiler:
             import cProfile
-            cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,quick=quick,sumatradict=options,iTry=iTry)',globals(),locals(),args.profiler)
+            cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,sumatradict=options,iTry=iTry)',globals(),locals(),args.profiler)
         else:
-            chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,quick=quick,sumatradict=options,iTry=iTry)
+            chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,sumatradict=options,iTry=iTry)
     except Exception as e:
         print("Uncaught exception in runTests. Traceback in stderr.")
         sys.stderr.write("Uncaught exception in runTests: Error: {} {}\n".format(type(e),e))

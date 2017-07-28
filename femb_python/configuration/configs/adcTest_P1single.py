@@ -143,24 +143,43 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             #self.femb.write_reg( 3, 0x81170000) # test pattern on
 
             #Set ADC latch_loc and clock phase
+            latchloc1 = None
+            latchloc5 = None
+            clockphase = None
             if self.SAMPLERATE == 1e6:
                 if self.COLD:
-                    self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data_1MHz_cold)
-                    self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data_1MHz_cold)
-                    self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data_1MHz_cold)
+                    print("Using 1 MHz cold latchloc/clockphase")
                 else:
-                    self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data_1MHz)
-                    self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data_1MHz)
-                    self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data_1MHz)
+                    print("Using 1 MHz warm latchloc/clockphase")
+                    latchloc1 = self.REG_LATCHLOC1_4_data_1MHz
+                    latchloc5 = self.REG_LATCHLOC5_8_data_1MHz
+                    clockphase = self.REG_CLKPHASE_data_1MHz
             else: # use 2 MHz values
                 if self.COLD:
-                    self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data_cold)
-                    self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data_cold)
-                    self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data_cold)
+                    print("Using 2 MHz cold latchloc/clockphase")
+                    latchloc1 =  self.REG_LATCHLOC1_4_data_cold
+                    latchloc5 =  self.REG_LATCHLOC5_8_data_cold
+                    clockphase =  self.REG_CLKPHASE_data_cold
                 else:
-                    self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data)
-                    self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data)
-                    self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data)
+                    print("Using 2 MHz warm latchloc/clockphase")
+                    latchloc1 = self.REG_LATCHLOC1_4_data
+                    latchloc5 = self.REG_LATCHLOC5_8_data
+                    clockphase = self.REG_CLKPHASE_data
+
+            print("Initializing with Latch Loc: {:#010x} {:#010x} Clock Phase: {:#010x}".format(latchloc1,latchloc5,clockphase))
+            self.femb.write_reg( self.REG_LATCHLOC1_4, latchloc1)
+            self.femb.write_reg( self.REG_LATCHLOC5_8, latchloc5)
+            for iTry in range(5):
+                self.femb.write_reg( self.REG_CLKPHASE, ~clockphase)
+                time.sleep(0.05)
+                self.femb.write_reg( self.REG_CLKPHASE, ~clockphase)
+                time.sleep(0.05)
+                self.femb.write_reg( self.REG_CLKPHASE, clockphase)
+                time.sleep(0.05)
+                self.femb.write_reg( self.REG_CLKPHASE, clockphase)
+                time.sleep(0.05)
+                
+            print("Readback: ",self.getClockStr())
 
             #internal test pulser control
             self.femb.write_reg( 5, 0x00000000)
@@ -467,6 +486,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.femb.write_reg ( self.REG_CLKPHASE, testPhase )
                 time.sleep(0.01)
                 print("try shift: {} phase: {} testingUnsync...".format(shift,phase))
+                print("     initPHASE: {:#010x}, phase: {:#010x}, testPhase: {:#010x}".format(initPHASE,phase,testPhase))
                 #reset ADC ASIC
                 self.femb.write_reg ( self.REG_ASIC_RESET, 1)
                 time.sleep(0.01)
@@ -625,3 +645,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def programFirmware2Mhz(self):
         self.programFirmware(self.FIRMWAREPATH2MHZ)
         self.SAMPLERATE = 2e6
+
+    def getClockStr(self):
+        latchloc1 = self.femb.read_reg(self.REG_LATCHLOC1_4)
+        latchloc5 = self.femb.read_reg(self.REG_LATCHLOC5_8)
+        clkphase = self.femb.read_reg(self.REG_CLKPHASE)
+        if latchloc1 is None:
+            return "Register Read Error"
+        if latchloc5 is None:
+            return "Register Read Error"
+        if clkphase is None:
+            return "Register Read Error"
+        return "Latch Loc: {:#010x} {:#010x} Clock Phase: {:#010x}".format(latchloc1,latchloc5,clkphase)

@@ -29,7 +29,7 @@ from ...runpolicy import DirectRunner, SumatraRunner
 from ...trace_fft_window import TRACE_FFT_WINDOW
 from ...helper_scripts.show_trace_root import TRACE_ROOT_WINDOW, FFT_ROOT_WINDOW
 
-GUITESTMODE=True
+GUITESTMODE=False
 
 class GUI_WINDOW(Frame):
 
@@ -329,6 +329,7 @@ class GUI_WINDOW(Frame):
             self.status_label["text"] = "ENTER REQUIRED INFO"
             self.status_label["fg"] = "#FF0000"
             return
+        inputOptions["cold"] = False
         print("BEGIN PREPARE")
         self.resetwaveform_button["state"] = "disabled"
         self.selectSocket_label["state"] = "disabled"

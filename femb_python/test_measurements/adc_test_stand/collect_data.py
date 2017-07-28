@@ -79,6 +79,7 @@ class COLLECT_DATA(object):
           self.dumpWaveformRootFile(iChip,outPrefix,2,freq,offsetV,amplitudeV,100,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate)
 
     def dumpWaveformRootFile(self,iChip,fileprefix,functype,freq,offsetV,amplitudeV,nPackets=None,adcSerial=-1,adcOffset=-2,adcClock=-1,sampleRate=-1,outSuffix=""):
+        print("outSuffix:",outSuffix)
         filename = "{}_functype{}_freq{:.3f}_offset{:.3f}_amplitude{:.3f}{}.root".format(fileprefix,functype,freq,offsetV,amplitudeV,outSuffix)
         if not nPackets:
           nPackets = 100

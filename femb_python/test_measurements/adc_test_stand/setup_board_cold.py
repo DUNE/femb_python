@@ -37,7 +37,7 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
         corresponds to the input serial number list.  
     """
 
-    nSyncConfigTries = 5
+    nSyncConfigTries = 3
     outfilename = "adcSetup_{}.json".format(startDateTime)
     outfilename = os.path.join(dataDir,outfilename)
     result = {
@@ -97,7 +97,10 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                 for iASIC in range(config.NASICS):
                     badSync = config.testUnsync(iASIC)
                     if badSync:
-                        print("Failed to sync ADC ASIC {}".format(iASIC))
+                        print("Failed to sync ADC ASIC {} with {}".format(iASIC,config.getClockStr()))
+                        print("Trying to sync...")
+                        config.syncADC()
+                        print("after sync readback: ",config.getClockStr())
                         result["sync"] = False;
                         json.dump(result,outfile)
                         config.POWERSUPPLYINTER.off()
@@ -160,6 +163,7 @@ def main():
     boardid = args.board
     serialNumbers = args.serial
     dataDir = args.datadir
+    cold = config.COLD
 
     options = None
 
@@ -173,9 +177,12 @@ def main():
                 boardid = options["board_id"]
                 serialNumbers = options["serials"]
                 dataDir = options["datadir"]
+                cold = options["cold"]
             except KeyError as e:
                 print("Error while parsing json input options: ",e)
                 sys.exit(1)
+
+    config.COLD = cold
 
     if len(serialNumbers) == 0:
         serialNumbers = list(range(-1,-(config.NASICS+1),-1))
