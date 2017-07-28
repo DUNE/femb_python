@@ -51,13 +51,13 @@ def main(**params):
     if (not params['operator']):
         print ("Operator data not entered")
         return -99
-    if (not params['box_id']):
+    if (not params['box_ids']):
         print ("Box ID data not entered")        
         return -99
-    if (not params['am_id']):
+    if (not params['am_ids']):
         print ("Analog MB ID data not entered")                
         return -99
-    if (not params['fm_id']):
+    if (not params['fm_ids']):
         print ("FPGA Mezz data not entered")                
         return -99
    
@@ -76,8 +76,8 @@ def main(**params):
     pulser_text = ["intpulse","extpulse"]
     i = 0
     for pulser in pulser_setting:
-        #for s in range(0,4):
-        for s in range(2,3):
+        for s in range(0,4):
+        #for s in range(2,3):
             for g in range(2,4):
             #for g in range(2,3):
                 params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
