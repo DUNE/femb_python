@@ -37,7 +37,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.REG_RESET = 0 # bit 0 system, 1 reg, 2 alg, 3 udp
         self.REG_PWR_CTRL = 1  # bit 0-3 pwr, 8-15 blue LEDs near buttons
-        self.REG_ASIC_SPIPROG_RESET = 2 # bit 0 FE SPI, 1 ADC SPI, 4 FE ASIC RESET, 5 ADC ASIC RESET, 6 SOFT ADC RESET & SPI status of some kind
+        self.REG_ASIC_SPIPROG_RESET = 2 # bit 0 FE SPI, 1 ADC SPI, 4 FE ASIC RESET, 5 ADC ASIC RESET, 6 SOFT ADC RESET & SPI readback check
         self.REG_SEL_CH = 3 # bit 0-7 chip, 8-15 channel, 31 WIB mode
 
         self.REG_DAC1 = 4 # bit 0-15 DAC val, 16-19 tp mode select, 31 set dac
@@ -48,6 +48,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC = 8 # bit 0-7 ADC1, 8-15 ADC2, 16-23 ADC3, 24-31 ADC4
 
         self.REG_STOP_ADC = 9 # header check + busy check
+
+        self.REG_UDP_FRAME_SIZE = 63 # bits 0-11
+        self.REG_FIRMWARE_VERSION = 0xFF # 255 in decimal
         
         self.REG_LATCHLOC_data_2MHz = 0x0
         self.REG_LATCHLOC_data_1MHz = 0x0
@@ -61,7 +64,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
 
-        self.REG_FESPI_BASE = 84
+        # registers 64-88 are SPI to ASICs
+        # 88 is last register besides 255 which is firmware version
+        self.REG_FESPI_BASE = 84 # this configures all FE ASICs
         self.REG_ADCSPI_BASES = [64,69,74,79] # for each chip
         self.REG_FESPI_RDBACK_BASE = 0x278 # 632 in decimal
         self.REG_ADCSPI_RDBACK_BASE = 0x228 # 552 in decimal
@@ -72,7 +77,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.REG_PLL_BASES = [17,26,35,44] # for each chip
 
-        self.NASICS = 3
+        self.NASICS = 4
         self.FUNCGENINTER = Keysight_33600A("/dev/usbtmc1",1)
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
@@ -95,27 +100,34 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_RESET, 2)
         time.sleep(1.)
 
-    def initBoard(self):
-        self.turnOnAsics()
+        self.femb.write_reg( self.REG_RESET, 4)
+        time.sleep(1.)
 
-        nRetries = 5
+    def initBoard(self):
+        #set up default registers
+
+        # test readback
+        readback = self.femb.read_reg(1)
+        if readback is None:
+            if self.exitOnError:
+                print("FEMB_CONFIG: Error reading register 0, Exiting.")
+                sys.exit(1)
+            else:
+                raise ReadRegError("Couldn't read register 0")
+
+        print("Firmware Version: ",self.femb.read_reg(self.REG_FIRMWARE_VERSION) & 0xFFFF)
+
+        #self.turnOnAsics()
+
+        nRetries = 2
         for iRetry in range(nRetries):
-            #set up default registers
+
+            self.femb.write_reg(self.REG_UDP_FRAME_SIZE,0x1FB)
 
             #Reset ASICs
             self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x30) # reset FE and ADC
             self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
             time.sleep(0.1)
-
-            # test readback
-            #time.sleep(5.)
-            readback = self.femb.read_reg(1)
-            if readback is None:
-                if self.exitOnError:
-                    print("FEMB_CONFIG: Error reading register 0, Exiting.")
-                    sys.exit(1)
-                else:
-                    raise ReadRegError("Couldn't read register 0")
 
             #Set ADC test pattern register
             self.femb.write_reg( 3, 12) # test pattern off
@@ -137,9 +149,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                     self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz)
                     self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF + (1 << 8)))
 
-            #Set test and readout mode register
-            self.femb.write_reg( self.REG_SEL_CH, 1 << 31) # WIB readout mode
-
             #Configure ADC (and external clock inside)
             try:
                 self.configAdcAsic()
@@ -147,11 +156,36 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             except ReadRegError:
                 continue
 
-            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(9)))
+            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(self.REG_STOP_ADC)))
+            print("ADC Soft Reset...")
 
-            self.selectChannel(0,0,hsmode=0)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 1 << 6) # ADC soft reset
+            time.sleep(0.1)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
+            time.sleep(0.1)
 
-            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(9)))
+            self.printSyncRegister()
+            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(self.REG_STOP_ADC)))
+
+            print("Set packed readout mode...")
+            self.selectChannel(0,0,hsmode=0) # packed many channels
+            #print("Set readout channel 0 0")
+            #self.selectChannel(0,0) # single channel
+
+            time.sleep(0.1)
+            self.printSyncRegister()
+            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(self.REG_STOP_ADC)))
+            time.sleep(0.1)
+            print("Stop ADC...")
+            self.femb.write_reg(self.REG_STOP_ADC,1)
+            time.sleep(0.1)
+            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(self.REG_STOP_ADC)))
+            time.sleep(0.1)
+            print("Start ADC...")
+            self.femb.write_reg(self.REG_STOP_ADC,0)
+            time.sleep(0.1)
+            print("Header & Busy Check: {:#010x}".format(self.femb.read_reg(self.REG_STOP_ADC)))
+            time.sleep(0.1)
 
             # Check that board streams data
             data = self.femb.get_data(1)
@@ -174,67 +208,21 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #ADC ASIC SPI registers
         assert(type(Adcasic_regs)==list)
         assert(len(Adcasic_regs)==self.NASICS)
-        for k in range(10):
-            print("FEMB_CONFIG--> Config ADC ASIC SPI")
-            for iChip, chipRegs in enumerate(Adcasic_regs):
-                assert(len(chipRegs)==5)
-                for iReg in range(5):
-                    self.femb.write_reg(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg])
-                    time.sleep(0.05)
+        print("FEMB_CONFIG--> Config ADC ASIC SPI")
+        for iChip, chipRegs in enumerate(Adcasic_regs):
+            assert(len(chipRegs)==5)
+            for iReg in range(5):
+                self.femb.write_reg(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg])
+                time.sleep(0.05)
+        
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,3)
+        time.sleep(0.1)
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,2)
+        time.sleep(0.1)
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
 
-            
-            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
-            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,3)
-            time.sleep(0.1)
-            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,2)
-            time.sleep(0.1)
-            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
-
-            self.printSyncRegister()
-
-            ##enable streaming
-            ##self.femb.write_reg( 9, 0x1)
-
-            ##LBNE_ADC_MODE
-            ##self.femb.write_reg( 18, 0x1)
-
-            print("FEMB_CONFIG--> Check ADC ASIC SPI")
-            adcasic_rb_regs = []
-            adcasic_wr_regs = []
-            for iChip, chipRegs in enumerate(Adcasic_regs):
-                for iReg in range(5):
-                    val = self.femb.read_reg(self.REG_ADCSPI_BASES[iChip]+iReg) 
-                    if val is None:
-                        message = "Error in FEMB_CONFIG.configAdcAsic_regs: read from board failed"
-                        print(message)
-                        if self.exitOnError:
-                            return
-                        else:
-                            raise ReadRegError
-                    adcasic_rb_regs.append(val)
-                    adcasic_wr_regs.append(chipRegs[iReg])
-
-            readbackMatch = True
-            print("{:32}  {:32}".format("Write","Readback"))
-            #print("{:8}  {:8}".format("Write","Readback"))
-            for rb, wr in zip(adcasic_rb_regs,adcasic_wr_regs):
-                if rb != wr:
-                    readbackMatch = False
-                print("{:032b}  {:032b}".format(wr,rb))
-                #print("{:08X}  {:08X}".format(wr,rb))
-
-            if readbackMatch:
-                print("FEMB_CONFIG--> ADC ASIC SPI is OK")
-                return
-            else: 
-                print("FEMB_CONFIG--> ADC ASIC Readback didn't match, retrying...")
-
-        print("Error: Wrong ADC SPI readback.")
-        if self.exitOnError:
-            print("Exiting.")
-            sys.exit(1)
-        else:
-            raise ConfigADCError
+        self.printSyncRegister()
 
     def configAdcAsic(self,enableOffsetCurrent=None,offsetCurrent=None,testInput=None,
                             freqInternal=None,sleep=None,pdsr=None,pcsr=None,
@@ -618,3 +606,17 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("  ADC 1:",adc1,"FE 1:",fe1)
         print("  ADC 2:",adc2,"FE 2:",fe2)
         print("  ADC 3:",adc3,"FE 3:",fe3)
+
+    def setFPGADac(self,amp,mode,freq,delay):
+        ampRegVal = ((mode & 0xFFFF) << 16) | (amp & 0xFFFF)
+        freqRegVal = ((delay & 0xFFFF) << 16) | (freq & 0xFFFF)
+
+        self.femb.write_reg(self.REG_DAC2,freqRegVal)
+        time.sleep(0.05)
+
+        self.femb.write_reg(self.REG_DAC1,ampRegVal)
+        time.sleep(0.05)
+        self.femb.write_reg(self.REG_DAC1,ampRegVal & 0x80000000)
+        time.sleep(0.05)
+        self.femb.write_reg(self.REG_DAC1,ampRegVal)
+        
