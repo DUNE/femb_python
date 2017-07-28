@@ -62,12 +62,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
 
         self.REG_FESPI_BASE = 84
-        self.REG_ADCSPI_BASES = [64,69,74,79]
+        self.REG_ADCSPI_BASES = [64,69,74,79] # for each chip
         self.REG_FESPI_RDBACK_BASE = 0x278 # 632 in decimal
         self.REG_ADCSPI_RDBACK_BASE = 0x228 # 552 in decimal
 
-        self.REG_EXTCLK_START = 10
+        self.REG_EXTCLK_INV = 10
+        self.REG_EXTCLK_BASES = [11,20,29,38] # for each chip
         self.FPGA_FREQ_MHZ = 200 # frequency of FPGA clock in MHz
+
+        self.REG_PLL_BASES = [17,26,35,44] # for each chip
 
         self.NASICS = 3
         self.FUNCGENINTER = Keysight_33600A("/dev/usbtmc1",1)
@@ -532,11 +535,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             if inv_lsb_1st:
               inv += 1 << 4
 
-        regsValsToWrite = [
-            ("inv", inv),
-        ]
-        for i in range(3): # NASICs with ext clock
-            iStr = str(i)
+
+        def writeRegAndPrint(name,reg,val):
+            print("ExtClock Register {0:15} number {1:3} set to {2:10} = {2:#010x}".format(name,reg,val))
+            #print("ExtClock Register {0:15} number {1:3} set to {2:#034b}".format(name,reg,val))
+            self.femb.write_reg(reg,val)
+        writeRegAndPrint("inv", self.REG_EXTCLK_INV,inv),
+        for iChip, regBase in enumerate(self.REG_EXTCLK_BASES):
+            iStr = str(iChip)
             asicRegs = [
                 ("RST_ADC"+iStr,(rst_wid << 16) | rst_off),
                 ("READ_ADC"+iStr,(rd_wid << 16) | rd_off),
@@ -544,19 +550,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 ("IDXL_ADC"+iStr,(lsb_wid << 16) | lsb_off), # lsb
                 ("IDL1_ADC"+iStr,(lsb_fc_wid1 << 16) | lsb_fc_off1), # lsb_fc_1
                 ("IDL2_ADC"+iStr,(lsb_fc_wid2 << 16) | lsb_fc_off2), # lsb_fc_1
-                ("pll_STEP0_ADC"+iStr,0),
-                ("pll_STEP1_ADC"+iStr,0),
-                ("pll_STEP2_ADC"+iStr,0),
             ]
-            regsValsToWrite += asicRegs
-
-        for iReg, tup in enumerate(regsValsToWrite):
-            name = tup[0]
-            val = tup[1]
-            reg = iReg + self.REG_EXTCLK_START
-            print("ExtClock Register {0:15} number {1:3} set to {2:10} = {2:#010x}".format(name,reg,val))
-            #print("ExtClock Register {0:15} number {1:3} set to {2:#034b}".format(name,reg,val))
-            self.femb.write_reg(iReg,val)
+            for iReg, tup in enumerate(asicRegs):
+                name = tup[0]
+                val = tup[1]
+                writeRegAndPrint(name,regBase+iReg,val)
 
     def writeSPItoASICS(self):
         self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
