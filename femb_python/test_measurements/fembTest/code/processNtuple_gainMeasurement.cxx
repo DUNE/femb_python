@@ -74,6 +74,7 @@ class Analyze {
 	const float const_maxPulseHeight = 4096;
 	const float const_minPulseHeightForFit = 100;
 	const float const_maxPulseHeightForFit = 3000;
+	const float const_maxPulsePeakValue = 3500;
 	const float const_maxGain = 10000;
 	const float const_maxEnc = 5000;
 	const int const_numFftBins = 5000;
@@ -85,6 +86,8 @@ class Analyze {
 	const int const_minNumberPulses = 10;
 	const int const_cut_numBadChannels = 0;
   	const bool const_doFits = 0;
+        double const_fitRangeLow = 100.E+3;
+        double const_fitRangeHigh = 200.E+3;
 
 	//data objects
 	TCanvas* c0;
@@ -322,8 +325,12 @@ void Analyze::analyzeChannel(unsigned int chan){
 		//skip subrun if invalid pulse height measured
 		if( averagePulseHeight < 0 )
 			continue;
+		if( averagePulseHeight < const_minPulseHeightForFit )
+			//ffer_analyzePulses.enablePulseFits = 0;
+			continue;
 		if( averagePulseHeight > const_maxPulseHeightForFit )
-			ffer_analyzePulses.enablePulseFits = 0;
+			//ffer_analyzePulses.enablePulseFits = 0;
+			continue;
 		double signalCharge = (signalSizes[sr]-signalSizes[0]);
 		gPulseVsSignal[chan]->SetPoint( gPulseVsSignal[chan]->GetN() , signalCharge , averagePulseHeight );
 
@@ -371,7 +378,7 @@ void Analyze::computeFft(unsigned int chan, const std::vector<unsigned short> &w
 	//load hits into TGraph, skip stuck codes
 	gCh->Set(0);
 	for( int s = 0 ; s < wf.size() ; s++ ){
-		//if( !isGoodCodeif( wf.at(s) ) continue;
+		if( !ffer_analyzePulses.isGoodCode( wf.at(s) ) ) continue;
 		gCh->SetPoint(gCh->GetN() , s , wf.at(s) );
 	}
 
@@ -411,10 +418,12 @@ void Analyze::findPulses(const std::vector<unsigned short> &wf, double baseMean,
 	pulseRiseStart.clear();
 	pulseFallStart.clear();
 	for( int s = 0 + const_preRange ; s < wf.size() - const_postRange - 1 ; s++ ){
-		//if( !isGoodCodeif( wf.at(s) ) continue;
-		//if( !isGoodCodeif( wf.at(s+1) ) continue;
+		if( !ffer_analyzePulses.isGoodCode( wf.at(s) ) ) continue;
+		if( !ffer_analyzePulses.isGoodCode( wf.at(s+1) ) ) continue;
 		double value =  wf.at(s);
 		double valueNext = wf.at(s+1);
+		if( value > const_maxPulsePeakValue || valueNext > const_maxPulsePeakValue) 
+			continue;
 		//simple threshold test
 		if(1 && valueNext > baseMean + threshold && value < baseMean + threshold ){ //rising edge
 			int start = s;
@@ -451,7 +460,17 @@ void Analyze::measureGain(unsigned int chan, double baseRms){
 	if( baseRms <= 0 )
 		return;
 
-	TF1 *f1 = new TF1("f1","pol1",100.E+3,200.E+3);
+        int numInRange = 0;
+        for(int n = 0 ; n < gPulseVsSignal[chan]->GetN() ; n++){
+		double dataX, dataY;
+		gPulseVsSignal[chan]->GetPoint(n,dataX,dataY);
+		if( dataX >= const_fitRangeLow && dataX <= const_fitRangeHigh )
+			numInRange++;
+        }
+	if( numInRange < 2 )
+   		return;
+
+	TF1 *f1 = new TF1("f1","pol1",const_fitRangeLow,const_fitRangeHigh);
 	gPulseVsSignal[chan]->Fit("f1","QR");
 
 	//check if fit succeeded here
