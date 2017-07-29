@@ -127,6 +127,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(8,0)  #latchloc
         ##### End Top-level Labview stacked sequence struct 0
 
+        self.turnOnAsics()
+
         nRetries = 1
         for iRetry in range(nRetries):
 
@@ -159,10 +161,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             #Configure ADC (and external clock inside)
             try:
-                #self.femb.write_reg(self.REG_FESPI_BASE,1)
+                ##self.femb.write_reg(self.REG_FESPI_BASE,1)
+                ##self.adc_regs[0].set_chip(frqc=1)
                 #regsListOfLists = []
                 #for chipRegConfig in self.adc_regs:
-                #    #chipRegConfig.set_chip(en_gr=enableOffsetCurrent,d=offsetCurrent,tstin=testInput,frqc=freqInternal,slp=sleep,pdsr=pdsr,pcsr=pcsr,clk0=clk0,clk1=clk1,f0=f0,f1=f1,f2=f2,f3=f3,f4=f4,f5=f5,slsb=sLSB)
+                #    #chipRegConfig.set_chip(frqc=1)
                 #    regsListOfLists.append(chipRegConfig.REGS)
                 #self.configAdcAsic_regs(regsListOfLists)
 
