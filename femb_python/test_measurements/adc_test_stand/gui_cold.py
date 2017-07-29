@@ -43,7 +43,8 @@ class GUI_WINDOW(Frame):
         self.forceLong = forceLong
 
         self.timestamp = None
-        self.iTry = 1
+        self.iTry_david_adams = 1
+        self.iTry_configure = 1
         self.waveform_window = None # for live waveform
         self.waveform_root_windows = [] # for ROOT files
         self.waveform_root_viewers = [] # for ROOT files
@@ -102,8 +103,11 @@ class GUI_WINDOW(Frame):
         self.coolboard_label = Label(self,text="",width=30,fg="#0000FF")
         self.coolboard_label.grid(row=23,column=columnbase,columnspan=2)
 
+        self.reconfigure_button = Button(self, text="Re-Setup Board\n(Keeps Timestamp)", command=self.reconfigure_board,width=25,state="disabled")
+        self.reconfigure_button.grid(row=24,column=columnbase,columnspan=2)
+
         self.resetwaveform_button = Button(self, text="Restart Waveform Viwer", command=self.reset_waveform_viewer,width=25,state="disabled")
-        self.resetwaveform_button.grid(row=24,column=columnbase,columnspan=2,pady=30)
+        self.resetwaveform_button.grid(row=25,column=columnbase,columnspan=2,pady=30)
 
         # Adding ASIC/channel select
 
@@ -263,7 +267,8 @@ class GUI_WINDOW(Frame):
             win.destroy()
         self.waveform_root_viewers = []
         self.timestamp = None
-        self.iTry = 1
+        self.iTry_david_adams = 1
+        self.iTry_configure = 1
         for i in reversed(range(len(self.display_procs))):
             tmp = self.display_procs.pop(i)
             tmp.terminate()
@@ -284,6 +289,7 @@ class GUI_WINDOW(Frame):
         self.prepare_button["bg"] = self.bkg_color
         self.prepare_button["activebackground"] = self.activebkg_color
         self.coolboard_label["text"] = ""
+        self.reconfigure_button["state"] = "disabled"
         self.retry_david_adams_label["text"] = ""
         self.start_button["state"] = "disabled"
         self.start_david_adams_button["state"] = "disabled"
@@ -311,9 +317,11 @@ class GUI_WINDOW(Frame):
         self.reset_button["bg"] ="#FF9900"
         self.reset_button["activebackground"] ="#FFCF87"
 
-    def prepare_board(self):
-        self.timestamp = None # get new timestamp for each prepare board
-        self.iTry = 1
+    def prepare_board(self,power_cycle=True):
+        if power_cycle:
+            self.timestamp = None # get new timestamp for each prepare board
+            self.iTry_configure = 1
+            self.iTry_david_adams = 1
         if self.waveform_window:
           self.waveform_window.destroy()
         for iWin in reversed(range(len(self.waveform_root_windows))):
@@ -349,10 +357,13 @@ class GUI_WINDOW(Frame):
                                 "basedir": self.data_base_dir,
                                 "rundir": "/home/{linux_username}/run",
                                 "datadir": "{basedir}/{linux_username}/adcasic/{femb_config_name}/{timestamp}",
-                                "paramfile": "{datadir}/setup_params.json",
+                                "paramfile": "{datadir}/setup_params_try{iTry}.json",
                                 "smtname": "adc",
                                 "smttag": "{hostname}",
+                                "power_cycle": power_cycle,
+                                "iTry": self.iTry_configure,
                             }
+        self.iTry_configure += 1
         #runner = DirectRunner(**runnerSetup)
         runner = SumatraRunner(**runnerSetup)
         try:
@@ -364,11 +375,12 @@ class GUI_WINDOW(Frame):
             self.status_label["text"] = "Error setting up board/ADC. Report to shift leader"
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
-            if not GUITESTMODE:
-                self.config.POWERSUPPLYINTER.off()
             return
         else:
             self.done_preparing_board(params)
+
+    def reconfigure_board(self):
+        self.prepare_board(power_cycle=False)
 
     def start_david_adams(self):
         if self.waveform_window:
@@ -395,6 +407,7 @@ class GUI_WINDOW(Frame):
         self.prepare_button["state"] = "disabled"
         self.prepare_button["bg"] = self.bkg_color
         self.prepare_button["activebackground"] = self.activebkg_color
+        self.reconfigure_button["state"] = "disabled"
         self.coolboard_label["text"] = ""
         self.retry_david_adams_label["text"] = ""
         self.resetwaveform_button["state"] = "disabled"
@@ -416,12 +429,12 @@ class GUI_WINDOW(Frame):
                                 "basedir": self.data_base_dir,
                                 "rundir": "/home/{linux_username}/run",
                                 "datadir": "{basedir}/{linux_username}/adcasic/{femb_config_name}/{timestamp}",
-                                "paramfile": "{datadir}/david_adams_only_params.json",
+                                "paramfile": "{datadir}/david_adams_only_params_try{iTry}.json",
                                 "smtname": "adc",
                                 "smttag": "{hostname}",
-                                "iTry": self.iTry,
+                                "iTry": self.iTry_david_adams,
                             }
-        self.iTry += 1
+        self.iTry_david_adams += 1
         runner = SumatraRunner(**runnerSetup)
         try:
             if GUITESTMODE:
@@ -432,13 +445,8 @@ class GUI_WINDOW(Frame):
             self.status_label["text"] = "Error in david adams only program. Report to shift leader"
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
-            if not GUITESTMODE:
-                self.config.POWERSUPPLYINTER.off()
             return
         else:
-            if not GUITESTMODE:
-                self.config.POWERSUPPLYINTER.off()
-            print(params)
             self.done_david_adams(params)
 
     def start_measurements(self):
@@ -466,6 +474,7 @@ class GUI_WINDOW(Frame):
         self.prepare_button["state"] = "disabled"
         self.prepare_button["bg"] = self.bkg_color
         self.prepare_button["activebackground"] = self.activebkg_color
+        self.reconfigure_button["state"] = "disabled"
         self.coolboard_label["text"] = ""
         self.retry_david_adams_label["text"] = ""
         self.resetwaveform_button["state"] = "disabled"
@@ -490,6 +499,8 @@ class GUI_WINDOW(Frame):
                                 "paramfile": "{datadir}/params.json",
                                 "smtname": "adc",
                                 "smttag": "{hostname}",
+                                "nTries_david_adams_only": self.iTry_david_adams-1,
+                                "nTries_configure": self.iTry_configure-1,
                             }
         #runner = DirectRunner(**runnerSetup)
         runner = SumatraRunner(**runnerSetup)
@@ -515,7 +526,8 @@ class GUI_WINDOW(Frame):
         print("BOARD POWERED UP & INITIALIZED")
         datadir = params["datadir"]
         timestamp = params["timestamp"]
-        outfilename = "adcSetup_{}.json".format(timestamp)
+        iTry = params["iTry"]
+        outfilename = "adcSetup_{}_try{}.json".format(timestamp,iTry)
         outfilename = os.path.join(datadir,outfilename)
         print(outfilename)
         resultdict = None
@@ -527,7 +539,7 @@ class GUI_WINDOW(Frame):
                 self.status_label["text"] = "Error: Board setup output not found. Report to shift leader"
                 self.status_label["fg"] = "#FFFFFF"
                 self.status_label["bg"] = "#FF0000"
-                self.config.POWERSUPPLYINTER.off()
+                #self.config.POWERSUPPLYINTER.off()
                 return
             else:
                 resultdict = {"pass":True}
@@ -538,9 +550,10 @@ class GUI_WINDOW(Frame):
             self.status_label["text"] = "Power up success, enter CH2 Current"
             self.status_label["fg"] = "#000000"
             self.prepare_button["state"] = "normal"
-            self.prepare_button["text"] = "Re-"+self.prepare_button_text
+            self.prepare_button["text"] = "Re-"+self.prepare_button_text+"\n(Creates New Timestamp)"
             self.prepare_button["bg"] ="#FF9900"
             self.prepare_button["activebackground"] ="#FFCF87"
+            self.reconfigure_button["state"] = "normal"
             self.coolboard_label["text"] = "If waveform looks okay, \nbegin cooling board \n(see shifter instructions)"
             self.retry_david_adams_label["text"] = ""
             self.start_button["state"] = "normal"
@@ -574,9 +587,10 @@ class GUI_WINDOW(Frame):
             label.grid(row=rowbase+3,column=columnbase,columnspan=2)
             self.result_labels.append(label)
             self.prepare_button["state"] = "normal"
-            self.prepare_button["text"] = "Re-"+self.prepare_button_text
+            self.prepare_button["text"] = "Re-"+self.prepare_button_text+"\n(Creates New Timestamp)"
             self.prepare_button["bg"] ="#00CC00"
             self.prepare_button["activebackground"] = "#A3CCA3"
+            self.reconfigure_button["state"] = "normal"
             self.reset_button["bg"] ="#FF9900"
             self.reset_button["activebackground"] ="#FFCF87"
 
@@ -592,21 +606,30 @@ class GUI_WINDOW(Frame):
         else:
             outfileglob = "adcDavidAdamsOnlyData_{}_*_try{}.root".format(timestamp,iTry)
             outfileglob = os.path.join(datadir,outfileglob)
+            print(outfileglob)
             outfilenames = glob.glob(outfileglob)
         print(outfilenames)
         if len(outfilenames) != self.config.NASICS:
             self.status_label["text"] = "Error: Test output not found. Try again and/or reconfiguring"
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
-            return
-        else: # good
+
             self.prepare_button["state"] = "normal"
-            self.prepare_button["text"] = "Re-"+self.prepare_button_text
+            self.prepare_button["text"] = "Re-"+self.prepare_button_text+"\n(Creates New Timestamp)"
             self.prepare_button["bg"] ="#FF9900"
             self.prepare_button["activebackground"] ="#FFCF87"
+            self.reconfigure_button["state"] = "disabled"
             self.start_button["state"] = "normal"
             self.start_david_adams_button["state"] = "normal"
-            self.retry_david_adams_label["text"] = 'If displayed waveform looks\nlike a pretty good ramp up and down,\npress "Start Tests", else\ntry to collect David Adams data again'
+        else: # good
+            self.prepare_button["state"] = "normal"
+            self.prepare_button["text"] = "Re-"+self.prepare_button_text+"\n(Creates New Timestamp)"
+            self.prepare_button["bg"] ="#FF9900"
+            self.prepare_button["activebackground"] ="#FFCF87"
+            self.reconfigure_button["state"] = "normal"
+            self.start_button["state"] = "normal"
+            self.start_david_adams_button["state"] = "normal"
+            self.retry_david_adams_label["text"] = 'If displayed waveform looks like\n5-8 pretty good ramps up\nand down, press "Start Tests", else\ntry to collect David Adams data again'
             for iWin in reversed(range(len(self.waveform_root_windows))):
                 win = self.waveform_root_windows.pop(iWin)
                 win.destroy()

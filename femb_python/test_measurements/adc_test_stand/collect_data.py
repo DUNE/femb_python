@@ -60,13 +60,13 @@ class COLLECT_DATA(object):
             nPackets = 7000
         self.funcgen.startRamp(freq,xLow,xHigh)
         time.sleep(self.settlingTime)
-        self.dumpWaveformRootFile(iChip,outPrefix,3,freq,offsetV,amplitudeV,nPackets,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate)
+        self.dumpWaveformRootFile(iChip,outPrefix,3,freq,offsetV,amplitudeV,nPackets,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate,outSuffix=outSuffix)
 
     def getDC(self,outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,outSuffix=""):
         for dc in [0.2,0.5,1.,1.6]:
           self.funcgen.startDC(dc)
           time.sleep(self.settlingTime)
-          self.dumpWaveformRootFile(iChip,outPrefix,1,0.,dc,0.,10,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate)
+          self.dumpWaveformRootFile(iChip,outPrefix,1,0.,dc,0.,10,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate,outSuffix=outSuffix)
 
     def getSin(self,outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,amplitudeV,offsetV,outSuffix=""):
         freqList = [6.2365e4,4.83587e5,9.515125e5]
@@ -76,7 +76,7 @@ class COLLECT_DATA(object):
                 continue
           self.funcgen.startSin(freq,amplitudeV,offsetV)
           time.sleep(self.settlingTime)
-          self.dumpWaveformRootFile(iChip,outPrefix,2,freq,offsetV,amplitudeV,100,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate)
+          self.dumpWaveformRootFile(iChip,outPrefix,2,freq,offsetV,amplitudeV,100,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate,outSuffix=outSuffix)
 
     def dumpWaveformRootFile(self,iChip,fileprefix,functype,freq,offsetV,amplitudeV,nPackets=None,adcSerial=-1,adcOffset=-2,adcClock=-1,sampleRate=-1,outSuffix=""):
         print("outSuffix:",outSuffix)

@@ -149,6 +149,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             if self.SAMPLERATE == 1e6:
                 if self.COLD:
                     print("Using 1 MHz cold latchloc/clockphase")
+                    latchloc1 = self.REG_LATCHLOC1_4_data_1MHz_cold
+                    latchloc5 = self.REG_LATCHLOC5_8_data_1MHz_cold
+                    clockphase = self.REG_CLKPHASE_data_1MHz_cold
                 else:
                     print("Using 1 MHz warm latchloc/clockphase")
                     latchloc1 = self.REG_LATCHLOC1_4_data_1MHz

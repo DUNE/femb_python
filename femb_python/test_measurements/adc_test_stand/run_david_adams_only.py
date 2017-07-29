@@ -49,7 +49,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     offset = -1
 
     for iChip in range(config.NASICS):
-        print("Collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} iTry: {}...".format(sampleRate, clock, offset, iChip,iTry))
+        print("Collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} try: {}...".format(sampleRate, clock, offset, iChip,iTry))
         sys.stdout.flush()
         sys.stderr.flush()
         chipStats = {}
@@ -60,7 +60,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
             collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate,longRampOnly=True,outSuffix=filesuffix)
         except Exception as e:
             print("Error while collecting David Adams data, traceback in stderr.")
-            sys.stderr.write("Error collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} iTry: {} Error: {} {}\n".format(sampleRate, clock, offset, iChip, iTry, type(e),e))
+            sys.stderr.write("Error collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} try: {} Error: {} {}\n".format(sampleRate, clock, offset, iChip, iTry, type(e),e))
             traceback.print_tb(e.__traceback__)
             continue
 
@@ -133,10 +133,8 @@ def main():
         print("Uncaught exception in runTests. Traceback in stderr.")
         sys.stderr.write("Uncaught exception in runTests: Error: {} {}\n".format(type(e),e))
         traceback.print_tb(e.__traceback__)
-        config.POWERSUPPLYINTER.off()
         sys.exit(1)
     else:
-        config.POWERSUPPLYINTER.off()
         runTime = datetime.datetime.now() - startTime
         print("Test took: {:.0f} min {:.1f} s".format(runTime.total_seconds() // 60, runTime.total_seconds() % 60.))
         print("Chips Pass: ",chipsPass)
