@@ -69,8 +69,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         # 88 is last register besides 255 which is firmware version
         self.REG_FESPI_BASE = 84 # this configures all FE ASICs
         self.REG_ADCSPI_BASES = [64,69,74,79] # for each chip
-        self.REG_FESPI_RDBACK_BASE = 0x278 # 632 in decimal
-        self.REG_ADCSPI_RDBACK_BASE = 0x228 # 552 in decimal
 
         self.REG_EXTCLK_INV = 10
         self.REG_EXTCLK_BASES = [11,20,29,38] # for each chip
@@ -129,7 +127,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(8,0)  #latchloc
         ##### End Top-level Labview stacked sequence struct 0
 
-        nRetries = 2
+        nRetries = 1
         for iRetry in range(nRetries):
 
             #Reset ASICs
@@ -161,14 +159,20 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             #Configure ADC (and external clock inside)
             try:
+                #self.femb.write_reg(self.REG_FESPI_BASE,1)
+                #regsListOfLists = []
+                #for chipRegConfig in self.adc_regs:
+                #    #chipRegConfig.set_chip(en_gr=enableOffsetCurrent,d=offsetCurrent,tstin=testInput,frqc=freqInternal,slp=sleep,pdsr=pdsr,pcsr=pcsr,clk0=clk0,clk1=clk1,f0=f0,f1=f1,f2=f2,f3=f3,f4=f4,f5=f5,slsb=sLSB)
+                #    regsListOfLists.append(chipRegConfig.REGS)
+                #self.configAdcAsic_regs(regsListOfLists)
+
                 self.configAdcAsic()
                 #self.configAdcAsic(clockMonostable=True)
             except ReadRegError:
                 continue
-
             print("Header & Busy Check: {0:#010x} = {0:#034b}".format(self.femb.read_reg(self.REG_STOP_ADC)))
-            print("ADC Soft Reset...")
 
+            print("ADC Soft Reset...")
             self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 1 << 6) # ADC soft reset
             time.sleep(0.1)
             self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
@@ -223,6 +227,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             assert(len(chipRegs)==5)
             for iReg in range(5):
                 self.femb.write_reg(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg])
+                print("{:3}  {:#010x}".format(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg]))
                 time.sleep(0.05)
         
         self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
