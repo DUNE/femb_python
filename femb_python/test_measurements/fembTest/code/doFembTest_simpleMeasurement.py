@@ -44,13 +44,14 @@ class FEMB_TEST_SIMPLE(object):
         self.write_data = WRITE_DATA(datadir)
         #set appropriate packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000
+        self.cppfr = CPP_FILE_RUNNER()
 	
         #set status variables
         self.status_check_setup = 0
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
-        self.cppfr = CPP_FILE_RUNNER()
+        self.isRoomTemp = True
 
         #json output, note module version number defined here
         self.jsondict = {'type':'fembTest_simple'}
@@ -88,6 +89,7 @@ class FEMB_TEST_SIMPLE(object):
 
         #initialize FEMB to known state
         print("Initializing board")
+        self.femb_config.isRoomTemp = self.isRoomTemp
         self.femb_config.initFemb()
 
         #check if data streaming is working
@@ -218,6 +220,7 @@ def main():
     #default parameters
     datadir = "data"
     wibslots = [1]
+    isRoomTemp = True
 
     if len(sys.argv) == 2 :
         params = json.loads(open(sys.argv[1]).read())
@@ -225,6 +228,8 @@ def main():
             datadir = params['datadir']
         if 'wibslots' in params:
             wibslots = params['wibslots']
+        if 'isRoomTemp' in params:
+            isRoomTemp = params['isRoomTemp']
 
     #do some sanity checks
     if len(wibslots) > 4 :
@@ -234,6 +239,7 @@ def main():
     #actually run the test, one per FEMB slot
     for femb in wibslots:
         femb_test = FEMB_TEST_SIMPLE(datadir,"simpleMeasurement",femb)
+        femb_test.isRoomTemp = isRoomTemp
         femb_test.check_setup()
         femb_test.record_data()
         femb_test.do_analysis()

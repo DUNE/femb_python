@@ -58,18 +58,19 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.INT_TP_EN = 18
         self.EXT_TP_EN = 18
 
-        #EXTERNAL CLOCK STUFF HERE
-
         self.REG_SPI_BASE = 512
         self.REG_SPI_RDBACK_BASE = 592
 
         self.fembNum = 0
+        self.useExtAdcClock = True
+        self.isRoomTemp = True
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
+        #self.femb.doReadBack = True #WIB register interface is unreliable
 
         #ASIC config variables
         self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
@@ -117,6 +118,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #FEMB power enable on WIB
         self.powerOnFemb(self.fembNum)
+        time.sleep(0.5)
 
         #Make sure register interface is for correct FEMB
         self.selectFemb(self.fembNum)
@@ -138,8 +140,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits( self.REG_TP, 8,0xFF,0x00) #test pulse delay
 
         #phase control
-        self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0xDF ) #clock select
-        self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0x20 ) #clock select 2
+        if self.isRoomTemp == True:
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0xDF ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0x20 ) #clock select 2
+        else:
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0x83 ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0xFF ) #clock select 2            
         self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
         self.femb.write_reg_bits(self.REG_LATCHLOC_7_TO_4 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
 
@@ -147,12 +153,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits(self.REG_HS_DATA , 0, 0x1, 1 ) #Enable streaming
         self.femb.write_reg_bits(self.REG_HS_DATA , 3, 0x1, 1 ) #Enable ADC data
 
+        #EXTERNAL CLOCK STUFF
+        self.ext_clk_config_femb()
+
         #Set FE ASIC SPI configuration registers
         self.configFeAsic()
-
-        #Set ADC SPI configuration registers
-
-        #EXTERNAL CLOCK STUFF
 
     #Test FEMB SPI working
     def checkFembSpi(self):        
@@ -321,6 +326,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #DAC OUTPUT bits 8-9 , 0xA00 = external DAC
 
+        #ADC ASIC config
+        adc_globalReg = 0x2080
+        if self.useExtAdcClock == True:
+            adc_globalReg = 0xa880
+
         #turn off HS data before register writes
         self.femb.write_reg_bits(9 , 0, 0x1, 0 )
         print("HS link turned off")
@@ -330,6 +340,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         chWord = (chReg << 24 ) + (chReg << 16) + (chReg << 8 ) + chReg
         for asic in range(0,self.NASICS,1):
             baseReg = self.REG_SPI_BASE + int(asic)*9
+            self.femb.write_reg_bits( baseReg + 4 , 0, 0xFFFF, adc_globalReg ) #ADC ASIC global registers
             self.femb.write_reg_bits( baseReg + 4 , 16, 0xFF, chReg ) #ch0
             self.femb.write_reg_bits( baseReg + 4 , 24, 0xFF, chReg ) #ch1
             self.femb.write_reg( baseReg + 5 ,  chWord) #ch2-5
@@ -409,6 +420,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #slow down register interface for FEMBs
         self.femb.REG_SLEEP = 0.05
+        time.sleep(0.1)
 
     def initSI5338(self):
         #set UDP ports to WIB
@@ -657,40 +669,198 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         results = []
 
         self.femb.write_reg_bits( 5 , 0, 0xFF, 0)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 1)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 1)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-
-        time.sleep(1)
-        val = self.femb.read_reg(6)
-        val = self.femb.read_reg(6)        
-        val1 = (val & 0xFFFF)
-        val2 = ((val >> 16) & 0xFFFF)
+        tryagain = True
+        tries = 0
+        while (tryagain and tries < 2):
+            tries += 1
+            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+            #self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+            time.sleep(1)
+            val = self.femb.read_reg(6)
+            val = self.femb.read_reg(6)
+            val1 = (val & 0xFFFF)
+            val2 = ((val >> 16) & 0xFFFF)
+            if ( (val1 >> 15)==1 and (val2 >> 15)==1 ):
+                tryagain = False
+            
         results.append(val)
         #print( "FEMB " + str(fembVal) + "\t 0 \t" + str(val) + "\t" + str(val1) + "\t" + str(val2) )        
         
         for pwrSel in range(pwrSelBase, pwrSelBase+6, 1):
             self.femb.write_reg_bits( 5 , 0, 0xFF, pwrSel )
-            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-            self.femb.write_reg_bits( 5 , 16, 0x1, 1)
-            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-            self.femb.write_reg_bits( 5 , 16, 0x1, 1)
-            self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-            
-            time.sleep(1)
-            val = self.femb.read_reg(6)
-            val = self.femb.read_reg(6)
-            if val == None :
-                return
-            val1 = (val & 0xFFFF)
-            val2 = ((val >> 16) & 0xFFFF)
-            #print( "FEMB " + str(fembVal) + "\t" + str(pwrSel) + "\t" + str(val) + "\t" + str(val1) + "\t" + str(val2) )
+            tryagain = True
+            tries = 0
+            while (tryagain and tries < 2):
+                tries += 1
+                self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+                self.femb.write_reg_bits( 5 , 16, 0x1, 1)
+                #self.femb.write_reg_bits( 5 , 16, 0x1, 0)
+                time.sleep(1)
+                val = self.femb.read_reg(6)
+                val = self.femb.read_reg(6)
+                val1 = (val & 0xFFFF)
+                val2 = ((val >> 16) & 0xFFFF)
+                if ( (val1 >> 15)==1 and (val2 >> 15)==1 ):
+                    tryagain = False
+
+                #print( "FEMB " + str(fembVal) + "\t" + str(pwrSel) + "\t" + str(val) + "\t" + str(val2) + "\t" + str(val1) )
             results.append(val)
 
         self.selectFemb(fembVal)
         return results
+    
+
+    def ext_clk_config_femb(self):
+        #EXTERNAL CLOCK VARIABLES
+        ####################external clock timing
+        clk_period = 5 #ns
+        self.clk_dis = 0 #0 --> enable, 1 disable
+        self.d14_rst_oft  = 0   // clk_period   
+        self.d14_rst_wdt  = (50  // clk_period ) -1   
+        self.d14_rst_inv  = 1  
+        self.d14_read_oft = 480 // clk_period    
+        self.d14_read_wdt = 20  // clk_period    
+        self.d14_read_inv = 1 
+        self.d14_idxm_oft = 230 // clk_period    
+        self.d14_idxm_wdt = 270 // clk_period    
+        self.d14_idxm_inv = 0 
+        self.d14_idxl_oft = 480 // clk_period    
+        self.d14_idxl_wdt = 20  // clk_period    
+        self.d14_idxl_inv = 0 
+        self.d14_idl0_oft = 50  // clk_period    
+        self.d14_idl0_wdt = (190 // clk_period ) -1   
+        self.d14_idl1_oft = 480 // clk_period
+        self.d14_idl1_wdt = 20  // clk_period    
+        self.d14_idl_inv  = 0      
+
+        self.d58_rst_oft  = 0   // clk_period 
+        self.d58_rst_wdt  = (50  // clk_period ) -1
+        self.d58_rst_inv  = 1  
+        self.d58_read_oft = 480 // clk_period 
+        self.d58_read_wdt = 20  // clk_period 
+        self.d58_read_inv = 1 
+        self.d58_idxm_oft = 230 // clk_period 
+        self.d58_idxm_wdt = 270 // clk_period 
+        self.d58_idxm_inv = 0 
+        self.d58_idxl_oft = 480 // clk_period 
+        self.d58_idxl_wdt = 20  // clk_period 
+        self.d58_idxl_inv = 0 
+        self.d58_idl0_oft = 50  // clk_period 
+        self.d58_idl0_wdt = (190 // clk_period ) -1
+        self.d58_idl1_oft = 480 // clk_period
+        self.d58_idl1_wdt = 20  // clk_period 
+        self.d58_idl_inv  = 0       
+
+        ####################external clock phase
+        self.d14_read_step = 4
+        self.d14_read_ud   = 0
+        self.d14_idxm_step = 6
+        self.d14_idxm_ud   = 0
+        self.d14_idxl_step = 0
+        self.d14_idxl_ud   = 0
+        self.d14_idl0_step = 6
+        self.d14_idl0_ud   = 0
+        self.d14_idl1_step = 14
+        self.d14_idl1_ud   = 0
+        self.d14_phase_en = 1
+
+        self.d58_read_step = 12
+        self.d58_read_ud   = 0
+        self.d58_idxm_step = 17
+        self.d58_idxm_ud   = 0
+        self.d58_idxl_step = 3
+        self.d58_idxl_ud   = 0
+        self.d58_idl0_step = 18
+        self.d58_idl0_ud   = 0
+        self.d58_idl1_step = 16
+        self.d58_idl1_ud   = 0
+        self.d58_phase_en = 1
+        #END EXTERNAL CLOCK VARIABLES
+
+        #config timing
+        d14_inv = (self.d14_rst_inv<<0) + (self.d14_read_inv<<1)+ (self.d14_idxm_inv<<2)+ (self.d14_idxl_inv<<3)+ (self.d14_idl_inv<<4)
+        d58_inv = (self.d58_rst_inv<<0) + (self.d58_read_inv<<1)+ (self.d58_idxm_inv<<2)+ (self.d58_idxl_inv<<3)+ (self.d58_idl_inv<<4)
+        d_inv = d58_inv + ( d14_inv<<5)
+
+        addr_data = self.clk_dis + (d_inv << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 21, addr_data)
+        self.femb.write_reg( 21, addr_data)
+
+        addr_data = self.d58_rst_oft + (self.d14_rst_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 22, addr_data)
+        self.femb.write_reg( 22, addr_data)
+
+        addr_data = self.d58_rst_wdt + (self.d14_rst_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 23, addr_data)
+        self.femb.write_reg( 23, addr_data)
+
+        addr_data = self.d58_read_oft + (self.d14_read_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 24, addr_data)
+        self.femb.write_reg( 24, addr_data)
+
+        addr_data = self.d58_read_wdt + (self.d14_read_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 25, addr_data)
+        self.femb.write_reg( 25, addr_data)
+
+        addr_data = self.d58_idxm_oft + (self.d14_idxm_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 26, addr_data)
+        self.femb.write_reg( 26, addr_data)
+
+        addr_data = self.d58_idxm_wdt + (self.d14_idxm_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 27, addr_data)
+        self.femb.write_reg( 27, addr_data)
+
+        addr_data = self.d58_idxl_oft + (self.d14_idxl_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 28, addr_data)
+        self.femb.write_reg( 28, addr_data)
+
+        addr_data = self.d58_idxl_wdt + (self.d14_idxl_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 29, addr_data)
+        self.femb.write_reg( 29, addr_data)
+
+        addr_data = self.d58_idl0_oft + (self.d14_idl0_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 30, addr_data)
+        self.femb.write_reg( 30, addr_data)
+
+        addr_data = self.d58_idl0_wdt + (self.d14_idl0_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 31, addr_data)
+        self.femb.write_reg( 31, addr_data)
+
+        addr_data = self.d58_idl1_oft + (self.d14_idl1_oft << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 32, addr_data)
+        self.femb.write_reg( 32, addr_data)
+
+        addr_data = self.d58_idl1_wdt + (self.d14_idl1_wdt << 16)
+        #self.ext_clk_reg_wr_femb( femb_addr, 33, addr_data)
+        self.femb.write_reg( 33, addr_data)
+
+        #config phase 
+        for i in range(4):
+            addr_data = self.d14_read_step + (self.d14_idxm_step <<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 35, addr_data)
+            self.femb.write_reg( 35, addr_data)
+
+            addr_data = self.d14_idxl_step + (self.d14_idl0_step <<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 36, addr_data)
+            self.femb.write_reg( 36, addr_data)
+             
+            self.d14_phase_en = self.d14_phase_en ^ 1
+            d14_ud = self.d14_read_ud + (self.d14_idxm_ud<<1) + (self.d14_idxl_ud<<2)+ (self.d14_idl0_ud<<3)+ (self.d14_idl1_ud<<4) + (self.d14_phase_en <<15)
+            addr_data = self.d14_idl1_step + (d14_ud<<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 37, addr_data)
+            self.femb.write_reg( 37, addr_data)
+
+            addr_data = self.d58_read_step + (self.d58_idxm_step <<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 38, addr_data)
+            self.femb.write_reg( 38, addr_data)
+
+            addr_data = self.d58_idxl_step + (self.d58_idl0_step <<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 39, addr_data)
+            self.femb.write_reg( 39, addr_data)
             
+            self.d58_phase_en = self.d58_phase_en ^ 1
+            d58_ud = self.d58_read_ud + (self.d58_idxm_ud<<1) + (self.d58_idxl_ud<<2)+ (self.d58_idl0_ud<<3)+ (self.d58_idl1_ud<<4) + (self.d58_phase_en <<15)
+            addr_data = self.d58_idl1_step + (d58_ud <<16)
+            #self.ext_clk_reg_wr_femb( femb_addr, 40, addr_data)
+            self.femb.write_reg( 40, addr_data)

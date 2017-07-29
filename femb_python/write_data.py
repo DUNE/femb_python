@@ -10,7 +10,7 @@ standard_library.install_aliases()
 from builtins import object
 import string
 from array import array
-from .femb_udp import FEMB_UDP
+from femb_python.femb_udp import FEMB_UDP
 import uuid
 import datetime
 import time

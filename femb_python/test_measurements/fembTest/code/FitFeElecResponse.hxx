@@ -335,9 +335,9 @@ public:
   double constant_ampToHeightFactor = 0.0988165;
   const int const_preRange = 15;
   const int const_postRange = 25;
-  const int const_maxCode = 0x4000;
-  const float const_minPulseHeightForFit = 2000;
-  const float const_maxPulseHeightForFit = 8000;
+  const int const_maxCode = 4000;
+  const float const_minPulseHeightForFit = 100;
+  const float const_maxPulseHeightForFit = 3000;
 
   void clearData();
   void measureNoise(const std::vector<unsigned short> &wf);
@@ -354,6 +354,7 @@ public:
   std::vector<FitFeElecResponse_Events> eventData;
   FitFeElecResponse_multiPulse fitResponse;
 
+  bool disable_isGoodCode = 0;
   double baseMean = 0;
   double baseRms = 0;
   double measuredPulseHeight = 0;
@@ -421,7 +422,8 @@ void FitFeElecResponse_analyzePulses::measureNoise( const std::vector<unsigned s
 }
 
 bool FitFeElecResponse_analyzePulses::isGoodCode( unsigned short adcCode ){
-  //if( (wf.at(s) & 0x3F ) == 0x0 || (wf.at(s) & 0x3F ) == 0x3F ) return 0;
+  if( disable_isGoodCode == 1 ) return 1;
+  if( (adcCode & 0x3F ) == 0x0 || (adcCode & 0x3F ) == 0x3F ) return 0;
   return 1;
 }
 
@@ -432,7 +434,7 @@ bool FitFeElecResponse_analyzePulses::calculateMean( const std::vector<unsigned 
   double mean = 0;
   int count = 0;
   for( int s = 0 ; s < wf.size() ; s++ ){
-    //if( !isGoodCodeif( wf.at(s) ) continue;
+    if( !isGoodCode( wf.at(s) ) ) continue;
     double value = wf.at(s);
     mean += value;
     count++;
@@ -450,7 +452,7 @@ bool FitFeElecResponse_analyzePulses::calculateRms( const std::vector<unsigned s
   double rms = 0;
   int count = 0;
   for( int s = 0 ; s < wf.size() ; s++ ){
-    //if( !isGoodCodeif( wf.at(s) ) continue;
+    if( !isGoodCode( wf.at(s) ) ) continue;
     double value = wf.at(s);
     rms += (value-mean)*(value-mean);
     count++;
@@ -505,7 +507,7 @@ void FitFeElecResponse_analyzePulses::getPulseHeight( int startSampleNum, const 
   for(int s = startSampleNum-const_preRange ; s < startSampleNum + const_postRange ; s++){
     if( s < 0 ) continue;
     if( s >= wf.size() ) continue;
-    //if( !isGoodCodeif( wf.at(s) ) continue;
+    if( !isGoodCode( wf.at(s) ) ) continue;
     double value = wf.at(s);
     if( value > maxSampVal ){
       maxSampVal = value;
@@ -521,7 +523,7 @@ void FitFeElecResponse_analyzePulses::getPulseHeight( int startSampleNum, const 
   for(int s = startSampleNum-const_preRange ; s < startSampleNum + const_postRange ; s++){
     if( s < 0 ) continue;
     if( s >= wf.size() ) continue;
-    //if( !isGoodCodeif( wf.at(s) ) continue;
+    if( !isGoodCode( wf.at(s) ) ) continue;
     double value = wf.at(s);
     if( value < minSampVal ){
       minSampVal = value;
@@ -551,7 +553,7 @@ void FitFeElecResponse_analyzePulses::doPulseFit( int startSampleNum, const std:
   for(int s = startSampleNum-const_preRange ; s < startSampleNum + const_postRange ; s++){
     if( s < 0 ) continue;
     if( s >= wf.size() ) continue;
-    //if( !isGoodCodeif( wf.at(s) ) continue;
+    if( !isGoodCode( wf.at(s) ) ) continue;
     if( isFirst == 1 ){
       firstSample = s;
       isFirst = 0;
