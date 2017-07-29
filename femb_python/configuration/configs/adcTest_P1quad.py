@@ -130,9 +130,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             time.sleep(0.1)
 
             #Set ADC test pattern register
-            self.femb.write_reg( 3, 12) # test pattern off
-            #self.femb.write_reg( 3, 12+(1 << 16)) # test pattern on
-
+            self.femb.write_reg(self.REG_ADC_TST_PATT, 12) # test pattern off
+            #self.femb.write_reg(self.REG_ADC_TST_PATT, 12+(1 << 16)) # test pattern on
             #Set ADC latch_loc and clock phase and sample rate
             if self.SAMPLERATE == 1e6:
                 if self.COLD:
@@ -148,6 +147,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 else:
                     self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz)
                     self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF + (1 << 8)))
+            self.writePLLs(0,0x20001,0)
+
+            self.setFPGADac(self,0,0,0,0)
 
             #Configure ADC (and external clock inside)
             try:
@@ -621,3 +623,30 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(0.05)
         self.femb.write_reg(self.REG_DAC1,ampRegVal)
         
+    def writePLLs(self, step0, step1, step2):
+        for iChip in range(3):
+            self.writePLL(iChip,step0,step1,step2)
+
+    def writePLL(self, iChip, step0, step1, step2):
+        def writeRegAndPrint(name,reg,val):
+            self.femb.write_reg(reg,val)
+            time.sleep(0.05)
+            readback = self.femb.read_reg(reg)
+            print("PLL Register {0:15} number {1:3} set to {2:10} = {2:#010x}".format(name,reg,val))
+            #print("PLL Register {0:15} number {1:3} set to {2:#034b}".format(name,reg,val))
+            if readback == val:
+                print("  Readback match")
+            else:
+                print("  READBACK DOESN'T MATCH! write: {:#010x} read: {:#010x}".format(val,readback))
+        regBase = self.REG_PLL_BASES[iChip]
+        iStr = str(iChip)
+        asicRegs = [
+            ("pll_STEP0_ADC"+iStr,step0),
+            ("pll_STEP1_ADC"+iStr,step1),
+            ("pll_STEP2_ADC"+iStr,step2),
+        ]
+        for iReg, tup in enumerate(asicRegs):
+            name = tup[0]
+            val = tup[1]
+            writeRegAndPrint(name,regBase+iReg,val)
+
