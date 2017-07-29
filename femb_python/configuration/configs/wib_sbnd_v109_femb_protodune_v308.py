@@ -70,6 +70,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
+        #self.femb.doReadBack = True #WIB register interface is unreliable
 
         #ASIC config variables
         self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
@@ -117,6 +118,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #FEMB power enable on WIB
         self.powerOnFemb(self.fembNum)
+        time.sleep(0.5)
 
         #Make sure register interface is for correct FEMB
         self.selectFemb(self.fembNum)
@@ -418,6 +420,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #slow down register interface for FEMBs
         self.femb.REG_SLEEP = 0.05
+        time.sleep(0.1)
 
     def initSI5338(self):
         #set UDP ports to WIB

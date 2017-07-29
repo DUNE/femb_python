@@ -24,7 +24,7 @@ class FEMB_UDP(object):
     This is the UDB interface to the femb
     """
 
-    def write_reg(self, reg , data ):
+    def write_reg(self, reg , data , writeAttempt=0):
         try:
             regVal = int(reg)
         except TypeError:
@@ -54,6 +54,22 @@ class FEMB_UDP(object):
             sock_write.close()
             #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,data)
             time.sleep(self.REG_SLEEP)
+
+        if self.doReadBack == False :
+            return None
+
+        #do read back, attempts recursive rewrite if disagreement
+        regReadVal = self.read_reg(regVal)
+        print(hex(regReadVal), hex(dataVal))
+        if regReadVal != dataVal :
+            print("FEMB_UDP--> Error write_reg: Readback failed")
+            if writeAttempt > self.MAX_ATTEMPTS :
+                print("FEMB_UDP--> Error write_reg: Max number of rewrite attempts, return")
+                return None
+            if writeAttempt > 50 : #harcoded max number of attempts
+                print("FEMB_UDP--> Error write_reg: Max number of rewrite attempts, return")
+                return None
+            self.write_reg(regVal,dataVal,doReadBack,writeAttempt + 1)
 
     def write_reg_bits(self, reg , pos, mask, data ):
         try:
@@ -258,3 +274,5 @@ class FEMB_UDP(object):
         self.MAX_NUM_PACKETS = 7000
         self.MAX_PACKET_SIZE = 1024
         self.REG_SLEEP = 0.001
+        self.MAX_ATTEMPTS = 5
+        self.doReadBack = False
