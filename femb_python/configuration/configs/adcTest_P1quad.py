@@ -62,6 +62,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_CLKPHASE_data_2MHz_cold = 0x0
         self.REG_CLKPHASE_data_1MHz_cold = 0x0
 
+        self.DEFAULT_TST_PATERN = 0x12
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
 
         # registers 64-88 are SPI to ASICs
@@ -115,14 +116,21 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             else:
                 raise ReadRegError("Couldn't read register 0")
 
-        print("Firmware Version: ",self.femb.read_reg(self.REG_FIRMWARE_VERSION) & 0xFFFF)
 
-        self.turnOnAsics()
+        ##### Start Top-level Labview stacked sequence struct 0
+        print("Firmware Version: ",self.femb.read_reg(self.REG_FIRMWARE_VERSION) & 0xFFFF)
+        self.femb.write_reg(self.REG_UDP_FRAME_SIZE,0x1FB)
+        time.sleep(0.05)
+        self.setFPGADac(0,0,0,0) # write regs 4 and 5
+        self.femb.write_reg(1,0) # pwr ctrl
+        self.femb.write_reg(3, (5 << 8 )) # chn sel
+        self.femb.write_reg(6,self.DEFAULT_TST_PATERN)  #tst pattern
+        self.femb.write_reg(7,13)  #adc clk
+        self.femb.write_reg(8,0)  #latchloc
+        ##### End Top-level Labview stacked sequence struct 0
 
         nRetries = 2
         for iRetry in range(nRetries):
-
-            self.femb.write_reg(self.REG_UDP_FRAME_SIZE,0x1FB)
 
             #Reset ASICs
             self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x30) # reset FE and ADC
@@ -130,26 +138,26 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             time.sleep(0.1)
 
             #Set ADC test pattern register
-            self.femb.write_reg(self.REG_ADC_TST_PATT, 12) # test pattern off
-            #self.femb.write_reg(self.REG_ADC_TST_PATT, 12+(1 << 16)) # test pattern on
+            self.femb.write_reg(self.REG_ADC_TST_PATT, self.DEFAULT_TST_PATERN) # test pattern off
+            #self.femb.write_reg(self.REG_ADC_TST_PATT, self.DEFAULT_TST_PATERN+(1 << 16)) # test pattern on
             #Set ADC latch_loc and clock phase and sample rate
             if self.SAMPLERATE == 1e6:
                 if self.COLD:
                     self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_1MHz_cold)
-                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz_cold & 0xF))
+                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz_cold & 0xF) | (1 << 8))
                 else:
                     self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_1MHz)
-                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz & 0xF))
+                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz & 0xF) | (1 << 8))
             else: # use 2 MHz values
                 if self.COLD:
                     self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz_cold)
-                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz_cold & 0xF) + (1 << 8))
+                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz_cold & 0xF))
                 else:
                     self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz)
-                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF + (1 << 8)))
+                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF))
             self.writePLLs(0,0x20001,0)
 
-            self.setFPGADac(self,0,0,0,0)
+            self.setFPGADac(0,0,0,0)
 
             #Configure ADC (and external clock inside)
             try:
