@@ -72,23 +72,23 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
             result["init"] = False;
             result["readReg"] = False;
             json.dump(result,outfile)
-            if power_cycle:
-                config.POWERSUPPLYINTER.off()
+            #if power_cycle:
+            #    config.POWERSUPPLYINTER.off()
             return
         except InitBoardError:
             print("Board/chip Failure: couldn't initialize board.")
             result["init"] = False;
             json.dump(result,outfile)
-            if power_cycle:
-                config.POWERSUPPLYINTER.off()
+            #if power_cycle:
+            #    config.POWERSUPPLYINTER.off()
             return
         except ConfigADCError:
             print("Board/chip Failure: couldn't write ADC SPI.")
             result["init"] = False;
             result["configADC"] = False;
             json.dump(result,outfile)
-            if power_cycle:
-                config.POWERSUPPLYINTER.off()
+            #if power_cycle:
+            #    config.POWERSUPPLYINTER.off()
             return
         else:
             result["init"] = True;
@@ -112,8 +112,8 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                         print("after sync readback: ",config.getClockStr())
                         result["sync"] = False;
                         json.dump(result,outfile)
-                        if power_cycle:
-                            config.POWERSUPPLYINTER.off()
+                        #if power_cycle:
+                        #    config.POWERSUPPLYINTER.off()
                         return
 
                 config.femb.write_reg ( 3, (reg3&0x7fffffff) )
@@ -123,8 +123,8 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                 result["sync"] = False;
                 result["successfulSyncConfigs"] = i
                 json.dump(result,outfile)
-                if power_cycle:
-                    config.POWERSUPPLYINTER.off()
+                #if power_cycle:
+                #    config.POWERSUPPLYINTER.off()
                 return
             try:
                 config.configAdcAsic()
@@ -133,16 +133,16 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                 result["configADC"] = False;
                 result["successfulSyncConfigs"] = i
                 json.dump(result,outfile)
-                if power_cycle:
-                    config.POWERSUPPLYINTER.off()
+                #if power_cycle:
+                #    config.POWERSUPPLYINTER.off()
                 return
             except Exception as e:
                 print("Error Unhandled excption during config. ",e)
                 result["configADC"] = False;
                 result["successfulSyncConfigs"] = i
                 json.dump(result,outfile)
-                if power_cycle:
-                    config.POWERSUPPLYINTER.off()
+                #if power_cycle:
+                #    config.POWERSUPPLYINTER.off()
                 return
         result["successfulSyncConfigs"] = nSyncConfigTries
         result["sync"] = True;
@@ -218,6 +218,6 @@ def main():
         print("Uncaught exception in setup_board. Traceback in stderr.")
         sys.stderr.write("Uncaught exception in setup_board: Error: {} {}\n".format(type(e),e))
         traceback.print_tb(e.__traceback__)
-        if power_cycle:
-            config.POWERSUPPLYINTER.off()
+        #if power_cycle:
+        #    config.POWERSUPPLYINTER.off()
         sys.exit(1)
