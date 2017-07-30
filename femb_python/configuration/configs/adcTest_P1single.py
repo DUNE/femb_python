@@ -437,32 +437,29 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         for ch in range(0,16,1):
                 self.selectChannel(adcNum,ch, 1)
                 time.sleep(0.05)                
-                for test in range(0,10,1):
-                        data = self.femb.get_data(npackets)
-                        #print("test: ",test," data: ",data)
-                        if data == None:
-                            continue
-                        for samp in data[0:(16*1024+1023)]:
-                                if samp == None:
-                                        continue
-                                #chNum = ((samp >> 12 ) & 0xF)
-                                sampVal = (samp & 0xFFF)
-                                #if sampVal != self.ADC_TESTPATTERN[ch]        :
-                                #        badSync = 1 
-                                if sampVal in syncDataCounts[ch]:
-                                    syncDataCounts[ch][sampVal] += 1
-                                else:
-                                    syncDataCounts[ch][sampVal] = 1
+                data = self.femb.get_data(npackets)
+                if data == None:
+                    continue
+                for samp in data:
+                        if samp == None:
+                                continue
+                        #chNum = ((samp >> 12 ) & 0xF)
+                        sampVal = (samp & 0xFFF)
+                        if sampVal in syncDataCounts[ch]:
+                            syncDataCounts[ch][sampVal] += 1
+                        else:
+                            syncDataCounts[ch][sampVal] = 1
         # check jitter
         badSync = 0
         maxCodes = [None]*16
         syncDicts = [{}]*16
         for ch in range(0,16,1):
-            sampSum = sum(syncDataCounts[ch])
+            sampSum = 0
             maxCode = None
             nMaxCode = 0
             for code in syncDataCounts[ch]:
                 nThisCode = syncDataCounts[ch][code]
+                sampSum += nThisCode
                 if nThisCode > nMaxCode:
                     nMaxCode = nThisCode
                     maxCode = code
@@ -474,8 +471,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             if len(syncDataCounts[ch]) > 1:
                 syncDicts[ch]["zeroJitter"] = False
                 badSync = 1
-                frac = nMaxCode / float(sampSum)
-                print("Sync Error: Jitter for Ch {:2}: {:8.4%} (:5/5)".format(ch,frac,nMaxCode,sampSum))
+                diff = sampSum-nMaxCode
+                frac = diff / float(sampSum)
+                print("Sync Error: Jitter for Ch {:2}: {:8.4%} ({:5}/{:5})".format(ch,frac,diff,sampSum))
         for ch in range(0,16,1):
             maxCode = maxCodes[ch]
             correctCode = self.ADC_TESTPATTERN[ch]
@@ -490,7 +488,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 badSync = 1
                 print("Sync Error: mismatch for ch {:2}: expected {:#03x} observed {:#03x}".format(ch,correctCode,maxCode))
         return badSync, syncDicts
-
 
     def fixUnsync(self, adc):
         adcNum = int(adc)
