@@ -358,7 +358,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         alreadySynced = True
         for a in range(0,self.NASICS,1):
             print("FEMB_CONFIG--> Test ADC " + str(a))
-            unsync = self.testUnsync(a)
+            unsync, syncDicts = self.testUnsync(a)
             if unsync != 0:
                 alreadySynced = False
                 print("FEMB_CONFIG--> ADC not synced, try to fix")
@@ -388,38 +388,69 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("FEMB_CONFIG--> End sync ADC")
         return not alreadySynced,latchloc,clkphase
 
-    def testUnsync(self, adc):
+    def testUnsync(self, adc, npackets=10):
         print("Starting testUnsync adc: ",adc)
         adcNum = int(adc)
         if (adcNum < 0 ) or (adcNum > 7 ):
                 print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
                 return
-        
+
         #loop through channels, check test pattern against data
-        badSync = 0
+        syncDataCounts = [{} for i in range(16)] #dict for each channel
         for ch in range(0,16,1):
                 self.selectChannel(adcNum,ch, 1)
                 time.sleep(0.05)                
-                for test in range(0,10,1):
-                        data = self.femb.get_data(1)
-                        #print("test: ",test," data: ",data)
-                        if data == None:
+                data = self.femb.get_data(npackets)
+                if data == None:
+                    continue
+                for samp in data:
+                        if samp == None:
                                 continue
-                        for samp in data[0:(16*1024+1023)]:
-                                if samp == None:
-                                        continue
-                                chNum = ((samp >> 12 ) & 0xF)
-                                sampVal = (samp & 0xFFF)
-                                if sampVal != self.ADC_TESTPATTERN[ch]        :
-                                        badSync = 1 
-                                if badSync == 1:
-                                        break
-                        if badSync == 1:
-                                break
-                if badSync == 1:
-                        break
-        return badSync
-
+                        #chNum = ((samp >> 12 ) & 0xF)
+                        sampVal = (samp & 0xFFF)
+                        if sampVal in syncDataCounts[ch]:
+                            syncDataCounts[ch][sampVal] += 1
+                        else:
+                            syncDataCounts[ch][sampVal] = 1
+        # check jitter
+        badSync = 0
+        maxCodes = [None]*16
+        syncDicts = [{}]*16
+        for ch in range(0,16,1):
+            sampSum = 0
+            maxCode = None
+            nMaxCode = 0
+            for code in syncDataCounts[ch]:
+                nThisCode = syncDataCounts[ch][code]
+                sampSum += nThisCode
+                if nThisCode > nMaxCode:
+                    nMaxCode = nThisCode
+                    maxCode = code
+            maxCodes[ch] = maxCode
+            syncDicts[ch]["maxCode"] = maxCode
+            syncDicts[ch]["nSamplesMaxCode"] = nMaxCode
+            syncDicts[ch]["nSamples"] = sampSum
+            syncDicts[ch]["zeroJitter"] = True
+            if len(syncDataCounts[ch]) > 1:
+                syncDicts[ch]["zeroJitter"] = False
+                badSync = 1
+                diff = sampSum-nMaxCode
+                frac = diff / float(sampSum)
+                print("Sync Error: Jitter for Ch {:2}: {:8.4%} ({:5}/{:5})".format(ch,frac,diff,sampSum))
+        for ch in range(0,16,1):
+            maxCode = maxCodes[ch]
+            correctCode = self.ADC_TESTPATTERN[ch]
+            syncDicts[ch]["data"] = True
+            syncDicts[ch]["maxCodeMatchesExpected"] = True
+            if maxCode is None:
+                syncDicts[ch]["data"] = False
+                badSync = 1
+                print("Sync Error: no data for ch {:2}".format(ch))
+            elif maxCode != correctCode:
+                syncDicts[ch]["maxCodeMatchesExpected"] = True
+                badSync = 1
+                print("Sync Error: mismatch for ch {:2}: expected {:#03x} observed {:#03x}".format(ch,correctCode,maxCode))
+        return badSync, syncDicts
 
     def fixUnsync(self, adc):
         adcNum = int(adc)
@@ -453,7 +484,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.femb.write_reg ( self.REG_ASIC_SPIPROG_RESET, 1 << 1) # prog ADC SPI
                 time.sleep(0.01)
                 #test link
-                unsync = self.testUnsync(adcNum)
+                unsync, syncDicts = self.testUnsync(adcNum)
                 if unsync == 0 :
                     print("FEMB_CONFIG--> ADC synchronized")
                     return
@@ -466,6 +497,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             sys.exit(1)
         else:
             raise SyncADCError
+
 
     def extClock(self, enable=False, 
                 period=500, mult=1, 
