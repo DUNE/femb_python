@@ -431,30 +431,54 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if (adcNum < 0 ) or (adcNum > 7 ):
                 print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
                 return
-        
+
         #loop through channels, check test pattern against data
-        badSync = 0
+        syncDataCounts = [{} for i in range(16)] #dict for each channel
         for ch in range(0,16,1):
                 self.selectChannel(adcNum,ch, 1)
                 time.sleep(0.05)                
                 for test in range(0,10,1):
-                        data = self.femb.get_data(1)
+                        data = self.femb.get_data(2056)
                         #print("test: ",test," data: ",data)
                         if data == None:
-                                continue
+                            continue
                         for samp in data[0:(16*1024+1023)]:
                                 if samp == None:
                                         continue
-                                chNum = ((samp >> 12 ) & 0xF)
+                                #chNum = ((samp >> 12 ) & 0xF)
                                 sampVal = (samp & 0xFFF)
-                                if sampVal != self.ADC_TESTPATTERN[ch]        :
-                                        badSync = 1 
-                                if badSync == 1:
-                                        break
-                        if badSync == 1:
-                                break
-                if badSync == 1:
-                        break
+                                #if sampVal != self.ADC_TESTPATTERN[ch]        :
+                                #        badSync = 1 
+                                if sampVal in syncDataCounts[ch]:
+                                    syncDataCounts[ch][sampVal] += 1
+                                else:
+                                    syncDataCounts[ch][sampVal] = 1
+        # check jitter
+        badSync = 0
+        maxCodes = [None]*16
+        for ch in range(0,16,1):
+            sampSum = sum(syncDataCounts[ch])
+            maxCode = None
+            nMaxCode = 0
+            for code in syncDataCounts[ch]:
+                nThisCode = syncDataCounts[ch][code]
+                if nThisCode > nMaxCode:
+                    nMaxCode = nThisCode
+                    maxCode = code
+            maxCodes[ch] = maxCode
+            if len(syncDataCounts[ch]) > 1:
+                badSync = 1
+                frac = nMaxCode / float(sampSum)
+                print("Sync Error: Jitter for Ch {:2}: {:8.4%} (:5/5)".format(ch,frac,nMaxCode,sampSum))
+        for ch in range(0,16,1):
+            maxCode = maxCodes[ch]
+            correctCode = self.ADC_TESTPATTERN[ch]
+            if maxCode is None:
+                badSync = 1
+                print("Sync Error: no data for ch {:2}".format(ch))
+            elif maxCode != correctCode:
+                badSync = 1
+                print("Sync Error: mismatch for ch {:2}: expected {:#03x} observed {:#03x}".format(ch,correctCode,maxCode))
         return badSync
 
 
