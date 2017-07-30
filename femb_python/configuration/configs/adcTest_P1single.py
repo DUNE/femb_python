@@ -88,7 +88,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.NASICS = 1
         self.FUNCGENINTER = Keysight_33600A("/dev/usbtmc1",1)
-        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc0",["CH2","CH1"]) # turn on CH2 first
+        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc0",["CH2","CH3","CH1"]) # turn on CH2 first
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
 
