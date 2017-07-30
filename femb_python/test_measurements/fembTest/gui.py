@@ -321,7 +321,7 @@ class GUI_WINDOW(Frame):
         self.felist2_label["state"] = "normal"
         self.felist2_entry["state"] = "normal"
         self.felist3_label["state"] = "normal"
-        self.felist4_entry["state"] = "normal"
+        self.felist3_entry["state"] = "normal"
         self.adclist0_label["state"] = "normal"
         self.adclist0_entry["state"] = "normal"
         self.adclist1_label["state"] = "normal"
@@ -329,7 +329,7 @@ class GUI_WINDOW(Frame):
         self.adclist2_label["state"] = "normal"
         self.adclist2_entry["state"] = "normal"
         self.adclist3_label["state"] = "normal"
-        self.adclist4_entry["state"] = "normal"
+        self.adclist3_entry["state"] = "normal"
 
         self.boxid0_entry.delete(0,END)
         self.amid0_entry.delete(0,END)
