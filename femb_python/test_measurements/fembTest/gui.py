@@ -314,6 +314,22 @@ class GUI_WINDOW(Frame):
         self.amid3_entry["state"] = "normal"
         self.fmid3_label["state"] = "normal"
         self.fmid3_entry["state"] = "normal"
+        self.felist0_label["state"] = "normal"
+        self.felist0_entry["state"] = "normal"
+        self.felist1_label["state"] = "normal"
+        self.felist1_entry["state"] = "normal"
+        self.felist2_label["state"] = "normal"
+        self.felist2_entry["state"] = "normal"
+        self.felist3_label["state"] = "normal"
+        self.felist4_entry["state"] = "normal"
+        self.adclist0_label["state"] = "normal"
+        self.adclist0_entry["state"] = "normal"
+        self.adclist1_label["state"] = "normal"
+        self.adclist1_entry["state"] = "normal"
+        self.adclist2_label["state"] = "normal"
+        self.adclist2_entry["state"] = "normal"
+        self.adclist3_label["state"] = "normal"
+        self.adclist4_entry["state"] = "normal"
 
         self.boxid0_entry.delete(0,END)
         self.amid0_entry.delete(0,END)
@@ -327,6 +343,15 @@ class GUI_WINDOW(Frame):
         self.boxid3_entry.delete(0,END)
         self.amid3_entry.delete(0,END)
         self.fmid3_entry.delete(0,END)
+
+        self.felist0_entry.delete(0,END)
+        self.felist1_entry.delete(0,END)
+        self.felist2_entry.delete(0,END)
+        self.felist3_entry.delete(0,END)
+        self.adclist0_entry.delete(0,END)
+        self.adclist1_entry.delete(0,END)
+        self.adclist2_entry.delete(0,END)
+        self.adclist3_entry.delete(0,END)        
         
         self.reset_button["bg"] ="#FF9900"
         self.reset_button["activebackground"] ="#FFCF87"
