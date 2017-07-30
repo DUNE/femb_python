@@ -9,7 +9,6 @@ It maintains a state over a test sequence.
 '''
 
 from femb_python import runpolicy
-import time
 
 class Test(object):
     def __init__(self, **params):
@@ -91,7 +90,14 @@ def main(**params):
     params_test_current.update( executable="femb_check_current", argstr="{paramfile}",
                                 datasubdir="fembTest_check_current_test",
                                 outlabel="fembTest_check_current_test")
-    tests.append( Test(**params_test_current) )    
+    tests.append( Test(**params_test_current) )
+
+    #Summarize Results
+    params_summary = dict(params)
+    params_summary.update( executable="femb_test_summary", argstr="{paramfile}",
+                           datasubdir="fembTest_summary",
+                           outlabel="fembTest_summary")
+    tests.append( Test(**params_summary) )
 
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)
