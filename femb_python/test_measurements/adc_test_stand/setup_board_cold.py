@@ -95,37 +95,7 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
             result["configADC"] = True;
             result["readReg"] = True;
         for i in range(nSyncConfigTries):
-            print("{} try at sync and ADC config".format(i))
-            #config.syncADC()
-            try:
-                reg3 = config.femb.read_reg (3)
-                newReg3 = ( reg3 | 0x80000000 )
-                config.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
-                time.sleep(0.1)                
-
-                for iASIC in range(config.NASICS):
-                    badSync = config.testUnsync(iASIC)
-                    if badSync:
-                        print("Failed to sync ADC ASIC {} with {}".format(iASIC,config.getClockStr()))
-                        print("Trying to sync...")
-                        config.syncADC()
-                        print("after sync readback: ",config.getClockStr())
-                        result["sync"] = False;
-                        json.dump(result,outfile)
-                        #if power_cycle:
-                        #    config.POWERSUPPLYINTER.off()
-                        return
-
-                config.femb.write_reg ( 3, (reg3&0x7fffffff) )
-                config.femb.write_reg ( 3, (reg3&0x7fffffff) )
-            except Exception as e:
-                print("Error Unhandled excption during testSync. ",e)
-                result["sync"] = False;
-                result["successfulSyncConfigs"] = i
-                json.dump(result,outfile)
-                #if power_cycle:
-                #    config.POWERSUPPLYINTER.off()
-                return
+            print("{} try at ADC config and short sync check".format(i))
             try:
                 config.configAdcAsic()
             except ConfigADCError:
@@ -144,7 +114,62 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                 #if power_cycle:
                 #    config.POWERSUPPLYINTER.off()
                 return
-        result["successfulSyncConfigs"] = nSyncConfigTries
+            try:
+                reg3 = config.femb.read_reg (3)
+                newReg3 = ( reg3 | 0x80000000 )
+                config.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
+                time.sleep(0.1)                
+
+                for iASIC in range(config.NASICS):
+                    badSync, syncDicts = config.testUnsync(iASIC,npackets=5)
+                    result["syncDetails"] = syncDicts
+                    if badSync:
+                        print("Failed to sync ADC ASIC {} with {}".format(iASIC,config.getClockStr()))
+                        print("Trying to sync...")
+                        config.syncADC()
+                        print("after sync readback: ",config.getClockStr())
+                        result["sync"] = False;
+                        json.dump(result,outfile)
+                        #if power_cycle:
+                        #    config.POWERSUPPLYINTER.off()
+                        return
+
+                config.femb.write_reg ( 3, (reg3&0x7fffffff) )
+                config.femb.write_reg ( 3, (reg3&0x7fffffff) )
+            except Exception as e:
+                print("Error Unhandled excption during short sync test. ",e)
+                result["sync"] = False;
+                result["successfulSyncConfigs"] = i
+                json.dump(result,outfile)
+                #if power_cycle:
+                #    config.POWERSUPPLYINTER.off()
+                return
+        result["successfulConfigSyncs"] = nSyncConfigTries
+        try:
+            print("long sync check...")
+            reg3 = config.femb.read_reg (3)
+            newReg3 = ( reg3 | 0x80000000 )
+            config.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
+            time.sleep(0.1)                
+            for iASIC in range(config.NASICS):
+                badSync, syncDicts = config.testUnsync(iASIC,npackets=100)
+                result["syncDetails"] = syncDicts
+                if badSync:
+                    print("Failed long sync test ADC ASIC {} with {}".format(iASIC,config.getClockStr()))
+                    result["sync"] = False;
+                    json.dump(result,outfile)
+                    #if power_cycle:
+                    #    config.POWERSUPPLYINTER.off()
+                    return
+            config.femb.write_reg ( 3, (reg3&0x7fffffff) )
+            config.femb.write_reg ( 3, (reg3&0x7fffffff) )
+        except Exception as e:
+            print("Error Unhandled excption during long sync test. ",e)
+            result["sync"] = False;
+            json.dump(result,outfile)
+            #if power_cycle:
+            #    config.POWERSUPPLYINTER.off()
+            return
         result["sync"] = True;
         print("Successfully setup board.")
         result["pass"] = True;
