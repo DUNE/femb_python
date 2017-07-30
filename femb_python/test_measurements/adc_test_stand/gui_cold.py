@@ -21,6 +21,7 @@ import json
 from time import sleep
 from tkinter import *
 import subprocess
+import traceback
 
 #import the test module
 import femb_python
@@ -215,11 +216,7 @@ class GUI_WINDOW(Frame):
             firmware_2MHz = self.config.FIRMWAREPATH2MHZ
         except AttributeError:
             pass
-        cold = None
-        try:
-            cold = self.config.COLD
-        except AttributeError:
-            cold = None
+        cold = True
         quick = True
         if self.forceLong:
             quick = False
@@ -336,8 +333,8 @@ class GUI_WINDOW(Frame):
             print("ENTER REQUIRED INFO")
             self.status_label["text"] = "ENTER REQUIRED INFO"
             self.status_label["fg"] = "#FF0000"
+            self.status_label["bg"] = self.bkg_color
             return
-        inputOptions["cold"] = False
         print("BEGIN PREPARE")
         self.resetwaveform_button["state"] = "disabled"
         self.selectSocket_label["state"] = "disabled"
@@ -346,8 +343,12 @@ class GUI_WINDOW(Frame):
         self.selectChannel_entry["state"] = "disabled"
         self.selectChannel_button["state"] = "disabled"
         self.selectChannel_result["text"] = ""
+        self.retry_david_adams_label["text"] = ""
+        self.start_button["state"] = "disabled"
+        self.start_david_adams_button["state"] = "disabled"
         self.status_label["text"] = "POWERING UP BOARD..."
         self.status_label["fg"] = "#000000"
+        self.status_label["bg"] = self.bkg_color
         self.runid_label["text"] = "Run ID: "+ inputOptions["runid"]
 
         self.update_idletasks()
@@ -372,7 +373,7 @@ class GUI_WINDOW(Frame):
             else:
                 params = runner(**inputOptions)
         except RuntimeError:
-            self.status_label["text"] = "Error setting up board/ADC. Report to shift leader"
+            self.status_label["text"] = "Error setting up board/ADC. Try again."
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
             return
@@ -383,6 +384,13 @@ class GUI_WINDOW(Frame):
         self.prepare_board(power_cycle=False)
 
     def start_david_adams(self):
+        inputOptions = self.get_options(getCurrent=True)
+        if inputOptions is None:
+            print("ENTER REQUIRED INFO")
+            self.status_label["text"] = "ENTER FLOAT FOR CURRENT"
+            self.status_label["fg"] = "#FF0000"
+            self.status_label["bg"] = self.bkg_color
+            return
         if self.waveform_window:
             self.waveform_window.destroy()
         for iWin in reversed(range(len(self.waveform_root_windows))):
@@ -394,12 +402,6 @@ class GUI_WINDOW(Frame):
         for i in reversed(range(len(self.result_labels))):
             tmp = self.result_labels.pop(i)
             tmp.destroy()
-        inputOptions = self.get_options(getCurrent=True)
-        if inputOptions is None:
-            print("ENTER REQUIRED INFO")
-            self.status_label["text"] = "ENTER FLOAT FOR CURRENT"
-            self.status_label["fg"] = "#FF0000"
-            return
         self.current_label["state"] = "disabled"
         self.current_entry["state"] = "disabled"
         self.start_button["state"] = "disabled"
@@ -421,6 +423,7 @@ class GUI_WINDOW(Frame):
         print("BEGIN DAVID ADAMS")
         self.status_label["text"] = "COLLECT DAVID ADAMS IN PROGRESS..."
         self.status_label["fg"] = "#000000"
+        self.status_label["bg"] = self.bkg_color
         self.update_idletasks()
 
         runnerSetup = {
@@ -442,7 +445,7 @@ class GUI_WINDOW(Frame):
             else:
                 params = runner(**inputOptions)
         except RuntimeError:
-            self.status_label["text"] = "Error in david adams only program. Report to shift leader"
+            self.status_label["text"] = "Error in david adams only program. Try again"
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
             return
@@ -450,6 +453,13 @@ class GUI_WINDOW(Frame):
             self.done_david_adams(params)
 
     def start_measurements(self):
+        inputOptions = self.get_options(getCurrent=True)
+        if inputOptions is None:
+            print("ENTER REQUIRED INFO")
+            self.status_label["text"] = "ENTER FLOAT FOR CURRENT"
+            self.status_label["fg"] = "#FF0000"
+            self.status_label["bg"] = self.bkg_color
+            return
         if self.waveform_window:
             self.waveform_window.destroy()
         for iWin in reversed(range(len(self.waveform_root_windows))):
@@ -461,12 +471,6 @@ class GUI_WINDOW(Frame):
         for i in reversed(range(len(self.result_labels))):
             tmp = self.result_labels.pop(i)
             tmp.destroy()
-        inputOptions = self.get_options(getCurrent=True)
-        if inputOptions is None:
-            print("ENTER REQUIRED INFO")
-            self.status_label["text"] = "ENTER FLOAT FOR CURRENT"
-            self.status_label["fg"] = "#FF0000"
-            return
         self.current_label["state"] = "disabled"
         self.current_entry["state"] = "disabled"
         self.start_button["state"] = "disabled"
@@ -488,6 +492,7 @@ class GUI_WINDOW(Frame):
         print("BEGIN TESTS")
         self.status_label["text"] = "TESTS IN PROGRESS..."
         self.status_label["fg"] = "#000000"
+        self.status_label["bg"] = self.bkg_color
         self.update_idletasks()
 
         runnerSetup = {
@@ -510,7 +515,7 @@ class GUI_WINDOW(Frame):
             else:
                 params = runner(**inputOptions)
         except RuntimeError:
-            self.status_label["text"] = "Error in test program. Report to shift leader"
+            self.status_label["text"] = "Error in test program. Copy output to elog"
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
             if not GUITESTMODE:
@@ -536,7 +541,7 @@ class GUI_WINDOW(Frame):
                 resultdict = json.load(outfile)
         except FileNotFoundError:
             if not GUITESTMODE:
-                self.status_label["text"] = "Error: Board setup output not found. Report to shift leader"
+                self.status_label["text"] = "Error: Board setup output not found. Copy output to elog"
                 self.status_label["fg"] = "#FFFFFF"
                 self.status_label["bg"] = "#FF0000"
                 #self.config.POWERSUPPLYINTER.off()
@@ -549,6 +554,7 @@ class GUI_WINDOW(Frame):
             self.current_entry["state"] = "normal"
             self.status_label["text"] = "Power up success, enter CH2 Current"
             self.status_label["fg"] = "#000000"
+            self.status_label["bg"] = self.bkg_color
             self.prepare_button["state"] = "normal"
             self.prepare_button["text"] = "Re-"+self.prepare_button_text+"\n(Creates New Timestamp)"
             self.prepare_button["bg"] ="#FF9900"
@@ -583,7 +589,7 @@ class GUI_WINDOW(Frame):
             label = Label(self, text="FAIL to setup board",bg="#FF0000")
             label.grid(row=rowbase+2,column=columnbase,columnspan=2)
             self.result_labels.append(label)
-            label = Label(self, text="Try re-power-up & setup board again",bg="#FF0000")
+            label = Label(self, text="Try re-setup board",bg="#FF0000")
             label.grid(row=rowbase+3,column=columnbase,columnspan=2)
             self.result_labels.append(label)
             self.prepare_button["state"] = "normal"
@@ -597,6 +603,8 @@ class GUI_WINDOW(Frame):
     def done_david_adams(self,params):
         print("David Adams COMPLETE")
         self.status_label["text"] = "Collect David Adams data done"
+        self.status_label["fg"] = "#000000"
+        self.status_label["bg"] = self.bkg_color
         datadir = params["datadir"]
         timestamp = params["timestamp"]
         iTry = params["iTry"]
@@ -610,7 +618,7 @@ class GUI_WINDOW(Frame):
             outfilenames = glob.glob(outfileglob)
         print(outfilenames)
         if len(outfilenames) != self.config.NASICS:
-            self.status_label["text"] = "Error: Test output not found. Try again and/or reconfiguring"
+            self.status_label["text"] = "Error: Test output not found.\nTry again and/or reconfiguring"
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
 
@@ -618,7 +626,7 @@ class GUI_WINDOW(Frame):
             self.prepare_button["text"] = "Re-"+self.prepare_button_text+"\n(Creates New Timestamp)"
             self.prepare_button["bg"] ="#FF9900"
             self.prepare_button["activebackground"] ="#FFCF87"
-            self.reconfigure_button["state"] = "disabled"
+            self.reconfigure_button["state"] = "normal"
             self.start_button["state"] = "normal"
             self.start_david_adams_button["state"] = "normal"
         else: # good
@@ -637,13 +645,33 @@ class GUI_WINDOW(Frame):
             for outfilename in outfilenames:
                 win = Toplevel(self)
                 win.title("David Adams Data Window")
-                viewer = TRACE_ROOT_WINDOW(outfilename,master=win,fullADCRange=True)
-                self.waveform_root_windows.append(win)
-                self.waveform_root_viewers.append(viewer)
+                try:
+                    viewer = TRACE_ROOT_WINDOW(outfilename,master=win,fullADCRange=True)
+                except Exception as e:
+                    win.destroy()
+                    self.status_label["text"] = "Error while displaying David Adams only data.\nTry again and/or reconfiguring"
+                    self.status_label["fg"] = "#FFFFFF"
+                    self.status_label["bg"] = "#FF0000"
+
+                    self.prepare_button["state"] = "normal"
+                    self.prepare_button["text"] = "Re-"+self.prepare_button_text+"\n(Creates New Timestamp)"
+                    self.prepare_button["bg"] ="#FF9900"
+                    self.prepare_button["activebackground"] ="#FFCF87"
+                    self.reconfigure_button["state"] = "normal"
+                    self.start_button["state"] = "normal"
+                    self.start_david_adams_button["state"] = "normal"
+                    print("GUI Error: uncaught exception while displaying David Adams only file. There may be something wrong with the David Adams only data.")
+                    print("Uncaught exception in GUI: Error: {} {}\n".format(type(e),e))
+                    traceback.print_tb(e.__traceback__)
+                else:
+                    self.waveform_root_windows.append(win)
+                    self.waveform_root_viewers.append(viewer)
 
     def done_measuring(self,params):
         print("TESTS COMPLETE")
         self.status_label["text"] = "Tests done"
+        self.status_label["fg"] = "#000000"
+        self.status_label["bg"] = self.bkg_color
         self.reset_button["bg"] ="#00CC00"
         self.reset_button["activebackground"] = "#A3CCA3"
         datadir = params["datadir"]
@@ -658,7 +686,7 @@ class GUI_WINDOW(Frame):
         outfilenames = glob.glob(outfileglob)
         print(outfilenames)
         if len(outfilenames) != self.config.NASICS:
-            self.status_label["text"] = "Error: Test output not found. Report to shift leader"
+            self.status_label["text"] = "Error: Test output not found. Copy output to elog"
             self.status_label["fg"] = "#FFFFFF"
             self.status_label["bg"] = "#FF0000"
             return
