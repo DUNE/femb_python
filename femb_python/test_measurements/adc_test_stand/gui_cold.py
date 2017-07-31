@@ -167,12 +167,8 @@ class GUI_WINDOW(Frame):
         # ASIC IDs
         asic_ids = []
         for i in range(self.config.NASICS):
-            try:
-                serial = self.asic_entries[i].get()
-                serial = int(serial)
-                asic_ids.append(serial)
-            except ValueError:
-                return
+            serial = self.asic_entries[i].get()
+            asic_ids.append(serial)
 
         variables = [operator,boardid]+asic_ids
         for var in variables:
