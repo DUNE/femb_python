@@ -43,7 +43,7 @@ matplotlib.rc('ytick',labelsize=8)
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.write_root_tree import WRITE_ROOT_TREE
 
-class TRACE_FFT_ALLCHAN_WINDOW_NEW(Tk.Frame):
+class TRACE_ALLCHAN_WINDOW(Tk.Frame):
   """
   This window displays a live ADC redout
   """
