@@ -46,12 +46,23 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC1_4 = 4
         self.REG_LATCHLOC5_8 = 14
         self.REG_CLKPHASE = 6
+
         self.REG_LATCHLOC1_4_data = 0x6
         self.REG_LATCHLOC5_8_data = 0x0
         self.REG_CLKPHASE_data = 0xfffc0000
+
         self.REG_LATCHLOC1_4_data_1MHz = 0x5
         self.REG_LATCHLOC5_8_data_1MHz = 0x0
         self.REG_CLKPHASE_data_1MHz = 0xffff0000
+
+        self.REG_LATCHLOC1_4_data_cold = 0x6
+        self.REG_LATCHLOC5_8_data_cold = 0x0
+        self.REG_CLKPHASE_data_cold = 0xfffc0000
+
+        self.REG_LATCHLOC1_4_data_1MHz_cold = 0x4
+        self.REG_LATCHLOC5_8_data_1MHz_cold = 0x0
+        self.REG_CLKPHASE_data_1MHz_cold = 0xfffc0001
+
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
 
         ##################################
@@ -77,7 +88,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.NASICS = 1
         self.FUNCGENINTER = Keysight_33600A("/dev/usbtmc1",1)
-        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc0",["CH2","CH1"]) # turn on CH2 first
+        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc0",["CH2","CH3","CH1"]) # turn on CH2 first
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
 
@@ -132,14 +143,46 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             #self.femb.write_reg( 3, 0x81170000) # test pattern on
 
             #Set ADC latch_loc and clock phase
+            latchloc1 = None
+            latchloc5 = None
+            clockphase = None
             if self.SAMPLERATE == 1e6:
-                self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data_1MHz)
-                self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data_1MHz)
-                self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data_1MHz)
+                if self.COLD:
+                    print("Using 1 MHz cold latchloc/clockphase")
+                    latchloc1 = self.REG_LATCHLOC1_4_data_1MHz_cold
+                    latchloc5 = self.REG_LATCHLOC5_8_data_1MHz_cold
+                    clockphase = self.REG_CLKPHASE_data_1MHz_cold
+                else:
+                    print("Using 1 MHz warm latchloc/clockphase")
+                    latchloc1 = self.REG_LATCHLOC1_4_data_1MHz
+                    latchloc5 = self.REG_LATCHLOC5_8_data_1MHz
+                    clockphase = self.REG_CLKPHASE_data_1MHz
             else: # use 2 MHz values
-                self.femb.write_reg( self.REG_LATCHLOC1_4, self.REG_LATCHLOC1_4_data)
-                self.femb.write_reg( self.REG_LATCHLOC5_8, self.REG_LATCHLOC5_8_data)
-                self.femb.write_reg( self.REG_CLKPHASE, self.REG_CLKPHASE_data)
+                if self.COLD:
+                    print("Using 2 MHz cold latchloc/clockphase")
+                    latchloc1 =  self.REG_LATCHLOC1_4_data_cold
+                    latchloc5 =  self.REG_LATCHLOC5_8_data_cold
+                    clockphase =  self.REG_CLKPHASE_data_cold
+                else:
+                    print("Using 2 MHz warm latchloc/clockphase")
+                    latchloc1 = self.REG_LATCHLOC1_4_data
+                    latchloc5 = self.REG_LATCHLOC5_8_data
+                    clockphase = self.REG_CLKPHASE_data
+
+            print("Initializing with Latch Loc: {:#010x} {:#010x} Clock Phase: {:#010x}".format(latchloc1,latchloc5,clockphase))
+            self.femb.write_reg( self.REG_LATCHLOC1_4, latchloc1)
+            self.femb.write_reg( self.REG_LATCHLOC5_8, latchloc5)
+            for iTry in range(5):
+                self.femb.write_reg( self.REG_CLKPHASE, ~clockphase)
+                time.sleep(0.05)
+                self.femb.write_reg( self.REG_CLKPHASE, ~clockphase)
+                time.sleep(0.05)
+                self.femb.write_reg( self.REG_CLKPHASE, clockphase)
+                time.sleep(0.05)
+                self.femb.write_reg( self.REG_CLKPHASE, clockphase)
+                time.sleep(0.05)
+                
+            print("Readback: ",self.getClockStr())
 
             #internal test pulser control
             self.femb.write_reg( 5, 0x00000000)
@@ -349,7 +392,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         alreadySynced = True
         for a in range(0,self.NASICS,1):
             print("FEMB_CONFIG--> Test ADC " + str(a))
-            unsync = self.testUnsync(a)
+            unsync, syncDicts = self.testUnsync(a)
             if unsync != 0:
                 alreadySynced = False
                 print("FEMB_CONFIG--> ADC not synced, try to fix")
@@ -358,13 +401,23 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         latchloc5_8 = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
         clkphase    = self.femb.read_reg ( self.REG_CLKPHASE )
         if self.SAMPLERATE == 1e6:
-            self.REG_LATCHLOC1_4_data_1MHz = latchloc1_4
-            self.REG_LATCHLOC5_8_data_1MHz = latchloc5_8
-            self.REG_CLKPHASE_data_1MHz    = clkphase
+            if self.COLD:
+                self.REG_LATCHLOC1_4_data_1MHz_cold = latchloc1_4
+                self.REG_LATCHLOC5_8_data_1MHz_cold = latchloc5_8
+                self.REG_CLKPHASE_data_1MHz_cold    = clkphase
+            else:
+                self.REG_LATCHLOC1_4_data_1MHz = latchloc1_4
+                self.REG_LATCHLOC5_8_data_1MHz = latchloc5_8
+                self.REG_CLKPHASE_data_1MHz    = clkphase
         else: # 2 MHz
-            self.REG_LATCHLOC1_4_data = latchloc1_4
-            self.REG_LATCHLOC5_8_data = latchloc5_8
-            self.REG_CLKPHASE_data    = clkphase
+            if self.COLD:
+                self.REG_LATCHLOC1_4_data_cold = latchloc1_4
+                self.REG_LATCHLOC5_8_data_cold = latchloc5_8
+                self.REG_CLKPHASE_data_cold    = clkphase
+            else:
+                self.REG_LATCHLOC1_4_data = latchloc1_4
+                self.REG_LATCHLOC5_8_data = latchloc5_8
+                self.REG_CLKPHASE_data    = clkphase
         print("FEMB_CONFIG--> Latch latency {:#010x} {:#010x} Phase: {:#010x}".format(latchloc1_4,
                         latchloc5_8, clkphase))
         self.femb.write_reg ( 3, (reg3&0x7fffffff) )
@@ -372,38 +425,69 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("FEMB_CONFIG--> End sync ADC")
         return not alreadySynced,latchloc1_4,latchloc5_8 ,clkphase
 
-    def testUnsync(self, adc):
+    def testUnsync(self, adc, npackets=10):
         print("Starting testUnsync adc: ",adc)
         adcNum = int(adc)
         if (adcNum < 0 ) or (adcNum > 7 ):
                 print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
                 return
-        
+
         #loop through channels, check test pattern against data
-        badSync = 0
+        syncDataCounts = [{} for i in range(16)] #dict for each channel
         for ch in range(0,16,1):
                 self.selectChannel(adcNum,ch, 1)
                 time.sleep(0.05)                
-                for test in range(0,10,1):
-                        data = self.femb.get_data(1)
-                        #print("test: ",test," data: ",data)
-                        if data == None:
+                data = self.femb.get_data(npackets)
+                if data == None:
+                    continue
+                for samp in data:
+                        if samp == None:
                                 continue
-                        for samp in data[0:(16*1024+1023)]:
-                                if samp == None:
-                                        continue
-                                chNum = ((samp >> 12 ) & 0xF)
-                                sampVal = (samp & 0xFFF)
-                                if sampVal != self.ADC_TESTPATTERN[ch]        :
-                                        badSync = 1 
-                                if badSync == 1:
-                                        break
-                        if badSync == 1:
-                                break
-                if badSync == 1:
-                        break
-        return badSync
-
+                        #chNum = ((samp >> 12 ) & 0xF)
+                        sampVal = (samp & 0xFFF)
+                        if sampVal in syncDataCounts[ch]:
+                            syncDataCounts[ch][sampVal] += 1
+                        else:
+                            syncDataCounts[ch][sampVal] = 1
+        # check jitter
+        badSync = 0
+        maxCodes = [None]*16
+        syncDicts = [{}]*16
+        for ch in range(0,16,1):
+            sampSum = 0
+            maxCode = None
+            nMaxCode = 0
+            for code in syncDataCounts[ch]:
+                nThisCode = syncDataCounts[ch][code]
+                sampSum += nThisCode
+                if nThisCode > nMaxCode:
+                    nMaxCode = nThisCode
+                    maxCode = code
+            maxCodes[ch] = maxCode
+            syncDicts[ch]["maxCode"] = maxCode
+            syncDicts[ch]["nSamplesMaxCode"] = nMaxCode
+            syncDicts[ch]["nSamples"] = sampSum
+            syncDicts[ch]["zeroJitter"] = True
+            if len(syncDataCounts[ch]) > 1:
+                syncDicts[ch]["zeroJitter"] = False
+                badSync = 1
+                diff = sampSum-nMaxCode
+                frac = diff / float(sampSum)
+                print("Sync Error: Jitter for Ch {:2}: {:8.4%} ({:5}/{:5})".format(ch,frac,diff,sampSum))
+        for ch in range(0,16,1):
+            maxCode = maxCodes[ch]
+            correctCode = self.ADC_TESTPATTERN[ch]
+            syncDicts[ch]["data"] = True
+            syncDicts[ch]["maxCodeMatchesExpected"] = True
+            if maxCode is None:
+                syncDicts[ch]["data"] = False
+                badSync = 1
+                print("Sync Error: no data for ch {:2}".format(ch))
+            elif maxCode != correctCode:
+                syncDicts[ch]["maxCodeMatchesExpected"] = True
+                badSync = 1
+                print("Sync Error: mismatch for ch {:2}: expected {:#03x} observed {:#03x}".format(ch,correctCode,maxCode))
+        return badSync, syncDicts
 
     def fixUnsync(self, adc):
         adcNum = int(adc)
@@ -436,6 +520,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.femb.write_reg ( self.REG_CLKPHASE, testPhase )
                 time.sleep(0.01)
                 print("try shift: {} phase: {} testingUnsync...".format(shift,phase))
+                print("     initPHASE: {:#010x}, phase: {:#010x}, testPhase: {:#010x}".format(initPHASE,phase,testPhase))
                 #reset ADC ASIC
                 self.femb.write_reg ( self.REG_ASIC_RESET, 1)
                 time.sleep(0.01)
@@ -444,7 +529,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.femb.write_reg ( self.REG_ASIC_SPIPROG, 1)
                 time.sleep(0.01)
                 #test link
-                unsync = self.testUnsync(adcNum)
+                unsync, syncDicts = self.testUnsync(adcNum)
                 if unsync == 0 :
                     print("FEMB_CONFIG--> ADC synchronized")
                     return
@@ -594,3 +679,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def programFirmware2Mhz(self):
         self.programFirmware(self.FIRMWAREPATH2MHZ)
         self.SAMPLERATE = 2e6
+
+    def getClockStr(self):
+        latchloc1 = self.femb.read_reg(self.REG_LATCHLOC1_4)
+        latchloc5 = self.femb.read_reg(self.REG_LATCHLOC5_8)
+        clkphase = self.femb.read_reg(self.REG_CLKPHASE)
+        if latchloc1 is None:
+            return "Register Read Error"
+        if latchloc5 is None:
+            return "Register Read Error"
+        if clkphase is None:
+            return "Register Read Error"
+        return "Latch Loc: {:#010x} {:#010x} Clock Phase: {:#010x}".format(latchloc1,latchloc5,clkphase)

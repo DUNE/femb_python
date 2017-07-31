@@ -9,7 +9,6 @@ It maintains a state over a test sequence.
 '''
 
 from femb_python import runpolicy
-import time
 
 class Test(object):
     def __init__(self, **params):
@@ -82,16 +81,31 @@ def main(**params):
             #for g in range(2,3):
                 params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
                                     datasubdir="fembTest_gainenc_test_g"+str(g)+"_s"+str(s)+"_"+pulser_text[i], 
-                                    outlabel="fembTest_gainenc_test_"+pulser_text[i], gain=g, shape=s, base=0, useInternalPulser=pulser_setting[i])
+                                    outlabel="fembTest_gainenc_test_"+pulser_text[i],
+                                    gain=g, shape=s, base=0, useInternalPulser=pulser_setting[i])
                 tests.append( Test(**params_test) )
         i+=1
+
+    #Test with internal clocks
+    params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
+                        datasubdir="fembTest_gainenc_test_g2_s2_extpulse_intclock", 
+                        outlabel="fembTest_gainenc_test_g2_s2_extpulse_intclock", 
+                        gain=2, shape=2, base=0, useInternalPulser=False, useExtAdcClock=False)
+    tests.append ( Test(**params_test) )
 
     #Current Measurement
     params_test_current = dict(params)
     params_test_current.update( executable="femb_check_current", argstr="{paramfile}",
                                 datasubdir="fembTest_check_current_test",
                                 outlabel="fembTest_check_current_test")
-    tests.append( Test(**params_test_current) )    
+    tests.append( Test(**params_test_current) )
+
+    #Summarize Results
+    params_summary = dict(params)
+    params_summary.update( executable="femb_test_summary", argstr="{paramfile}",
+                           datasubdir="fembTest_summary",
+                           outlabel="fembTest_summary")
+    tests.append( Test(**params_summary) )
 
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)

@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import ROOT
 from ...configuration.config_base import InitBoardError, SyncADCError, ConfigADCError, ReadRegError
 
-def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,timestamp=None,sumatradict=None):
+def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,timestamp=None,power_cycle=True,iTry=None,sumatradict=None):
     """
     Sets up the ADC board
 
@@ -31,14 +31,19 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
     operator is the operator user name string
     board_id is the ID number of the test board
     hostname is the current computer name
+    iTry is the iTry number
+    power_cycle is a bool
     sumatradict is a dictionary of options that will be written to the summary json
 
     returns a list of bools whether an asic passed the tests. The list
         corresponds to the input serial number list.  
     """
 
-    nSyncConfigTries = 5
-    outfilename = "adcSetup_{}.json".format(startDateTime)
+    nSyncConfigTries = 3
+    filesuffix = ""
+    if not (iTry is None):
+        filesuffix = "_try{}".format(iTry)
+    outfilename = "adcSetup_{}{}.json".format(startDateTime,filesuffix)
     outfilename = os.path.join(dataDir,outfilename)
     result = {
                 "serials":adcSerialNumbers,
@@ -56,7 +61,8 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
     result["successfulSyncConfigs"] = None
     result["nSyncConfigTries"] = nSyncConfigTries
     with open(outfilename,"w") as outfile:
-        config.POWERSUPPLYINTER.on()
+        if power_cycle:
+            config.POWERSUPPLYINTER.on()
         time.sleep(1)
         config.resetBoard()
         try:
@@ -66,52 +72,30 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
             result["init"] = False;
             result["readReg"] = False;
             json.dump(result,outfile)
-            config.POWERSUPPLYINTER.off()
+            #if power_cycle:
+            #    config.POWERSUPPLYINTER.off()
             return
         except InitBoardError:
             print("Board/chip Failure: couldn't initialize board.")
             result["init"] = False;
             json.dump(result,outfile)
-            config.POWERSUPPLYINTER.off()
+            #if power_cycle:
+            #    config.POWERSUPPLYINTER.off()
             return
         except ConfigADCError:
             print("Board/chip Failure: couldn't write ADC SPI.")
             result["init"] = False;
             result["configADC"] = False;
             json.dump(result,outfile)
-            config.POWERSUPPLYINTER.off()
+            #if power_cycle:
+            #    config.POWERSUPPLYINTER.off()
             return
         else:
             result["init"] = True;
             result["configADC"] = True;
             result["readReg"] = True;
         for i in range(nSyncConfigTries):
-            print("{} try at sync and ADC config".format(i))
-            #config.syncADC()
-            try:
-                reg3 = config.femb.read_reg (3)
-                newReg3 = ( reg3 | 0x80000000 )
-                config.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
-                time.sleep(0.1)                
-
-                for iASIC in range(config.NASICS):
-                    badSync = config.testUnsync(iASIC)
-                    if badSync:
-                        print("Failed to sync ADC ASIC {}".format(iASIC))
-                        result["sync"] = False;
-                        json.dump(result,outfile)
-                        config.POWERSUPPLYINTER.off()
-                        return
-
-                config.femb.write_reg ( 3, (reg3&0x7fffffff) )
-                config.femb.write_reg ( 3, (reg3&0x7fffffff) )
-            except Exception as e:
-                print("Error Unhandled excption during testSync. ",e)
-                result["sync"] = False;
-                result["successfulSyncConfigs"] = i
-                json.dump(result,outfile)
-                config.POWERSUPPLYINTER.off()
-                return
+            print("{} try at ADC config and short sync check".format(i))
             try:
                 config.configAdcAsic()
             except ConfigADCError:
@@ -119,16 +103,73 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                 result["configADC"] = False;
                 result["successfulSyncConfigs"] = i
                 json.dump(result,outfile)
-                config.POWERSUPPLYINTER.off()
+                #if power_cycle:
+                #    config.POWERSUPPLYINTER.off()
                 return
             except Exception as e:
                 print("Error Unhandled excption during config. ",e)
                 result["configADC"] = False;
                 result["successfulSyncConfigs"] = i
                 json.dump(result,outfile)
-                config.POWERSUPPLYINTER.off()
+                #if power_cycle:
+                #    config.POWERSUPPLYINTER.off()
                 return
-        result["successfulSyncConfigs"] = nSyncConfigTries
+            try:
+                reg3 = config.femb.read_reg (3)
+                newReg3 = ( reg3 | 0x80000000 )
+                config.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
+                time.sleep(0.1)                
+
+                for iASIC in range(config.NASICS):
+                    badSync, syncDicts = config.testUnsync(iASIC,npackets=5)
+                    result["syncDetails"] = syncDicts
+                    if badSync:
+                        print("Failed to sync ADC ASIC {} with {}".format(iASIC,config.getClockStr()))
+                        print("Trying to sync...")
+                        config.syncADC()
+                        print("after sync readback: ",config.getClockStr())
+                        result["sync"] = False;
+                        json.dump(result,outfile)
+                        #if power_cycle:
+                        #    config.POWERSUPPLYINTER.off()
+                        return
+
+                config.femb.write_reg ( 3, (reg3&0x7fffffff) )
+                config.femb.write_reg ( 3, (reg3&0x7fffffff) )
+            except Exception as e:
+                print("Error Unhandled excption during short sync test. ",e)
+                result["sync"] = False;
+                result["successfulSyncConfigs"] = i
+                json.dump(result,outfile)
+                #if power_cycle:
+                #    config.POWERSUPPLYINTER.off()
+                return
+        result["successfulConfigSyncs"] = nSyncConfigTries
+        try:
+            print("long sync check...")
+            reg3 = config.femb.read_reg (3)
+            newReg3 = ( reg3 | 0x80000000 )
+            config.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
+            time.sleep(0.1)                
+            for iASIC in range(config.NASICS):
+                badSync, syncDicts = config.testUnsync(iASIC,npackets=100)
+                result["syncDetails"] = syncDicts
+                if badSync:
+                    print("Failed long sync test ADC ASIC {} with {}".format(iASIC,config.getClockStr()))
+                    result["sync"] = False;
+                    json.dump(result,outfile)
+                    #if power_cycle:
+                    #    config.POWERSUPPLYINTER.off()
+                    return
+            config.femb.write_reg ( 3, (reg3&0x7fffffff) )
+            config.femb.write_reg ( 3, (reg3&0x7fffffff) )
+        except Exception as e:
+            print("Error Unhandled excption during long sync test. ",e)
+            result["sync"] = False;
+            json.dump(result,outfile)
+            #if power_cycle:
+            #    config.POWERSUPPLYINTER.off()
+            return
         result["sync"] = True;
         print("Successfully setup board.")
         result["pass"] = True;
@@ -160,6 +201,9 @@ def main():
     boardid = args.board
     serialNumbers = args.serial
     dataDir = args.datadir
+    cold = config.COLD
+    power_cycle = True
+    iTry = None
 
     options = None
 
@@ -173,26 +217,27 @@ def main():
                 boardid = options["board_id"]
                 serialNumbers = options["serials"]
                 dataDir = options["datadir"]
+                cold = options["cold"]
+                power_cycle = options["power_cycle"]
+                iTry = options["iTry"]
             except KeyError as e:
                 print("Error while parsing json input options: ",e)
                 sys.exit(1)
+
+    config.COLD = cold
 
     if len(serialNumbers) == 0:
         serialNumbers = list(range(-1,-(config.NASICS+1),-1))
     elif len(serialNumbers) != config.NASICS:
         print("Error: number of serial numbers ({}) doesn't equal number of ASICs in configuration ({}), exiting.".format(len(serialNumbers),config.NASICS))
         sys.exit(1)
-    try:
-        serialNumbers = [int(i) for i in serialNumbers]
-    except ValueError as e:
-        print("Error, serial number must be an int: ",e)
-        sys.exit(1)
 
     try:
-        chipsPass = setup_board(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,sumatradict=options)
+        chipsPass = setup_board(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,power_cycle=power_cycle,iTry=iTry,sumatradict=options)
     except Exception as e:
         print("Uncaught exception in setup_board. Traceback in stderr.")
         sys.stderr.write("Uncaught exception in setup_board: Error: {} {}\n".format(type(e),e))
         traceback.print_tb(e.__traceback__)
-        config.POWERSUPPLYINTER.off()
+        #if power_cycle:
+        #    config.POWERSUPPLYINTER.off()
         sys.exit(1)

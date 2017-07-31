@@ -10,6 +10,3 @@ class FEMB_CONFIG(adcTest_P1single_hothdaq4.FEMB_CONFIG):
     def __init__(self,exitOnError=True):
         super().__init__(exitOnError=exitOnError)
         self.COLD = True
-        self.REG_LATCHLOC1_4_data_1MHz = 0x4
-        self.REG_LATCHLOC5_8_data_1MHz = 0x0
-        self.REG_CLKPHASE_data_1MHz = 0xfffc0001

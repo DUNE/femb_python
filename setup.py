@@ -84,7 +84,8 @@ setup(
 	'configparser>=3.5.0',
         'sumatra>=0.5.1',
         'gitpython>=2.1.3',
-        'psycopg2>=2.7.1'
+        'psycopg2>=2.7.1',
+        'fpdf>=1.7.1'
     ],
 
     # List additional groups of dependencies here (e.g. development
@@ -185,6 +186,7 @@ setup(
             'femb_test_gainenc=femb_python.test_measurements.fembTest.code.doFembTest_gainMeasurement:main',
             'femb_power_cycle_test=femb_python.test_measurements.fembTest.code.femb_power_cycle_test:main',
             'femb_check_current=femb_python.test_measurements.fembTest.code.femb_check_current:main',
+            'femb_test_summary=femb_python.test_measurements.fembTest.code.femb_test_summary:main',
             'femb_prod_gui=femb_python.test_measurements.fembTest.gui:main',
 
             # what the shifters run:

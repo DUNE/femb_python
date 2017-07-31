@@ -29,7 +29,7 @@ class COLLECT_DATA(object):
         self.maxTries = 1000
         self.nBits = 12
 
-    def getData(self,outPrefix,iChip,adcSerial=-1,adcOffset=-2,adcClock=-1,sampleRate=-1,longRamp=False,longRampOnly=False):
+    def getData(self,outPrefix,iChip,adcSerial=-1,adcOffset=-2,adcClock=-1,sampleRate=-1,longRamp=False,longRampOnly=False,outSuffix=""):
         """
         Creates data files starting with outPrefix for iChip for ramp and sin inputs
         """
@@ -42,17 +42,17 @@ class COLLECT_DATA(object):
         amplitudeV = (xHigh - xLow)*0.5
         ## Created functions to ease profiling
         if longRamp or longRampOnly:
-            self.getRamp(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,xLow,xHigh,amplitudeV,offsetV,longRamp=True)
+            self.getRamp(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,xLow,xHigh,amplitudeV,offsetV,longRamp=True,outSuffix=outSuffix)
         if longRampOnly:
             self.funcgen.stop()
             return
-        self.getRamp(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,xLow,xHigh,amplitudeV,offsetV)
-        self.getDC(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate)
+        self.getRamp(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,xLow,xHigh,amplitudeV,offsetV,outSuffix=outSuffix)
+        self.getDC(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,outSuffix=outSuffix)
         amplitudeV *= 0.6
-        self.getSin(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,amplitudeV,offsetV)
+        self.getSin(outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,amplitudeV,offsetV,outSuffix=outSuffix)
         self.funcgen.stop()
 
-    def getRamp(self,outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,xLow,xHigh,amplitudeV,offsetV,longRamp=False):
+    def getRamp(self,outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,xLow,xHigh,amplitudeV,offsetV,longRamp=False,outSuffix=""):
         freq = 734
         nPackets = 100
         if longRamp:
@@ -60,15 +60,15 @@ class COLLECT_DATA(object):
             nPackets = 7000
         self.funcgen.startRamp(freq,xLow,xHigh)
         time.sleep(self.settlingTime)
-        self.dumpWaveformRootFile(iChip,outPrefix,3,freq,offsetV,amplitudeV,nPackets,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate)
+        self.dumpWaveformRootFile(iChip,outPrefix,3,freq,offsetV,amplitudeV,nPackets,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate,outSuffix=outSuffix)
 
-    def getDC(self,outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate):
+    def getDC(self,outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,outSuffix=""):
         for dc in [0.2,0.5,1.,1.6]:
           self.funcgen.startDC(dc)
           time.sleep(self.settlingTime)
-          self.dumpWaveformRootFile(iChip,outPrefix,1,0.,dc,0.,10,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate)
+          self.dumpWaveformRootFile(iChip,outPrefix,1,0.,dc,0.,10,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate,outSuffix=outSuffix)
 
-    def getSin(self,outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,amplitudeV,offsetV):
+    def getSin(self,outPrefix,iChip,adcSerial,adcOffset,adcClock,sampleRate,amplitudeV,offsetV,outSuffix=""):
         freqList = [6.2365e4,4.83587e5,9.515125e5]
         for freq in freqList:
           if sampleRate > 0.:
@@ -76,10 +76,11 @@ class COLLECT_DATA(object):
                 continue
           self.funcgen.startSin(freq,amplitudeV,offsetV)
           time.sleep(self.settlingTime)
-          self.dumpWaveformRootFile(iChip,outPrefix,2,freq,offsetV,amplitudeV,100,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate)
+          self.dumpWaveformRootFile(iChip,outPrefix,2,freq,offsetV,amplitudeV,100,adcSerial=adcSerial,adcOffset=adcOffset,adcClock=adcClock,sampleRate=sampleRate,outSuffix=outSuffix)
 
-    def dumpWaveformRootFile(self,iChip,fileprefix,functype,freq,offsetV,amplitudeV,nPackets=None,adcSerial=-1,adcOffset=-2,adcClock=-1,sampleRate=-1):
-        filename = "{}_functype{}_freq{:.3f}_offset{:.3f}_amplitude{:.3f}.root".format(fileprefix,functype,freq,offsetV,amplitudeV)
+    def dumpWaveformRootFile(self,iChip,fileprefix,functype,freq,offsetV,amplitudeV,nPackets=None,adcSerial=-1,adcOffset=-2,adcClock=-1,sampleRate=-1,outSuffix=""):
+        print("outSuffix:",outSuffix)
+        filename = "{}_functype{}_freq{:.3f}_offset{:.3f}_amplitude{:.3f}{}.root".format(fileprefix,functype,freq,offsetV,amplitudeV,outSuffix)
         if not nPackets:
           nPackets = 100
         wrt = WRITE_ROOT_TREE(self.config,iChip,filename,nPackets)

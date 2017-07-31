@@ -24,7 +24,7 @@ import ROOT
 from .collect_data import COLLECT_DATA 
 from ...configuration.config_base import FEMBConfigError
 
-def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,quick=False,timestamp=None,sumatradict=None):
+def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,timestamp=None,sumatradict=None,iTry=1):
     """
     Runs the ADC tests for all chips on the ADC test board.
 
@@ -35,7 +35,6 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     operator is the operator user name string
     board_id is the ID number of the test board
     hostname is the current computer name
-    quick is a boolean. If True only test the ASICS with no offset current. If False test 
         all offset current settings settings.
     sumatradict is a dictionary of options that will be written to the summary json
 
@@ -50,17 +49,18 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
     offset = -1
 
     for iChip in range(config.NASICS):
-        print("Collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} ...".format(sampleRate, clock, offset, iChip))
+        print("Collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} try: {}...".format(sampleRate, clock, offset, iChip,iTry))
         sys.stdout.flush()
         sys.stderr.flush()
         chipStats = {}
         fileprefix = "adcDavidAdamsOnlyData_{}_chip{}_adcClock{}_adcOffset{}_sampleRate{}".format(startDateTime,adcSerialNumbers[iChip],clock,offset,sampleRate)
         fileprefix = os.path.join(dataDir,fileprefix)
+        filesuffix = "_try{}".format(iTry)
         try:
-            collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate,longRampOnly=True)
+            collect_data.getData(fileprefix,iChip,adcClock=clock,adcOffset=offset,adcSerial=adcSerialNumbers[iChip],sampleRate=sampleRate,longRampOnly=True,outSuffix=filesuffix)
         except Exception as e:
             print("Error while collecting David Adams data, traceback in stderr.")
-            sys.stderr.write("Error collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} Error: {} {}\n".format(sampleRate, clock, offset, iChip,type(e),e))
+            sys.stderr.write("Error collecting David Adams data for sample rate: {} clock: {} offset: {} chip: {} try: {} Error: {} {}\n".format(sampleRate, clock, offset, iChip, iTry, type(e),e))
             traceback.print_tb(e.__traceback__)
             continue
 
@@ -93,6 +93,7 @@ def main():
     boardid = args.board
     serialNumbers = args.serial
     dataDir = args.datadir
+    iTry = 1
 
     options = None
 
@@ -106,6 +107,7 @@ def main():
                 boardid = options["board_id"]
                 serialNumbers = options["serials"]
                 dataDir = options["datadir"]
+                iTry = options["iTry"]
             except KeyError as e:
                 print("Error while parsing json input options: ",e)
                 sys.exit(1)
@@ -115,26 +117,19 @@ def main():
     elif len(serialNumbers) != config.NASICS:
         print("Error: number of serial numbers ({}) doesn't equal number of ASICs in configuration ({}), exiting.".format(len(serialNumbers),config.NASICS))
         sys.exit(1)
-    try:
-        serialNumbers = [int(i) for i in serialNumbers]
-    except ValueError as e:
-        print("Error, serial number must be an int: ",e)
-        sys.exit(1)
 
     try:
         if args.profiler:
             import cProfile
-            cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,quick=quick,sumatradict=options)',globals(),locals(),args.profiler)
+            cProfile.runctx('chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,sumatradict=options,iTry=iTry)',globals(),locals(),args.profiler)
         else:
-            chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,quick=quick,sumatradict=options)
+            chipsPass = runTests(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,sumatradict=options,iTry=iTry)
     except Exception as e:
         print("Uncaught exception in runTests. Traceback in stderr.")
         sys.stderr.write("Uncaught exception in runTests: Error: {} {}\n".format(type(e),e))
         traceback.print_tb(e.__traceback__)
-        config.POWERSUPPLYINTER.off()
         sys.exit(1)
     else:
-        config.POWERSUPPLYINTER.off()
         runTime = datetime.datetime.now() - startTime
         print("Test took: {:.0f} min {:.1f} s".format(runTime.total_seconds() // 60, runTime.total_seconds() % 60.))
         print("Chips Pass: ",chipsPass)

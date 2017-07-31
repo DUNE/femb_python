@@ -102,7 +102,7 @@ class WRITE_ROOT_TREE(object):
         #define metadata
         _date = array( 'L' , [self.date] )
         _iChip = array( 'L' , [self.iChip] )
-        _adcSerial = array( 'l' , [self.adcSerial] )
+        _adcSerial = ROOT.std.string(self.adcSerial)
         _feSerial = array( 'l' , [self.feSerial] )
         _runidMSB = array( 'L', [self.runidMSB] )
         _runidLSB = array( 'L', [self.runidLSB] )
@@ -126,7 +126,7 @@ class WRITE_ROOT_TREE(object):
         metatree = ROOT.TTree( self.metaname, 'metadata' )
         metatree.Branch( 'date', _date, 'date/l')
         metatree.Branch( 'iChip', _iChip, 'iChip/l')
-        metatree.Branch( 'adcSerial', _adcSerial, 'adcSerial/L')
+        metatree.Branch( 'adcSerial', _adcSerial)
         metatree.Branch( 'feSerial', _feSerial, 'feSerial/L')
         metatree.Branch( 'runidMSB', _runidMSB, 'runidMSB/l')
         metatree.Branch( 'runidLSB', _runidLSB, 'runidLSB/l')

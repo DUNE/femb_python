@@ -107,52 +107,30 @@ class FEMB_CHECK_CURRENT(object):
                 i = 0
                 for val in result:
                     val1 = ((val >> 16) & 0xFFFF)
-                    print("val1 good? ", val, val1, val1>>15)
-                    if (val1 >> 15 == 1):
-                        v1 = val1 & 0x3FF
-                    else:
-                        v1 = -9999
-                
                     val2 = (val & 0xFFFF)
-                    print("val2 good? ", val, val2, val2>>15)                    
-                    if (val2 >> 15 == 1):
-                        v2 = val2 & 0x3FF
-                    else:
-                        v1 = -9999
 
                     if i==0:
-                        if (v1 != -9999):
-                            vcc0 = v1*305.18e-6 + 2.5
-                        else:
-                            vcc0 = -9999
+                        v1 = val1 & 0x3FFF 
+                        vcc0 = v1*305.18e-6 + 2.5
                         self.fullresults_current[key+"_femb"+str(jfemb)+"_vcc0"] = vcc0
-                        if (v2 != -9999):
-                            temp0 = v2*0.0625
-                        else:
-                            temp0 = -9999
+                        v2 = val2 & 0x3FFF
+                        temp0 = v2*0.0625
                         self.fullresults_current[key+"_femb"+str(jfemb)+"_temp0"] = temp0
                     elif i==1:
-                        if (v1 != -9999):
-                            vcc1 = v1*305.18e-6 + 2.5
-                        else:
-                            vcc1 = -9999
+                        v1 = val1 & 0x3FFF                             
+                        vcc1 = v1*305.18e-6 + 2.5
                         self.fullresults_current[key+"_femb"+str(jfemb)+"_vcc1"] = vcc1
-                        if (v2 != -9999):
-                            temp1 = v2*0.0625
-                        else:
-                            temp1 = -9999
+                        v2 = val2 & 0x3FFF
+                        temp1 = v2*0.0625
                         self.fullresults_current[key+"_femb"+str(jfemb)+"_temp1"] = temp1
                     else:
-                        if (v1 != -9999):
-                            vi = v1*305.18e-6
-                        else:
-                            vi = -9999
-                        print(i, jfemb, v1, vi)
+                        v1 = val1 & 0x3FFF
+                        vi = v1*305.18e-6
                         self.fullresults_current[key+"_femb"+str(jfemb)+"_v"+str(i-1)] = vi
-                        if (v2 != -9999):
-                            ii = v2*19.075e-6/rsense
-                        else:
-                            ii = -9999
+                        v2 = val2 & 0x3FFF
+                        ii = v2*19.075e-6/rsense
+                        if ii>3.1:
+                            ii=0
                         self.fullresults_current[key+"_femb"+str(jfemb)+"_i"+str(i-1)] =ii
                     i+=1
                 jfemb += 1
@@ -209,7 +187,7 @@ def main():
         currentTest.check_setup()
         for ifemb in wibslots:
             currentTest.record_data(str(ifemb))
-        currentTest.record_data("all",wibslots)
+        #currentTest.record_data("all",wibslots)
         currentTest.record_data("off")
         currentTest.do_analysis()
         currentTest.archive_results()

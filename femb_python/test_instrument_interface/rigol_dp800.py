@@ -22,22 +22,26 @@ class RigolDP800(object):
     Interface to Rigol DP800 Power Supply
     """
 
-    def __init__(self,filename,channelNumbers):
+    def __init__(self,filename,channelNumbers,pauseBetweenChannels=2.):
         """
         filename is a the path to a usbtmc object like /dev/usbtmc0.
 
         channelNumbers is a list of
         the channels to turn on e.g. ["CH1","CH2","CH3"]. All three channels
         are turned off no matter what POWERSUPPLYCHANNELS is set to.
+
+        pauseBetweenChannels is the amount of time in seconds to pause
+            between turning on or off each channel in the list
         """
 
         self.filename = filename
+        self.pauseBetweenChannels = pauseBetweenChannels
         print("Using Rigol DP800 at {}".format(self.filename))
         if type(channelNumbers) != list:
             print("Error: RigolDP800 channelNumbers argument is not list: '{}', exiting.".format(channelNumbers))
             sys.exit(1)
         self.channels = channelNumbers
-        print("Configured to turn on these power supply channels: {}".format(self.channels))
+        print("Configured to turn on these power supply channels: {} pausing {} s between".format(self.channels,self.pauseBetweenChannels))
 
     def writeCommand(self,command):
         """
@@ -57,8 +61,11 @@ class RigolDP800(object):
         """
         print("Turning on power!")
         time.sleep(0.05)
-        for channel in self.channels:
+        for iChan, channel in enumerate(self.channels):
             self.writeCommand("OUTPut {},ON".format(channel))
+            if iChan < len(self.channels)-1:
+                #print("Waiting between channels...")
+                time.sleep(self.pauseBetweenChannels)
         time.sleep(0.05)
 
     def off(self):
@@ -66,6 +73,12 @@ class RigolDP800(object):
         Turns off all channels
         """
         print("Turning off power!")
+        time.sleep(0.05)
+        for iChan, channel in enumerate(reversed(self.channels)):
+            self.writeCommand("OUTPut {},OFF".format(channel))
+            if iChan < len(self.channels)-1:
+                #print("Waiting between channels...")
+                time.sleep(self.pauseBetweenChannels)
         time.sleep(0.05)
         self.writeCommand("OUTPut CH1,OFF")
         self.writeCommand("OUTPut CH2,OFF")
