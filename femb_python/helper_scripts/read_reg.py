@@ -24,4 +24,4 @@ def main():
   if val is None:
     print("Error reading register")
   else:
-    print("register {0} read: {1:#010x} = {1:#034b} = {1:10}".format(regVal,val,val))
+    print("register {0:4} read: {1:#010x} = {1:#034b} = {1:10}".format(regVal,val,val))
