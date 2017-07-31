@@ -12,9 +12,6 @@ This module contains a class that displays a live ADC readout and its FFT for al
 
 Configurations handled elsewhere.
 
-TODO: a lot of overlap with trace_fft_window.py --> should refer to the copied
-functions from this file, so that any changes there are automatically imported here
-
 """
 from __future__ import division
 from __future__ import unicode_literals
@@ -177,8 +174,6 @@ class TRACE_FFT_ALLCHAN_WINDOW_NEW(Tk.Frame):
     Gets trace from FEMB and returns 4 1D arrays:
         times, ADC counts
     """
-    Yfft_total = []
-    first = 1
     data = None
     timestamp = None
     if iTrace is None:
