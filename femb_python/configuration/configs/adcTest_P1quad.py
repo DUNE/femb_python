@@ -38,6 +38,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_RESET = 0 # bit 0 system, 1 reg, 2 alg, 3 udp
         self.REG_PWR_CTRL = 1  # bit 0-3 pwr, 8-15 blue LEDs near buttons
         self.REG_ASIC_SPIPROG_RESET = 2 # bit 0 FE SPI, 1 ADC SPI, 4 FE ASIC RESET, 5 ADC ASIC RESET, 6 SOFT ADC RESET & SPI readback check
+        # I zero out REG_ASIC_SPIPROG_RESET a lot because only transitions from 0 to 1 do anything
         self.REG_SEL_CH = 3 # bit 0-7 chip, 8-15 channel, 31 WIB mode
 
         self.REG_DAC1 = 4 # bit 0-15 DAC val, 16-19 tp mode select, 31 set dac
@@ -47,7 +48,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_ADC_CLK = 7 # bit 0-3 clk phase, 8 clk speed sel
         self.REG_LATCHLOC = 8 # bit 0-7 ADC1, 8-15 ADC2, 16-23 ADC3, 24-31 ADC4
 
-        self.REG_STOP_ADC = 9 # header check + busy check
+        self.REG_STOP_ADC = 9 # bit 0 stops sending convert, read redundant with reg 2
 
         self.REG_UDP_FRAME_SIZE = 63 # bits 0-11
         self.REG_FIRMWARE_VERSION = 0xFF # 255 in decimal
@@ -133,83 +134,81 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         for iRetry in range(nRetries):
 
             #Reset ASICs
+            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
             self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x30) # reset FE and ADC
             self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
             time.sleep(0.1)
 
-            #Set ADC test pattern register
-            self.femb.write_reg(self.REG_ADC_TST_PATT, self.DEFAULT_TST_PATERN) # test pattern off
-            #self.femb.write_reg(self.REG_ADC_TST_PATT, self.DEFAULT_TST_PATERN+(1 << 16)) # test pattern on
-            #Set ADC latch_loc and clock phase and sample rate
-            if self.SAMPLERATE == 1e6:
-                if self.COLD:
-                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_1MHz_cold)
-                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz_cold & 0xF) | (1 << 8))
-                else:
-                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_1MHz)
-                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz & 0xF) | (1 << 8))
-            else: # use 2 MHz values
-                if self.COLD:
-                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz_cold)
-                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz_cold & 0xF))
-                else:
-                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz)
-                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF))
-            self.writePLLs(0,0x20001,0)
-
-            self.setFPGADac(0,0,0,0)
+#            #Set ADC test pattern register
+#            self.femb.write_reg(self.REG_ADC_TST_PATT, self.DEFAULT_TST_PATERN) # test pattern off
+#            #self.femb.write_reg(self.REG_ADC_TST_PATT, self.DEFAULT_TST_PATERN+(1 << 16)) # test pattern on
+#            #Set ADC latch_loc and clock phase and sample rate
+#            if self.SAMPLERATE == 1e6:
+#                if self.COLD:
+#                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_1MHz_cold)
+#                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz_cold & 0xF) | (1 << 8))
+#                else:
+#                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_1MHz)
+#                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz & 0xF) | (1 << 8))
+#            else: # use 2 MHz values
+#                if self.COLD:
+#                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz_cold)
+#                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz_cold & 0xF))
+#                else:
+#                    self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz)
+#                    self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF))
+#            self.writePLLs(0,0x20001,0)
+#
+#            self.setFPGADac(0,0,0,0)
 
             #Configure ADC (and external clock inside)
             try:
-                ##self.femb.write_reg(self.REG_FESPI_BASE,1)
-                ##self.adc_regs[0].set_chip(frqc=1)
-                #regsListOfLists = []
-                #for chipRegConfig in self.adc_regs:
-                #    #chipRegConfig.set_chip(frqc=1)
-                #    regsListOfLists.append(chipRegConfig.REGS)
-                #self.configAdcAsic_regs(regsListOfLists)
+#                self.femb.write_reg(self.REG_FESPI_BASE,1)
+                #self.adc_regs[0].set_chip(frqc=1)
+                regsListOfLists = []
+                for chipRegConfig in self.adc_regs:
+#                    chipRegConfig.set_chip(frqc=1)
+                    regsListOfLists.append(chipRegConfig.REGS)
+                self.configAdcAsic_regs(regsListOfLists)
 
-                self.configAdcAsic()
+                #self.configAdcAsic()
                 #self.configAdcAsic(clockMonostable=True)
             except ReadRegError:
                 continue
-            print("Header & Busy Check: {0:#010x} = {0:#034b}".format(self.femb.read_reg(self.REG_STOP_ADC)))
 
-            print("ADC Soft Reset...")
-            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 1 << 6) # ADC soft reset
-            time.sleep(0.1)
-            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
-            time.sleep(0.1)
-
-            self.printSyncRegister()
-            print("Header & Busy Check: {0:#010x} = {0:#034b}".format(self.femb.read_reg(self.REG_STOP_ADC)))
-
-            print("Set packed readout mode...")
-            self.selectChannel(0,0,hsmode=0) # packed many channels
-            #print("Set readout channel 0 0")
-            #self.selectChannel(0,0) # single channel
-
-            time.sleep(0.1)
-            self.printSyncRegister()
-            print("Header & Busy Check: {0:#010x} = {0:#034b}".format(self.femb.read_reg(self.REG_STOP_ADC)))
-            time.sleep(0.1)
-            print("Stop ADC...")
-            self.femb.write_reg(self.REG_STOP_ADC,1)
-            time.sleep(0.1)
-            print("Header & Busy Check: {0:#010x} = {0:#034b}".format(self.femb.read_reg(self.REG_STOP_ADC)))
-            time.sleep(0.1)
-            print("Start ADC...")
-            self.femb.write_reg(self.REG_STOP_ADC,0)
-            time.sleep(0.1)
-            print("Header & Busy Check: {0:#010x} = {0:#034b}".format(self.femb.read_reg(self.REG_STOP_ADC)))
-            time.sleep(0.1)
-
-            # Check that board streams data
-            data = self.femb.get_data(1)
-            if data == None:
-                print("Board not streaming data, retrying initialization...")
-                continue # try initializing again
-            print("FEMB_CONFIG--> Reset FEMB is DONE")
+#            print("ADC Soft Reset...")
+#            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 1 << 6) # ADC soft reset
+#            time.sleep(0.1)
+#            self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
+#            time.sleep(0.1)
+#
+#            self.printSyncRegister()
+#
+#            print("Set packed readout mode...")
+#            self.selectChannel(0,0,hsmode=0) # packed many channels
+#            #print("Set readout channel 0 0")
+#            #self.selectChannel(0,0) # single channel
+#
+#            time.sleep(0.1)
+#            self.printSyncRegister()
+#            time.sleep(0.1)
+#            print("Stop ADC...")
+#            self.femb.write_reg(self.REG_STOP_ADC,1)
+#            time.sleep(0.1)
+#            self.printSyncRegister()
+#            time.sleep(0.1)
+#            print("Start ADC...")
+#            self.femb.write_reg(self.REG_STOP_ADC,0)
+#            time.sleep(0.1)
+#            self.printSyncRegister()
+#            time.sleep(0.1)
+#
+#            # Check that board streams data
+#            data = self.femb.get_data(1)
+#            if data == None:
+#                print("Board not streaming data, retrying initialization...")
+#                continue # try initializing again
+#            print("FEMB_CONFIG--> Reset FEMB is DONE")
             return
         print("Error: Board not streaming data after trying to initialize {} times.".format(nRetries))
         if self.exitOnError:
@@ -226,21 +225,50 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         assert(type(Adcasic_regs)==list)
         assert(len(Adcasic_regs)==self.NASICS)
         print("FEMB_CONFIG--> Config ADC ASIC SPI")
-        for iChip, chipRegs in enumerate(Adcasic_regs):
-            assert(len(chipRegs)==5)
-            for iReg in range(5):
-                self.femb.write_reg(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg])
-                print("{:3}  {:#010x}".format(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg]))
-                time.sleep(0.05)
-        
-        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
-        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,3)
-        time.sleep(0.1)
-        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,2)
-        time.sleep(0.1)
-        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+        for iTry in range(2):
+            print("  Try at writing SPI: ",iTry+1)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+            for iChip, chipRegs in enumerate(Adcasic_regs):
+                assert(len(chipRegs)==5)
+                for iReg in range(5):
+                    self.femb.write_reg(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg])
+                    print("{:3}  {:#010x}".format(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg]))
+                    time.sleep(0.05)
+            
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,3)
+            time.sleep(0.1)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,2)
+            time.sleep(0.1)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
 
-        self.printSyncRegister()
+            self.printSyncRegister()
+
+    def printSyncRegister(self):
+        reg = self.femb.read_reg(self.REG_ASIC_SPIPROG_RESET)
+        if reg is None:
+            print("Error: can't read back sync register")
+            if self.exitOnError:
+                return
+            else:
+                raise ReadRegError
+        print("Register 2: {:#010x}".format(reg))
+        print("ADC Sync Bits: {:#010b} (0 is good)".format(reg >> 24))
+        print("ASIC Readback Status:")
+        reg = reg >> 16
+        adc0 = ((reg >> 0) & 1)== 1
+        fe0 = ((reg >> 1) & 1)== 1
+        adc1 = ((reg >> 2) & 1)== 1
+        fe1 = ((reg >> 3) & 1)== 1
+        adc2 = ((reg >> 4) & 1)== 1
+        fe2 = ((reg >> 5) & 1)== 1
+        adc3 = ((reg >> 6) & 1)== 1
+        fe3 = ((reg >> 7) & 1)== 1
+
+        print("  ADC 0:",adc0,"FE 0:",fe0)
+        print("  ADC 1:",adc1,"FE 1:",fe1)
+        print("  ADC 2:",adc2,"FE 2:",fe2)
+        print("  ADC 3:",adc3,"FE 3:",fe3)
+
 
     def configAdcAsic(self,enableOffsetCurrent=None,offsetCurrent=None,testInput=None,
                             freqInternal=None,sleep=None,pdsr=None,pcsr=None,
@@ -599,32 +627,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #pause after turning on ASICs
         time.sleep(5)
         #self.femb.write_reg(self.REG_RESET, 4) # bit 2 is ASIC reset as far as I can see
-
-    def printSyncRegister(self):
-        reg = self.femb.read_reg(self.REG_ASIC_SPIPROG_RESET)
-        if reg is None:
-            print("Error: can't read back sync register")
-            if self.exitOnError:
-                return
-            else:
-                raise ReadRegError
-        print("Register 2: {:#010x}".format(reg))
-        print("ADC Sync Bits: {:#010b} (0 is good)".format(reg >> 24))
-        print("ASIC Readback Status:")
-        reg = reg >> 16
-        adc0 = ((reg >> 0) & 1)== 1
-        fe0 = ((reg >> 1) & 1)== 1
-        adc1 = ((reg >> 2) & 1)== 1
-        fe1 = ((reg >> 3) & 1)== 1
-        adc2 = ((reg >> 4) & 1)== 1
-        fe2 = ((reg >> 5) & 1)== 1
-        adc3 = ((reg >> 6) & 1)== 1
-        fe3 = ((reg >> 7) & 1)== 1
-
-        print("  ADC 0:",adc0,"FE 0:",fe0)
-        print("  ADC 1:",adc1,"FE 1:",fe1)
-        print("  ADC 2:",adc2,"FE 2:",fe2)
-        print("  ADC 3:",adc3,"FE 3:",fe3)
 
     def setFPGADac(self,amp,mode,freq,delay):
         ampRegVal = ((mode & 0xFFFF) << 16) | (amp & 0xFFFF)
