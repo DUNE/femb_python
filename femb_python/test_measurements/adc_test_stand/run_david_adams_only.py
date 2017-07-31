@@ -117,11 +117,6 @@ def main():
     elif len(serialNumbers) != config.NASICS:
         print("Error: number of serial numbers ({}) doesn't equal number of ASICs in configuration ({}), exiting.".format(len(serialNumbers),config.NASICS))
         sys.exit(1)
-    try:
-        serialNumbers = [int(i) for i in serialNumbers]
-    except ValueError as e:
-        print("Error, serial number must be an int: ",e)
-        sys.exit(1)
 
     try:
         if args.profiler:
