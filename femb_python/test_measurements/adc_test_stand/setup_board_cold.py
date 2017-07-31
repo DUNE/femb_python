@@ -39,7 +39,7 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
         corresponds to the input serial number list.  
     """
 
-    nSyncConfigTries = 3
+    nSyncConfigTries = 2
     filesuffix = ""
     if not (iTry is None):
         filesuffix = "_try{}".format(iTry)
@@ -58,6 +58,8 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
     result["init"] = None;
     result["configADC"] = None;
     result["sync"] = None;
+    result["longsync"] = None;
+    result["havetofindsync"] = None;
     result["successfulSyncConfigs"] = None
     result["nSyncConfigTries"] = nSyncConfigTries
     with open(outfilename,"w") as outfile:
@@ -115,27 +117,27 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                 #    config.POWERSUPPLYINTER.off()
                 return
             try:
-                reg3 = config.femb.read_reg (3)
+                reg3 = config.femb.read_reg(3)
                 newReg3 = ( reg3 | 0x80000000 )
                 config.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
                 time.sleep(0.1)                
-
                 for iASIC in range(config.NASICS):
                     badSync, syncDicts = config.testUnsync(iASIC,npackets=5)
                     result["syncDetails"] = syncDicts
                     if badSync:
+                        result["havetofindsync"] = True
                         print("Failed to sync ADC ASIC {} with {}".format(iASIC,config.getClockStr()))
                         print("Trying to sync...")
                         config.syncADC()
                         print("after sync readback: ",config.getClockStr())
-                        result["sync"] = False;
-                        json.dump(result,outfile)
-                        #if power_cycle:
-                        #    config.POWERSUPPLYINTER.off()
-                        return
-
+                    else:
+                        result["havetofindsync"] = False
                 config.femb.write_reg ( 3, (reg3&0x7fffffff) )
                 config.femb.write_reg ( 3, (reg3&0x7fffffff) )
+            except SyncADCError:
+                print("Couldn't successfuly sync ADC")
+                result["sync"] = False;
+                result["successfulSyncConfigs"] = i
             except Exception as e:
                 print("Error Unhandled excption during short sync test. ",e)
                 result["sync"] = False;
@@ -144,6 +146,8 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                 #if power_cycle:
                 #    config.POWERSUPPLYINTER.off()
                 return
+            else:
+                result["sync"] = True;
         result["successfulConfigSyncs"] = nSyncConfigTries
         try:
             print("long sync check...")
@@ -156,7 +160,7 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                 result["syncDetails"] = syncDicts
                 if badSync:
                     print("Failed long sync test ADC ASIC {} with {}".format(iASIC,config.getClockStr()))
-                    result["sync"] = False;
+                    result["longsync"] = False;
                     json.dump(result,outfile)
                     #if power_cycle:
                     #    config.POWERSUPPLYINTER.off()
@@ -165,12 +169,13 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
             config.femb.write_reg ( 3, (reg3&0x7fffffff) )
         except Exception as e:
             print("Error Unhandled excption during long sync test. ",e)
-            result["sync"] = False;
+            result["longsync"] = False;
             json.dump(result,outfile)
             #if power_cycle:
             #    config.POWERSUPPLYINTER.off()
             return
-        result["sync"] = True;
+        else:
+            result["longsync"] = True;
         print("Successfully setup board.")
         result["pass"] = True;
         json.dump(result,outfile)
