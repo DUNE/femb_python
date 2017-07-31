@@ -122,7 +122,8 @@ setup(
             'femb_show_trace_fft=femb_python.trace_fft_window:main',
             'femb_dump_data_root=femb_python.write_root_tree:main',
             'femb_show_trace_root=femb_python.helper_scripts.show_trace_root:main',
-
+            'femb_trace_allchan_window=femb_python.trace_allchan_window:main',
+            
             'femb_init_board=femb_python.helper_scripts.init_board:main',
             'femb_read_reg=femb_python.helper_scripts.read_reg:main',
             'femb_write_reg=femb_python.helper_scripts.write_reg:main',

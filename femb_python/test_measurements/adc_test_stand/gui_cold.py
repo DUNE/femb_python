@@ -28,6 +28,7 @@ import femb_python
 from ...configuration import CONFIG
 from ...runpolicy import DirectRunner, SumatraRunner
 from ...trace_fft_window import TRACE_FFT_WINDOW
+from ...trace_allchan_window import TRACE_ALLCHAN_WINDOW
 from ...helper_scripts.show_trace_root import TRACE_ROOT_WINDOW, FFT_ROOT_WINDOW
 
 GUITESTMODE=False
@@ -107,7 +108,7 @@ class GUI_WINDOW(Frame):
         self.reconfigure_button = Button(self, text="Re-Setup Board\n(Keeps Timestamp)", command=self.reconfigure_board,width=25,state="disabled")
         self.reconfigure_button.grid(row=24,column=columnbase,columnspan=2)
 
-        self.resetwaveform_button = Button(self, text="Restart Waveform Viwer", command=self.reset_waveform_viewer,width=25,state="disabled")
+        self.resetwaveform_button = Button(self, text="Restart Waveform Viewer", command=self.reset_waveform_viewer,width=25,state="disabled")
         self.resetwaveform_button.grid(row=25,column=columnbase,columnspan=2,pady=30)
 
         # Adding ASIC/channel select
@@ -375,7 +376,7 @@ class GUI_WINDOW(Frame):
             return
         else:
             self.done_preparing_board(params)
-
+            
     def reconfigure_board(self):
         self.prepare_board(power_cycle=False)
 
@@ -484,7 +485,7 @@ class GUI_WINDOW(Frame):
         self.selectChannel_entry["state"] = "disabled"
         self.selectChannel_button["state"] = "disabled"
         self.selectChannel_result["text"] = ""
-
+        
         print("BEGIN TESTS")
         self.status_label["text"] = "TESTS IN PROGRESS..."
         self.status_label["fg"] = "#000000"
@@ -595,7 +596,7 @@ class GUI_WINDOW(Frame):
             self.reconfigure_button["state"] = "normal"
             self.reset_button["bg"] ="#FF9900"
             self.reset_button["activebackground"] ="#FFCF87"
-
+            
     def done_david_adams(self,params):
         print("David Adams COMPLETE")
         self.status_label["text"] = "Collect David Adams data done"
@@ -744,11 +745,12 @@ class GUI_WINDOW(Frame):
             self.display_procs.append(subprocess.Popen(["eog",imgfilename]))
 
     def reset_waveform_viewer(self):
+        self.select_all_channels()
         if self.waveform_window:
           self.waveform_window.destroy()
         self.waveform_window = Toplevel(self)
-        self.waveform_window.title("Trace FFT Window")
-        self.waveform_viewer = TRACE_FFT_WINDOW(self.waveform_window)
+        self.waveform_window.title("Trace All Channel Window")
+        self.waveform_viewer = TRACE_ALLCHAN_WINDOW(self.waveform_window)
 
     def call_selectChannel(self):
         asic = None
@@ -775,6 +777,18 @@ class GUI_WINDOW(Frame):
           return
         self.config.selectChannel(asic,chan)
         self.selectChannel_result["text"] = ""
+        
+    def select_all_channels(self):
+        asic = None
+        if self.config.NASICS == 1:
+            asic = 0
+        else:
+            try:
+                asic = int(self.selectSocket_entry.get())
+            except ValueError:
+                self.selectChannel_result["text"] = "Error asic must be an int"
+                return
+        self.config.selectChannel(asic,0,0)
 
     def exit(self,*args, **kargs):
         if not GUITESTMODE:
