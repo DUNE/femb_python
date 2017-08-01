@@ -60,10 +60,10 @@ class TRACE_ROOT_WINDOW(Tk.Frame):
           'funcOffset': metadataTree.funcOffset,
           'funcFreq': metadataTree.funcFreq,
   	'iChip' : metadataTree.iChip,
-  	'adcSerial' : metadataTree.adcSerial,
+  	'adcSerial' : str(metadataTree.adcSerial),
   	'feSerial' : metadataTree.feSerial,
           }
-      
+
       #####
       voltageGood = bool(tree.GetBranch("voltage"))
       calibrationTree = f.Get("calibration")
@@ -74,7 +74,7 @@ class TRACE_ROOT_WINDOW(Tk.Frame):
       result = {}
       for iEntry in range(tree.GetEntries()):
           tree.GetEntry(iEntry)
-          iChannel = tree.chan % 16
+          iChannel = int(tree.chan) % 16
           adccodes = list(tree.wf)
           #if self.nBits < 12:
           #    adccodes = [i >> (12 - self.nBits) for i in adccodes]
@@ -90,8 +90,8 @@ class TRACE_ROOT_WINDOW(Tk.Frame):
               voltages[iChannel] = voltagesTmp
           if calibrationTree:
             calibrationTree.GetEntry(iEntry)
-            calibSlopes[iChannel] = calibrationTree.voltsPerADC
-            calibInters[iChannel] = calibrationTree.voltsIntercept
+            calibSlopes[iChannel] = float(calibrationTree.voltsPerADC)
+            calibInters[iChannel] = float(calibrationTree.voltsIntercept)
       if not voltageGood:
           voltages = None
       if not calibrationTree:
@@ -99,13 +99,23 @@ class TRACE_ROOT_WINDOW(Tk.Frame):
           calibInters = None
       self.waveforms = result
       self.metadata = metadata
+      del metadataTree
+      del calibrationTree
+      del tree
+      f.Close()
+      del f
       return result, metadata, voltages, calibSlopes, calibInters
   
   def draw_trace(self,infilename,sampleMax=None,fullADCRange=False):
   
       waveforms, metadata, voltages, calibSlopes, calibInters = self.loadWaveform(infilename)
 
-      self.figure.suptitle("Waveforms for socket: {}, FE: {} ADC: {}".format(metadata['iChip'],metadata['feSerial'],metadata['adcSerial']),fontsize="large")
+#      self.figure.suptitle("Waveforms for socket: {}, FE: {} ADC: {}".format(metadata['iChip'],metadata['feSerial'],metadata['adcSerial']),fontsize="large")
+      iChip = metadata['iChip']
+      feSerial = metadata['feSerial']
+      adcSerial = metadata['adcSerial']
+      suptitleStr = "Waveforms for socket: {}, FE: {} ADC: {}".format(iChip,feSerial,adcSerial)
+      self.figure.suptitle(suptitleStr,fontsize="large")
   
       axRights = []
       for iChan in waveforms:
