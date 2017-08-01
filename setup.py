@@ -149,7 +149,6 @@ setup(
             'femb_adc_run=femb_python.test_measurements.adc_test_stand.run:main',
             'femb_adc_run_david_adams_only=femb_python.test_measurements.adc_test_stand.run_david_adams_only:main',
             'femb_adc_setup_board=femb_python.test_measurements.adc_test_stand.setup_board:main',
-            'femb_adc_setup_board_cold=femb_python.test_measurements.adc_test_stand.setup_board_cold:main',
             'femb_adc_test_summary=femb_python.test_measurements.adc_test_stand.test_summary:main',
             'femb_adc_summary_plots=femb_python.test_measurements.adc_test_stand.summary_plots:main',
             'femb_adc_ranking=femb_python.test_measurements.adc_test_stand.ranking:main',

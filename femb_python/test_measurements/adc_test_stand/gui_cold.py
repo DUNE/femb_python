@@ -312,10 +312,13 @@ class GUI_WINDOW(Frame):
         self.reset_button["activebackground"] ="#FFCF87"
 
     def prepare_board(self,power_cycle=True):
+        power_on = False
+        power_off = False
         if power_cycle:
             self.timestamp = None # get new timestamp for each prepare board
             self.iTry_configure = 1
             self.iTry_david_adams = 1
+            power_on = True
         if self.waveform_window:
           self.waveform_window.destroy()
         for iWin in reversed(range(len(self.waveform_root_windows))):
@@ -350,15 +353,17 @@ class GUI_WINDOW(Frame):
 
         self.update_idletasks()
         runnerSetup = {
-                                "executable": "femb_adc_setup_board_cold",
+                                "executable": "femb_adc_setup_board",
                                 "argstr": "-j {paramfile}",
                                 "basedir": self.data_base_dir,
                                 "rundir": "/home/{linux_username}/run",
                                 "datadir": "{basedir}/{linux_username}/adcasic/{femb_config_name}/{timestamp}",
                                 "paramfile": "{datadir}/setup_params_try{iTry}.json",
+                                "outfilename": "{datadir}/adcSetup_{timestamp}_try{iTry}.json"
                                 "smtname": "adc",
                                 "smttag": "{hostname}",
-                                "power_cycle": power_cycle,
+                                "power_on": power_on,
+                                "power_off": power_off,
                                 "iTry": self.iTry_configure,
                             }
         self.iTry_configure += 1

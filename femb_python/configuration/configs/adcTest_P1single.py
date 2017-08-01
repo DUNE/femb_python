@@ -381,7 +381,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         regVal = (chVal << 8 ) + asicVal
         self.femb.write_reg( self.REG_SEL_CH, regVal)
 
-    def syncADC(self):
+    def syncADC(self,iASIC=None):
         #turn on ADC test mode
         print("FEMB_CONFIG--> Start sync ADC")
         reg3 = self.femb.read_reg (3)
@@ -694,4 +694,4 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         return "Latch Loc: {:#010x} {:#010x} Clock Phase: {:#010x}".format(latchloc1,latchloc5,clkphase)
 
     def getSyncStatus(self):
-        return [True],[True],None
+        return [None],[True],None

@@ -266,9 +266,12 @@ class GUI_WINDOW(Frame):
                                 "basedir": self.data_base_dir,
                                 "rundir": "/home/{linux_username}/run",
                                 "datadir": "{basedir}/{linux_username}/adcasic/{femb_config_name}/{timestamp}",
+                                "outfilename": "{datadir}/adcSetup_{timestamp}.json"
                                 "paramfile": "{datadir}/setup_params.json",
                                 "smtname": "adc",
                                 "smttag": "{hostname}",
+                                "power_on": True,
+                                "power_off": True,
                             }
         #runner = DirectRunner(**runnerSetup)
         runner = SumatraRunner(**runnerSetup)
