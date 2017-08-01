@@ -15,14 +15,15 @@ def main():
   parser = ArgumentParser(description="Select FEMB channel")
   parser.add_argument("asic",help="ASIC number (start from 0)")
   parser.add_argument("channel",help="Channel number (0-16)")
-  parser.add_argument("-m","--multiChannelMode",help="Multi-channel mode",action="store_true")
+  parser.add_argument("-m","--highSpeedMode",help="High-speed mode",action="store_true")
+  parser.add_argument("-s","--singleChannelMode",help="Single-channel mode (some boards do this if not in high speed mode; may cause a crash)",action="store_true")
 
   args = parser.parse_args()
 
   asicVal = args.asic
   channelVal = args.channel
   hsmode = 1
-  if args.multiChannelMode:
+  if args.highSpeedMode:
       hsmode = 0
 
   femb_config = CONFIG()
@@ -39,5 +40,9 @@ def main():
   
   print("ASIC value is " + str(asicVal))
   print("Channel value is " + str( channelVal))
-  print("Multi-channel mode: " + str(args.multiChannelMode))
-  femb_config.selectChannel(asicVal,channelVal,hsmode)
+  print("High-speed mode: " + str(args.highSpeedMode))
+  if args.singleChannelMode:
+    print("Using single channel mode")
+    femb_config.selectChannel(asicVal,channelVal,hsmode,singlechannelmode=1)
+  else:
+    femb_config.selectChannel(asicVal,channelVal,hsmode)

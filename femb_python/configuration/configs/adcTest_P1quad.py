@@ -93,6 +93,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         for i in range(self.NASICS):
             self.adc_regs.append(ADC_ASIC_REG_MAPPING())
 
+        #self.defaultConfigFunc = lambda: self.configAdcAsic()
+        #self.defaultConfigFunc = lambda: self.configAdcAsic(clockMonostable=True)
+        self.defaultConfigFunc = lambda: self.configAdcAsic(clockMonostable=True,f5=True)
+
     def resetBoard(self):
         """
         Reset registers and state machines NOT udp
@@ -179,8 +183,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 #    regsListOfLists.append(chipRegConfig.REGS)
                 #self.configAdcAsic_regs(regsListOfLists)
 
-                #self.configAdcAsic()
-                self.configAdcAsic(clockMonostable=True)
+                self.defaultConfigFunc()
             except ReadRegError:
                 continue
 
@@ -196,10 +199,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             self.printSyncRegister()
 
-            print("Set packed readout mode...")
-            self.selectChannel(0,0,hsmode=0) # packed many channels
-            #print("Set readout channel 0 0")
-            #self.selectChannel(0,0) # single channel
+            self.selectChannel(0,0) # not packed many channels
 
             #time.sleep(0.1)
             #self.printSyncRegister()
@@ -373,13 +373,19 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             regsListOfLists.append(chipRegConfig.REGS)
         self.configAdcAsic_regs(regsListOfLists)
 
-    def selectChannel(self,asic,chan,hsmode=1):
+    def selectChannel(self,asic,chan,hsmode=1,singlechannelmode=0):
         """
         asic is chip number 0 to 7
         chan is channel within asic from 0 to 15
-        hsmode: if 0 then WIB streaming mode, if 1 only the selected channel. defaults to 1
+        hsmode: if 0 then WIB streaming mode, 
+            if 1 then sends ch then adc, defaults to 1
+        singlechannelmode: if 1 and hsmode = 0, then only 
+            send a single channel of data instead of 16 in a row
+        
         """
         hsmodeVal = int(hsmode) & 1 # only 1 bit
+        hsmodeVal  = (~hsmodeVal) & 1 # flip bit
+        singlechannelmode = int(singlechannelmode) & 1
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
                 print( "femb_config_femb : selectChan - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
@@ -394,6 +400,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( self.REG_STOP_ADC, 1)
         time.sleep(0.05)
 
+        # bit 4 of chVal is the single channel mode bit
+        chVal += (singlechannelmode << 4)
+
         # in this firmware asic = 0 disables readout, so asics are 1,2,3,4
 
         regVal = (asicVal+1) + (chVal << 8 ) + (hsmodeVal << 31)
@@ -406,9 +415,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #turn on ADC test mode
         print("FEMB_CONFIG--> Start sync ADC")
 
-        originalTestPatternReg = self.femb.read_reg (self.REG_ADC_TST_PATT)
-        newReg = ( originalTestPatternReg | (1 << 16) )
-        self.femb.write_reg(self.REG_ADC_TST_PATT,newReg) # - enable ADC test pattern
+        #originalTestPatternReg = self.femb.read_reg (self.REG_ADC_TST_PATT)
+        #newReg = ( originalTestPatternReg | (1 << 16) )
+        #self.femb.write_reg(self.REG_ADC_TST_PATT,newReg) # - enable ADC test pattern
+        self.configAdcAsic(clockMonostable=True,f5=True)
         time.sleep(0.1)                
 
         alreadySynced = True
@@ -439,8 +449,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.REG_CLKPHASE_data_2MHZ = clkphase
         print("FEMB_CONFIG--> Latch latency {:#010x} Phase: {:#010x}".format(
                         latchloc, clkphase))
-        self.femb.write_reg ( self.REG_ADC_TST_PATT, originalTestPatternReg )
-        self.femb.write_reg ( self.REG_ADC_TST_PATT, originalTestPatternReg )
+        #self.femb.write_reg ( self.REG_ADC_TST_PATT, originalTestPatternReg )
+        #self.femb.write_reg ( self.REG_ADC_TST_PATT, originalTestPatternReg )
+        self.defaultConfigFunc()
         print("FEMB_CONFIG--> End sync ADC")
         return not alreadySynced,latchloc,clkphase
 
@@ -460,12 +471,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #loop through channels, check test pattern against data
         syncDataCounts = [{} for i in range(16)] #dict for each channel
-        self.selectChannel(adcNum,ch, 0)
+        self.selectChannel(adcNum,0, singlechannelmode=0)
         time.sleep(0.05)                
         data = self.femb.get_data(npackets)
-        print(data)
         if data == None:
-            continue
+            print("Error: Couldn't read data in testUnsync")
+            if self.exitOnError:
+                print("Exiting.")
+                sys.exit(1)
+            else:
+                raise SyncADCError
         for samp in data:
                 if samp == None:
                         continue
@@ -527,8 +542,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         initLATCH = self.femb.read_reg ( self.REG_LATCHLOC )
         initPHASE = self.femb.read_reg ( self.REG_ADC_CLK ) # remember bit 16 sample rate
 
-        #phases = [0,1,0,1,0]
-        phases = [0,1]
+        phases = [0,1,0,1,0]
 
         #loop through sync parameters
         for shift in range(0,16,1):
