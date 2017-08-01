@@ -691,3 +691,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if clkphase is None:
             return "Register Read Error"
         return "Latch Loc: {:#010x} {:#010x} Clock Phase: {:#010x}".format(latchloc1,latchloc5,clkphase)
+
+    def getSyncStatus(self):
+        return [True],[True],None

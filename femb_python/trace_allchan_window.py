@@ -215,5 +215,5 @@ class TRACE_ALLCHAN_WINDOW(Tk.Frame):
 def main():
     window = Tk.Tk()
     window.title("FEMB All Channel Trace Viewer")
-    trace_fft = TRACE_FFT_ALLCHAN_WINDOW_NEW(window)
+    trace_fft = TRACE_ALLCHAN_WINDOW(window)
     window.mainloop()

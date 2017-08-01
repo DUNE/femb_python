@@ -26,7 +26,8 @@ import subprocess
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE, FEMBConfigError, SyncADCError, InitBoardError, ConfigADCError, ReadRegError
 from femb_python.configuration.adc_asic_reg_mapping_P1_singleADC import ADC_ASIC_REG_MAPPING
-from femb_python.test_instrument_interface.keysight_33600A import Keysight_33600A
+from femb_python.test_instrument_interface.dummy_funcgen import DummyFuncGen
+from femb_python.test_instrument_interface.dummy_powersupply import DummyPowerSupply
 
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
@@ -78,7 +79,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_PLL_BASES = [17,26,35,44] # for each chip
 
         self.NASICS = 4
-        self.FUNCGENINTER = Keysight_33600A("/dev/usbtmc1",1)
+        self.FUNCGENINTER = DummyFuncGen("","")
+        self.POWERSUPPLYINTER = DummyPowerSupply("","")
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
 
@@ -188,6 +190,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
             time.sleep(0.1)
 
+#            self.printSyncRegister()
+#
+#            self.syncADC()
+
             self.printSyncRegister()
 
             print("Set packed readout mode...")
@@ -249,32 +255,46 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             self.printSyncRegister()
 
-    def printSyncRegister(self):
+    def getSyncStatus(self):
+        syncBits = None
+        adc0 = None
+        fe0 = None
+        adc1 = None
+        fe1 = None
+        adc2 = None
+        fe2 = None
+        adc3 = None
+        fe3 = None
         reg = self.femb.read_reg(self.REG_ASIC_SPIPROG_RESET)
         if reg is None:
             print("Error: can't read back sync register")
             if self.exitOnError:
-                return
+                return 
             else:
                 raise ReadRegError
-        print("Register 2: {:#010x}".format(reg))
-        print("ADC Sync Bits: {:#010b} (0 is good)".format(reg >> 24))
-        print("ASIC Readback Status:")
-        reg = reg >> 16
-        adc0 = ((reg >> 0) & 1)== 1
-        fe0 = ((reg >> 1) & 1)== 1
-        adc1 = ((reg >> 2) & 1)== 1
-        fe1 = ((reg >> 3) & 1)== 1
-        adc2 = ((reg >> 4) & 1)== 1
-        fe2 = ((reg >> 5) & 1)== 1
-        adc3 = ((reg >> 6) & 1)== 1
-        fe3 = ((reg >> 7) & 1)== 1
+        else:
+            print("Register 2: {:#010x}".format(reg))
+            syncBits = reg >> 24
+            reg = reg >> 16
+            adc0 = ((reg >> 0) & 1)== 1
+            fe0 = ((reg >> 1) & 1)== 1
+            adc1 = ((reg >> 2) & 1)== 1
+            fe1 = ((reg >> 3) & 1)== 1
+            adc2 = ((reg >> 4) & 1)== 1
+            fe2 = ((reg >> 5) & 1)== 1
+            adc3 = ((reg >> 6) & 1)== 1
+            fe3 = ((reg >> 7) & 1)== 1
+        return (fe0, fe1, fe2, fe3), (adc0, adc1, adc2, adc3), syncBits
 
+    def printSyncRegister(self):
+        (fe0, fe1, fe2, fe3), (adc0, adc1, adc2, adc3), syncBits = self.getSyncStatus()
+        reg = self.femb.read_reg(self.REG_ASIC_SPIPROG_RESET)
+        print("ADC Sync Bits: {:#010b} (0 is good)".format(syncBits))
+        print("ASIC Readback Status:")
         print("  ADC 0:",adc0,"FE 0:",fe0)
         print("  ADC 1:",adc1,"FE 1:",fe1)
         print("  ADC 2:",adc2,"FE 2:",fe2)
         print("  ADC 3:",adc3,"FE 3:",fe3)
-
 
     def configAdcAsic(self,enableOffsetCurrent=None,offsetCurrent=None,testInput=None,
                             freqInternal=None,sleep=None,pdsr=None,pcsr=None,
@@ -431,24 +451,34 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
                 return
 
+#        syncBits = self.femb.read_reg(2) >> 24
+#        theseSyncBits = (syncBits >> (2*adc)) & 0b11
+#        if theseSyncBits == 0:
+#            return 0, []
+#        else:
+#            return 1, []
+
         #loop through channels, check test pattern against data
         syncDataCounts = [{} for i in range(16)] #dict for each channel
-        for ch in range(0,16,1):
-                self.selectChannel(adcNum,ch, 1)
-                time.sleep(0.05)                
-                data = self.femb.get_data(npackets)
-                if data == None:
-                    continue
-                for samp in data:
-                        if samp == None:
-                                continue
-                        #chNum = ((samp >> 12 ) & 0xF)
-                        sampVal = (samp & 0xFFF)
-                        if sampVal in syncDataCounts[ch]:
-                            syncDataCounts[ch][sampVal] += 1
-                        else:
-                            syncDataCounts[ch][sampVal] = 1
+        self.selectChannel(adcNum,ch, 0)
+        time.sleep(0.05)                
+        data = self.femb.get_data(npackets)
+        print(data)
+        if data == None:
+            continue
+        for samp in data:
+                if samp == None:
+                        continue
+                ch = ((samp >> 12 ) & 0xF)
+                sampVal = (samp & 0xFFF)
+                if sampVal in syncDataCounts[ch]:
+                    syncDataCounts[ch][sampVal] += 1
+                else:
+                    syncDataCounts[ch][sampVal] = 1
         # check jitter
+        print("Channel 0:")
+        for key in sorted(syncDataCounts[0]):
+            print(" {0:#06x} = {0:#018b} count: {1}".format(key,syncDataCounts[0][key]))
         badSync = 0
         maxCodes = [None]*16
         syncDicts = [{}]*16
@@ -503,7 +533,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #loop through sync parameters
         for shift in range(0,16,1):
             shiftMask = (0xFF << 8*adcNum)
-            testShift = ( (initLATCH1_4 & ~(shiftMask)) | (shift << 8*adcNum) )
+            testShift = ( (initLATCH & ~(shiftMask)) | (shift << 8*adcNum) )
             self.femb.write_reg ( self.REG_LATCHLOC, testShift )
             time.sleep(0.01)
             for phase in phases:
@@ -513,12 +543,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 time.sleep(0.01)
                 print("try shift: {} phase: {} testingUnsync...".format(shift,phase))
                 #reset ADC ASIC
-                self.femb.write_reg ( self.REG_ASIC_SPIPROG_RESET, 1 << 5) # reset ADC
-                time.sleep(0.01)
-                self.femb.write_reg ( self.REG_ASIC_SPIPROG_RESET, 1 << 1) # prog ADC SPI
-                time.sleep(0.01)
-                self.femb.write_reg ( self.REG_ASIC_SPIPROG_RESET, 1 << 1) # prog ADC SPI
-                time.sleep(0.01)
+                self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 1 << 6) # ADC soft reset
+                time.sleep(0.1)
+                self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
+                time.sleep(0.1)
                 #test link
                 unsync, syncDicts = self.testUnsync(adcNum)
                 if unsync == 0 :
@@ -526,7 +554,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                     return
         #if program reaches here, sync has failed
         print("Error: FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc))
-        print("Setting back to original values: LATCHLOC: {:#010x}, PHASE: {:#010x}".format,initLATCH,initPHASE & 0xF)
+        print("Setting back to original values: LATCHLOC: {:#010x}, PHASE: {:#010x}".format(initLATCH,initPHASE & 0xF))
         self.femb.write_reg ( self.REG_LATCHLOC, initLATCH )
         self.femb.write_reg ( self.REG_ADC_CLK, initPHASE )
         if self.exitOnError:
@@ -710,4 +738,35 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             name = tup[0]
             val = tup[1]
             writeRegAndPrint(name,regBase+iReg,val)
+
+    def syncPLLs(self):
+        for iChip in range(1):
+            syncd, detail = self.testUnsync(iChip)
+
+    def programFirmware(self, firmware):
+        """
+        Programs the FPGA using the firmware file given.
+        """
+        pass
+
+    def checkFirmwareProgrammerStatus(self):
+        """
+        Prints a debug message for the firmware programmer
+        """
+        pass
+
+    def programFirmware1Mhz(self):
+        pass
+
+    def programFirmware2Mhz(self):
+        pass
+
+    def getClockStr(self):
+        latchloc = self.femb.read_reg(self.REG_LATCHLOC)
+        clkphase = self.femb.read_reg(self.REG_ADC_CLK)
+        if latchloc is None:
+            return "Register Read Error"
+        if clkphase is None:
+            return "Register Read Error"
+        return "Latch Loc: {:#010x} Clock Phase: {:#010x}".format(latchloc,clkphase & 0xF)
 
