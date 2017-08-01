@@ -39,6 +39,7 @@ class FEMB_UDP(object):
         if (dataVal < 0) or (dataVal > self.MAX_REG_VAL):
             #print "FEMB_UDP--> Error write_reg: Invalid data value"
             return None
+        #print("writing register {} data {:#010x}".format(reg,data))
         
         #crazy packet structure require for UDP interface
         dataValMSB = ((dataVal >> 16) & 0xFFFF)

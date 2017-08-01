@@ -358,11 +358,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.adc_reg.set_sbnd_board(en_gr=enableOffsetCurrent,d=offsetCurrent,tstin=testInput,frqc=freqInternal,slp=sleep,pdsr=pdsr,pcsr=pcsr,clk0=clk0,clk1=clk1,f0=f0,f1=f1,f2=f2,f3=f3,f4=f4,f5=f5,slsb=sLSB)
         self.configAdcAsic_regs(self.adc_reg.REGS)
 
-    def selectChannel(self,asic,chan,hsmode=1):
+    def selectChannel(self,asic,chan,hsmode=1,singlechannelmode=None):
         """
         asic is chip number 0 to 7
         chan is channel within asic from 0 to 15
         hsmode: if 0 then streams all channels of a chip, if 1 only te selected channel. defaults to 1
+        singlechannelmode: not implemented
         """
         hsmodeVal = int(hsmode) & 1;
         asicVal = int(asic)
@@ -691,3 +692,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if clkphase is None:
             return "Register Read Error"
         return "Latch Loc: {:#010x} {:#010x} Clock Phase: {:#010x}".format(latchloc1,latchloc5,clkphase)
+
+    def getSyncStatus(self):
+        return [True],[True],None

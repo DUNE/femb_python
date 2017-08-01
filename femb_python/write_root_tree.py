@@ -89,7 +89,10 @@ class WRITE_ROOT_TREE(object):
         else:
             for ch in range(16):
                 chan[0] = int(ch)
-                self.femb_config.selectChannel( self.iChip, ch)
+                try:
+                    self.femb_config.selectChannel( self.iChip, ch, hsmode=1, singlechannelmode=1)
+                except TypeError:
+                    self.femb_config.selectChannel( self.iChip, ch, hsmode=1)
                 time.sleep(0.01)
                 wf.clear()
                 data = self.femb.get_data(npackets)
