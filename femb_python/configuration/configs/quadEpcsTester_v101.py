@@ -55,8 +55,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print('Error initializing board - Invalid firmware and/or register read error')
             return
 
-    def checkStatus(self):
+    def readStatus(self):
         #chip 0 only here
+ 
         #set status op code
         self.femb.write_reg(1,0x5)
     
@@ -77,3 +78,31 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             return
 
         print("STATUS BIT ",regVal)
+
+    def readFlash(self):
+        #chip 0 only here
+        epcsNum = 3
+        op_reg = 1 + 3*epcsNum
+        addr_reg = 2 + 3*epcsNum
+        read_base = 512 + 256*epcsNum
+
+        #set page to read
+        self.femb.write_reg(addr_reg,2) #23 downto 0
+        
+        #set status op code
+        self.femb.write_reg(op_reg,0x3)
+
+        #start EPCS operation
+        self.femb.write_reg(op_reg,0x103)
+
+        #set status op code
+        self.femb.write_reg(op_reg,0x0)
+
+        #wait a bit
+        time.sleep(0.1)
+
+        for reg in range(read_base + 64, read_base + 64 + 64,1):
+            regVal = self.femb.read_reg(reg)
+            if regVal == None:
+                continue
+            print(reg,"\t",regVal,"\t",hex(regVal))

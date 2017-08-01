@@ -29,7 +29,8 @@ def main():
     femb_config.initBoard()
 
     #check status
-    femb_config.checkStatus()
+    femb_config.readStatus()
+    femb_config.readFlash()
 
 if __name__ == '__main__':
     main()
