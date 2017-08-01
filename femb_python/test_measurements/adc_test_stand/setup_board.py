@@ -47,11 +47,13 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                 "operator":operator,
                 "sumatra": sumatradict,
              }
-    result["pass"] = False;
+    result["pass"] = [False]*len(adcSerialNumbers);
     result["readReg"] = None;
     result["init"] = None;
-    result["configADC"] = None;
-    result["sync"] = None;
+    result["configADC"] = [None]*len(adcSerialNumbers);
+    result["configFE"] = [None]*len(adcSerialNumbers);
+    result["sync"] = [None]*len(adcSerialNumbers);
+    result["havetofindsync"] = [None]*len(adcSerialNumbers);
     with open(outfilename,"w") as outfile:
         config.POWERSUPPLYINTER.on()
         time.sleep(1)
@@ -74,26 +76,33 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
         except ConfigADCError:
             print("Board/chip Failure: couldn't write ADC SPI.")
             result["init"] = False;
-            result["configADC"] = False;
+            result["configADC"] = [False]*len(adcSerialNumbers);
             json.dump(result,outfile)
             config.POWERSUPPLYINTER.off()
             return
         else:
             result["init"] = True;
-            result["configADC"] = True;
             result["readReg"] = True;
-        try:
-            config.syncADC()
-        except SyncADCError:
-            print("Board/chip Failure: couldn't sync ADCs.")
-            result["sync"] = False;
-            json.dump(result,outfile)
-            config.POWERSUPPLYINTER.off()
-            return
-        else:
-            result["sync"] = True;
+        # check individual chip config
+        feSPIStatus, adcSPIStatus, syncBits = config.getSyncStatus()
+        result["configADC"] = adcSPIStatus
+        result["configFE"] = feSPIStatus
+        for iChip in range(len(adcSerialNumbers)):
+            try:
+                syncStatus = config.syncADC(iChip)
+            except SyncADCError:
+                print("Board/chip Failure: couldn't sync ADCs.")
+                result["sync"][iChip] = False;
+            else:
+                result["sync"][iChip] = True;
+                hadToSync = syncStatus[0]
+                result["havetofindsync"][iChip] = hadToSync
+        for iChip in range(len(adcSerialNumbers)):
+            if adcSPIStatus[iChip]:
+                if feSPIStatus[iChip]:
+                    if result["sync"][iChip]:
+                        result["pass"][iChip] = True
         print("Successfully setup board.")
-        result["pass"] = True;
         json.dump(result,outfile)
 
 def main():
