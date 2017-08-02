@@ -30,7 +30,7 @@ TApplication *theApp;
 
 class Analyze {
 	public:
-	Analyze(std::string inputName);
+	Analyze(std::string inputName,bool useInternalPulser);
 
 	void getInputFile();
   	void getInputTree();
@@ -115,7 +115,8 @@ class Analyze {
 	double measuredEnc = -1;
 	double measuredGain = -1;
 	FitFeElecResponse_analyzePulses ffer_analyzePulses;
-        double signalSizes[64] = {0.606,0.625,0.644,0.663,0.682,0.701,0.720,0.739,0.758,0.777,0.796,0.815,0.834,
+        double signalSizes[64] = {0};
+        double signalSizes_fpga[64] = {0.606,0.625,0.644,0.663,0.682,0.701,0.720,0.739,0.758,0.777,0.796,0.815,0.834,
 		0.853,0.872,0.891,0.909,0.928,0.947,0.966,0.985,1.004,1.023,1.042,1.061,1.080,1.099,1.118,1.137,
 		1.156,1.175,1.194,1.213,1.232,1.251,1.269,1.288,1.307,1.326,1.345,1.364,1.383,1.402,1.421,1.440,
 		1.459,1.478, 1.497,1.516,1.535,1.554,1.573,1.592,1.611,1.629,1.648,1.667,1.686,1.705,1.724,1.743,
@@ -126,7 +127,7 @@ class Analyze {
 	bool badAsicMask[8];
 };
 
-Analyze::Analyze(std::string inputName){
+Analyze::Analyze(std::string inputName,bool useInternalPulser=0){
 
 	inputFileName = inputName;
         getInputFile();
@@ -152,11 +153,18 @@ Analyze::Analyze(std::string inputName){
   	//	signalSizes[sr] = signalSizes[sr]*183*6241;//test capacitor, convert to e-
         //}
 
-        double initVal = signalSizes[0];
         signalSizes[0] = 0;
+        //FPGA pulser case
 	for(int sr = 1 ; sr < 64 ; sr++ ){
-  		signalSizes[sr] = (signalSizes[sr]-initVal)*183*6241;//test capacitor, convert to e-
+  		signalSizes[sr] = ( signalSizes_fpga[sr] - signalSizes_fpga[0] )*183*6241;//test capacitor, convert to e-
         }
+        //Internal pulser case
+        if( useInternalPulser == 1 ){
+		std::cout << "processNtuple : Using internal pulser signal parameters" << std::endl;
+        	for(int sr = 1 ; sr < 64 ; sr++ ){
+			signalSizes[sr] = sr*0.01875*183*6241;
+		}
+	}
 
 	initRootObjects();
 }
@@ -310,8 +318,7 @@ void Analyze::analyzeChannel(unsigned int chan){
 	//loop over pulser settings
 	ffer_analyzePulses.enablePulseFits = const_doFits;
 	for(unsigned int sr = 1 ; sr < const_numSubrun ; sr++){
-		//drawWf(chan,wfAll[sr][chan]);
-
+		//if( chan == 0){ std::cout << "SUBRUN " << sr << std::endl; drawWf(chan,wfAll[sr][chan]); }
 		//find pulses
 		findPulses(wfAll[sr][chan],meanSubrun0,rmsSubrun0);
 
@@ -321,17 +328,19 @@ void Analyze::analyzeChannel(unsigned int chan){
 		ffer_analyzePulses.analyzePulses();
 
 		getAveragePulseHeight( ffer_analyzePulses.pulseHeights );
+		double signalCharge = (signalSizes[sr]-signalSizes[0]);
 
 		//skip subrun if invalid pulse height measured
-		if( averagePulseHeight < 0 )
+		if( averagePulseHeight < 0 ){
 			continue;
+		}
 		if( averagePulseHeight < const_minPulseHeightForFit )
 			//ffer_analyzePulses.enablePulseFits = 0;
 			continue;
 		if( averagePulseHeight > const_maxPulseHeightForFit )
 			//ffer_analyzePulses.enablePulseFits = 0;
 			continue;
-		double signalCharge = (signalSizes[sr]-signalSizes[0]);
+		
 		gPulseVsSignal[chan]->SetPoint( gPulseVsSignal[chan]->GetN() , signalCharge , averagePulseHeight );
 
 		getAveragePulseHeight( ffer_analyzePulses.fitPulseHeights );
@@ -361,6 +370,7 @@ void Analyze::drawWf(unsigned int chan, const std::vector<unsigned short> &wf){
 	c0->Clear();
 	std::string title = "Channel " + to_string( chan );
 	gCh->SetTitle( title.c_str() );
+	gCh->GetXaxis()->SetRangeUser(0,256);
 	gCh->GetXaxis()->SetTitle("Sample Number");
 	gCh->GetYaxis()->SetTitle("Sample Value (ADC counts)");
 	gCh->Draw("ALP");
@@ -418,8 +428,8 @@ void Analyze::findPulses(const std::vector<unsigned short> &wf, double baseMean,
 	pulseRiseStart.clear();
 	pulseFallStart.clear();
 	for( int s = 0 + const_preRange ; s < wf.size() - const_postRange - 1 ; s++ ){
-		if( !ffer_analyzePulses.isGoodCode( wf.at(s) ) ) continue;
-		if( !ffer_analyzePulses.isGoodCode( wf.at(s+1) ) ) continue;
+		//if( !ffer_analyzePulses.isGoodCode( wf.at(s) ) ) continue;
+		//if( !ffer_analyzePulses.isGoodCode( wf.at(s+1) ) ) continue;
 		double value =  wf.at(s);
 		double valueNext = wf.at(s+1);
 		if( value > const_maxPulsePeakValue || valueNext > const_maxPulsePeakValue) 
@@ -447,8 +457,10 @@ void Analyze::getAveragePulseHeight(const std::vector<double> &pulseHeights){
 		hPulseHeights->Fill( pulseHeights.at(p) );
 
 	//get average pulse height
-	hPulseHeights->GetXaxis()->SetRangeUser(0.5,const_maxPulseHeight-0.5);
+	//hPulseHeights->GetXaxis()->SetRangeUser(0.5,const_maxPulseHeight-0.5);
+	hPulseHeights->GetXaxis()->SetRangeUser(const_minPulseHeightForFit+0.5,const_maxPulseHeightForFit-0.5);
 	averagePulseHeight = hPulseHeights->GetMean();
+
 	return;
 }
 
@@ -682,25 +694,34 @@ void Analyze::writeToRootFile(){
   	gOut->Close();
 }
 
-void processNtuple(std::string inputFileName) {
-  Analyze ana(inputFileName);
+void processNtuple(std::string inputFileName, bool useInternalPulser=0) {
+  Analyze ana(inputFileName,useInternalPulser);
   ana.doAnalysis();
   return;
 }
 
 int main(int argc, char *argv[]){
-  if(argc!=2){
+  if(argc!=2 && argc!=3){
     cout<<"Usage: processNtuple [inputFilename]"<<endl;
+    cout<<"OR: processNtuple [inputFilename] [useInternalPulser]"<<endl;
     return 0;
   }
 
   std::string inputFileName = argv[1];
   std::cout << "inputFileName " << inputFileName << std::endl;
+  bool useInternalPulser = 0;
+  if( argc == 3 ){
+    useInternalPulser = atoi(argv[2]);
+    if( useInternalPulser != 0 && useInternalPulser != 1 ){
+      cout<<"Invalid pulser setting requested, exiting"<<endl;
+      return 0;  
+    }
+  }
 
   gROOT->SetBatch(true);
   //define ROOT application object
   theApp = new TApplication("App", &argc, argv);
-  processNtuple(inputFileName); 
+  processNtuple(inputFileName,useInternalPulser); 
 
   //return 1;
   gSystem->Exit(0);
