@@ -155,6 +155,7 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
         print("Programming firmware for sample rate: {} ...".format(sampleRate))
         sys.stdout.flush()
         sys.stderr.flush()
+        config.SAMPLERATE = float(sampleRate)
         resetAndProgramSuccess = resetBoardAndProgramFirmware(config,sampleRate)
         if not resetAndProgramSuccess:
             continue
@@ -184,7 +185,11 @@ def runTests(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hos
                 if not configSuccess:
                     continue
                 longRamp = (clock == 0 and offset == -1)
+                feSPI, adcSPI, syncBits = config.getSyncStatus()
                 for iChip in range(config.NASICS):
+                    if not adcSPI[iChip]:
+                        print("SPI readback failed, so skipping sample rate: {} clock: {} offset: {} chip: {} ...".format(sampleRate, clock, offset, iChip))
+                        continue
                     print("Collecting data for sample rate: {} clock: {} offset: {} chip: {} ...".format(sampleRate, clock, offset, iChip))
                     sys.stdout.flush()
                     sys.stderr.flush()

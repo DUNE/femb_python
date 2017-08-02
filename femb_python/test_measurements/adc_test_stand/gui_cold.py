@@ -18,6 +18,7 @@ import pwd
 import sys
 import glob
 import json
+import pprint
 from time import sleep
 from tkinter import *
 import subprocess
@@ -103,60 +104,62 @@ class GUI_WINDOW(Frame):
         self.activebkg_color = self.prepare_button.cget("activebackground")
 
         self.coolboard_label = Label(self,text="",width=30,fg="#0000FF")
-        self.coolboard_label.grid(row=23,column=columnbase,columnspan=2)
+        self.coolboard_label.grid(row=230,column=columnbase,columnspan=2)
 
         self.reconfigure_button = Button(self, text="Re-Setup Board\n(Keeps Timestamp)", command=self.reconfigure_board,width=25,state="disabled")
-        self.reconfigure_button.grid(row=24,column=columnbase,columnspan=2)
+        self.reconfigure_button.grid(row=240,column=columnbase,columnspan=2)
 
         self.resetwaveform_button = Button(self, text="Restart Waveform Viewer", command=self.reset_waveform_viewer,width=25,state="disabled")
-        self.resetwaveform_button.grid(row=25,column=columnbase,columnspan=2,pady=30)
+        self.resetwaveform_button.grid(row=250,column=columnbase,columnspan=2,pady=30)
 
         # Adding ASIC/channel select
 
         self.selectSocket_label = Label(self,text="View Socket:",state="disabled")
-        self.selectSocket_label.grid(sticky=E,row=26,column=columnbase+0)
+        self.selectSocket_label.grid(sticky=E,row=260,column=columnbase+0)
         self.selectSocket_entry = Spinbox(self,from_=0,to=self.config.NASICS-1,insertwidth=1,width=4,state="disabled")
-        self.selectSocket_entry.grid(sticky=W,row=26,column=columnbase+1)
+        self.selectSocket_entry.grid(sticky=W,row=260,column=columnbase+1)
         if self.config.NASICS == 1:
             self.selectSocket_label.grid_forget()
             self.selectSocket_entry.grid_forget()
 
         self.selectChannel_label = Label(self,text="View Channel:",state="disabled")
-        self.selectChannel_label.grid(sticky=E,row=28,column=columnbase+0)
+        self.selectChannel_label.grid(sticky=E,row=280,column=columnbase+0)
+        self.selectChannel_label.grid_forget()
 
         self.selectChannel_entry = Spinbox(self,from_=0,to=15,insertwidth=3,width=4,state="disabled")
-        self.selectChannel_entry.grid(sticky=W,row=28,column=columnbase+1)
+        self.selectChannel_entry.grid(sticky=W,row=280,column=columnbase+1)
+        self.selectChannel_entry.grid_forget()
 
-        self.selectChannel_button = Button(self, text="Select Channel to View", command=self.call_selectChannel,width=25,state="disabled")
-        self.selectChannel_button.grid(row=30,column=columnbase,columnspan=2)
+        self.selectChannel_button = Button(self, text="Select Socket to View", command=self.call_selectChannel,width=25,state="disabled")
+        self.selectChannel_button.grid(row=300,column=columnbase,columnspan=2)
 
         self.selectChannel_result = Label(self, text="")
-        self.selectChannel_result.grid(sticky=W,row=32,column=columnbase)
+        self.selectChannel_result.grid(sticky=W,row=320,column=columnbase)
 
         # DC Current box
         self.current_label = Label(self,text="CH2 Current [A]:",width=25,state="disabled")
-        self.current_label.grid(sticky=W,row=34,column=columnbase+0)
+        self.current_label.grid(sticky=W,row=340,column=columnbase+0)
 
         self.current_entry = Entry(self,width=25,state="disabled")
-        self.current_entry.grid(sticky=W,row=34,column=columnbase+1)
+        self.current_entry.grid(sticky=W,row=340,column=columnbase+1)
 
         self.start_david_adams_button = Button(self, text="Collect David Adams Data", command=self.start_david_adams,width=25)
-        self.start_david_adams_button.grid(row=36,column=columnbase,columnspan=2,pady=30)
+        self.start_david_adams_button.grid(row=360,column=columnbase,columnspan=2,pady=30)
 
         self.retry_david_adams_label = Label(self,text="",width=30,fg="#0000FF")
-        self.retry_david_adams_label.grid(row=37,column=columnbase,columnspan=2)
+        self.retry_david_adams_label.grid(row=370,column=columnbase,columnspan=2)
 
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        self.start_button.grid(row=38,column=columnbase,columnspan=2,pady=30)
+        self.start_button.grid(row=380,column=columnbase,columnspan=2,pady=30)
 
         self.reset_button = Button(self, text="Reset & Power-off", command=self.reset,width=25,bg="#FF8000")
-        self.reset_button.grid(row=40,column=columnbase,columnspan=2)
+        self.reset_button.grid(row=400,column=columnbase,columnspan=2)
 
         self.runid_label = Label(self, text="")
-        self.runid_label.grid(row=44,column=columnbase,columnspan=2,pady=20)
+        self.runid_label.grid(row=440,column=columnbase,columnspan=2,pady=20)
 
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
-        self.status_label.grid(row=100,column=columnbase,columnspan=2)
+        self.status_label.grid(row=1000,column=columnbase,columnspan=2)
         self.bkg_color = self.status_label.cget("background")
 
     def get_options(self,getCurrent=False):
@@ -359,7 +362,7 @@ class GUI_WINDOW(Frame):
                                 "rundir": "/home/{linux_username}/run",
                                 "datadir": "{basedir}/{linux_username}/adcasic/{femb_config_name}/{timestamp}",
                                 "paramfile": "{datadir}/setup_params_try{iTry}.json",
-                                "outfilename": "{datadir}/adcSetup_{timestamp}_try{iTry}.json"
+                                "outfilename": "{datadir}/adcSetup_{timestamp}_try{iTry}.json",
                                 "smtname": "adc",
                                 "smttag": "{hostname}",
                                 "power_on": power_on,
@@ -401,9 +404,6 @@ class GUI_WINDOW(Frame):
         self.waveform_root_viewers = []
         if not GUITESTMODE:
             self.config.FUNCGENINTER.stop()
-        for i in reversed(range(len(self.result_labels))):
-            tmp = self.result_labels.pop(i)
-            tmp.destroy()
         self.current_label["state"] = "disabled"
         self.current_entry["state"] = "disabled"
         self.start_button["state"] = "disabled"
@@ -470,9 +470,6 @@ class GUI_WINDOW(Frame):
         self.waveform_root_viewers = []
         if not GUITESTMODE:
             self.config.FUNCGENINTER.stop()
-        for i in reversed(range(len(self.result_labels))):
-            tmp = self.result_labels.pop(i)
-            tmp.destroy()
         self.current_label["state"] = "disabled"
         self.current_entry["state"] = "disabled"
         self.start_button["state"] = "disabled"
@@ -551,7 +548,95 @@ class GUI_WINDOW(Frame):
             else:
                 resultdict = {"pass":True}
                 #resultdict = {"pass":False}
-        if resultdict["pass"]:
+        print("done_preparing_board result:")
+        pprint.pprint(resultdict)
+        titles_made = False
+        testNames = None
+        columnbase = 0
+        rowbase = 150
+        for iSocket in range(self.config.NASICS):
+            serial = resultdict["serials"][iSocket]
+            theseTestNames = ["configADC","configFE","sync","havetofindsync"]
+            if titles_made:
+                assert(theseTestNames == testNames)
+            else:
+                testNames = theseTestNames
+                label = Label(self, text="Setup Step",anchor=W)
+                label.grid(row=rowbase,column=columnbase)
+                self.result_labels.append(label)
+            label = Label(self, text=serial)
+            label.grid(row=rowbase,column=columnbase+2+iSocket)
+            self.result_labels.append(label)
+            # overall pass fail
+            if resultdict["pass"][iSocket]:
+                label = Label(self, text="PASS",bg="#00CC00")
+                label.grid(row=rowbase+2,column=columnbase+2+iSocket)
+                self.result_labels.append(label)
+            else:
+                label = Label(self, text="FAIL",bg="#FF0000")
+                label.grid(row=rowbase+2,column=columnbase+2+iSocket)
+                self.result_labels.append(label)
+            label = Label(self, text="") # just to put a blank space
+            label.grid(row=rowbase+3,column=columnbase+2+iSocket)
+            self.result_labels.append(label)
+            # board test:
+            if iSocket == 0:
+                for iTest, test in enumerate(["readReg","init"]):
+                    label = Label(self, text="Board")
+                    label.grid(row=rowbase,column=columnbase+1)
+                    self.result_labels.append(label)
+                    if not titles_made:
+                        label = Label(self, text=test,anchor=E,justify=LEFT)
+                        label.grid(row=rowbase+iTest+5,column=columnbase)
+                        self.result_labels.append(label)
+                    color = "#FF0000"
+                    text = "FAIL"
+                    if resultdict[test] is None:
+                        color = self.bkg_color
+                        text = "NULL"
+                    elif resultdict[test]:
+                        color = "#00CC00"
+                        text = "OK"
+                    label = Label(self, text=text,width=4,bg=color)
+                    label.grid(row=rowbase+iTest+5,column=columnbase+1)
+                    self.result_labels.append(label)
+            # individual ASIC tests:
+            for iTest, test in enumerate(testNames):
+                testPassed = resultdict[test][iSocket]
+                if test == "havetofindsync":
+                    test = "Had to resync"
+                if not titles_made:
+                    label = Label(self, text=test,anchor=E,justify=LEFT)
+                    label.grid(row=rowbase+iTest+15,column=columnbase)
+                    self.result_labels.append(label)
+                color = "#FF0000"
+                text = "FAIL"
+                if testPassed is None:
+                    color = self.bkg_color
+                    text = "NULL"
+                elif testPassed:
+                    color = "#00CC00"
+                    text = "OK"
+                if test == "Had to resync":
+                    if testPassed is None:
+                        pass
+                    elif testPassed:
+                        color = "#FF9900"
+                        text = "Yes"
+                    else:
+                        color = "#00CC00"
+                        text = "No"
+                label = Label(self, text=text,width=4,bg=color)
+                label.grid(row=rowbase+iTest+15,column=columnbase+2+iSocket)
+                self.result_labels.append(label)
+            titles_made = True
+
+        anyPass = False
+        for chipPass in resultdict["pass"]:
+            if chipPass:
+                anyPass = True
+                break
+        if anyPass:
             self.current_label["state"] = "normal"
             self.current_entry["state"] = "normal"
             self.status_label["text"] = "Power up success, enter CH2 Current"
@@ -587,7 +672,7 @@ class GUI_WINDOW(Frame):
             self.reset_waveform_viewer()
         else:
             columnbase = 0
-            rowbase = 50
+            rowbase = 500
             label = Label(self, text="FAIL to setup board",bg="#FF0000")
             label.grid(row=rowbase+2,column=columnbase,columnspan=2)
             self.result_labels.append(label)
@@ -695,7 +780,7 @@ class GUI_WINDOW(Frame):
         titles_made = False
         testNames = None
         columnbase = 0
-        rowbase = 50
+        rowbase = 500
         for iCol,outfilename in enumerate(sorted(outfilenames)):
             data = None
             with open(outfilename) as outfile:
@@ -815,6 +900,8 @@ def main():
     parser = ArgumentParser(description="ADC cold test GUI")
     parser.add_argument("-l","--forceLong",help="Force to run over all ADC offset current settings (normally doesn't)",action="store_true")
     args = parser.parse_args()
+
+    print("Using femb_python:",os.path.dirname(femb_python.__file__))
 
     root = Tk()
     root.title("ADC Cold Test GUI")
