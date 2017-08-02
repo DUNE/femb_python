@@ -29,6 +29,7 @@ from femb_python.configuration.config_base import FEMB_CONFIG_BASE, FEMBConfigEr
 from femb_python.configuration.adc_asic_reg_mapping_P1_singleADC import ADC_ASIC_REG_MAPPING
 from femb_python.test_instrument_interface.dummy_funcgen import DummyFuncGen
 from femb_python.test_instrument_interface.dummy_powersupply import DummyPowerSupply
+from femb_python.test_instrument_interface.keysight_33600A import Keysight_33600A
 
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
@@ -82,7 +83,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_PLL_BASES = [17,26,35,44] # for each chip
 
         self.NASICS = 4
-        self.FUNCGENINTER = DummyFuncGen("","")
+        #self.FUNCGENINTER = DummyFuncGen("","")
+        self.FUNCGENINTER = Keysight_33600A("/dev/usbtmc0",1)
         self.POWERSUPPLYINTER = DummyPowerSupply("","")
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
