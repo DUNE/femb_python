@@ -43,13 +43,12 @@ class FEMB_SUMMARY(object):
         self.status_check_setup = 1
 
     def do_analysis(self,params):
-        #if self.status_check_setup == 0:
-        #    print("DO ANALYSIS - Please record data before analysis")
-        #    return
-        #if self.status_do_analysis == 1:
-        #    print("DO ANALYSIS - Analysis already complete")
-        #    return
-
+        if self.status_check_setup == 0:
+            print("DO ANALYSIS - Please record data before analysis")
+            return
+        if self.status_do_analysis == 1:
+            print("DO ANALYSIS - Analysis already complete")
+            return
 
         slotlist = params['wibslots']
 
@@ -122,23 +121,24 @@ class FEMB_SUMMARY(object):
                     if os.path.isfile(info_file):
                         params_curr = json.loads(open(info_file).read())
                         results_file = params_curr['datadir']+"/gainMeasurement_femb_"+str(slot)+"-results.json"
-                        result = json.loads(open(results_file).read())
-                        gaininfo.append(gainlabels[int(result['config_gain'])])
-                        gaininfo.append(shapelabels[int(result['config_shape'])])
-                        if ("intpulse" in mydir):
-                            gaininfo.append(pulselabels[0])
-                        else:
-                            gaininfo.append(pulselabels[1])
-                        encsum = 0
-                        n = 0
-                        for r in result['results']:
-                            if ("enc" in r):
-                                encsum+=float(r['enc'])
-                                n+=1
-                        encavg = encsum/n
-                        gaininfo.append(encavg)
-                        gainlabel = gaininfo[0]+"_"+gaininfo[1]+"_"+gaininfo[2]
-                        gainsummary[gainlabel] = gaininfo
+                        if os.path.isfile(resultsfile):
+                            result = json.loads(open(results_file).read())
+                            gaininfo.append(gainlabels[int(result['config_gain'])])
+                            gaininfo.append(shapelabels[int(result['config_shape'])])
+                            if ("intpulse" in mydir):
+                                gaininfo.append(pulselabels[0])
+                            else:
+                                gaininfo.append(pulselabels[1])
+                            encsum = 0
+                            n = 0
+                            for r in result['results']:
+                                if ("enc" in r):
+                                    encsum+=float(r['enc'])
+                                    n+=1
+                            encavg = encsum/n
+                            gaininfo.append(encavg)
+                            gainlabel = gaininfo[0]+"_"+gaininfo[1]+"_"+gaininfo[2]
+                            gainsummary[gainlabel] = gaininfo
                     
                     if ("g2_s2_intpulse" in mydir):
                         if os.path.isfile(self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"):
@@ -160,24 +160,25 @@ class FEMB_SUMMARY(object):
                     l4 = "1.5 V"
                     l5 = "5 V"
                     info_file = self.topdir+"/"+mydir+"/params.json"
-                    params_curr = json.loads(open(info_file).read())
-                    results_file = params_curr['datadir']+"/"+params_curr['outlabel']+"-results.json"
-                    result = json.loads(open(results_file).read())
+                    if os.path.isfile(info_file):
+                        params_curr = json.loads(open(info_file).read())
+                        results_file = params_curr['datadir']+"/"+params_curr['outlabel']+"-results.json"
+                        if (os.path.isfile(results_file):
+                            result = json.loads(open(results_file).read())
 
-                    ion = [result["all_on_femb"+str(slot)+"_i1"],
-                           result["all_on_femb"+str(slot)+"_i2"],
-                           result["all_on_femb"+str(slot)+"_i3"],
-                           result["all_on_femb"+str(slot)+"_i4"],
-                           result["all_on_femb"+str(slot)+"_i5"] ]
-                    von = [result["all_on_femb"+str(slot)+"_v1"],
-                           result["all_on_femb"+str(slot)+"_v2"],
-                           result["all_on_femb"+str(slot)+"_v3"],
-                           result["all_on_femb"+str(slot)+"_v4"],
-                           result["all_on_femb"+str(slot)+"_v5"] ]
+                            ion = [result["all_on_femb"+str(slot)+"_i1"],
+                                   result["all_on_femb"+str(slot)+"_i2"],
+                                   result["all_on_femb"+str(slot)+"_i3"],
+                                   result["all_on_femb"+str(slot)+"_i4"],
+                                   result["all_on_femb"+str(slot)+"_i5"] ]
+                            von = [result["all_on_femb"+str(slot)+"_v1"],
+                                   result["all_on_femb"+str(slot)+"_v2"],
+                                   result["all_on_femb"+str(slot)+"_v3"],
+                                   result["all_on_femb"+str(slot)+"_v4"],
+                                   result["all_on_femb"+str(slot)+"_v5"] ]
 
-                    #ETW these measurements are not reliable right now - turn off printing
-                    printcurrent = False
-                    
+                            #ETW these measurements are not reliable right now - turn off printing
+                            printcurrent = False
 
             if (printgain):
 
