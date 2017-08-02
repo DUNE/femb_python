@@ -121,7 +121,7 @@ class FEMB_SUMMARY(object):
                     if os.path.isfile(info_file):
                         params_curr = json.loads(open(info_file).read())
                         results_file = params_curr['datadir']+"/gainMeasurement_femb_"+str(slot)+"-results.json"
-                        if os.path.isfile(resultsfile):
+                        if os.path.isfile(results_file):
                             result = json.loads(open(results_file).read())
                             gaininfo.append(gainlabels[int(result['config_gain'])])
                             gaininfo.append(shapelabels[int(result['config_shape'])])
