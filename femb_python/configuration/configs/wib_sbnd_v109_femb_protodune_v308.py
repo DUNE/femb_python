@@ -89,7 +89,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def initBoard(self):
         self.initWib()
         for femb in range(0,4,1):
-            self.initFemb(femb)
+            self.selectFemb(femb)
+            self.initFemb()
         
     def initWib(self):
         #WIB initialization
@@ -656,35 +657,27 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #good firmware id
         return True
 
-    def readCurrent(self,femb):
+    def readCurrent(self,pwrSel):
 
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
         
-        fembVal = int(femb)
-
-        pwrSelBase = 1 + fembVal*6
-        #print(femb, pwrSelBase)
-        results = []
-
-        self.femb.write_reg(0, 8)
-
-        self.femb.write_reg_bits( 5 , 16, 0x1, 1)
-        self.femb.write_reg_bits( 5 , 16, 0x1, 0)
-        time.sleep(0.01)
+        self.femb.write_reg(5,0)
+        self.femb.write_reg(5,0x10000)
+        self.femb.read_reg(5) #voodoo
+        self.femb.write_reg(5,0)
+        self.femb.read_reg(5) #voodoo
         
-        self.femb.write_reg_bits( 5 , 0, 0xFF, 0)
-        val = self.femb.read_reg(6) & 0xFFFFFFFF            
-        results.append(val)
-        
-        for pwrSel in range(pwrSelBase, pwrSelBase+6, 1):
-            self.femb.write_reg_bits( 5 , 0, 0xFF, pwrSel )
-            val = self.femb.read_reg(6) & 0xFFFFFFFF
-            results.append(val)
+        time.sleep(1)
 
-        self.selectFemb(fembVal)
-        return results
+        self.femb.write_reg(5,pwrSel)
+        self.femb.read_reg(5) #voodoo
+        time.sleep(1)
+        val = self.femb.read_reg(6) #& 0xFFFFFFFF
+
+        self.selectFemb(0)
+        return val
     
 
     def ext_clk_config_femb(self):
