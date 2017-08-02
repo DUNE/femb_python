@@ -58,6 +58,16 @@ def setup_board(config,outfilename,adcSerialNumbers,startDateTime,operator,board
             config.POWERSUPPLYINTER.on()
         time.sleep(1)
         config.resetBoard()
+        reg2 = config.femb.read_reg(1)
+        if reg2 is None:
+            print("Board/chip Failure: couldn't read a register.")
+            result["readReg"] = False;
+            json.dump(result,outfile)
+            if power_off:
+                config.POWERSUPPLYINTER.off()
+            return
+        else:
+            result["readReg"] = True
         try:
             config.initBoard()
         except ReadRegError:

@@ -22,6 +22,7 @@ import string
 import time
 import copy
 import os.path
+import pprint
 import subprocess
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE, FEMBConfigError, SyncADCError, InitBoardError, ConfigADCError, ReadRegError
@@ -45,26 +46,28 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_DAC1 = 4 # bit 0-15 DAC val, 16-19 tp mode select, 31 set dac
         self.REG_DAC2 = 5 # bit 0-15 tp period, 16-31 tp shift
 
-        self.REG_ADC_TST_PATT = 6 # bit 0-11 tst patt, 16 enable
+        self.REG_FPGA_TST_PATT = 6 # bit 0-11 tst patt, 16 enable
+
         self.REG_ADC_CLK = 7 # bit 0-3 clk phase, 8 clk speed sel
         self.REG_LATCHLOC = 8 # bit 0-7 ADC1, 8-15 ADC2, 16-23 ADC3, 24-31 ADC4
 
-        self.REG_STOP_ADC = 9 # bit 0 stops sending convert, read redundant with reg 2
+        self.REG_STOP_ADC = 9 # bit 0 stops sending convert, read ADC HEADER redundant with reg 2
 
         self.REG_UDP_FRAME_SIZE = 63 # bits 0-11
+        # this config written for version 259 decimal
         self.REG_FIRMWARE_VERSION = 0xFF # 255 in decimal
         
-        self.REG_LATCHLOC_data_2MHz = 0x0
+        self.REG_LATCHLOC_data_2MHz = 0x02020202
         self.REG_LATCHLOC_data_1MHz = 0x0
-        self.REG_LATCHLOC_data_2MHz_cold = 0x0
+        self.REG_LATCHLOC_data_2MHz_cold = 0x02020202
         self.REG_LATCHLOC_data_1MHz_cold = 0x0
 
-        self.REG_CLKPHASE_data_2MHz = 0x0
+        self.REG_CLKPHASE_data_2MHz = 0x4
         self.REG_CLKPHASE_data_1MHz = 0x0
-        self.REG_CLKPHASE_data_2MHz_cold = 0x0
+        self.REG_CLKPHASE_data_2MHz_cold = 0x4
         self.REG_CLKPHASE_data_1MHz_cold = 0x0
 
-        self.DEFAULT_TST_PATERN = 0x12
+        self.DEFAULT_FPGA_TST_PATTERN = 0x12
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
 
         # registers 64-88 are SPI to ASICs
@@ -94,8 +97,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.adc_regs.append(ADC_ASIC_REG_MAPPING())
 
         #self.defaultConfigFunc = lambda: self.configAdcAsic()
-        #self.defaultConfigFunc = lambda: self.configAdcAsic(clockMonostable=True)
-        self.defaultConfigFunc = lambda: self.configAdcAsic(clockMonostable=True,f5=True)
+        self.defaultConfigFunc = lambda: self.configAdcAsic(clockMonostable=True)
+        #self.defaultConfigFunc = lambda: self.configAdcAsic(clockMonostable=True,freqInternal=0) # 1 MHz
 
     def resetBoard(self):
         """
@@ -135,7 +138,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.setFPGADac(0,0,0,0) # write regs 4 and 5
         self.femb.write_reg(1,0) # pwr ctrl
         self.femb.write_reg(3, (5 << 8 )) # chn sel
-        self.femb.write_reg(6,self.DEFAULT_TST_PATERN)  #tst pattern
+        self.femb.write_reg(6,self.DEFAULT_FPGA_TST_PATTERN)  #tst pattern
         self.femb.write_reg(7,13)  #adc clk
         self.femb.write_reg(8,0)  #latchloc
         ##### End Top-level Labview stacked sequence struct 0
@@ -151,9 +154,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
             time.sleep(0.1)
 
-            #Set ADC test pattern register
-            self.femb.write_reg(self.REG_ADC_TST_PATT, self.DEFAULT_TST_PATERN) # test pattern off
-            #self.femb.write_reg(self.REG_ADC_TST_PATT, self.DEFAULT_TST_PATERN+(1 << 16)) # test pattern on
+            #Set FPGA test pattern register
+            self.femb.write_reg(self.REG_FPGA_TST_PATT, self.DEFAULT_FPGA_TST_PATTERN) # test pattern off
+            #self.femb.write_reg(self.REG_FPGA_TST_PATT, self.DEFAULT_FPGA_TST_PATTERN+(1 << 16)) # test pattern on
             #Set ADC latch_loc and clock phase and sample rate
             if self.SAMPLERATE == 1e6:
                 if self.COLD:
@@ -194,26 +197,19 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             time.sleep(0.1)
 
 #            self.printSyncRegister()
-#
 #            self.syncADC()
 
             self.printSyncRegister()
 
             self.selectChannel(0,0) # not packed many channels
 
-            #time.sleep(0.1)
-            #self.printSyncRegister()
-            #time.sleep(0.1)
             #print("Stop ADC...")
             #self.femb.write_reg(self.REG_STOP_ADC,1)
-            #time.sleep(0.1)
-            #self.printSyncRegister()
             #time.sleep(0.1)
             #print("Start ADC...")
             #self.femb.write_reg(self.REG_STOP_ADC,0)
             #time.sleep(0.1)
             #self.printSyncRegister()
-            #time.sleep(0.1)
 
             # Check that board streams data
             data = self.femb.get_data(1)
@@ -238,13 +234,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         assert(len(Adcasic_regs)==self.NASICS)
         print("FEMB_CONFIG--> Config ADC ASIC SPI")
         for iTry in range(2):
-            print("  Try at writing SPI: ",iTry+1)
+            #print("  Try at writing SPI: ",iTry+1)
             self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
             for iChip, chipRegs in enumerate(Adcasic_regs):
                 assert(len(chipRegs)==5)
                 for iReg in range(5):
                     self.femb.write_reg(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg])
-                    print("{:3}  {:#010x}".format(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg]))
+                    #print("{:3}  {:#010x}".format(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg]))
                     time.sleep(0.05)
 
             self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,3)
@@ -252,8 +248,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,2)
             time.sleep(0.1)
             self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+            time.sleep(0.1)
+            self.femb.write_reg(self.REG_RESET,0)
+            time.sleep(0.1)
 
-            self.printSyncRegister()
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,1 << 6) # soft reset
+
+        self.printSyncRegister()
 
     def getSyncStatus(self):
         syncBits = None
@@ -289,12 +290,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def printSyncRegister(self):
         (fe0, fe1, fe2, fe3), (adc0, adc1, adc2, adc3), syncBits = self.getSyncStatus()
         reg = self.femb.read_reg(self.REG_ASIC_SPIPROG_RESET)
-        print("ADC Sync Bits: {:#010b} (0 is good)".format(syncBits))
         print("ASIC Readback Status:")
         print("  ADC 0:",adc0,"FE 0:",fe0)
         print("  ADC 1:",adc1,"FE 1:",fe1)
         print("  ADC 2:",adc2,"FE 2:",fe2)
         print("  ADC 3:",adc3,"FE 3:",fe3)
+        print("ADC Sync Bits: {:#010b} (0 is good)".format(syncBits))
 
     def configAdcAsic(self,enableOffsetCurrent=None,offsetCurrent=None,testInput=None,
                             freqInternal=None,sleep=None,pdsr=None,pcsr=None,
@@ -411,18 +412,22 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.femb.write_reg( self.REG_STOP_ADC, 0)
 
-    def syncADC(self):
+    def syncADC(self,iASIC=None):
+        #return True, 0, 0 
         #turn on ADC test mode
         print("FEMB_CONFIG--> Start sync ADC")
 
-        #originalTestPatternReg = self.femb.read_reg (self.REG_ADC_TST_PATT)
-        #newReg = ( originalTestPatternReg | (1 << 16) )
-        #self.femb.write_reg(self.REG_ADC_TST_PATT,newReg) # - enable ADC test pattern
-        self.configAdcAsic(clockMonostable=True,f5=True)
+
+        self.configAdcAsic(clockMonostable=True,f4=0,f5=1)
         time.sleep(0.1)                
 
         alreadySynced = True
-        for a in range(0,self.NASICS,1):
+        asicsToSync = [iASIC]
+        if iASIC is None:
+            # not actually getting for sync just for properly configured ADC chips
+            feSPI, adcSPI, syncBits = self.getSyncStatus() 
+            asicsToSync = [i for i in range(self.NASICS) if adcSPI[i]]
+        for a in asicsToSync:
             print("FEMB_CONFIG--> Test ADC " + str(a))
             unsync, syncDicts = self.testUnsync(a)
             if unsync != 0:
@@ -432,7 +437,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         latchloc = None
         phase = None
         latchloc = self.femb.read_reg ( self.REG_LATCHLOC ) 
-        clkphase = self.femb.read_reg ( self.REG_ADC_CLK ) & 0x1111
+        clkphase = self.femb.read_reg ( self.REG_ADC_CLK ) & 0b1111
         if self.SAMPLERATE == 1e6:
             if self.COLD:
                 self.REG_LATCHLOC_data_1MHz_cold = latchloc
@@ -449,13 +454,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.REG_CLKPHASE_data_2MHZ = clkphase
         print("FEMB_CONFIG--> Latch latency {:#010x} Phase: {:#010x}".format(
                         latchloc, clkphase))
-        #self.femb.write_reg ( self.REG_ADC_TST_PATT, originalTestPatternReg )
-        #self.femb.write_reg ( self.REG_ADC_TST_PATT, originalTestPatternReg )
         self.defaultConfigFunc()
         print("FEMB_CONFIG--> End sync ADC")
-        return not alreadySynced,latchloc,clkphase
+        return not alreadySynced,latchloc,None,clkphase
 
     def testUnsync(self, adc, npackets=10):
+        #return 0, []
         print("Starting testUnsync adc: ",adc)
         adcNum = int(adc)
         if (adcNum < 0 ) or (adcNum > 7 ):
@@ -542,7 +546,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         initLATCH = self.femb.read_reg ( self.REG_LATCHLOC )
         initPHASE = self.femb.read_reg ( self.REG_ADC_CLK ) # remember bit 16 sample rate
 
-        phases = [0,1,0,1,0]
+        phases = [0,1]
+        if self.COLD:
+            phases = [0,1,0,1,0]
 
         #loop through sync parameters
         for shift in range(0,16,1):
@@ -607,30 +613,30 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         if enable:
             clock = 1./self.FPGA_FREQ_MHZ * 1000. # clock now in ns
-            print("FPGA Clock freq: {} MHz period: {} ns".format(self.FPGA_FREQ_MHZ,clock))
-            print("ExtClock option mult: {}".format(mult))
-            print("ExtClock option period: {} ns".format(period))
-            print("ExtClock option offset_read: {} ns".format(offset_read))
-            print("ExtClock option offset_rst: {} ns".format(offset_rst))
-            print("ExtClock option offset_msb: {} ns".format(offset_msb))
-            print("ExtClock option offset_lsb: {} ns".format(offset_lsb))
-            print("ExtClock option offset_lsb_1st_1: {} ns".format(offset_lsb_1st_1))
-            print("ExtClock option offset_lsb_1st_2: {} ns".format(offset_lsb_1st_2))
-            print("ExtClock option width_read: {} ns".format(width_read))
-            print("ExtClock option width_rst: {} ns".format(width_rst))
-            print("ExtClock option width_msb: {} ns".format(width_msb))
-            print("ExtClock option width_lsb: {} ns".format(width_lsb))
-            print("ExtClock option width_lsb_1st_1: {} ns".format(width_lsb_1st_1))
-            print("ExtClock option width_lsb_1st_2: {} ns".format(width_lsb_1st_2))
-            print("ExtClock option inv_rst: {}".format(inv_rst))
-            print("ExtClock option inv_read: {}".format(inv_read))
-            print("ExtClock option inv_msb: {}".format(inv_msb))
-            print("ExtClock option inv_lsb: {}".format(inv_lsb))
-            print("ExtClock option inv_lsb_1st: {}".format(inv_lsb_1st))
             denominator = clock/mult
-            print("ExtClock denominator: {} ns".format(denominator))
             period_val = period // denominator
-            print("ExtClock period: {} ns".format(period_val))
+            #print("FPGA Clock freq: {} MHz period: {} ns".format(self.FPGA_FREQ_MHZ,clock))
+            #print("ExtClock option mult: {}".format(mult))
+            #print("ExtClock option period: {} ns".format(period))
+            #print("ExtClock option offset_read: {} ns".format(offset_read))
+            #print("ExtClock option offset_rst: {} ns".format(offset_rst))
+            #print("ExtClock option offset_msb: {} ns".format(offset_msb))
+            #print("ExtClock option offset_lsb: {} ns".format(offset_lsb))
+            #print("ExtClock option offset_lsb_1st_1: {} ns".format(offset_lsb_1st_1))
+            #print("ExtClock option offset_lsb_1st_2: {} ns".format(offset_lsb_1st_2))
+            #print("ExtClock option width_read: {} ns".format(width_read))
+            #print("ExtClock option width_rst: {} ns".format(width_rst))
+            #print("ExtClock option width_msb: {} ns".format(width_msb))
+            #print("ExtClock option width_lsb: {} ns".format(width_lsb))
+            #print("ExtClock option width_lsb_1st_1: {} ns".format(width_lsb_1st_1))
+            #print("ExtClock option width_lsb_1st_2: {} ns".format(width_lsb_1st_2))
+            #print("ExtClock option inv_rst: {}".format(inv_rst))
+            #print("ExtClock option inv_read: {}".format(inv_read))
+            #print("ExtClock option inv_msb: {}".format(inv_msb))
+            #print("ExtClock option inv_lsb: {}".format(inv_lsb))
+            #print("ExtClock option inv_lsb_1st: {}".format(inv_lsb_1st))
+            #print("ExtClock denominator: {} ns".format(denominator))
+            #print("ExtClock period: {} ns".format(period_val))
 
             rd_off      = int(offset_read // denominator) & 0xFFFF
             rst_off     = int(offset_rst // denominator) & 0xFFFF
@@ -658,7 +664,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
 
         def writeRegAndPrint(name,reg,val):
-            print("ExtClock Register {0:15} number {1:3} set to {2:10} = {2:#010x}".format(name,reg,val))
+            #print("ExtClock Register {0:15} number {1:3} set to {2:10} = {2:#010x}".format(name,reg,val))
             #print("ExtClock Register {0:15} number {1:3} set to {2:#034b}".format(name,reg,val))
             self.femb.write_reg(reg,val)
         writeRegAndPrint("inv", self.REG_EXTCLK_INV,inv),
@@ -735,11 +741,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg(reg,val)
             time.sleep(0.05)
             readback = self.femb.read_reg(reg)
-            print("PLL Register {0:15} number {1:3} set to {2:10} = {2:#010x}".format(name,reg,val))
+            #print("PLL Register {0:15} number {1:3} set to {2:10} = {2:#010x}".format(name,reg,val))
             #print("PLL Register {0:15} number {1:3} set to {2:#034b}".format(name,reg,val))
             if readback == val:
-                print("  Readback match")
+                pass
+                #print("  Readback match")
             else:
+                print("PLL Register {0:15} number {1:3} set to {2:10} = {2:#010x}".format(name,reg,val))
                 print("  READBACK DOESN'T MATCH! write: {:#010x} read: {:#010x}".format(val,readback))
         regBase = self.REG_PLL_BASES[iChip]
         iStr = str(iChip)

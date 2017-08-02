@@ -17,9 +17,9 @@ def main():
     #femb_config.initBoard()
     if hadToSync:
       print("Had to sync chips. Please change settings to:")
-      if latch2 is None:
-        print("Latch latency {:#010x} Phase: {:#010x}".format(latch1,phase))
-      else:
-        print("Latch latency {:#010x} {:#010x} Phase: {:#010x}".format(latch1,latch2,phase))
     else:
       print("All chips already sync'd")
+    if latch2 is None:
+      print("Latch latency {:#010x} Phase: {:#010x}".format(latch1,phase))
+    else:
+      print("Latch latency {:#010x} {:#010x} Phase: {:#010x}".format(latch1,latch2,phase))
