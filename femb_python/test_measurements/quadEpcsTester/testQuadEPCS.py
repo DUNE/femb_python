@@ -13,7 +13,7 @@ from builtins import object
 import sys
 import string
 from subprocess import call
-from time import sleep
+import time
 import os
 import ntpath
 import glob
@@ -28,12 +28,14 @@ def main():
     femb_config = CONFIG()
     femb_config.initBoard()
 
-    #check status
-    #femb_config.readStatus(2)
-    #femb_config.eraseFlash(2)
-    #femb_config.readFlash(2, 20)
-    femb_config.programFlash(2, 25)
-    #femb_config.readFlash(2, 20)
+    for iFlash in range(4):
+        femb_config.readStatus(iFlash)
+        femb_config.eraseFlash(iFlash)
+        femb_config.readStatus(iFlash)
+        for iPage in range(10):
+            femb_config.readFlash(iFlash, iPage)
+            femb_config.programFlash(iFlash, iPage)
+            femb_config.readFlash(iFlash, iPage)
     
 if __name__ == '__main__':
     main()

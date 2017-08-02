@@ -63,26 +63,21 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
         #set status op code
         self.femb.write_reg(op_reg,0x5)
-    
         #start EPCS operation
         self.femb.write_reg(op_reg,0x105)
-        #self.femb.write_reg_bits(1 , 8, 0x1, 1 )
-
-        #wait a bit
-        time.sleep(0.001)
-
+        time.sleep(0.1)
         #stop EPCS operation
         self.femb.write_reg(op_reg,0x5)
-        #self.femb.write_reg_bits(1 , 8, 0x1, 1 )
 
         #read status bit
         regVal = self.femb.read_reg(status_reg)
         if regVal == None:
             return
 
-        print("STATUS BIT ",regVal)
+        print("STATUS BIT: ",regVal)
 
     def readFlash(self, epcsNum = 0, pageNum = 0):
+        print("Reading flash %s, page %s" %(epcsNum, pageNum))
         #EPCS OP Code
         op_reg = 1 + 3*epcsNum
         #EPCS address
@@ -98,42 +93,42 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #start EPCS operation
         self.femb.write_reg(op_reg,0x103)
-
-        #stop operation
-        self.femb.write_reg(op_reg,0x0)
-
-        #wait a bit
         time.sleep(0.1)
+        self.femb.write_reg(op_reg,0x3)
 
         #read the value
-        for reg in range(read_base + 64, read_base + 64 + 64,1):
+        for reg in range(read_base + 64, read_base + 64 + 64, 1):
             regVal = self.femb.read_reg(reg)
             if regVal == None:
                 continue
             print(reg,"\t",regVal,"\t",hex(regVal))
 
     def eraseFlash(self, epcsNum = 0):
+        print("Erasing flash %s" %(epcsNum))
         #EPCS OP Code
         op_reg = 1 + 3*epcsNum
 
         #write enable
         self.femb.write_reg(op_reg,0x6)        
         self.femb.write_reg(op_reg,0x106)
-        self.femb.write_reg(op_reg,0x0)
+        time.sleep(0.1)
+        self.femb.write_reg(op_reg,0x6)
 
         #erase bulk
         self.femb.write_reg(op_reg,0xC7)
-        time.sleep(0.5)        
         self.femb.write_reg(op_reg,0x1C7)
-        time.sleep(0.5)
+        time.sleep(0.1)
         self.femb.write_reg(op_reg,0xC7)
-        self.femb.write_reg(op_reg,0x0)
+        #self.femb.write_reg(op_reg,0x0)
 
-        time.sleep(10)
-
+        #Erase bulk cycle time for EPCS16 is 40s max
+        for t in range(60):
+            self.readStatus(epcsNum)
+            time.sleep(1)
+        
     def programFlash(self, epcsNum = 0, pageNum = 0):
-        #Note: The bytes of memory must be erased before write bytes operation is implemented
-
+        print("Programing flash %s, page %s" %(epcsNum, pageNum))
+ 
         #EPCS OP Code
         op_reg = 1 + 3*epcsNum
 
@@ -143,16 +138,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #EPCS Status
         status_reg = 3 + 3*epcsNum
                 
-        read_base = 512 + 256*epcsNum
+        write_base = 512 + 256*epcsNum
 
-        for reg in range(read_base, read_base + 64, 1):
-            self.femb.write_reg(reg, 0x99999999)
+        for reg in range(write_base, write_base + 64, 1):
+            self.femb.write_reg(reg, 0x987654321)
 
         #Set write enable
         self.femb.write_reg(op_reg,0x6)
         self.femb.write_reg(op_reg,0x106)
-        time.sleep(1)
-        self.femb.write_reg(op_reg,0x0)
+        time.sleep(0.1)
+        self.femb.write_reg(op_reg,0x6)
 
         #set page to write
         self.femb.write_reg(addr_reg, 256*pageNum)
@@ -160,30 +155,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #write bytes
         self.femb.write_reg(op_reg,0x2)
         self.femb.write_reg(op_reg,0x102)
-        time.sleep(1)
-        
-        #read status bit
-        self.femb.write_reg(op_reg,0x5)
-        self.femb.write_reg(op_reg,0x105)
-        time.sleep(0.5)
-        self.femb.write_reg(op_reg,0x5)
-        print("Status is: ", self.femb.read_reg(status_reg))
-
-        time.sleep(1)
+        time.sleep(0.1)
         self.femb.write_reg(op_reg,0x2)
 
-        #read bytes
-        self.femb.write_reg(op_reg,0x3)
-        self.femb.write_reg(op_reg,0x103)
-        time.sleep(1)
-        self.femb.write_reg(op_reg,0x0)
-
-        #read the value
-        time.sleep(1)
-        for reg in range(read_base + 64, read_base + 64 + 64, 1):
-            regVal = self.femb.read_reg(reg)
-            if regVal == None:
-                continue
-            print(reg,"\t",regVal,"\t",hex(regVal))
-
-            
+        #Write byte cycle time for EPCS16 is 5s max
+        time.sleep(10)
