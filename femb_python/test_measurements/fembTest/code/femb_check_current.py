@@ -60,36 +60,24 @@ class FEMB_CHECK_CURRENT(object):
             self.config.powerOffFemb(j)
                         
         if ("off" in ifemb): #All off
-            time.sleep(240)
-            results = []
-            for pwrSel in range(1,25,1):
-                curr_measured = self.config.readCurrent(pwrSel)
-                results.append(curr_measured)
-                #self.unpack(curr_measured,pwrSel)
-            self.results_current["none_on"] = results
+            time.sleep(60)
+            curr_measured = self.config.readCurrent()
+            self.results_current["none_on"] = curr_measured
             
         elif ("all" not in ifemb): #Single slot on
             self.config.powerOnFemb(ifemb)
-            time.sleep(120)
-            results = []
-            for pwrSel in range(1,25,1):
-                curr_measured = self.config.readCurrent(pwrSel)
-                results.append(curr_measured)
-                #self.unpack(curr_measured,pwrSel)
-            self.results_current["femb"+str(ifemb)+"on"] = results
+            time.sleep(30)
+            curr_measured = self.config.readCurrent()
+            self.results_current["femb"+str(ifemb)+"on"] = curr_measured
             self.config.powerOffFemb(ifemb)
 
         #elif len(wibslots)>1: #All on
         else:
             for i in wibslots:
                 self.config.powerOnFemb(i)
-            time.sleep(240)
-            results = []
-            for pwrSel in range(1,25,1):                
-                curr_measured = self.config.readCurrent(pwrSel)
-                #self.unpack(curr_measured,pwrSel)
-                results.append(curr_measured)
-            self.results_current["all_on"] = results
+            time.sleep(30)
+            curr_measured = self.config.readCurrent()
+            self.results_current["all_on"] = curr_measured
             for j in wibslots:
                 self.config.powerOffFemb(j)
 
@@ -112,14 +100,12 @@ class FEMB_CHECK_CURRENT(object):
             for val in resultlist:
                 if (i<25):
                     jfemb = int(i/6)
-                    #print("femb# = ",jfemb, " i= ", i)
                     val1 = ((val >> 16) & 0xFFFF)
                     val2 = (val & 0xFFFF)
 
                     if i%6==0:
                         v1 = val1 & 0x3FFF
                         vcc1 = v1*305.18e-6 + 2.5
-                        #print("vcc: ", val, val1, vcc1)
                         self.fullresults_current[key+"_femb"+str(jfemb)+"_vcc1"] = vcc1
                         v2 = val2 & 0x3FFF
                         temp1 = v2*0.0625
@@ -127,13 +113,11 @@ class FEMB_CHECK_CURRENT(object):
                     else:
                         v1 = val1 & 0x3FFF
                         vi = v1*305.18e-6
-                        #print("v",i,val, val1, v1, vi)
                         self.fullresults_current[key+"_femb"+str(jfemb)+"_v"+str(i%6)] = vi
                         v2 = val2 & 0x3FFF
                         ii = v2*19.075e-6/rsense
                         if ii>3.1:
                             ii=0
-                        #print("i",i,val, val2, v2, ii)                        
                         self.fullresults_current[key+"_femb"+str(jfemb)+"_i"+str(i%6)] = ii
                 i+=1
 
@@ -143,14 +127,12 @@ class FEMB_CHECK_CURRENT(object):
         unpacked_results = []
         if (i<25):
             jfemb = int(i/6)
-            #print("femb# = ",jfemb, " i= ", i)
             val1 = ((val >> 16) & 0xFFFF)
             val2 = (val & 0xFFFF)
 
             if i%6==0:
                 v1 = val1 & 0x3FFF
                 vcc1 = v1*305.18e-6 + 2.5
-                #print("vcc: ", val, val1, vcc1)
                 unpacked_results.append(vcc1)
                 v2 = val2 & 0x3FFF
                 temp1 = v2*0.0625
@@ -158,13 +140,11 @@ class FEMB_CHECK_CURRENT(object):
             else:
                 v1 = val1 & 0x3FFF
                 vi = v1*305.18e-6
-                #print("v",i,val, val1, v1, vi)
                 unpacked_results.append(vi)
                 v2 = val2 & 0x3FFF
                 ii = v2*19.075e-6/rsense
                 if ii>3.1:
                     ii=0
-                #print("i",i,val, val2, v2, ii)                        
                 unpacked_results.append(ii)
         i+=1
         print(i, val, unpacked_results)
