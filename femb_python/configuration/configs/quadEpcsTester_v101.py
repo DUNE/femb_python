@@ -119,7 +119,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(op_reg,0x1C7)
         time.sleep(0.1)
         self.femb.write_reg(op_reg,0xC7)
-        #self.femb.write_reg(op_reg,0x0)
 
         #Erase bulk cycle time for EPCS16 is 40s max
         for t in range(60):
@@ -141,7 +140,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         write_base = 512 + 256*epcsNum
 
         for reg in range(write_base, write_base + 64, 1):
-            self.femb.write_reg(reg, 0x987654321)
+            self.femb.write_reg(reg, 0x99999999)
 
         #Set write enable
         self.femb.write_reg(op_reg,0x6)
