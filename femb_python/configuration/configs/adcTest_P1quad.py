@@ -54,8 +54,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_STOP_ADC = 9 # bit 0 stops sending convert, read ADC HEADER redundant with reg 2
 
         self.REG_UDP_FRAME_SIZE = 63 # bits 0-11
-        # this config written for version 259 decimal
         self.REG_FIRMWARE_VERSION = 0xFF # 255 in decimal
+        self.CONFIG_FIRMWARE_VERSION = 259 # this file is written for this
         
         self.REG_LATCHLOC_data_2MHz = 0x02020202
         self.REG_LATCHLOC_data_1MHz = 0x0
@@ -132,7 +132,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
 
         ##### Start Top-level Labview stacked sequence struct 0
-        print("Firmware Version: ",self.femb.read_reg(self.REG_FIRMWARE_VERSION) & 0xFFFF)
+        firmwareVersion = self.femb.read_reg(self.REG_FIRMWARE_VERSION) & 0xFFFF
+        if firmwareVersion != self.CONFIG_FIRMWARE_VERSION:
+            raise FEMBConfigError("Board firmware version {} doesn't match configuration firmware version {}".format(firmwareVersion, self.CONFIG_FIRMWARE_VERSION))
+        print("Firmware Version: ",firmwareVersion)
+
         self.femb.write_reg(self.REG_UDP_FRAME_SIZE,0x1FB)
         time.sleep(0.05)
         self.setFPGADac(0,0,0,0) # write regs 4 and 5
@@ -174,7 +178,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                     self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF))
             self.writePLLs(0,0x20001,0)
 
-            self.setFPGADac(0,0,0,0)
+            self.setFPGADac(0,1,0,0)
 
             #Configure ADC (and external clock inside)
             try:
@@ -720,6 +724,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(5)
 
     def setFPGADac(self,amp,mode,freq,delay):
+        """
+        mode: 0 DAC only, 1 ext tp, 2 gnd, 3 1.8V, 4 test pulse, 5 1.8V FE, 6 ASIC TP DAC
+        """
         ampRegVal = ((mode & 0xFFFF) << 16) | (amp & 0xFFFF)
         freqRegVal = ((delay & 0xFFFF) << 16) | (freq & 0xFFFF)
 
