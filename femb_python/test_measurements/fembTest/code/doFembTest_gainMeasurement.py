@@ -186,6 +186,10 @@ class FEMB_TEST_GAIN(object):
         #turn ASIC test input on, start pulser section
         self.femb_config.feasicEnableTestInput = 1
         self.femb_config.configFeAsic()
+        if self.useInternalPulser == False :
+            self.femb_config.setFpgaPulser(1,0)
+        else:
+            self.femb_config.setInternalPulser(1,0)
         subrun = 1
 
         #loop over pulser configurations, each configuration is it's own subrun
@@ -230,7 +234,10 @@ class FEMB_TEST_GAIN(object):
         #run analysis program
         parseBinaryFile = self.outpathlabel + "-parseBinaryFile.root"
         call(["mv", "output_parseBinaryFile.root" , parseBinaryFile])
-        self.cppfr.run("test_measurements/fembTest/code/processNtuple_gainMeasurement",  [parseBinaryFile])
+        if self.useInternalPulser == False : 
+            self.cppfr.run("test_measurements/fembTest/code/processNtuple_gainMeasurement",  [parseBinaryFile])
+        else :
+            self.cppfr.run("test_measurements/fembTest/code/processNtuple_gainMeasurement",  [parseBinaryFile,"1"])
 
         processNtupleFile = self.outpathlabel + "-processNtupleFile.root"
         call(["mv", "output_processNtuple_gainMeasurement.root" , processNtupleFile])
@@ -300,7 +307,7 @@ def main():
     gain = 2
     shape = 1
     base = 1
-    useInternalPulser = False
+    useInternalPulser = True
     useExtAdcClock = True
     isRoomTemp = True
 
