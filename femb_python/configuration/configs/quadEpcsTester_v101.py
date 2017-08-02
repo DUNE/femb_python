@@ -3,21 +3,9 @@
 """
 Configuration for quad EPCS Flash memory tester
 """
-
-from __future__ import print_function
-from __future__ import division
-from __future__ import unicode_literals
-from __future__ import absolute_import
-from builtins import range
-from builtins import int
-from builtins import hex
-from builtins import str
-from future import standard_library
-standard_library.install_aliases()
-from builtins import object
 import sys 
-import string
 import time
+
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 
@@ -25,18 +13,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     #__INIT__#
     def __init__(self):
-        #declare basic system parameters
-        self.NEPCS = 4
-
         #set up UDP interface
         self.femb = FEMB_UDP()
-
-        #declare board specific registers
-        self.FEMB_VER = "QUAD_EPCS"
-        self.REG_RESET = 0
-
-    def resetBoard(self):
-        print("Reset")
 
     def initBoard(self):
         print("Initializing board and checking register interface")
@@ -45,14 +23,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         regVal = self.femb.read_reg(257)
         #print(regVal)
         if regVal == None:
-            print("Error - FEMB register interface is not working.")
+            print("Error!! FEMB register interface is not working.")
             print(" Will not initialize FEMB.")       
             return
 
         #check WIB fw version reg
         firmwareVerReg = (regVal & 0xFFF)
         if firmwareVerReg != 0x101:
-            print('Error initializing board - Invalid firmware and/or register read error')
+            print('Error initializing board!! Invalid firmware and/or register read error')
             return
 
     def readStatus(self, epcsNum = 0):
@@ -70,11 +48,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(op_reg,0x5)
 
         #read status bit
-        regVal = self.femb.read_reg(status_reg)
-        if regVal == None:
+        statusVal = self.femb.read_reg(status_reg)
+        if statusVal == None:
+            print("Error!! Status is None.")
             return
 
-        print("STATUS BIT: ",regVal)
+        print("STATUS BIT: ",statusVal)
+        return statusVal
 
     def readFlash(self, epcsNum = 0, pageNum = 0):
         print("Reading flash %s, page %s" %(epcsNum, pageNum))
@@ -97,11 +77,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(op_reg,0x3)
 
         #read the value
+        outputData = []
         for reg in range(read_base + 64, read_base + 64 + 64, 1):
             regVal = self.femb.read_reg(reg)
             if regVal == None:
+                print("Error!! Read value is None, will continue")
                 continue
-            print(reg,"\t",regVal,"\t",hex(regVal))
+            outputData.append(hex(regVal))
+        time.sleep(1)
+        return outputData
 
     def eraseFlash(self, epcsNum = 0):
         print("Erasing flash %s" %(epcsNum))
@@ -121,11 +105,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(op_reg,0xC7)
 
         #Erase bulk cycle time for EPCS16 is 40s max
-        for t in range(60):
+        for t in range(80):
             self.readStatus(epcsNum)
             time.sleep(1)
         
-    def programFlash(self, epcsNum = 0, pageNum = 0):
+    def programFlash(self, epcsNum = 0, pageNum = 0, inputData = None):
         print("Programing flash %s, page %s" %(epcsNum, pageNum))
  
         #EPCS OP Code
@@ -139,8 +123,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 
         write_base = 512 + 256*epcsNum
 
+        count = 0
         for reg in range(write_base, write_base + 64, 1):
-            self.femb.write_reg(reg, 0x99999999)
+            self.femb.write_reg(reg, inputData[count])
+            count +=1
 
         #Set write enable
         self.femb.write_reg(op_reg,0x6)
@@ -158,4 +144,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(op_reg,0x2)
 
         #Write byte cycle time for EPCS16 is 5s max
-        time.sleep(10)
+        for t in range(10):
+            self.readStatus(epcsNum)
+            time.sleep(1)
