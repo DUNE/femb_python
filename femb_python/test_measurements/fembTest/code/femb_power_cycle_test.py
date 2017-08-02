@@ -16,6 +16,7 @@ class FEMB_POWER_CYCLE_TEST(object):
     def callit(self,params):
 
         wibslots = params['wibslots']
+        isRoomTemp = params['isRoomTemp']
 
         for icycle in range(0,self.ntries):
             if (icycle==0):
@@ -25,6 +26,7 @@ class FEMB_POWER_CYCLE_TEST(object):
                 datadir = params['datadir']
                 label = "simpleMeasurement_cycle_"+str(icycle)
                 femb_test = FEMB_TEST_SIMPLE(datadir,label,ifemb)
+                femb_test.isRoomTemp = isRoomTemp
                 femb_test.check_setup()
                 femb_test.record_data()
                 femb_test.do_analysis()

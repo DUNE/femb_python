@@ -660,27 +660,27 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #good firmware id
         return True
 
-    def readCurrent(self,pwrSel):
+    def readCurrent(self):
 
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
-        
-        self.femb.write_reg(5,0)
-        self.femb.write_reg(5,0x10000)
-        self.femb.read_reg(5) #voodoo
-        self.femb.write_reg(5,0)
-        self.femb.read_reg(5) #voodoo
-        
-        time.sleep(1)
 
-        self.femb.write_reg(5,pwrSel)
-        self.femb.read_reg(5) #voodoo
-        time.sleep(1)
-        val = self.femb.read_reg(6) #& 0xFFFFFFFF
+        for j in range(0,100):
+            self.femb.write_reg(5,0)
+            self.femb.write_reg(5,0x10000)
+            self.femb.write_reg(5,0)
+            time.sleep(0.01)
+
+        results = []
+        for pwrSel in range(1,25):
+            self.femb.write_reg(5,pwrSel)
+            time.sleep(0.1)
+            val = self.femb.read_reg(6) & 0xFFFFFFFF
+            results.append(val)
 
         self.selectFemb(0)
-        return val
+        return results
     
 
     def ext_clk_config_femb(self):

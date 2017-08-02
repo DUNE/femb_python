@@ -152,7 +152,8 @@ class FEMB_SUMMARY(object):
 
                 #Current monitor summary:
                 if ("current" in mydir):
-                    voltage_text = "Voltage (A):"                    
+                    currentmonitortext = "Current Monitoring:"
+                    voltage_text = "Voltage (V):"                    
                     current_text = "Current (A):"
                     l1 = "4.2 V"
                     l2 = "3 V"
@@ -177,8 +178,7 @@ class FEMB_SUMMARY(object):
                                    result["all_on_femb"+str(slot)+"_v4"],
                                    result["all_on_femb"+str(slot)+"_v5"] ]
 
-                            #ETW these measurements are not reliable right now - turn off printing
-                            printcurrent = False
+                            printcurrent = True
 
             if (printgain):
 
@@ -217,7 +217,9 @@ class FEMB_SUMMARY(object):
                 pdf.ln(7)                
 
             if (printcurrent):
-                pdf.cell(50,5,txt="",align='L')
+                pdf.cell(200,5,txt=currentmonitortext,align='L',ln=1)
+                
+                pdf.cell(50,5,txt="Nominal Voltage",align='L')
                 pdf.cell(15, 5, txt=l1, align='L')
                 pdf.cell(15, 5, txt=l2, align='L')
                 pdf.cell(15, 5, txt=l3, align='L')
