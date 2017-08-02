@@ -163,7 +163,7 @@ class FEMB_SUMMARY(object):
                     if os.path.isfile(info_file):
                         params_curr = json.loads(open(info_file).read())
                         results_file = params_curr['datadir']+"/"+params_curr['outlabel']+"-results.json"
-                        if (os.path.isfile(results_file):
+                        if os.path.isfile(results_file):
                             result = json.loads(open(results_file).read())
 
                             ion = [result["all_on_femb"+str(slot)+"_i1"],
