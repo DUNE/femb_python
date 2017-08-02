@@ -30,11 +30,10 @@ def main():
 
     #check status
     #femb_config.readStatus(2)
-    #femb_config.readFlash(2)
-    #femb_config.eraseFlash(3)
-    #femb_config.readFlash(3)
-    femb_config.programFlash(3)
-    femb_config.readFlash(3)
+    #femb_config.eraseFlash(2)
+    #femb_config.readFlash(2, 20)
+    femb_config.programFlash(2, 25)
+    #femb_config.readFlash(2, 20)
     
 if __name__ == '__main__':
     main()

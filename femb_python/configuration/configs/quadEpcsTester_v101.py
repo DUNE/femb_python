@@ -43,7 +43,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #check if FEMB register interface is working
         regVal = self.femb.read_reg(257)
-        print(regVal)
+        #print(regVal)
         if regVal == None:
             print("Error - FEMB register interface is not working.")
             print(" Will not initialize FEMB.")       
@@ -82,7 +82,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         print("STATUS BIT ",regVal)
 
-    def readFlash(self, epcsNum = 0):
+    def readFlash(self, epcsNum = 0, pageNum = 0):
         #EPCS OP Code
         op_reg = 1 + 3*epcsNum
         #EPCS address
@@ -91,20 +91,21 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         read_base = 512 + 256*epcsNum
 
         #set page to read
-        self.femb.write_reg(addr_reg,2) #23 downto 0
+        self.femb.write_reg(addr_reg, 256*pageNum) #1 page = 256 byte
         
-        #set status op code
+        #read bytes op code
         self.femb.write_reg(op_reg,0x3)
 
         #start EPCS operation
         self.femb.write_reg(op_reg,0x103)
 
-        #set status op code
+        #stop operation
         self.femb.write_reg(op_reg,0x0)
 
         #wait a bit
         time.sleep(0.1)
 
+        #read the value
         for reg in range(read_base + 64, read_base + 64 + 64,1):
             regVal = self.femb.read_reg(reg)
             if regVal == None:
@@ -116,43 +117,73 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         op_reg = 1 + 3*epcsNum
 
         #write enable
-        self.femb.write_reg(op_reg,0x6)
-        
+        self.femb.write_reg(op_reg,0x6)        
         self.femb.write_reg(op_reg,0x106)
         self.femb.write_reg(op_reg,0x0)
 
         #erase bulk
         self.femb.write_reg(op_reg,0xC7)
-        time.sleep(0.5)
-        
+        time.sleep(0.5)        
         self.femb.write_reg(op_reg,0x1C7)
-        time.sleep(0.1)
-        #erase bulk
+        time.sleep(0.5)
         self.femb.write_reg(op_reg,0xC7)
-        
         self.femb.write_reg(op_reg,0x0)
 
         time.sleep(10)
 
-    def programFlash(self, epcsNum = 0):
+    def programFlash(self, epcsNum = 0, pageNum = 0):
+        #Note: The bytes of memory must be erased before write bytes operation is implemented
+
         #EPCS OP Code
         op_reg = 1 + 3*epcsNum
 
         #EPCS address
         addr_reg = 2 + 3*epcsNum
 
+        #EPCS Status
+        status_reg = 3 + 3*epcsNum
+                
+        read_base = 512 + 256*epcsNum
+
+        for reg in range(read_base, read_base + 64, 1):
+            self.femb.write_reg(reg, 0x99999999)
+
         #Set write enable
         self.femb.write_reg(op_reg,0x6)
         self.femb.write_reg(op_reg,0x106)
+        time.sleep(1)
         self.femb.write_reg(op_reg,0x0)
 
         #set page to write
-        self.femb.write_reg(addr_reg,2) #23 downto 0        
+        self.femb.write_reg(addr_reg, 256*pageNum)
 
         #write bytes
         self.femb.write_reg(op_reg,0x2)
+        self.femb.write_reg(op_reg,0x102)
+        time.sleep(1)
+        
+        #read status bit
+        self.femb.write_reg(op_reg,0x5)
+        self.femb.write_reg(op_reg,0x105)
+        time.sleep(0.5)
+        self.femb.write_reg(op_reg,0x5)
+        print("Status is: ", self.femb.read_reg(status_reg))
 
-        read_base = 512 + 256*epcsNum
-        for reg in range(read_base, read_base + 64, 1):
-            self.femb.write_reg(reg, 0x9999)
-                                                                
+        time.sleep(1)
+        self.femb.write_reg(op_reg,0x2)
+
+        #read bytes
+        self.femb.write_reg(op_reg,0x3)
+        self.femb.write_reg(op_reg,0x103)
+        time.sleep(1)
+        self.femb.write_reg(op_reg,0x0)
+
+        #read the value
+        time.sleep(1)
+        for reg in range(read_base + 64, read_base + 64 + 64, 1):
+            regVal = self.femb.read_reg(reg)
+            if regVal == None:
+                continue
+            print(reg,"\t",regVal,"\t",hex(regVal))
+
+            
