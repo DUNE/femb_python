@@ -272,6 +272,7 @@ class FEMB_TEST_GAIN(object):
         self.jsondict['config_gain'] = str( self.gain )
         self.jsondict['config_shape'] = str( self.shape )
         self.jsondict['config_base'] = str( self.base )
+        self.jsondict['useInternalPulser'] = str( self.useInternalPulser )
 
         if self.status_do_analysis == 1:
           #parse the output results, kind of messy
