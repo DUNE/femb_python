@@ -51,7 +51,7 @@ class FEMB_TEST_SIMPLE(object):
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
-        self.isRoomTemp = True
+        self.isRoomTemp = False
 
         #json output, note module version number defined here
         self.jsondict = {'type':'fembTest_simple'}
@@ -133,6 +133,8 @@ class FEMB_TEST_SIMPLE(object):
         #wait to make sure HS link is back on after check_setup
         sleep(0.5)
 
+        self.femb_config.printParameters()
+
         #setup output file and record data
         self.write_data.filename = self.outlabel+".bin"
         print("Recording " + self.write_data.filename )
@@ -188,22 +190,25 @@ class FEMB_TEST_SIMPLE(object):
         self.status_do_analysis = 1
 
     def archive_results(self):
+        #if self.status_check_setup == 0 :
+        #     print("Check setup status is 0, not archiving data")
+        #     return
         #if self.status_do_analysis == 0:
         #    print("Please analyze data before archiving results")
         #    return
-        #if self.status_archive_results == 1:
-        #    print("Results already archived")
-        #    return
+        if self.status_archive_results == 1:
+            print("Results already archived")
+            return
         #ARCHIVE SECTION
         print("SIMPLE MEASUREMENT - ARCHIVE")
 
         #add summary variables to output
         self.jsondict['femb']  = self.fembNum
         self.jsondict['filedir'] = str( self.write_data.filedir )
-        self.jsondict['status_check_setup'] = self.status_check_setup
-        self.jsondict['status_record_data'] = self.status_record_data
-        self.jsondict['status_do_analysis'] = self.status_do_analysis
-        self.jsondict['status_archive_results'] = 1
+        self.jsondict['status_check_setup'] = str(self.status_check_setup)
+        self.jsondict['status_record_data'] = str(self.status_record_data)
+        self.jsondict['status_do_analysis'] = str(self.status_do_analysis)
+        self.jsondict['status_archive_results'] = str(1)
 
         #dump results into json
         jsonFile = self.outpathlabel + "-results.json"
@@ -220,7 +225,7 @@ def main():
     #default parameters
     datadir = "data"
     wibslots = [1]
-    isRoomTemp = True
+    isRoomTemp = False
 
     if len(sys.argv) == 2 :
         params = json.loads(open(sys.argv[1]).read())

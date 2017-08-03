@@ -59,8 +59,8 @@ class FEMB_TEST_GAIN(object):
         self.buffer = 0
         self.acdc = 0
         self.useInternalPulser = False
-        self.useExtAdcClock = True
-        self.isRoomTemp = True
+        self.useExtAdcClock = False
+        self.isRoomTemp = False
 
         #json output, note module version number defined here
         self.jsondict = {'type':'fembTest_gain'}
@@ -166,9 +166,11 @@ class FEMB_TEST_GAIN(object):
         self.femb_config.isRoomTemp = self.isRoomTemp
         self.femb_config.configFeAsic()
 
-        #disable pulser
+        #disable pulsers
         self.femb_config.setInternalPulser(0,0x0)
         self.femb_config.setFpgaPulser(0,0x0)
+
+        self.femb_config.printParameters()
 
         #record data
         self.write_data.numpacketsrecord = 500
@@ -252,27 +254,29 @@ class FEMB_TEST_GAIN(object):
         self.status_do_analysis = 1
 
     def archive_results(self):
-        if self.status_check_setup == 0 :
-             print("Check setup status is 0, not archiving data")
-             return
+        #if self.status_check_setup == 0 :
+        #     print("Check setup status is 0, not archiving data")
+        #     return
         #if self.status_do_analysis == 0:
         #    print("Please analyze data before archiving results")
         #    return
-        #if self.status_archive_results == 1:
-        #    print("Results already archived")
-        #    return
+        if self.status_archive_results == 1:
+            print("Results already archived")
+            return
         #ARCHIVE SECTION
         print("GAIN MEASUREMENT - ARCHIVE")
 
         #add summary variables to output
-        self.jsondict['status_check_setup'] = str( self.status_check_setup )
-        self.jsondict['status_record_data'] = str( self.status_record_data )
-        self.jsondict['status_do_analysis'] = str( self.status_do_analysis )
-        self.jsondict['filedir'] = str( self.write_data.filedir )
-        self.jsondict['config_gain'] = str( self.gain )
-        self.jsondict['config_shape'] = str( self.shape )
-        self.jsondict['config_base'] = str( self.base )
-        self.jsondict['useInternalPulser'] = str( self.useInternalPulser )
+        self.jsondict['status_check_setup'] = str(self.status_check_setup)
+        self.jsondict['status_record_data'] = str(self.status_record_data)
+        self.jsondict['status_do_analysis'] = str(self.status_do_analysis)
+        self.jsondict['status_archive_results'] = str(1)
+        self.jsondict['filedir'] = str(self.write_data.filedir ))
+        self.jsondict['config_gain'] = str(self.gain)
+        self.jsondict['config_shape'] = str(self.shape)
+        self.jsondict['config_base'] = str(self.base)
+        self.jsondict['useInternalPulser'] = str(self.useInternalPulser)
+        self.jsondict['syncStatus'] = str(self.femb_config.syncStatus)
 
         if self.status_do_analysis == 1:
           #parse the output results, kind of messy
@@ -309,8 +313,8 @@ def main():
     shape = 1
     base = 1
     useInternalPulser = True
-    useExtAdcClock = True
-    isRoomTemp = True
+    useExtAdcClock = False
+    isRoomTemp = False
 
     #get parameters from input JSON file
     if len(sys.argv) == 2 :

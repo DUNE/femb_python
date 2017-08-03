@@ -35,6 +35,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_RESET = 0
         self.REG_ASIC_RESET = 1
         self.REG_ASIC_SPIPROG = 2
+        self.REG_SOFT_ADC_RESET = 1
 
         self.REG_LATCHLOC_3_TO_0 = 4
         self.REG_LATCHLOC_7_TO_4 = 14
@@ -63,8 +64,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #internal variables
         self.fembNum = 0
-        self.useExtAdcClock = False
-        self.isRoomTemp = True
+        self.useExtAdcClock = True
+        self.isRoomTemp = False
+        self.maxSyncAttempts = 10
+        self.doReSync = True
+        self.syncStatus = 0x0
+        self.CLKSELECT_val_RT = 0xDF
+        self.CLKSELECT2_val_RT = 0x20
+        self.CLKSELECT_val_CT = 0x83
+        self.CLKSELECT2_val_CT = 0xFF
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
@@ -88,6 +96,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("FEMB #             \t",self.fembNum)
         print("External ADC Clocks\t",self.useExtAdcClock)
         print("Room temperature   \t",self.isRoomTemp)
+        print("MAX SYNC ATTEMPTS  \t",self.maxSyncAttempts)
+        print("Do resync          \t",self.doReSync)
+        print("CLKSELECT RT       \t",self.CLKSELECT_val_RT)
+        print("CLKSELECT2 RT      \t",self.CLKSELECT2_val_RT)
+        print("CLKSELECT CT       \t",self.CLKSELECT_val_CT)
+        print("CLKSELECT2 CT      \t",self.CLKSELECT2_val_CT)
         print("FE-ASIC leakage    \t",self.feasicLeakage)
         print("FE-ASIC leakage x10\t",self.feasicLeakagex10)
         print("FE-ASIC AD/DC      \t",self.feasicAcdc)
@@ -166,12 +180,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #phase control
         if self.isRoomTemp == True:
-            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0xDF ) #clock select
-            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0x20 ) #clock select 2
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_RT ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, self.CLKSELECT2_val_RT ) #clock select 2
         else:
             print("Using cryogenic parameters")
-            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0x83 ) #clock select
-            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0xFF ) #clock select 2            
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_CT ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF,  self.CLKSELECT2_val_CT ) #clock select 2            
         self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
         self.femb.write_reg_bits(self.REG_LATCHLOC_7_TO_4 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
 
@@ -355,7 +369,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #ADC ASIC config
         adc_globalReg = 0x2000 #FRQC=1, all other general register bits are 0
         if self.useExtAdcClock == True:
-            adc_globalReg = 0xa800 #CLK0=1,CLK1=0,FRQC=1,F0=1
+            adc_globalReg = 0x8000 #CLK0=1,CLK1=0,FRQC=0,F0=0
 
         #turn off HS data before register writes
         self.femb.write_reg_bits(9 , 0, 0x1, 0 )
@@ -384,23 +398,57 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(2)
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
 
-    def doAsicConfig(self):
+    def doAsicConfig(self, syncAttempt=0):
+        print("Program ASIC SPI")
         #for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
         #    regVal = self.femb.read_reg( regNum)
         #    print( str(regNum) + "\t" + str(hex(regVal)) )
 
+        #phase control
+        """
+        if self.isRoomTemp == True:
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0xDF ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0x20 ) #clock select 2
+        else:
+            print("Using cryogenic parameters")
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0x83 ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0xFF ) #clock select 2            
+        self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
+        self.femb.write_reg_bits(self.REG_LATCHLOC_7_TO_4 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
+        """
+
         #Write ADC ASIC SPI
-        print("Program ASIC SPI")
         self.femb.write_reg( self.REG_ASIC_RESET, 1)
         time.sleep(0.1)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         time.sleep(0.1)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
         time.sleep(0.1)
+        self.femb.write_reg( self.REG_SOFT_ADC_RESET, 0x4)
 
         #for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
         #    regVal = self.femb.read_reg( regNum)
         #    print( str(regNum) + "\t" + str(hex(regVal)) )
+
+        #check the sync
+        if self.doReSync == False:
+            return
+
+        regVal = self.femb.read_reg(6)
+        if regVal == None:
+            print("doAsicConfig: Could not check SYNC status, bad")
+            return
+        syncVal = ((regVal >> 16) & 0xFFFF)
+        self.syncStatus = syncVal
+        print("SYNC ATTEMPT\t",syncAttempt,"\tSYNC VAL " , hex(syncVal) )
+
+        #try again if sync not achieved, note recursion
+        if syncVal != 0x0 :
+            if syncAttempt >= self.maxSyncAttempts :
+                print("Could not sync ADC ASIC, giving up")
+                return
+            else:
+                self.doAsicConfig(syncAttempt+1)
 
     def syncADC(self):
         print("Sync")
