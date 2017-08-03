@@ -96,6 +96,11 @@ class FEMB_TEST_GAIN(object):
         #assign FEMB # to test 
         self.femb_config.selectFemb(self.fembNum)
 
+        #test firmware versions
+        if self.femb_config.checkFirmwareVersion() == False:
+            print('Error running doFembTest - Invalid firmware and/or register read error')
+            return
+
         #initialize FEMB to known state
         print("Initializing board")
         self.femb_config.initFemb()
@@ -118,11 +123,6 @@ class FEMB_TEST_GAIN(object):
         if not self.cppfr.exists('test_measurements/fembTest/code/parseBinaryFile'):    
             print('parseBinaryFile not found, run setup.sh')
             return
-
-        #test firmware versions
-        if self.femb_config.checkFirmwareVersion() == False:
-            print('Error running doFembTest - Invalid firmware and/or register read error')
-            return     
 
         print("GAIN MEASUREMENT - READOUT STATUS OK" + "\n")
         self.status_check_setup = 1
@@ -271,7 +271,7 @@ class FEMB_TEST_GAIN(object):
         self.jsondict['status_record_data'] = str(self.status_record_data)
         self.jsondict['status_do_analysis'] = str(self.status_do_analysis)
         self.jsondict['status_archive_results'] = str(1)
-        self.jsondict['filedir'] = str(self.write_data.filedir ))
+        self.jsondict['filedir'] = str(self.write_data.filedir )
         self.jsondict['config_gain'] = str(self.gain)
         self.jsondict['config_shape'] = str(self.shape)
         self.jsondict['config_base'] = str(self.base)

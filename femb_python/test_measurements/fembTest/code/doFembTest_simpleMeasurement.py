@@ -87,6 +87,11 @@ class FEMB_TEST_SIMPLE(object):
         #assign FEMB # to test 
         self.femb_config.selectFemb(self.fembNum)
 
+        #test firmware versions
+        if self.femb_config.checkFirmwareVersion() == False:
+            print('Error running doFembTest - Invalid firmware and/or register read error')
+            return     
+
         #initialize FEMB to known state
         print("Initializing board")
         self.femb_config.isRoomTemp = self.isRoomTemp
@@ -110,11 +115,6 @@ class FEMB_TEST_SIMPLE(object):
         if not self.cppfr.exists('test_measurements/fembTest/code/parseBinaryFile'):    
             print('parseBinaryFile not found, run setup.sh')
             return
-
-        #test firmware versions
-        if self.femb_config.checkFirmwareVersion() == False:
-            print('Error running doFembTest - Invalid firmware and/or register read error')
-            return     
 
         print("SIMPLE MEASUREMENT - READOUT STATUS OK" + "\n")
         self.status_check_setup = 1
@@ -209,6 +209,7 @@ class FEMB_TEST_SIMPLE(object):
         self.jsondict['status_record_data'] = str(self.status_record_data)
         self.jsondict['status_do_analysis'] = str(self.status_do_analysis)
         self.jsondict['status_archive_results'] = str(1)
+        self.jsondict['syncStatus'] = str(self.femb_config.syncStatus)
 
         #dump results into json
         jsonFile = self.outpathlabel + "-results.json"
