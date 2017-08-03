@@ -195,6 +195,12 @@ setup(
             'femb_test_osc=femb_python.test_measurements.OscillatorTesting.code.testOscillator:main',
             # generate summary of the N tests run by the above
             'femb_test_osc_summary=femb_python.test_measurements.OscillatorTesting.code.testOscillatorSummary:main',
+
+            #For flash testing
+            #what shifters run
+            'femb_flash_test=femb_python.test_measurements.quadEpcsTester.ftmain:main',
+            #the main tester
+            'femb_flash_test_main=femb_python.test_measurements.quadEpcsTester.testQuadEPCS:main',
         ],
         #'gui_scripts': [
         #    'femb_test=femb_python.gui:main',
