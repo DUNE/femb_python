@@ -21,7 +21,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #check if FEMB register interface is working
         regVal = self.femb.read_reg(257)
-        #print(regVal)
         if regVal == None:
             print("Error!! FEMB register interface is not working.")
             print(" Will not initialize FEMB.")       
