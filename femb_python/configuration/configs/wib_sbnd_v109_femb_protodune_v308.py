@@ -35,6 +35,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_RESET = 0
         self.REG_ASIC_RESET = 1
         self.REG_ASIC_SPIPROG = 2
+        self.REG_SOFT_ADC_RESET = 1
 
         self.REG_LATCHLOC_3_TO_0 = 4
         self.REG_LATCHLOC_7_TO_4 = 14
@@ -61,9 +62,17 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_SPI_BASE = 512
         self.REG_SPI_RDBACK_BASE = 592
 
+        #internal variables
         self.fembNum = 0
         self.useExtAdcClock = True
-        self.isRoomTemp = True
+        self.isRoomTemp = False
+        self.maxSyncAttempts = 20
+        self.doReSync = True
+        self.syncStatus = 0x0
+        self.CLKSELECT_val_RT = 0xDF
+        self.CLKSELECT2_val_RT = 0x20
+        self.CLKSELECT_val_CT = 0x83
+        self.CLKSELECT2_val_CT = 0xFF
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
@@ -79,9 +88,33 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
         self.feasicEnableTestInput = 1 #0 = disabled, 1 = enabled
         self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV
-        self.feasicGain = 3 #4.7,7.8,14,25
-        self.feasicShape = 2 #0.5,1,2,3
+        self.feasicGain = 2 #4.7,7.8,14,25
+        self.feasicShape = 1 #0.5,1,2,3
         self.feasicBuf = 0 #0 = OFF, 1 = ON
+
+    def printParameters(self):
+        print("FEMB #             \t",self.fembNum)
+        print("External ADC Clocks\t",self.useExtAdcClock)
+        print("Room temperature   \t",self.isRoomTemp)
+        print("MAX SYNC ATTEMPTS  \t",self.maxSyncAttempts)
+        print("Do resync          \t",self.doReSync)
+        print("CLKSELECT RT       \t",self.CLKSELECT_val_RT)
+        print("CLKSELECT2 RT      \t",self.CLKSELECT2_val_RT)
+        print("CLKSELECT CT       \t",self.CLKSELECT_val_CT)
+        print("CLKSELECT2 CT      \t",self.CLKSELECT2_val_CT)
+        print("FE-ASIC leakage    \t",self.feasicLeakage)
+        print("FE-ASIC leakage x10\t",self.feasicLeakagex10)
+        print("FE-ASIC AD/DC      \t",self.feasicAcdc)
+        print("FE-ASIC test input \t",self.feasicEnableTestInput)
+        print("FE-ASIC baseline   \t",self.feasicBaseline)
+        print("FE-ASIC gain       \t",self.feasicGain)
+        print("FE-ASIC shape      \t",self.feasicShape)
+        print("FE-ASIC buffer     \t",self.feasicBuf)
+
+        print("FE-ASIC config")
+        for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
+            regVal = self.femb.read_reg( regNum)
+            print( str(regNum) + "\t" + str(hex(regVal)) )
 
     def resetBoard(self):
         print("Reset")
@@ -132,6 +165,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print(" Will not initialize FEMB.")       
             return
 
+        checkFirmware = self.checkFirmwareVersion()
+        if checkFirmware == False:
+            print("Error - invalid firmware, will not attempt to initialize board")
+            return
+
         #turn off pulser
         self.femb.write_reg_bits( self.REG_FPGA_TP_EN, 0,0x1,0) #test pulse enable
         self.femb.write_reg_bits( self.REG_ASIC_TP_EN, 1,0x1,0) #test pulse enable
@@ -142,11 +180,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #phase control
         if self.isRoomTemp == True:
-            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0xDF ) #clock select
-            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0x20 ) #clock select 2
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_RT ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, self.CLKSELECT2_val_RT ) #clock select 2
         else:
-            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0x83 ) #clock select
-            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0xFF ) #clock select 2            
+            print("Using cryogenic parameters")
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_CT ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF,  self.CLKSELECT2_val_CT ) #clock select 2            
         self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
         self.femb.write_reg_bits(self.REG_LATCHLOC_7_TO_4 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
 
@@ -330,7 +369,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #ADC ASIC config
         adc_globalReg = 0x2000 #FRQC=1, all other general register bits are 0
         if self.useExtAdcClock == True:
-            adc_globalReg = 0xa800 #CLK0=1,CLK1=0,FRQC=1,F0=1
+            adc_globalReg = 0x8000 #CLK0=1,CLK1=0,FRQC=0,F0=0
 
         #turn off HS data before register writes
         self.femb.write_reg_bits(9 , 0, 0x1, 0 )
@@ -359,27 +398,58 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(2)
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
 
-    def doAsicConfig(self):
+    def doAsicConfig(self, syncAttempt=0):
+        if syncAttempt == 0:
+            print("Program ASIC SPI")
         #for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
         #    regVal = self.femb.read_reg( regNum)
         #    print( str(regNum) + "\t" + str(hex(regVal)) )
 
+        #phase control
+        """
+        if self.isRoomTemp == True:
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0xDF ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0x20 ) #clock select 2
+        else:
+            print("Using cryogenic parameters")
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, 0x83 ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, 0xFF ) #clock select 2            
+        self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
+        self.femb.write_reg_bits(self.REG_LATCHLOC_7_TO_4 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
+        """
+
         #Write ADC ASIC SPI
-        print("Program ASIC SPI")
         self.femb.write_reg( self.REG_ASIC_RESET, 1)
-        time.sleep(0.1)
+        time.sleep(0.01)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.1)
+        time.sleep(0.01)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.1)
+        time.sleep(0.01)
+        self.femb.write_reg( self.REG_SOFT_ADC_RESET, 0x4)
 
         #for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
         #    regVal = self.femb.read_reg( regNum)
         #    print( str(regNum) + "\t" + str(hex(regVal)) )
 
+        #check the sync
+        if self.doReSync == False:
+            return
 
-    def setInternalPulser(self,pulserEnable,pulseHeight):
-        print("Set Pulser")
+        regVal = self.femb.read_reg(6)
+        if regVal == None:
+            print("doAsicConfig: Could not check SYNC status, bad")
+            return
+        syncVal = ((regVal >> 16) & 0xFFFF)
+        self.syncStatus = syncVal
+        #print("SYNC ATTEMPT\t",syncAttempt,"\tSYNC VAL " , hex(syncVal) )
+
+        #try again if sync not achieved, note recursion
+        if syncVal != 0x0 :
+            if syncAttempt >= self.maxSyncAttempts :
+                print("doAsicConfig: Could not sync ADC ASIC, giving up, sync val\t",hex(syncVal))
+                return
+            else:
+                self.doAsicConfig(syncAttempt+1)
 
     def syncADC(self):
         print("Sync")
@@ -563,6 +633,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print( "femb_config_femb : setFpgaPulser - invalid dac value")
             return
 
+        self.femb.write_reg_bits( self.REG_FPGA_TP_EN, 0,0x3,enableVal) #test pulse enable
+        self.femb.write_reg_bits( self.REG_FPGA_TP_EN, 8,0x1,enableVal) #test pulse enable
+        self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, dacVal ) #TP Amplitude
+        self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
+        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 497 ) #FREQ
+
         #set pulser enable bit
         if enableVal == 1 :
             self.femb.write_reg( self.EXT_TP_EN, 0x2) #this register is confusing, check
@@ -579,12 +655,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.doAsicConfig()
 
-        self.femb.write_reg_bits( self.REG_FPGA_TP_EN, 0,0x3,enableVal) #test pulse enable
-        self.femb.write_reg_bits( self.REG_FPGA_TP_EN, 8,0x1,enableVal) #test pulse enable
-        self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, dacVal ) #TP Amplitude
-        self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
-        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 197 ) #FREQ
-
     def setInternalPulser(self,enable,dac):
         enableVal = int(enable)
         if (enableVal < 0 ) or (enableVal > 1 ) :
@@ -594,6 +664,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if ( dacVal < 0 ) or ( dacVal > 0x3F ) :
             print( "femb_config_femb : setInternalPulser - invalid dac value")
             return
+
+        self.femb.write_reg_bits( self.REG_DAC_SELECT, 8,0x1,0) #test pulse enable
+        self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, 0 ) #TP Amplitude
+        self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
+        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 497 ) #FREQ
 
         #set pulser enable bit
         if enableVal == 1 :
@@ -623,10 +698,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg_bits( self.REG_ASIC_TP_EN , 0, 0x3, 0x2 ) #NOTE, also disabling FPGA pulser here
         else:
             self.femb.write_reg_bits( self.REG_ASIC_TP_EN , 0, 0x3, 0x0 )
-        self.femb.write_reg_bits( self.REG_DAC_SELECT, 8,0x1,0) #test pulse enable
-        self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, 0 ) #TP Amplitude
-        self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
-        self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 197 ) #FREQ
 
     def checkFirmwareVersion(self):
         #set UDP ports to WIB
