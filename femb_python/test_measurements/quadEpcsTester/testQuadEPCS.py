@@ -13,6 +13,8 @@ class TEST_QUAD_EPCS(object):
 
         self.nFlashes = 4
         self.nPages = 10
+        self.nTriesWrite = 5
+        self.printData = False
         
     def doTesting(self):
         #Initialize board
@@ -30,7 +32,7 @@ class TEST_QUAD_EPCS(object):
             #Erase Flash 
             self.femb_config.eraseFlash(iFlash)
             boardStatus = self.femb_config.readStatus(iFlash)
-            iTries = 0
+            iTries = 1
             while(boardStatus != 0 and tries <= 5):
                 iTries +=1
                 print("Error!! Status after erasing is bad. Trying again. Try no. %s" %(iTries))
@@ -51,6 +53,8 @@ class TEST_QUAD_EPCS(object):
 
         #Loop over flashes and pages
         flashSuccess = [True]*self.nFlashes
+        failedPages = [0, 0, 0, 0]
+        numberTried = [[0 for iP in range(0, self.nPages)] for iF in range(0, self.nFlashes)]
         for iFlash in range(self.nFlashes):
             for iPage in range(self.nPages):
                 inputData = []
@@ -61,17 +65,18 @@ class TEST_QUAD_EPCS(object):
                 self.femb_config.programFlash(iFlash, iPage, inputData)
                 outputData = self.femb_config.readFlash(iFlash, iPage)
 
-                inputDataHex = [hex(x) for x in inputData]
-                outputDataHex = [hex(x) for x in outputData]
-                print("\nInput data is:")
-                print(inputDataHex)
-                print()
-                print("\nOutput data is:")
-                print(outputDataHex)
+                if self.printData:
+                    inputDataHex = [hex(x) for x in inputData]
+                    outputDataHex = [hex(x) for x in outputData]
+                    print("\nInput data is:")
+                    print(inputDataHex)
+                    print()
+                    print("\nOutput data is:")
+                    print(outputDataHex)
                 
                 isMatch = set(inputData) == set(outputData)
-                iTries = 0
-                while (not isMatch and iTries <=5):
+                iTries = 1
+                while (not isMatch and iTries <= self.nTriesWrite):
                     iTries += 1
                     print("*" * 75)
                     print("Input and output data don't match, trying again!\nTry no. %s" %(iTries))
@@ -80,30 +85,41 @@ class TEST_QUAD_EPCS(object):
                     outputData = self.femb_config.readFlash(iFlash, iPage)
                     isMatch = set(inputData) == set(outputData)
 
-                    outputDataHex = [hex(x) for x in outputData]
-                    print("\nOutput data is:")
-                    print(outputDataHex)
+                    if self.printData:
+                        outputDataHex = [hex(x) for x in outputData]
+                        print("\nOutput data is:")
+                        print(outputDataHex)
                     
-                if(iTries > 5):
+                numberTried[iFlash][iPage] = iTries
+                
+                if(iTries > self.nTriesWrite):
                     print("*" * 75)
                     print("Writing to flash %s, page %s failed!" %(iFlash, iPage))
                     print("*" * 75)                    
                     flashSuccess[iFlash]= False
+                    failedPages[iFlash] += 1
                 else:
                     print("*" * 75)
                     print("Input and output data match for flash %s, page %s!" %(iFlash, iPage))
                     print("*" * 75)
                     
-        #Print results
+        #Print the results
         print("*" * 75)
         print("\nPrinting results:")
+        print("Tested %s flashes over %s pages." %(self.nFlashes, self.nPages))
         for iFlash in range(self.nFlashes):
             if(flashSuccess[iFlash]):
-               print("Flash %s passed!!" %(iFlash))
+               print("\nFlash %s passed!!" %(iFlash))
+               for iPage in range(self.nPages):
+                   print("No. of tries for page %s is %s" %(iPage, numberTried[iFlash][iPage]))
             else:
-               print("Flash %s failed!!" %(iFlash))
+               print("\nFlash %s failed!!" %(iFlash))
+               print("It failed on %s pages even after %s tries." %(failedPages[iFlash], self.nTriesWrite))
         print("*" * 75)
 
+        #Save the results
+        with open(self.outpathlabel+".txt", 'w') as outFile:
+            json.dump(flashSuccess + failedPages + numberTried, outFile)
 
 def main():
     datadir = sys.argv[1]
