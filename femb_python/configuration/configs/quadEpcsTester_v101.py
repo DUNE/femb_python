@@ -17,7 +17,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb = FEMB_UDP()
 
     def initBoard(self):
-        print("Initializing board and checking register interface")
+        print("\nInitializing board and checking register interface\n")
 
         #check if FEMB register interface is working
         regVal = self.femb.read_reg(257)
@@ -57,7 +57,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         return statusVal
 
     def readFlash(self, epcsNum = 0, pageNum = 0):
-        print("Reading flash %s, page %s" %(epcsNum, pageNum))
+        print("\nReading flash %s, page %s" %(epcsNum, pageNum))
         #EPCS OP Code
         op_reg = 1 + 3*epcsNum
         #EPCS address
@@ -83,12 +83,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             if regVal == None:
                 print("Error!! Read value is None, will continue")
                 continue
-            outputData.append(hex(regVal))
-        time.sleep(1)
+            outputData.append(regVal)
         return outputData
 
     def eraseFlash(self, epcsNum = 0):
-        print("Erasing flash %s" %(epcsNum))
+        print("\nErasing flash %s" %(epcsNum))
         #EPCS OP Code
         op_reg = 1 + 3*epcsNum
 
@@ -110,7 +109,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             time.sleep(1)
         
     def programFlash(self, epcsNum = 0, pageNum = 0, inputData = None):
-        print("Programing flash %s, page %s" %(epcsNum, pageNum))
+        print("\nPrograming flash %s, page %s" %(epcsNum, pageNum))
  
         #EPCS OP Code
         op_reg = 1 + 3*epcsNum
@@ -144,6 +143,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(op_reg,0x2)
 
         #Write byte cycle time for EPCS16 is 5s max
-        for t in range(10):
+        for t in range(5):
             self.readStatus(epcsNum)
             time.sleep(1)
