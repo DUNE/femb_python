@@ -96,14 +96,14 @@ class FEMB_TEST_GAIN(object):
         #assign FEMB # to test 
         self.femb_config.selectFemb(self.fembNum)
 
+        #initialize FEMB to known state
+        print("Initializing board")
+        self.femb_config.initFemb()
+
         #test firmware versions
         if self.femb_config.checkFirmwareVersion() == False:
             print('Error running doFembTest - Invalid firmware and/or register read error')
             return
-
-        #initialize FEMB to known state
-        print("Initializing board")
-        self.femb_config.initFemb()
 
         #check if data streaming is working
         print("Checking data streaming")
