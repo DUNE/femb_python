@@ -103,7 +103,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(op_reg,0xC7)
 
         #Erase bulk cycle time for EPCS64 is 160s max
-        for t in range(480): #8 mins
+        for t in range(160): 
             status = self.readStatus(epcsNum)
             time.sleep(1)
             if(status == 0):
@@ -145,7 +145,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(op_reg,0x2)
 
         #Write byte cycle time for EPCS64 is 5s max
-        for t in range(15):
+        for t in range(5):
             status = self.readStatus(epcsNum)
             time.sleep(1)
             if(status == 0):
