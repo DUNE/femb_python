@@ -66,7 +66,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.fembNum = 0
         self.useExtAdcClock = True
         self.isRoomTemp = False
-        self.maxSyncAttempts = 10
+        self.maxSyncAttempts = 20
         self.doReSync = True
         self.syncStatus = 0x0
         self.CLKSELECT_val_RT = 0xDF
@@ -399,7 +399,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
 
     def doAsicConfig(self, syncAttempt=0):
-        print("Program ASIC SPI")
+        if syncAttempt == 0:
+            print("Program ASIC SPI")
         #for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
         #    regVal = self.femb.read_reg( regNum)
         #    print( str(regNum) + "\t" + str(hex(regVal)) )
@@ -419,11 +420,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #Write ADC ASIC SPI
         self.femb.write_reg( self.REG_ASIC_RESET, 1)
-        time.sleep(0.1)
+        time.sleep(0.01)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.1)
+        time.sleep(0.01)
         self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.1)
+        time.sleep(0.01)
         self.femb.write_reg( self.REG_SOFT_ADC_RESET, 0x4)
 
         #for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
@@ -440,12 +441,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             return
         syncVal = ((regVal >> 16) & 0xFFFF)
         self.syncStatus = syncVal
-        print("SYNC ATTEMPT\t",syncAttempt,"\tSYNC VAL " , hex(syncVal) )
+        #print("SYNC ATTEMPT\t",syncAttempt,"\tSYNC VAL " , hex(syncVal) )
 
         #try again if sync not achieved, note recursion
         if syncVal != 0x0 :
             if syncAttempt >= self.maxSyncAttempts :
-                print("Could not sync ADC ASIC, giving up")
+                print("doAsicConfig: Could not sync ADC ASIC, giving up, sync val\t",hex(syncVal))
                 return
             else:
                 self.doAsicConfig(syncAttempt+1)
