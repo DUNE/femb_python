@@ -22,15 +22,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #check if FEMB register interface is working
         regVal = self.femb.read_reg(257)
         if regVal == None:
-            print("Error!! FEMB register interface is not working.")
-            print(" Will not initialize FEMB.")       
-            return
+            print("Error!! FEMB register interface is not working, will not initialize FEMB.")
+            print("Is the power supply turned on?\n")
+            sys.exit(1)
 
         #check WIB fw version reg
         firmwareVerReg = (regVal & 0xFFF)
         if firmwareVerReg != 0x101:
-            print('Error initializing board!! Invalid firmware and/or register read error')
-            return
+            print('Error initializing board!! Invalid firmware and/or register read error.\n')
+            sys.exit(1)
 
     def readStatus(self, epcsNum = 0):
         #EPCS OP Code
@@ -102,11 +102,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(0.1)
         self.femb.write_reg(op_reg,0xC7)
 
-        #Erase bulk cycle time for EPCS16 is 40s max
-        for t in range(80):
-            self.readStatus(epcsNum)
+        #Erase bulk cycle time for EPCS64 is 160s max
+        for t in range(480): #8 mins
+            status = self.readStatus(epcsNum)
             time.sleep(1)
-        
+            if(status == 0):
+                self.readStatus(epcsNum)
+                break
+            
     def programFlash(self, epcsNum = 0, pageNum = 0, inputData = None):
         print("\nPrograming flash %s, page %s" %(epcsNum, pageNum))
  
@@ -141,7 +144,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(0.1)
         self.femb.write_reg(op_reg,0x2)
 
-        #Write byte cycle time for EPCS16 is 5s max
-        for t in range(5):
-            self.readStatus(epcsNum)
+        #Write byte cycle time for EPCS64 is 5s max
+        for t in range(15):
+            status = self.readStatus(epcsNum)
             time.sleep(1)
+            if(status == 0):
+                self.readStatus(epcsNum)
+                break

@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import random
+import json
 
 from femb_python.configuration import CONFIG
 
@@ -20,25 +21,29 @@ class TEST_QUAD_EPCS(object):
         #Initialize board
         self.femb_config.initBoard()
 
-        #Loop through flashes first and check status + erase
+        #Loop through flashes and check status; if status is bad, exit
         for iFlash in range(self.nFlashes):
             #Check the status
             print("\nChecking status of flash %s" %(iFlash))
             boardStatus = self.femb_config.readStatus(iFlash)
             if(boardStatus != 0):
-                 print("Error!! Status before erasing is bad.\n")
+                 print("Error!! Status before erasing is bad. Exiting!!\n")
                  return
-             
+
+        #Loop through flashes and erase
+        eraseTried = []
+        for iFlash in range(self.nFlashes):
             #Erase Flash 
             self.femb_config.eraseFlash(iFlash)
             boardStatus = self.femb_config.readStatus(iFlash)
             iTries = 1
-            while(boardStatus != 0 and tries <= 5):
+            while(boardStatus != 0 and iTries <= 5):
                 iTries +=1
                 print("Error!! Status after erasing is bad. Trying again. Try no. %s" %(iTries))
                 self.femb_config.eraseFlash(iFlash)
                 boardStatus = self.femb_config.readStatus(iFlash)
-
+            eraseTried[iFlash] = iTries
+                
             if(iTries > 5):
                 print("Flash %s has a problem. Please check and retry again!\nExiting!\n" %(iFlash))
                 return
@@ -53,8 +58,8 @@ class TEST_QUAD_EPCS(object):
 
         #Loop over flashes and pages
         flashSuccess = [True]*self.nFlashes
-        failedPages = [0, 0, 0, 0]
-        numberTried = [[0 for iP in range(0, self.nPages)] for iF in range(0, self.nFlashes)]
+        failedPages = [0]*self.nFlashes
+        programTried = [[0 for iP in range(0, self.nPages)] for iF in range(0, self.nFlashes)]
         for iFlash in range(self.nFlashes):
             for iPage in range(self.nPages):
                 inputData = []
@@ -76,7 +81,7 @@ class TEST_QUAD_EPCS(object):
                 
                 isMatch = set(inputData) == set(outputData)
                 iTries = 1
-                while (not isMatch and iTries <= self.nTriesWrite):
+                while (not isMatch and iTries < self.nTriesWrite):
                     iTries += 1
                     print("*" * 75)
                     print("Input and output data don't match, trying again!\nTry no. %s" %(iTries))
@@ -90,7 +95,7 @@ class TEST_QUAD_EPCS(object):
                         print("\nOutput data is:")
                         print(outputDataHex)
                     
-                numberTried[iFlash][iPage] = iTries
+                programTried[iFlash][iPage] = iTries
                 
                 if(iTries > self.nTriesWrite):
                     print("*" * 75)
@@ -107,20 +112,31 @@ class TEST_QUAD_EPCS(object):
         print("*" * 75)
         print("\nPrinting results:")
         print("Tested %s flashes over %s pages." %(self.nFlashes, self.nPages))
+
+        print("\nInfo on Erase: ")
+        for iFlash in range(self.nFlashes):
+            print("\nNo. of tries to erase flash %s was %s" %(iFlash, eraseTried[iFlash]))
+            
+        print("\nInfo on Write: ")
+        print("Note: Will print no. of write tries if > 1 for a page")
         for iFlash in range(self.nFlashes):
             if(flashSuccess[iFlash]):
                print("\nFlash %s passed!!" %(iFlash))
                for iPage in range(self.nPages):
-                   print("No. of tries for page %s is %s" %(iPage, numberTried[iFlash][iPage]))
+                   if(programTried[iFlash][iPage] > 1):
+                       print("No. of program tries for page %s is %s" %(iPage, programTried[iFlash][iPage]))
             else:
                print("\nFlash %s failed!!" %(iFlash))
                print("It failed on %s pages even after %s tries." %(failedPages[iFlash], self.nTriesWrite))
         print("*" * 75)
 
         #Save the results
-        with open(self.outpathlabel+".txt", 'w') as outFile:
-            json.dump(flashSuccess + failedPages + numberTried, outFile)
-
+        with open(self.outpathlabel+".json", 'w') as outFile:
+            json.dump({'No. of tries to erase flash: ':eraseTried}, outFile)
+            json.dump({'Passed? : ':flashSuccess}, outFile)
+            json.dump({'No. of failed pages: ':failedPages}, outFile)
+            json.dump({'No. of program tries for a page: ':programTried}, outFile)
+            
 def main():
     datadir = sys.argv[1]
     outlabel = sys.argv[2]
