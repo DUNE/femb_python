@@ -25,7 +25,7 @@ import subprocess
 
 #import the test module
 import femb_python
-from ...configuration import CONFIG
+from femb_python.configuration import CONFIG
 from .exampleProductionTest import main as maintest
 
 class GUI_WINDOW(Frame):
@@ -56,23 +56,11 @@ class GUI_WINDOW(Frame):
         self.operator_entry.grid(sticky=W,row=1,column=columnbase+1)
 
         # Adding electronics ID and read entry box
-        self.boxid_label = Label(self,text="CE Box ID:",width=25)
+        self.boxid_label = Label(self,text="Electronics ID:",width=25)
         self.boxid_label.grid(sticky=W,row=3,column=columnbase+0)
 
         self.boxid_entry = Entry(self,width=25)
         self.boxid_entry.grid(sticky=W,row=3,column=columnbase+1)
-
-        self.amid_label = Label(self,text="Analog MB ID:",width=25)
-        self.amid_label.grid(sticky=W,row=4,column=columnbase+0)
-
-        self.amid_entry = Entry(self,width=25)
-        self.amid_entry.grid(sticky=W,row=4,column=columnbase+1)
-
-        self.fmid_label = Label(self,text="FPGA Mezz ID:",width=25)
-        self.fmid_label.grid(sticky=W,row=5,column=columnbase+0)
-
-        self.fmid_entry = Entry(self,width=25)
-        self.fmid_entry.grid(sticky=W,row=5,column=columnbase+1)
         
         # Adding electronics ID and read entry box
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
@@ -182,7 +170,7 @@ class GUI_WINDOW(Frame):
 def main():
     from ...configuration.argument_parser import ArgumentParser
 
-    parser = ArgumentParser(description="FEMB Test GUI")
+    parser = ArgumentParser(description="Example GUI")
 
     args = parser.parse_args()
 
