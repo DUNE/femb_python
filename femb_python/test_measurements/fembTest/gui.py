@@ -99,131 +99,180 @@ class GUI_WINDOW(Frame):
         self.fmid0_entry = Entry(self,width=15)
         self.fmid0_entry.grid(sticky=W,row=11,column=columnbase+1)
 
+        self.toytpc0_top_label = Label(self,text="Toy TPC (top)",width=15)
+        self.toytpc0_top_label.grid(sticky=W,row=12,column=columnbase+0)
+
+        self.toytpc0_top_entry = Entry(self,width=15)
+        self.toytpc0_top_entry.grid(sticky=W,row=12,column=columnbase+1)
+
+        self.toytpc0_bottom_label = Label(self,text="Toy TPC (bottom)",width=15)
+        self.toytpc0_bottom_label.grid(sticky=W,row=12,column=columnbase+2)
+
+        self.toytpc0_bottom_entry = Entry(self,width=15)
+        self.toytpc0_bottom_entry.grid(sticky=W,row=12,column=columnbase+3,padx=10)
+        
+        
         self.felist0_label = Label(self,text="FE ASICs:",width=15)
-        self.felist0_label.grid(sticky=W,row=12,column=columnbase+0)        
+        self.felist0_label.grid(sticky=W,row=13,column=columnbase+0)        
 
         self.felist0_entry = Entry(self,width=30)
-        self.felist0_entry.grid(sticky=W,row=12,column=columnbase+1,columnspan=2)
+        self.felist0_entry.grid(sticky=W,row=13,column=columnbase+1,columnspan=2)
         
         self.adclist0_label = Label(self,text="ADC ASICs:",width=15)
-        self.adclist0_label.grid(sticky=W,row=13,column=columnbase+0)        
+        self.adclist0_label.grid(sticky=W,row=14,column=columnbase+0)        
 
         self.adclist0_entry = Entry(self,width=30)
-        self.adclist0_entry.grid(sticky=W,row=13,column=columnbase+1,columnspan=2)
+        self.adclist0_entry.grid(sticky=W,row=14,column=columnbase+1,columnspan=2)
         
         
         #Slot 1
         self.slotlabel1 = Label(self,text="WIB Slot 1:")
-        self.slotlabel1.grid(sticky=W,row=14,column=columnbase+0,pady=10)
+        self.slotlabel1.grid(sticky=W,row=15,column=columnbase+0,pady=10)
         
         self.boxid1_label = Label(self,text="CE Box 1 ID:",width=15)
-        self.boxid1_label.grid(sticky=W,row=15,column=columnbase+0)
+        self.boxid1_label.grid(sticky=W,row=16,column=columnbase+0)
 
         self.boxid1_entry = Entry(self,width=15)
-        self.boxid1_entry.grid(sticky=W,row=15,column=columnbase+1)
+        self.boxid1_entry.grid(sticky=W,row=16,column=columnbase+1)
 
         self.amid1_label = Label(self,text="Analog MB 1 ID:",width=15)
-        self.amid1_label.grid(sticky=W,row=16,column=columnbase+0)
+        self.amid1_label.grid(sticky=W,row=17,column=columnbase+0)
 
         self.amid1_entry = Entry(self,width=15)
-        self.amid1_entry.grid(sticky=W,row=16,column=columnbase+1)
+        self.amid1_entry.grid(sticky=W,row=17,column=columnbase+1)
 
         self.fmid1_label = Label(self,text="FPGA Mezz 1 ID:",width=15)
-        self.fmid1_label.grid(sticky=W,row=17,column=columnbase+0)
+        self.fmid1_label.grid(sticky=W,row=18,column=columnbase+0)
 
         self.fmid1_entry = Entry(self,width=15)
-        self.fmid1_entry.grid(sticky=W,row=17,column=columnbase+1)
+        self.fmid1_entry.grid(sticky=W,row=18,column=columnbase+1)
 
+        self.toytpc1_top_label = Label(self,text="Toy TPC (top)",width=15)
+        self.toytpc1_top_label.grid(sticky=W,row=19,column=columnbase+0)
+
+        self.toytpc1_top_entry = Entry(self,width=15)
+        self.toytpc1_top_entry.grid(sticky=W,row=19,column=columnbase+1)
+
+        self.toytpc1_bottom_label = Label(self,text="Toy TPC (bottom)",width=15)
+        self.toytpc1_bottom_label.grid(sticky=W,row=19,column=columnbase+2)
+
+        self.toytpc1_bottom_entry = Entry(self,width=15)
+        self.toytpc1_bottom_entry.grid(sticky=W,row=19,column=columnbase+3,padx=10)
+        
         self.felist1_label = Label(self,text="FE ASICs:",width=15)
-        self.felist1_label.grid(sticky=W,row=18,column=columnbase+0)        
+        self.felist1_label.grid(sticky=W,row=20,column=columnbase+0)        
 
         self.felist1_entry = Entry(self,width=30)
-        self.felist1_entry.grid(sticky=W,row=18,column=columnbase+1,columnspan=2)
+        self.felist1_entry.grid(sticky=W,row=20,column=columnbase+1,columnspan=2)
         
         self.adclist1_label = Label(self,text="ADC ASICs:",width=15)
-        self.adclist1_label.grid(sticky=W,row=19,column=columnbase+0)        
+        self.adclist1_label.grid(sticky=W,row=21,column=columnbase+0)        
 
         self.adclist1_entry = Entry(self,width=30)
-        self.adclist1_entry.grid(sticky=W,row=19,column=columnbase+1,columnspan=2)
+        self.adclist1_entry.grid(sticky=W,row=21,column=columnbase+1,columnspan=2)
         
         #Slot 2
         self.slotlabel2 = Label(self,text="WIB Slot 2:")
-        self.slotlabel2.grid(sticky=W,row=20,column=columnbase+0,pady=10)
+        self.slotlabel2.grid(sticky=W,row=22,column=columnbase+0,pady=10)
         
         self.boxid2_label = Label(self,text="CE Box 2 ID:",width=15)
-        self.boxid2_label.grid(sticky=W,row=21,column=columnbase+0)
+        self.boxid2_label.grid(sticky=W,row=23,column=columnbase+0)
 
         self.boxid2_entry = Entry(self,width=15)
-        self.boxid2_entry.grid(sticky=W,row=21,column=columnbase+1)
+        self.boxid2_entry.grid(sticky=W,row=23,column=columnbase+1)
 
         self.amid2_label = Label(self,text="Analog MB 2 ID:",width=15)
-        self.amid2_label.grid(sticky=W,row=22,column=columnbase+0)
+        self.amid2_label.grid(sticky=W,row=24,column=columnbase+0)
 
         self.amid2_entry = Entry(self,width=15)
-        self.amid2_entry.grid(sticky=W,row=22,column=columnbase+1)
+        self.amid2_entry.grid(sticky=W,row=24,column=columnbase+1)
 
         self.fmid2_label = Label(self,text="FPGA Mezz 2 ID:",width=15)
-        self.fmid2_label.grid(sticky=W,row=23,column=columnbase+0)
+        self.fmid2_label.grid(sticky=W,row=25,column=columnbase+0)
 
         self.fmid2_entry = Entry(self,width=15)
-        self.fmid2_entry.grid(sticky=W,row=23,column=columnbase+1)
+        self.fmid2_entry.grid(sticky=W,row=25,column=columnbase+1)
 
+        self.toytpc2_top_label = Label(self,text="Toy TPC (top)",width=15)
+        self.toytpc2_top_label.grid(sticky=W,row=26,column=columnbase+0)
+
+        self.toytpc2_top_entry = Entry(self,width=15)
+        self.toytpc2_top_entry.grid(sticky=W,row=26,column=columnbase+1)
+
+        self.toytpc2_bottom_label = Label(self,text="Toy TPC (bottom)",width=15)
+        self.toytpc2_bottom_label.grid(sticky=W,row=26,column=columnbase+2)
+
+        self.toytpc2_bottom_entry = Entry(self,width=15)
+        self.toytpc2_bottom_entry.grid(sticky=W,row=26,column=columnbase+3,padx=10)
+        
         self.felist2_label = Label(self,text="FE ASICs:",width=15)
-        self.felist2_label.grid(sticky=W,row=24,column=columnbase+0)        
+        self.felist2_label.grid(sticky=W,row=27,column=columnbase+0)        
 
         self.felist2_entry = Entry(self,width=30)
-        self.felist2_entry.grid(sticky=W,row=24,column=columnbase+1,columnspan=2)
+        self.felist2_entry.grid(sticky=W,row=27,column=columnbase+1,columnspan=2)
         
         self.adclist2_label = Label(self,text="ADC ASICs:",width=15)
-        self.adclist2_label.grid(sticky=W,row=25,column=columnbase+0)        
+        self.adclist2_label.grid(sticky=W,row=28,column=columnbase+0)        
 
         self.adclist2_entry = Entry(self,width=30)
-        self.adclist2_entry.grid(sticky=W,row=25,column=columnbase+1,columnspan=2)
+        self.adclist2_entry.grid(sticky=W,row=28,column=columnbase+1,columnspan=2)
         
 
         #Slot 3
         self.slotlabel3 = Label(self,text="WIB Slot 3:")
-        self.slotlabel3.grid(sticky=W,row=26,column=columnbase+0,pady=10)
+        self.slotlabel3.grid(sticky=W,row=29,column=columnbase+0,pady=10)
 
         self.boxid3_label = Label(self,text="CE Box 3 ID:",width=15)
-        self.boxid3_label.grid(sticky=W,row=27,column=columnbase+0)
+        self.boxid3_label.grid(sticky=W,row=30,column=columnbase+0)
 
         self.boxid3_entry = Entry(self,width=15)
-        self.boxid3_entry.grid(sticky=W,row=27,column=columnbase+1)
+        self.boxid3_entry.grid(sticky=W,row=30,column=columnbase+1)
 
         self.amid3_label = Label(self,text="Analog MB 3 ID:",width=15)
-        self.amid3_label.grid(sticky=W,row=28,column=columnbase+0)
+        self.amid3_label.grid(sticky=W,row=31,column=columnbase+0)
 
         self.amid3_entry = Entry(self,width=15)
-        self.amid3_entry.grid(sticky=W,row=28,column=columnbase+1)
+        self.amid3_entry.grid(sticky=W,row=31,column=columnbase+1)
 
         self.fmid3_label = Label(self,text="FPGA Mezz 3 ID:",width=15)
-        self.fmid3_label.grid(sticky=W,row=29,column=columnbase+0)
+        self.fmid3_label.grid(sticky=W,row=32,column=columnbase+0)
 
         self.fmid3_entry = Entry(self,width=15)
-        self.fmid3_entry.grid(sticky=W,row=29,column=columnbase+1)
+        self.fmid3_entry.grid(sticky=W,row=32,column=columnbase+1)
 
+        self.toytpc3_top_label = Label(self,text="Toy TPC (top)",width=15)
+        self.toytpc3_top_label.grid(sticky=W,row=33,column=columnbase+0)
+
+        self.toytpc3_top_entry = Entry(self,width=15)
+        self.toytpc3_top_entry.grid(sticky=W,row=33,column=columnbase+1)
+
+        self.toytpc3_bottom_label = Label(self,text="Toy TPC (bottom)",width=15)
+        self.toytpc3_bottom_label.grid(sticky=W,row=33,column=columnbase+2)
+
+        self.toytpc3_bottom_entry = Entry(self,width=15)
+        self.toytpc3_bottom_entry.grid(sticky=W,row=33,column=columnbase+3,padx=10)
+        
         self.felist3_label = Label(self,text="FE ASICs:",width=15)
-        self.felist3_label.grid(sticky=W,row=30,column=columnbase+0)        
+        self.felist3_label.grid(sticky=W,row=34,column=columnbase+0)        
 
         self.felist3_entry = Entry(self,width=30)
-        self.felist3_entry.grid(sticky=W,row=30,column=columnbase+1,columnspan=2)
+        self.felist3_entry.grid(sticky=W,row=34,column=columnbase+1,columnspan=2)
         
         self.adclist3_label = Label(self,text="ADC ASICs:",width=15)
-        self.adclist3_label.grid(sticky=W,row=31,column=columnbase+0)        
+        self.adclist3_label.grid(sticky=W,row=35,column=columnbase+0)        
 
         self.adclist3_entry = Entry(self,width=30)
-        self.adclist3_entry.grid(sticky=W,row=31,column=columnbase+1,columnspan=2)
+        self.adclist3_entry.grid(sticky=W,row=35,column=columnbase+1,columnspan=2)
         
         
         # Start button
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        self.start_button.grid(row=32,column=columnbase,columnspan=2,pady=30)
+        self.start_button.grid(row=36,column=columnbase,columnspan=4,pady=30)
         self.reset_button = Button(self, text="Reset", command=self.reset,width=25,bg="#FF8000")
-        self.reset_button.grid(row=33,column=columnbase,columnspan=2)
+        self.reset_button.grid(row=37,column=columnbase,columnspan=4)
 
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
-        self.status_label.grid(row=100,column=columnbase,columnspan=2)
+        self.status_label.grid(row=100,column=columnbase,columnspan=4)
         self.bkg_color = self.status_label.cget("background")
 
     def get_options(self):
@@ -231,6 +280,10 @@ class GUI_WINDOW(Frame):
         boxids = [self.boxid0_entry.get(), self.boxid1_entry.get(), self.boxid2_entry.get(), self.boxid3_entry.get()]
         amids = [self.amid0_entry.get(), self.amid1_entry.get(), self.amid2_entry.get(), self.amid3_entry.get()]
         fmids = [self.fmid0_entry.get(), self.fmid1_entry.get(), self.fmid2_entry.get(), self.fmid3_entry.get()]
+        toytpcids = [[self.toytpc0_top_entry.get(),self.toytpc0_bottom_entry.get()],
+                     [self.toytpc1_top_entry.get(),self.toytpc1_bottom_entry.get()],
+                     [self.toytpc2_top_entry.get(),self.toytpc2_bottom_entry.get()],
+                     [self.toytpc3_top_entry.get(),self.toytpc3_bottom_entry.get()] ]
 
         felist = [self.felist0_entry.get().split(), self.felist1_entry.get().split(),
                   self.felist2_entry.get().split(), self.felist3_entry.get().split() ]
@@ -245,6 +298,7 @@ class GUI_WINDOW(Frame):
         fmids_filled = [x for x in fmids if fmids.index(x) in wibslots_filled]
         felist_filled = [x for x in felist if felist.index(x) in wibslots_filled]
         adclist_filled = [x for x in adclist if adclist.index(x) in wibslots_filled]
+        toytpcs_filled = [x for x in toytpcids if toytpcids.index(x) in wibslots_filled]
 
         variables = [operator,self.ct_bool,wibslots_filled, boxids_filled, amids_filled, fmids_filled, felist_filled, adclist_filled]
 
@@ -267,7 +321,8 @@ class GUI_WINDOW(Frame):
             "fe_asics": felist_filled,
             "adc_asics": adclist_filled,
             "isRoomTemp": isRoomTemp,
-            "wibslots": wibslots_filled
+            "wibslots": wibslots_filled,
+            "toytpcs": toytpcs_filled
         }
         print(inputOptions)
         return inputOptions
@@ -314,7 +369,40 @@ class GUI_WINDOW(Frame):
         self.amid3_entry["state"] = "normal"
         self.fmid3_label["state"] = "normal"
         self.fmid3_entry["state"] = "normal"
+        self.felist0_label["state"] = "normal"
+        self.felist0_entry["state"] = "normal"
+        self.felist1_label["state"] = "normal"
+        self.felist1_entry["state"] = "normal"
+        self.felist2_label["state"] = "normal"
+        self.felist2_entry["state"] = "normal"
+        self.felist3_label["state"] = "normal"
+        self.felist3_entry["state"] = "normal"
+        self.adclist0_label["state"] = "normal"
+        self.adclist0_entry["state"] = "normal"
+        self.adclist1_label["state"] = "normal"
+        self.adclist1_entry["state"] = "normal"
+        self.adclist2_label["state"] = "normal"
+        self.adclist2_entry["state"] = "normal"
+        self.adclist3_label["state"] = "normal"
+        self.adclist3_entry["state"] = "normal"
+        self.toytpc0_top_label["state"] = "normal"
+        self.toytpc0_top_entry["state"] = "normal"
+        self.toytpc0_bottom_label["state"] = "normal"
+        self.toytpc0_bottom_entry["state"] = "normal"
+        self.toytpc1_top_label["state"] = "normal"
+        self.toytpc1_top_entry["state"] = "normal"
+        self.toytpc1_bottom_label["state"] = "normal"
+        self.toytpc1_bottom_entry["state"] = "normal"
+        self.toytpc2_top_label["state"] = "normal"
+        self.toytpc2_top_entry["state"] = "normal"
+        self.toytpc2_bottom_label["state"] = "normal"
+        self.toytpc2_bottom_entry["state"] = "normal"
+        self.toytpc3_top_label["state"] = "normal"
+        self.toytpc3_top_entry["state"] = "normal"
+        self.toytpc3_bottom_label["state"] = "normal"
+        self.toytpc3_bottom_entry["state"] = "normal"
 
+        
         self.boxid0_entry.delete(0,END)
         self.amid0_entry.delete(0,END)
         self.fmid0_entry.delete(0,END)
@@ -327,6 +415,24 @@ class GUI_WINDOW(Frame):
         self.boxid3_entry.delete(0,END)
         self.amid3_entry.delete(0,END)
         self.fmid3_entry.delete(0,END)
+
+        self.felist0_entry.delete(0,END)
+        self.felist1_entry.delete(0,END)
+        self.felist2_entry.delete(0,END)
+        self.felist3_entry.delete(0,END)
+        self.adclist0_entry.delete(0,END)
+        self.adclist1_entry.delete(0,END)
+        self.adclist2_entry.delete(0,END)
+        self.adclist3_entry.delete(0,END)        
+
+        self.toytpc0_top_entry.delete(0,END)
+        self.toytpc0_bottom_entry.delete(0,END)
+        self.toytpc1_top_entry.delete(0,END)
+        self.toytpc1_bottom_entry.delete(0,END)
+        self.toytpc2_top_entry.delete(0,END)
+        self.toytpc2_bottom_entry.delete(0,END)
+        self.toytpc3_top_entry.delete(0,END)
+        self.toytpc3_bottom_entry.delete(0,END)
         
         self.reset_button["bg"] ="#FF9900"
         self.reset_button["activebackground"] ="#FFCF87"

@@ -15,4 +15,4 @@ class FEMB_CONFIG(adcTest_P1single.FEMB_CONFIG):
         super().__init__(exitOnError=exitOnError)
         print("Really using:")
         self.FUNCGENINTER = RigolDG4000("/dev/usbtmc0",1)
-        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc1",["CH2","CH1"]) # turn on CH2 first
+        self.POWERSUPPLYINTER = RigolDP800("/dev/usbtmc1",["CH2","CH3","CH1"]) # turn on CH2 first

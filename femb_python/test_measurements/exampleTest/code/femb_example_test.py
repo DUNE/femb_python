@@ -4,23 +4,45 @@ import sys
 import time
 import json
 
-from femb_python.configuration import CONFIG
+#from femb_python.configuration import CONFIG #required! commented out for example test
 
 class EXAMPLE_TEST(object):
 
-    def __init__(self):
+    def __init__(self, datadir="data"):
         #set status variables
         self.status_check_setup = 0
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
 
+        #set test specific variables
+        self.datadir=datadir    #from object initialization
+        self.outlabel="example" #can be modified as object public member before test
+        self.outpathlabel = os.path.join(self.datadir, self.outlabel)
+
+        #json output, note module version number defined here
+        self.jsondict = {'type':'exampleTest'}
+        self.jsondict['version'] = '1.0'
+        #NOTE: SHOULD write JSON file at this point to indicate that a production test object was created ie a test was started
+
+        #import femb_config configuration modules from femb_pyton package, environment variable defines the correct configuration
+        #self.femb_config = CONFIG() #required! commented out for example test
+        #self.write_data = WRITE_DATA(datadir) #helper module for writing testr data to disk, not required
+
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
         print("CHECK SETUP")
         self.status_check_setup = 0
 
-        #add checks here
+        #make sure output directory exists
+        #self.write_data.assure_filedir() #helper module
+        if self.datadir == None:
+            self.datadir = "data"
+        if os.path.isdir( str(self.datadir) ) == False:
+            print("exampleTest: Data directory not found, making now.")
+            os.makedirs( str(self.datadir) )
+
+        #add checks here, correct configuration module, firmware version, output directory exists etc
         print("CHECK SETUP - Testing something")
         if False:
             print("CHECK SETUP - Error")       
@@ -55,9 +77,9 @@ class EXAMPLE_TEST(object):
         self.status_do_analysis = 1
 
     def archive_results(self):
-        if self.status_do_analysis == 0:
-            print("ARCHIVE RESULTS - Please analyze data before archiving results")
-            return
+        #if self.status_do_analysis == 0:
+        #    print("ARCHIVE RESULTS - Please analyze data before archiving results")
+        #    return
         if self.status_archive_results == 1:
             print("ARCHIVE RESULTS -Results already archived")
             return
@@ -65,6 +87,15 @@ class EXAMPLE_TEST(object):
         print("ARCHIVE RESULTS")
         
         #ARCHIVING OF RESULTS GOES HERE
+        self.jsondict['status_check_setup'] = self.status_check_setup
+        self.jsondict['status_record_data'] = self.status_record_data
+        self.jsondict['status_do_analysis'] = self.status_do_analysis
+        self.jsondict['status_archive_results'] = 1
+
+        #dump results into json, NOTE ideally adding to an already existing JSON file
+        jsonFile = self.outpathlabel + "-results.json"
+        with open( jsonFile , 'w') as outfile:
+            json.dump( self.jsondict, outfile, indent=4)
 
         #ARCHIVING SUCCEEDED
         print("ARCHIVE RESULTS - DONE" + "\n")
@@ -77,28 +108,32 @@ def main():
         print( "EXAMPLE TEST START")
         for arg in sys.argv :
             print( arg )
-        import json
-        params = json.loads(open(sys.argv[1]).read())
-        
-        print( params )
 
-        #check for required parametes
-        if 'datadir' in params:
-            datadir = params['datadir']
-        else:
-            print( "EXAMPLE TEST - datadir not defined, return" )
-            return None
+        #default parameters, can be updated by JSON input
+        datadir = "data"
+        outlabel = "example"
+       
+        #update parameters if a json file is provided
+        if len(sys.argv) == 2 :
+            params = json.loads(open(sys.argv[1]).read()) #maybe put try except 
+            #check for required parameters in json
+            if 'datadir' in params:
+                datadir = params['datadir']
+            else:
+                print( "EXAMPLE TEST - datadir not defined, return" )
+                return None
 
-        if 'outlabel' in params:
-            outlabel = params['outlabel']
-        else:
-            print( "EXAMPLE TEST - outputlabel not defined, return" )
-            return None
+            if 'outlabel' in params:
+                outlabel = params['outlabel']
+            else:
+                print( "EXAMPLE TEST - outputlabel not defined, return" )
+                return None
 
-        #add additional parameter checks here
+        #add additional parameter checks here are supplied parameters reasonable
 
         #instantiate the actual test object, pass required parameters to internal variables
-        exampleTest = EXAMPLE_TEST()
+        exampleTest = EXAMPLE_TEST(datadir) #datadir passed during object intialization
+        exampleTest.outlabel = outlabel     #outlabel to internal variable
 
         #Finally begin testing
         exampleTest.check_setup()

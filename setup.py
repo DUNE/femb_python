@@ -122,7 +122,8 @@ setup(
             'femb_show_trace_fft=femb_python.trace_fft_window:main',
             'femb_dump_data_root=femb_python.write_root_tree:main',
             'femb_show_trace_root=femb_python.helper_scripts.show_trace_root:main',
-
+            'femb_trace_allchan_window=femb_python.trace_allchan_window:main',
+            
             'femb_init_board=femb_python.helper_scripts.init_board:main',
             'femb_read_reg=femb_python.helper_scripts.read_reg:main',
             'femb_write_reg=femb_python.helper_scripts.write_reg:main',
@@ -150,7 +151,6 @@ setup(
             'femb_adc_run=femb_python.test_measurements.adc_test_stand.run:main',
             'femb_adc_run_david_adams_only=femb_python.test_measurements.adc_test_stand.run_david_adams_only:main',
             'femb_adc_setup_board=femb_python.test_measurements.adc_test_stand.setup_board:main',
-            'femb_adc_setup_board_cold=femb_python.test_measurements.adc_test_stand.setup_board_cold:main',
             'femb_adc_test_summary=femb_python.test_measurements.adc_test_stand.test_summary:main',
             'femb_adc_summary_plots=femb_python.test_measurements.adc_test_stand.summary_plots:main',
             'femb_adc_ranking=femb_python.test_measurements.adc_test_stand.ranking:main',
@@ -197,6 +197,12 @@ setup(
             'femb_test_osc=femb_python.test_measurements.OscillatorTesting.code.testOscillator:main',
             # generate summary of the N tests run by the above
             'femb_test_osc_summary=femb_python.test_measurements.OscillatorTesting.code.testOscillatorSummary:main',
+
+            #For flash testing
+            #what shifters run
+            'femb_flash_test=femb_python.test_measurements.quadEpcsTester.ftmain:main',
+            #the main tester
+            'femb_flash_test_main=femb_python.test_measurements.quadEpcsTester.testQuadEPCS:main',
         ],
         #'gui_scripts': [
         #    'femb_test=femb_python.gui:main',

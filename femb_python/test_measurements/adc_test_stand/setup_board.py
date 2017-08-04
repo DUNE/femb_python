@@ -20,25 +20,24 @@ import matplotlib.pyplot as plt
 import ROOT
 from ...configuration.config_base import InitBoardError, SyncADCError, ConfigADCError, ReadRegError
 
-def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,hostname,timestamp=None,sumatradict=None):
+def setup_board(config,outfilename,adcSerialNumbers,startDateTime,operator,board_id,hostname,timestamp=None,power_on=True,power_off=True,sumatradict=None):
     """
     Sets up the ADC board
 
     config is the CONFIG object for the test board.
-    dataDir  is the output directory for data files
+    outfilename is the output json filename
     adcSerialNumbers is a list of a serial numbers for the ADC ASICS
     startDateTime string identifying the time the tests are started
     operator is the operator user name string
     board_id is the ID number of the test board
     hostname is the current computer name
+    power_cycle is a bool
     sumatradict is a dictionary of options that will be written to the summary json
 
     returns a list of bools whether an asic passed the tests. The list
         corresponds to the input serial number list.  
     """
 
-    outfilename = "adcSetup_{}.json".format(startDateTime)
-    outfilename = os.path.join(dataDir,outfilename)
     result = {
                 "serials":adcSerialNumbers,
                 "timestamp":startDateTime,
@@ -47,15 +46,28 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
                 "operator":operator,
                 "sumatra": sumatradict,
              }
-    result["pass"] = False;
+    result["pass"] = [False]*len(adcSerialNumbers);
     result["readReg"] = None;
     result["init"] = None;
-    result["configADC"] = None;
-    result["sync"] = None;
+    result["configADC"] = [None]*len(adcSerialNumbers);
+    result["configFE"] = [None]*len(adcSerialNumbers);
+    result["sync"] = [None]*len(adcSerialNumbers);
+    result["havetofindsync"] = [None]*len(adcSerialNumbers);
     with open(outfilename,"w") as outfile:
-        config.POWERSUPPLYINTER.on()
+        if power_on:
+            config.POWERSUPPLYINTER.on()
         time.sleep(1)
         config.resetBoard()
+        reg2 = config.femb.read_reg(1)
+        if reg2 is None:
+            print("Board/chip Failure: couldn't read a register.")
+            result["readReg"] = False;
+            json.dump(result,outfile)
+            if power_off:
+                config.POWERSUPPLYINTER.off()
+            return
+        else:
+            result["readReg"] = True
         try:
             config.initBoard()
         except ReadRegError:
@@ -63,37 +75,47 @@ def setup_board(config,dataDir,adcSerialNumbers,startDateTime,operator,board_id,
             result["init"] = False;
             result["readReg"] = False;
             json.dump(result,outfile)
-            config.POWERSUPPLYINTER.off()
+            if power_off:
+                config.POWERSUPPLYINTER.off()
             return
         except InitBoardError:
             print("Board/chip Failure: couldn't initialize board.")
             result["init"] = False;
             json.dump(result,outfile)
-            config.POWERSUPPLYINTER.off()
+            if power_off:
+                config.POWERSUPPLYINTER.off()
             return
         except ConfigADCError:
             print("Board/chip Failure: couldn't write ADC SPI.")
             result["init"] = False;
-            result["configADC"] = False;
+            result["configADC"] = [False]*len(adcSerialNumbers);
             json.dump(result,outfile)
-            config.POWERSUPPLYINTER.off()
+            if power_off:
+                config.POWERSUPPLYINTER.off()
             return
         else:
             result["init"] = True;
-            result["configADC"] = True;
             result["readReg"] = True;
-        try:
-            config.syncADC()
-        except SyncADCError:
-            print("Board/chip Failure: couldn't sync ADCs.")
-            result["sync"] = False;
-            json.dump(result,outfile)
-            config.POWERSUPPLYINTER.off()
-            return
-        else:
-            result["sync"] = True;
+        # check individual chip config
+        feSPIStatus, adcSPIStatus, syncBits = config.getSyncStatus()
+        result["configADC"] = adcSPIStatus
+        result["configFE"] = feSPIStatus
+        for iChip in range(len(adcSerialNumbers)):
+            try:
+                syncStatus = config.syncADC(iChip)
+            except SyncADCError:
+                print("Board/chip Failure: couldn't sync ADCs.")
+                result["sync"][iChip] = False;
+            else:
+                result["sync"][iChip] = True;
+                hadToSync = syncStatus[0]
+                result["havetofindsync"][iChip] = hadToSync
+        for iChip in range(len(adcSerialNumbers)):
+            if adcSPIStatus[iChip]:
+                if feSPIStatus[iChip]:
+                    if result["sync"][iChip]:
+                        result["pass"][iChip] = True
         print("Successfully setup board.")
-        result["pass"] = True;
         json.dump(result,outfile)
 
 def main():
@@ -109,7 +131,7 @@ def main():
     parser.add_argument("-o", "--operator",help="Test operator name",type=str,default="Command-line Operator")
     parser.add_argument("-s", "--serial",help="Chip serial number, use multiple times for multiple chips, e.g. -s 1 -s 2 -s 3 -s 4",action='append',default=[])
     parser.add_argument("-b", "--board",help="Test board serial number",default=None)
-    parser.add_argument("-d", "--datadir",help="Directory for output data files",default="")
+    parser.add_argument("-f", "--outfilename",help="Output file name",default="adcSetup.json")
     parser.add_argument("-j", "--jsonfile",help="json options file location",default=None)
     args = parser.parse_args()
   
@@ -121,7 +143,9 @@ def main():
     operator = args.operator
     boardid = args.board
     serialNumbers = args.serial
-    dataDir = args.datadir
+    outfilename = args.outfilename
+    power_on = True
+    power_off = True
 
     options = None
 
@@ -134,7 +158,9 @@ def main():
                 operator = options["operator"]
                 boardid = options["board_id"]
                 serialNumbers = options["serials"]
-                dataDir = options["datadir"]
+                outfilename = options["outfilename"]
+                power_on = options["power_on"]
+                power_off = options["power_off"]
             except KeyError as e:
                 print("Error while parsing json input options: ",e)
                 sys.exit(1)
@@ -145,16 +171,11 @@ def main():
         print("Error: number of serial numbers ({}) doesn't equal number of ASICs in configuration ({}), exiting.".format(len(serialNumbers),config.NASICS))
         sys.exit(1)
     try:
-        serialNumbers = [int(i) for i in serialNumbers]
-    except ValueError as e:
-        print("Error, serial number must be an int: ",e)
-        sys.exit(1)
-
-    try:
-        chipsPass = setup_board(config,dataDir,serialNumbers,timestamp,operator,boardid,hostname,sumatradict=options)
+        chipsPass = setup_board(config,outfilename,serialNumbers,timestamp,operator,boardid,hostname,power_on=power_on,power_off=power_off,sumatradict=options)
     except Exception as e:
         print("Uncaught exception in setup_board. Traceback in stderr.")
         sys.stderr.write("Uncaught exception in setup_board: Error: {} {}\n".format(type(e),e))
         traceback.print_tb(e.__traceback__)
-        config.POWERSUPPLYINTER.off()
+        if power_off:
+            config.POWERSUPPLYINTER.off()
         sys.exit(1)

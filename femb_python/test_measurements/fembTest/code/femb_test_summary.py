@@ -43,13 +43,12 @@ class FEMB_SUMMARY(object):
         self.status_check_setup = 1
 
     def do_analysis(self,params):
-        #if self.status_check_setup == 0:
-        #    print("DO ANALYSIS - Please record data before analysis")
-        #    return
-        #if self.status_do_analysis == 1:
-        #    print("DO ANALYSIS - Analysis already complete")
-        #    return
-
+        if self.status_check_setup == 0:
+            print("DO ANALYSIS - Please record data before analysis")
+            return
+        if self.status_do_analysis == 1:
+            print("DO ANALYSIS - Analysis already complete")
+            return
 
         slotlist = params['wibslots']
 
@@ -107,6 +106,7 @@ class FEMB_SUMMARY(object):
             pdf.cell(25, 5, txt=adct, align='L')            
             for jadc in params['adc_asics'][i]:
                 pdf.cell(10, 5, txt=str(jadc), align='L')
+            pdf.ln(5)
 
             printgain = False
             printpc = False
@@ -121,23 +121,24 @@ class FEMB_SUMMARY(object):
                     if os.path.isfile(info_file):
                         params_curr = json.loads(open(info_file).read())
                         results_file = params_curr['datadir']+"/gainMeasurement_femb_"+str(slot)+"-results.json"
-                        result = json.loads(open(results_file).read())
-                        gaininfo.append(gainlabels[int(result['config_gain'])])
-                        gaininfo.append(shapelabels[int(result['config_shape'])])
-                        if ("intpulse" in mydir):
-                            gaininfo.append(pulselabels[0])
-                        else:
-                            gaininfo.append(pulselabels[1])
-                        encsum = 0
-                        n = 0
-                        for r in result['results']:
-                            if ("enc" in r):
-                                encsum+=float(r['enc'])
-                                n+=1
-                        encavg = encsum/n
-                        gaininfo.append(encavg)
-                        gainlabel = gaininfo[0]+"_"+gaininfo[1]+"_"+gaininfo[2]
-                        gainsummary[gainlabel] = gaininfo
+                        if os.path.isfile(results_file):
+                            result = json.loads(open(results_file).read())
+                            gaininfo.append(gainlabels[int(result['config_gain'])])
+                            gaininfo.append(shapelabels[int(result['config_shape'])])
+                            if ("intpulse" in mydir):
+                                gaininfo.append(pulselabels[0])
+                            else:
+                                gaininfo.append(pulselabels[1])
+                            encsum = 0
+                            n = 0
+                            for r in result['results']:
+                                if ("enc" in r):
+                                    encsum+=float(r['enc'])
+                                    n+=1
+                            encavg = encsum/n
+                            gaininfo.append(encavg)
+                            gainlabel = gaininfo[0]+"_"+gaininfo[1]+"_"+gaininfo[2]
+                            gainsummary[gainlabel] = gaininfo
                     
                     if ("g2_s2_intpulse" in mydir):
                         if os.path.isfile(self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"):
@@ -151,30 +152,33 @@ class FEMB_SUMMARY(object):
 
                 #Current monitor summary:
                 if ("current" in mydir):
-                    current_text = "Current Monitor Results (A):" # (currently nonsense values)
+                    currentmonitortext = "Current Monitoring:"
+                    voltage_text = "Voltage (V):"                    
+                    current_text = "Current (A):"
                     l1 = "4.2 V"
                     l2 = "3 V"
                     l3 = "2.5 V"
                     l4 = "1.5 V"
                     l5 = "5 V"
-                    off_text = "FEMB off: "
-                    on_text = "FEMB on (all others off): "
                     info_file = self.topdir+"/"+mydir+"/params.json"
-                    params_curr = json.loads(open(info_file).read())
-                    results_file = params_curr['datadir']+"/"+params_curr['outlabel']+"-results.json"
-                    result = json.loads(open(results_file).read())
-                    ioff = [result["none_on_femb"+str(slot)+"_i1"],
-                            result["none_on_femb"+str(slot)+"_i2"],
-                            result["none_on_femb"+str(slot)+"_i3"],
-                            result["none_on_femb"+str(slot)+"_i4"],
-                            result["none_on_femb"+str(slot)+"_i5"], ]
-                    ion = [result["femb"+str(slot)+"on_femb"+str(slot)+"_i1"],
-                           result["femb"+str(slot)+"on_femb"+str(slot)+"_i2"],
-                           result["femb"+str(slot)+"on_femb"+str(slot)+"_i3"],
-                           result["femb"+str(slot)+"on_femb"+str(slot)+"_i4"],
-                           result["femb"+str(slot)+"on_femb"+str(slot)+"_i5"] ]
-                    printcurrent = True
-                    
+                    if os.path.isfile(info_file):
+                        params_curr = json.loads(open(info_file).read())
+                        results_file = params_curr['datadir']+"/"+params_curr['outlabel']+"-results.json"
+                        if os.path.isfile(results_file):
+                            result = json.loads(open(results_file).read())
+
+                            ion = [result["all_on_femb"+str(slot)+"_i1"],
+                                   result["all_on_femb"+str(slot)+"_i2"],
+                                   result["all_on_femb"+str(slot)+"_i3"],
+                                   result["all_on_femb"+str(slot)+"_i4"],
+                                   result["all_on_femb"+str(slot)+"_i5"] ]
+                            von = [result["all_on_femb"+str(slot)+"_v1"],
+                                   result["all_on_femb"+str(slot)+"_v2"],
+                                   result["all_on_femb"+str(slot)+"_v3"],
+                                   result["all_on_femb"+str(slot)+"_v4"],
+                                   result["all_on_femb"+str(slot)+"_v5"] ]
+
+                            printcurrent = True
 
             if (printgain):
 
@@ -213,21 +217,23 @@ class FEMB_SUMMARY(object):
                 pdf.ln(7)                
 
             if (printcurrent):
-                pdf.cell(50,5,txt=current_text,align='L')
+                pdf.cell(200,5,txt=currentmonitortext,align='L',ln=1)
+                
+                pdf.cell(50,5,txt="Nominal Voltage",align='L')
                 pdf.cell(15, 5, txt=l1, align='L')
                 pdf.cell(15, 5, txt=l2, align='L')
                 pdf.cell(15, 5, txt=l3, align='L')
                 pdf.cell(15, 5, txt=l4, align='L')
                 pdf.cell(15, 5, txt=l5, align='L', ln=1)
 
-                pdf.cell(50,5,txt=off_text,align='L')
-                pdf.cell(15, 5, txt="{:3.2f}".format(ioff[0]), align='L')
-                pdf.cell(15, 5, txt="{:3.2f}".format(ioff[1]), align='L')
-                pdf.cell(15, 5, txt="{:3.2f}".format(ioff[2]), align='L')
-                pdf.cell(15, 5, txt="{:3.2f}".format(ioff[3]), align='L')
-                pdf.cell(15, 5, txt="{:3.2f}".format(ioff[4]), align='L', ln=1)
+                pdf.cell(50,5,txt=voltage_text,align='L')
+                pdf.cell(15, 5, txt="{:3.2f}".format(von[0]), align='L')
+                pdf.cell(15, 5, txt="{:3.2f}".format(von[1]), align='L')
+                pdf.cell(15, 5, txt="{:3.2f}".format(von[2]), align='L')
+                pdf.cell(15, 5, txt="{:3.2f}".format(von[3]), align='L')
+                pdf.cell(15, 5, txt="{:3.2f}".format(von[4]), align='L', ln=1)
 
-                pdf.cell(50,5,txt=on_text,align='L')
+                pdf.cell(50,5,txt=current_text,align='L')
                 pdf.cell(15, 5, txt="{:3.2f}".format(ion[0]), align='L')
                 pdf.cell(15, 5, txt="{:3.2f}".format(ion[1]), align='L')
                 pdf.cell(15, 5, txt="{:3.2f}".format(ion[2]), align='L')

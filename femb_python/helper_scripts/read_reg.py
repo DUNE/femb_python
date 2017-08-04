@@ -21,4 +21,7 @@ def main():
       print( 'Invalid register number')
       sys.exit(0)
   val = femb.read_reg(regVal)
-  print( str(regVal) + "\t" + str(hex(val)) )
+  if val is None:
+    print("Error reading register")
+  else:
+    print("register {0:4} read: {1:#010x} = {1:#034b} = {1:10}".format(regVal,val,val))

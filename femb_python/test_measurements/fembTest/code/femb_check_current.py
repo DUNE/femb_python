@@ -52,41 +52,35 @@ class FEMB_CHECK_CURRENT(object):
         if ("all" not in ifemb and "off" not in ifemb):
             if (( int(ifemb) < 0 ) or ( int(ifemb) >= self.config.NFEMBS )):
                 print("Error running current check - Invalid FEMB # specified.")
-                return    
+                return
+
+        print("Checking current for: ",ifemb)
 
         for j in range(0,4,1):
             self.config.powerOffFemb(j)
-
-        if ("off" in ifemb):
-            results_current = []
-            for j in range(0,4,1):
-                curr_measured = self.config.readCurrent(j)
-                results_current.append(curr_measured)                
-            self.results_current["none_on"] = results_current
+                        
+        if ("off" in ifemb): #All off
+            time.sleep(60)
+            curr_measured = self.config.readCurrent()
+            self.results_current["none_on"] = curr_measured
             
-        elif ("all" not in ifemb):
-            self.config.selectFemb(ifemb)
-            self.config.initFemb()
-            time.sleep(5)
-            results_current = []            
-            for j in range(0,4,1):
-                curr_measured = self.config.readCurrent(j)
-                results_current.append(curr_measured)
-            self.results_current["femb"+str(ifemb)+"on"] = results_current
+        elif ("all" not in ifemb): #Single slot on
+            self.config.powerOnFemb(ifemb)
+            time.sleep(30)
+            curr_measured = self.config.readCurrent()
+            self.results_current["femb"+str(ifemb)+"on"] = curr_measured
             self.config.powerOffFemb(ifemb)
 
-        elif len(wibslots)>1:
-            results_current = []
+        #elif len(wibslots)>1: #All on
+        else:
             for i in wibslots:
-                self.config.selectFemb(i)
-                self.config.initFemb()
-            time.sleep(5)
-            for j in range(0,4,1):
-                curr_measured = self.config.readCurrent(j)
-                results_current.append(curr_measured)
-            self.results_current["all_on"] = results_current
-            for i in wibslots:
-                self.config.powerOffFemb(i)
+                self.config.powerOnFemb(i)
+            time.sleep(30)
+            curr_measured = self.config.readCurrent()
+            self.results_current["all_on"] = curr_measured
+            for j in wibslots:
+                self.config.powerOffFemb(j)
+
         self.status_record_data = 1
 
     def do_analysis(self):
@@ -102,22 +96,15 @@ class FEMB_CHECK_CURRENT(object):
 
         for key,resultlist in self.results_current.items():
             print (key, resultlist)
-            jfemb = 0
-            for result in resultlist:
-                i = 0
-                for val in result:
+            i = 0
+            for val in resultlist:
+                if (i<25):
+                    jfemb = int(i/6)
                     val1 = ((val >> 16) & 0xFFFF)
                     val2 = (val & 0xFFFF)
 
-                    if i==0:
-                        v1 = val1 & 0x3FFF 
-                        vcc0 = v1*305.18e-6 + 2.5
-                        self.fullresults_current[key+"_femb"+str(jfemb)+"_vcc0"] = vcc0
-                        v2 = val2 & 0x3FFF
-                        temp0 = v2*0.0625
-                        self.fullresults_current[key+"_femb"+str(jfemb)+"_temp0"] = temp0
-                    elif i==1:
-                        v1 = val1 & 0x3FFF                             
+                    if i%6==0:
+                        v1 = val1 & 0x3FFF
                         vcc1 = v1*305.18e-6 + 2.5
                         self.fullresults_current[key+"_femb"+str(jfemb)+"_vcc1"] = vcc1
                         v2 = val2 & 0x3FFF
@@ -126,15 +113,45 @@ class FEMB_CHECK_CURRENT(object):
                     else:
                         v1 = val1 & 0x3FFF
                         vi = v1*305.18e-6
-                        self.fullresults_current[key+"_femb"+str(jfemb)+"_v"+str(i-1)] = vi
+                        self.fullresults_current[key+"_femb"+str(jfemb)+"_v"+str(i%6)] = vi
                         v2 = val2 & 0x3FFF
                         ii = v2*19.075e-6/rsense
                         if ii>3.1:
                             ii=0
-                        self.fullresults_current[key+"_femb"+str(jfemb)+"_i"+str(i-1)] =ii
-                    i+=1
-                jfemb += 1
-        
+                        self.fullresults_current[key+"_femb"+str(jfemb)+"_i"+str(i%6)] = ii
+                i+=1
+
+    def unpack(self,val,i):
+        i -= 1
+        rsense = 0.1
+        unpacked_results = []
+        if (i<25):
+            jfemb = int(i/6)
+            val1 = ((val >> 16) & 0xFFFF)
+            val2 = (val & 0xFFFF)
+
+            if i%6==0:
+                v1 = val1 & 0x3FFF
+                vcc1 = v1*305.18e-6 + 2.5
+                unpacked_results.append(vcc1)
+                v2 = val2 & 0x3FFF
+                temp1 = v2*0.0625
+                unpacked_results.append(temp1)
+            else:
+                v1 = val1 & 0x3FFF
+                vi = v1*305.18e-6
+                unpacked_results.append(vi)
+                v2 = val2 & 0x3FFF
+                ii = v2*19.075e-6/rsense
+                if ii>3.1:
+                    ii=0
+                unpacked_results.append(ii)
+        i+=1
+        print(i, val, unpacked_results)
+
+        return unpacked_results
+
+                
     def archive_results(self):
         if self.status_record_data == 0:
             print("ARCHIVE RESULTS - Please take data before archiving results")
@@ -185,10 +202,10 @@ def main():
 
         #Finally begin testing
         currentTest.check_setup()
-        for ifemb in wibslots:
-            currentTest.record_data(str(ifemb))
-        #currentTest.record_data("all",wibslots)
-        currentTest.record_data("off")
+        #currentTest.record_data("off")
+        #for ifemb in wibslots:
+            #currentTest.record_data(str(ifemb))
+        currentTest.record_data("all",wibslots)
         currentTest.do_analysis()
         currentTest.archive_results()
 
