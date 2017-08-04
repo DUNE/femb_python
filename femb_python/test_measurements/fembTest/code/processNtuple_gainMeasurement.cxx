@@ -82,7 +82,7 @@ class Analyze {
 	const int const_numSubrun = 64;
 	const int const_preRange = 15;
 	const int const_postRange = 25;
-	const float const_minThreshold = 50;
+	const float const_minThreshold = 100;
 	const int const_minNumberPulses = 10;
 	const int const_cut_numBadChannels = 0;
   	const bool const_doFits = 0;
@@ -318,7 +318,6 @@ void Analyze::analyzeChannel(unsigned int chan){
 	//loop over pulser settings
 	ffer_analyzePulses.enablePulseFits = const_doFits;
 	for(unsigned int sr = 1 ; sr < const_numSubrun ; sr++){
-		//if( chan == 0){ std::cout << "SUBRUN " << sr << std::endl; drawWf(chan,wfAll[sr][chan]); }
 		//find pulses
 		findPulses(wfAll[sr][chan],meanSubrun0,rmsSubrun0);
 
@@ -329,6 +328,12 @@ void Analyze::analyzeChannel(unsigned int chan){
 
 		getAveragePulseHeight( ffer_analyzePulses.pulseHeights );
 		double signalCharge = (signalSizes[sr]-signalSizes[0]);
+		//std::cout << "chan\t" << chan << "\tsr\t" << sr << "\tmean\t" << meanSubrun0 << "\tRMS\t" << rmsSubrun0;
+		//std::cout << "\tsignalCharge\t" << signalCharge << "\theight\t" << averagePulseHeight << std::endl;
+		//for( int p = 0 ; p <  ffer_analyzePulses.pulseHeights.size() ; p++ ){
+		//	std::cout << "\t\t" <<  ffer_analyzePulses.pulseHeights.at(p) << std::endl;
+		//}
+		//if( chan == 0){ std::cout << "SUBRUN " << sr << std::endl; drawWf(chan,wfAll[sr][chan]); }
 
 		//skip subrun if invalid pulse height measured
 		if( averagePulseHeight < 0 ){
@@ -439,7 +444,7 @@ void Analyze::findPulses(const std::vector<unsigned short> &wf, double baseMean,
 			int start = s;
 			pulseRiseStart.push_back(start );
 		}
-		if(1 && valueNext < baseMean - threshold && value > baseMean - threshold ){ //falling edge
+		if(0 && valueNext < baseMean - threshold && value > baseMean - threshold ){ //falling edge
 			int start = s;
 			pulseFallStart.push_back(start );
 		}
@@ -459,6 +464,12 @@ void Analyze::getAveragePulseHeight(const std::vector<double> &pulseHeights){
 	//get average pulse height
 	//hPulseHeights->GetXaxis()->SetRangeUser(0.5,const_maxPulseHeight-0.5);
 	hPulseHeights->GetXaxis()->SetRangeUser(const_minPulseHeightForFit+0.5,const_maxPulseHeightForFit-0.5);
+
+	//c0->Clear();
+  	//hPulseHeights->Draw();
+  	//c0->Update();
+	//char ct; std::cin >> ct;
+
 	averagePulseHeight = hPulseHeights->GetMean();
 
 	return;

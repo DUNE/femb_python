@@ -86,7 +86,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicLeakagex10 = 0 #0 = pA, 1 = pA*10
         self.feasicAcdc = 0 #AC = 0, DC = 1
         
-        self.feasicEnableTestInput = 1 #0 = disabled, 1 = enabled
+        self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
         self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV
         self.feasicGain = 2 #4.7,7.8,14,25
         self.feasicShape = 1 #0.5,1,2,3
@@ -367,7 +367,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #DAC OUTPUT bits 8-9 , 0xA00 = external DAC
 
         #ADC ASIC config
-        adc_globalReg = 0x2000 #FRQC=1, all other general register bits are 0
+        adc_globalReg = 0x0000 #FRQC=1, all other general register bits are 0
         if self.useExtAdcClock == True:
             adc_globalReg = 0x8000 #CLK0=1,CLK1=0,FRQC=0,F0=0
 

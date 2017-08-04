@@ -507,7 +507,7 @@ void FitFeElecResponse_analyzePulses::getPulseHeight( int startSampleNum, const 
   for(int s = startSampleNum-const_preRange ; s < startSampleNum + const_postRange ; s++){
     if( s < 0 ) continue;
     if( s >= wf.size() ) continue;
-    if( !isGoodCode( wf.at(s) ) ) continue;
+    //if( !isGoodCode( wf.at(s) ) ) continue;
     double value = wf.at(s);
     if( value > maxSampVal ){
       maxSampVal = value;
@@ -523,7 +523,7 @@ void FitFeElecResponse_analyzePulses::getPulseHeight( int startSampleNum, const 
   for(int s = startSampleNum-const_preRange ; s < startSampleNum + const_postRange ; s++){
     if( s < 0 ) continue;
     if( s >= wf.size() ) continue;
-    if( !isGoodCode( wf.at(s) ) ) continue;
+    //if( !isGoodCode( wf.at(s) ) ) continue;
     double value = wf.at(s);
     if( value < minSampVal ){
       minSampVal = value;
