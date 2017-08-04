@@ -84,7 +84,7 @@ def main(**params):
                 params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
                                     datasubdir="fembTest_gainenc_test_g"+str(g)+"_s"+str(s)+"_"+pulser_text[i], 
                                     outlabel="fembTest_gainenc_test_"+pulser_text[i],
-                                    gain=g, shape=s, base=1, useInternalPulser=pulser_setting[i])
+                                    gain=g, shape=s, base=1, useInternalPulser=pulser_setting[i], useExtAdcClock=True)
                 tests.append( Test(**params_test) )
         i+=1
 
