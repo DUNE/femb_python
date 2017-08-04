@@ -66,7 +66,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.fembNum = 0
         self.useExtAdcClock = True
         self.isRoomTemp = False
-        self.maxSyncAttempts = 100
+        self.maxSyncAttempts = 1000
         self.doReSync = True
         self.syncStatus = 0x0
         self.CLKSELECT_val_RT = 0xDF
@@ -419,13 +419,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         """
 
         #Write ADC ASIC SPI
-        self.femb.write_reg( self.REG_ASIC_RESET, 1)
-        time.sleep(0.01)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.01)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.01)
+        if syncAttempt == 0:
+            self.femb.write_reg( self.REG_ASIC_RESET, 1)
+            time.sleep(0.01)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+            time.sleep(0.01)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+            time.sleep(0.01)
+        #soft reset
         self.femb.write_reg( self.REG_SOFT_ADC_RESET, 0x4)
+        time.sleep(0.01)
 
         #for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
         #    regVal = self.femb.read_reg( regNum)
