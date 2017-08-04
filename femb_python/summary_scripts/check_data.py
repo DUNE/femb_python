@@ -26,6 +26,7 @@ class FEMB_CHECK_DATA(object):
     self.verbose = False
 
   def readargs(self, what=None, when=None, verbose=False):
+
     print("Read arguments")
 
     #supported_what = ["adc_cold","adc_warm","fe_cold","fe_warm","osc"]
@@ -178,6 +179,11 @@ def main():
     verbose = True
   else:
     verbose = ""
+
+    host = os.system("hostname")
+    if not ("hothstor2" in host):
+      print("Running on "+host+" -- you must be logged in to hothstor2")
+      return
     
     
   doit = FEMB_CHECK_DATA()
