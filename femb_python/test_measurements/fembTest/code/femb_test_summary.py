@@ -75,7 +75,7 @@ class FEMB_SUMMARY(object):
             else:
                 temp = "CT"
             temp = "Temperature: "+temp
-            user = "Tested by: "+params['user']
+            user = "Tested by: "+params['operator']
 
             pdf = FPDF(format='letter')
             pdf.add_page()
