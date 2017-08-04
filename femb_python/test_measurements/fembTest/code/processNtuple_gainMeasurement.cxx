@@ -70,11 +70,11 @@ class Analyze {
 	const int const_numChan = 128;
 	const int const_numAsic = 8;
         const int const_maxCode = 4096;
-        const float const_maxRms = 50.; //ADC counts
+        const float const_maxRms = 75.; //ADC counts
 	const float const_maxPulseHeight = 4096;
-	const float const_minPulseHeightForFit = 100;
+	const float const_minPulseHeightForFit = 50;
 	const float const_maxPulseHeightForFit = 3000;
-	const float const_maxPulsePeakValue = 3500;
+	const float const_maxPulsePeakValue = 3900;
 	const float const_maxGain = 10000;
 	const float const_maxEnc = 5000;
 	const int const_numFftBins = 5000;
@@ -82,12 +82,12 @@ class Analyze {
 	const int const_numSubrun = 64;
 	const int const_preRange = 15;
 	const int const_postRange = 25;
-	const float const_minThreshold = 100;
+	const float const_minThreshold = 50;
 	const int const_minNumberPulses = 10;
 	const int const_cut_numBadChannels = 0;
   	const bool const_doFits = 0;
-        double const_fitRangeLow = 100.E+3;
-        double const_fitRangeHigh = 200.E+3;
+        double const_fitRangeLow = 50.E+3;
+        double const_fitRangeHigh = 100.E+3;
 
 	//data objects
 	TCanvas* c0;
