@@ -66,7 +66,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.fembNum = 0
         self.useExtAdcClock = True
         self.isRoomTemp = False
-        self.maxSyncAttempts = 20
+        self.maxSyncAttempts = 100
         self.doReSync = True
         self.syncStatus = 0x0
         self.CLKSELECT_val_RT = 0xDF
