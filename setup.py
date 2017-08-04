@@ -135,6 +135,8 @@ setup(
             'femb_config_fe=femb_python.helper_scripts.config_fe:main',
             'femb_lock=femb_python.helper_scripts.locking:lock',
 
+            'data_query=femb_python.summary_scripts.check_data:main',
+
             'femb_power_supply=femb_python.helper_scripts.test_instruments:powersupply',
             'femb_function_generator=femb_python.helper_scripts.test_instruments:funcgen',
             'femb_firmware_check_programmer=femb_python.helper_scripts.firmware_programmer:check_status',

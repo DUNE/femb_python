@@ -14,7 +14,7 @@ class TEST_QUAD_EPCS(object):
 
         self.nFlashes = 4
         self.nPages = 10
-        self.nTriesWrite = 5
+        self.nTriesWrite = 3
         self.printData = False
         
     def doTesting(self):
@@ -38,14 +38,14 @@ class TEST_QUAD_EPCS(object):
             self.femb_config.eraseFlash(iFlash)
             boardStatus = self.femb_config.readStatus(iFlash)
             iTries = 1
-            while(boardStatus != 0 and iTries <= 5):
+            while(boardStatus != 0 and iTries <= 3):
                 iTries +=1
                 print("Error!! Status after erasing is bad. Trying again. Try no. %s" %(iTries))
                 self.femb_config.eraseFlash(iFlash)
                 boardStatus = self.femb_config.readStatus(iFlash)
             eraseTried[iFlash] = iTries
                 
-            if(iTries > 5):
+            if(iTries > 3):
                 print("Flash %s has a problem. Will skip this flash!\n" %(iFlash))
                 flashToSkip[iFlash] = True
 
@@ -84,7 +84,7 @@ class TEST_QUAD_EPCS(object):
                 
                 isMatch = set(inputData) == set(outputData)
                 iTries = 1
-                while (not isMatch and iTries < self.nTriesWrite):
+                while (not isMatch and iTries <= self.nTriesWrite):
                     iTries += 1
                     print("*" * 75)
                     print("Input and output data don't match, trying again!\nTry no. %s" %(iTries))
@@ -121,13 +121,13 @@ class TEST_QUAD_EPCS(object):
             
         flashSuccess = [False]*self.nFlashes
         print("\nInfo on Write: ")
-        print("Note: Will print no. of write tries if > 1 for a page")
+        print("Note: Will print no. of write tries if > 1 for first 5 page.\nNote: Failing on 9999999 pages means failed to erase and skipped.")
         for iFlash in range(self.nFlashes):
             if(failedPages[iFlash] == 0):
                flashSuccess[iFlash] = True 
                print("\nFlash %s passed!!" %(iFlash))
                for iPage in range(self.nPages):
-                   if(programTried[iFlash][iPage] > 1):
+                   if(programTried[iFlash][iPage] > 1 and iPage < 5):
                        print("No. of program tries for page %s is %s" %(iPage, programTried[iFlash][iPage]))
             else:
                print("\nFlash %s failed!!" %(iFlash))
