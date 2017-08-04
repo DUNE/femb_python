@@ -180,7 +180,7 @@ def main():
   else:
     verbose = ""
 
-    host = os.system("hostname")
+    host = os.uname()[1]
     if not ("hothstor2" in host):
       print("Running on "+host+" -- you must be logged in to hothstor2")
       return
