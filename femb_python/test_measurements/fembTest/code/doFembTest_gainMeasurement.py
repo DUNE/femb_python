@@ -98,6 +98,17 @@ class FEMB_TEST_GAIN(object):
 
         #initialize FEMB to known state
         print("Initializing board")
+        self.femb_config.feasicGain = self.gain
+        self.femb_config.feasicShape = self.shape
+        self.femb_config.feasicBaseline = self.base
+        self.femb_config.feasicLeakageVal = self.leakage
+        self.femb_config.feasicLeakagex10Val = self.leakagex10
+        self.femb_config.bufVal = self.buffer
+        self.femb_config.acdcVal = self.acdc
+        self.femb_config.feasicEnableTestInput = 0 #important
+        self.femb_config.useExtAdcClock = self.useExtAdcClock
+        self.femb_config.isRoomTemp = self.isRoomTemp
+        #self.femb_config.printParameters()
         self.femb_config.initFemb()
 
         #test firmware versions
@@ -311,10 +322,10 @@ def main():
     wibslots = [1]
     gain = 2
     shape = 1
-    base = 1
+    base = 0
     useInternalPulser = True
-    useExtAdcClock = False
-    isRoomTemp = False
+    useExtAdcClock = True
+    isRoomTemp = True
 
     #get parameters from input JSON file
     if len(sys.argv) == 2 :

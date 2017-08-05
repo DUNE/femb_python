@@ -66,7 +66,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.fembNum = 0
         self.useExtAdcClock = True
         self.isRoomTemp = False
-        self.maxSyncAttempts = 1000
+        self.maxSyncAttempts = 100
         self.doReSync = True
         self.syncStatus = 0x0
         self.CLKSELECT_val_RT = 0xDF
@@ -87,7 +87,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicAcdc = 0 #AC = 0, DC = 1
         
         self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
-        self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV
+        self.feasicBaseline = 0 #0 = 200mV, 1 = 900mV
         self.feasicGain = 2 #4.7,7.8,14,25
         self.feasicShape = 1 #0.5,1,2,3
         self.feasicBuf = 0 #0 = OFF, 1 = ON
@@ -420,6 +420,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #Write ADC ASIC SPI
         if syncAttempt == 0:
+            print("ADC reconfig")
             self.femb.write_reg( self.REG_ASIC_RESET, 1)
             time.sleep(0.01)
             self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)

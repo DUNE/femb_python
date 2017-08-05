@@ -86,8 +86,8 @@ class Analyze {
 	const int const_minNumberPulses = 10;
 	const int const_cut_numBadChannels = 0;
   	const bool const_doFits = 0;
-        double const_fitRangeLow = 50.E+3;
-        double const_fitRangeHigh = 100.E+3;
+        double const_fitRangeLow = 70.E+3;
+        double const_fitRangeHigh = 125.E+3;
 
 	//data objects
 	TCanvas* c0;
@@ -494,7 +494,7 @@ void Analyze::measureGain(unsigned int chan, double baseRms){
    		return;
 
 	TF1 *f1 = new TF1("f1","pol1",const_fitRangeLow,const_fitRangeHigh);
-	gPulseVsSignal[chan]->Fit("f1","QR");
+	gPulseVsSignal[chan]->Fit("f1","QBR");
 
 	//check if fit succeeded here
 

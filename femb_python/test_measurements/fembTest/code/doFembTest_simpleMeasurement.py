@@ -226,7 +226,7 @@ def main():
     #default parameters
     datadir = "data"
     wibslots = [1]
-    isRoomTemp = False
+    isRoomTemp = True
 
     if len(sys.argv) == 2 :
         params = json.loads(open(sys.argv[1]).read())
