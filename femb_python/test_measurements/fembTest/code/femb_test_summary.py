@@ -183,7 +183,7 @@ class FEMB_SUMMARY(object):
             if (printgain):
 
                 pdf.ln(7)                
-                pdf.cell(200,5,txt="Average ENC measured with internal pulser (electrons))",align='L',ln=1)
+                pdf.cell(200,5,txt="Average ENC measured with internal pulser (electrons)",align='L',ln=1)
                 pdf.cell(50,5,txt="",)
                 for shape in shapelabels:
                     pdf.cell(25,5,txt=shape+" us",align='L')
