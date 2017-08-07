@@ -243,9 +243,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         shapeArray = [2,0,3,1] #I don't know why
         chReg = chReg + ((shapeArray[shapeVal] & 0x03)<<2)
 
-        #AC/DC control, bits 1
-        chReg = chReg + ((acdcVal & 0x01)<<1)
-
         #buffer control, bit 0
         chReg = chReg + ((bufVal & 0x01)<<0)
 
@@ -262,6 +259,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         asicReg = asicReg + ((feasicLeakagex10Val & 0x01)<<4)
 
         #monitor control, bits 1-2
+
+        #AC/DC control, bits 1
+        #
 
         #internal DAC enable, bit 8
 
