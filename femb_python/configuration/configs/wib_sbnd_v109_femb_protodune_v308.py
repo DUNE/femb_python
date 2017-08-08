@@ -763,8 +763,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         ####################external clock timing
         clk_period = 5 #ns
         self.clk_dis = 0 #0 --> enable, 1 disable
-        self.d14_rst_oft  = 0   // clk_period   
-        self.d14_rst_wdt  = (50  // clk_period ) -1   
+        self.d14_rst_oft  = 5   // clk_period   
+        self.d14_rst_wdt  = (45  // clk_period ) -1   
         self.d14_rst_inv  = 1  
         self.d14_read_oft = 480 // clk_period    
         self.d14_read_wdt = 20  // clk_period    
@@ -781,8 +781,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.d14_idl1_wdt = 20  // clk_period    
         self.d14_idl_inv  = 0      
 
-        self.d58_rst_oft  = 0   // clk_period 
-        self.d58_rst_wdt  = (50  // clk_period ) -1
+        self.d58_rst_oft  = 5   // clk_period 
+        self.d58_rst_wdt  = (45  // clk_period ) -1
         self.d58_rst_inv  = 1  
         self.d58_read_oft = 480 // clk_period 
         self.d58_read_wdt = 20  // clk_period 
