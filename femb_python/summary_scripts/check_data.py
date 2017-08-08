@@ -190,7 +190,7 @@ class FEMB_CHECK_DATA(object):
       for dir in directories_found:
         tests = glob.glob(dir+"/gain_enc_sequence*")
         for test in tests:
-          if "sequence-g2s2b0" in test:
+          if "sequence-g3s3b1" in test:
             params_file = test+"/params.json"
             if os.path.isfile(params_file):
               params = json.loads(open(params_file).read())
