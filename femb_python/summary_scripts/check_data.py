@@ -94,7 +94,6 @@ class FEMB_CHECK_DATA(object):
       search_day = str(search_date.day).zfill(2)
       search_time = tsnow[0:4]+search_month+search_day
       search_time_upper = tsnow[0:8]
-      print(search_time,search_time_upper)
     elif("this_week" in self.when):
       search_date = datetime.datetime(int(tsnow[0:4]), int(tsnow[4:6]), int(tsnow[6:8])) + relativedelta(weekday=MO(-1))
       search_month = str(search_date.month).zfill(2)
@@ -192,20 +191,15 @@ class FEMB_CHECK_DATA(object):
         tests = glob.glob(dir+"/gain_enc_sequence*")
         for test in tests:
           if "sequence-g2s2b0" in test:
-            print(test)
-            files = glob.glob(test+"/*-results.json")
-            if len(files)>0:
-              params_file = files[0]
-              if os.path.isfile(params_file):
-                params = json.loads(open(params_file).read())
-                for iasic in range(0,4):
-                  print(iasic)
-                  print(str(iasic))
-                  print(params["asic"+str(iasic)+"id"])
-                  if params["asic"+str(iasic)+"id"].isnumeric():
-                    chips_tested.append(params["asic"+str(iasic)+"id"])
-                    useful_directories.append(dir)
-      chips_tested_excl = sorted(list(set(chips_tested)),key=lambda x:int(x))
+            params_file = test+"/params.json"
+            if os.path.isfile(params_file):
+              params = json.loads(open(params_file).read())
+              for iasic in range(0,4):
+                if "asic"+str(iasic)+"id" in params:
+                  chips_tested.append(params["asic"+str(iasic)+"id"])
+              useful_directories.append(dir)
+      #chips_tested_excl = sorted(list(set(chips_tested)),key=lambda x:int(x))
+      chips_tested_excl = list(set(chips_tested))
       print("***Number of tests completed ("+self.when+"): ", len(useful_directories), " (4 chips per test)")
       print("***",len(chips_tested_excl)," Chips Fully Tested: :", chips_tested_excl)
       
