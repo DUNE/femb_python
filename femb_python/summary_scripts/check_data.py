@@ -30,7 +30,7 @@ class FEMB_CHECK_DATA(object):
     print("Read arguments")
 
     #supported_what = ["adc_cold","adc_warm","fe_cold","fe_warm","osc"]
-    supported_what = ["adc_cold", "osc", "femb","fe_warm"]
+    supported_what = ["adc_cold", "osc", "femb","fe_warm","femb"]
     supported_when = ["today", "this_week", "all"]
 
     if what.lower() in supported_what:
@@ -77,6 +77,9 @@ class FEMB_CHECK_DATA(object):
       
     elif("osc" in self.what):
       search_dir = self.datapath+"hothdaq*/dsk/*/oper/osc/osc/*"
+
+    elif("femb" in self.what):
+      search_dir = self.datapath+"hothdaq*/dsk/*/oper/femb/wib_sbnd_v109_femb_protodune_v308/*"
       
     whatdirs = glob.glob(search_dir)
 
@@ -96,7 +99,41 @@ class FEMB_CHECK_DATA(object):
       if (datetime.datetime(int(date_of_this_dir[0:4]), int(date_of_this_dir[4:6]), int(date_of_this_dir[6:8])) >=
           datetime.datetime(int(search_time[0:4]), int(search_time[4:6]), int(search_time[6:8]))):
         directories_found.append(dir)
-    
+
+    if "femb" in self.what:
+      useful_directories = []
+      boxes_tested_rt = []
+      boxes_tested_ct = []
+      ct_dirs = {}
+      rt_dirs = {}
+      for dir in directories_found:
+        subdirs = glob.glob(dir+"/*")
+        if len(subdirs)==20:
+          useful_directories.append(dir)
+          params_file = dir+"/fembTest_summary/params.json"
+          if os.path.isfile(params_file):
+            params = json.loads(open(params_file).read())
+            isRoomTemp = params['isRoomTemp']
+            boxids = params['box_ids']
+            for box in boxids:
+              if (isRoomTemp):
+                boxes_tested_rt.append(box)
+                rt_dirs[box] = dir
+              else:
+                boxes_tested_ct.append(box)
+                ct_dirs[box] = dir
+      print("***Number of tests completed ("+self.when+"): ", len(useful_directories))
+      boxes_tested_rt_excl = sorted(list(set(boxes_tested_rt)))
+      boxes_tested_ct_excl = sorted(list(set(boxes_tested_ct)))
+      print("***",len(boxes_tested_rt_excl)," Boxes Fully Tested RT: ", boxes_tested_rt_excl)
+      print("***",len(boxes_tested_ct_excl)," Boxes Fully Tested CT: ", boxes_tested_ct_excl)
+      if self.verbose:
+        print("Directories (RT): ")
+        for mykey,dir in rt_dirs.items(): print("Box ",mykey, ": ",dir)
+        print("Directories (CT): ")
+        for mykey,dir in ct_dirs.items(): print("Box ",mykey, ": ",dir)
+
+        
     if "osc" in self.what:
       useful_directories = []
       for dir in directories_found:
@@ -127,7 +164,7 @@ class FEMB_CHECK_DATA(object):
             useful_directories.append(dir)
       chips_tested_excl = sorted(list(set(chips_tested)),key=lambda x:int(x))
       print("***Number of tests completed ("+self.when+"): ", len(useful_directories), " (4 chips per test)")
-      print("***",len(chips_tested_excl),"Chips Fully Tested: :", chips_tested_excl)
+      print("***",len(chips_tested_excl)," Chips Fully Tested: :", chips_tested_excl)
       
     if "adc_cold" in self.what:
       useful_directories = {}
