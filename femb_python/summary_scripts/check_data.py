@@ -187,6 +187,7 @@ class FEMB_CHECK_DATA(object):
     if "fe_warm" in self.what:
       useful_directories = []
       chips_tested = []
+      chips_dirs={}
       for dir in directories_found:
         tests = glob.glob(dir+"/gain_enc_sequence*")
         for test in tests:
@@ -197,12 +198,16 @@ class FEMB_CHECK_DATA(object):
               for iasic in range(0,4):
                 if "asic"+str(iasic)+"id" in params:
                   chips_tested.append(params["asic"+str(iasic)+"id"])
+                  chips_dirs[params["asic"+str(iasic)+"id"]] = dir
               useful_directories.append(dir)
       #chips_tested_excl = sorted(list(set(chips_tested)),key=lambda x:int(x))
       chips_tested_excl = list(set(chips_tested))
       print("***Number of tests completed ("+self.when+"): ", len(useful_directories), " (4 chips per test)")
       print("***",len(chips_tested_excl)," Chips Fully Tested: :", chips_tested_excl)
-      
+      if self.verbose:
+        print("Directories:")
+        for mykey,dir in chips_dirs.items(): print(mykey, dir)
+        
     if "adc_cold" in self.what:
       useful_directories = {}
       chips_tested = []
@@ -213,16 +218,18 @@ class FEMB_CHECK_DATA(object):
           setup_file = setup_file[0]
           if os.path.isfile(setup_file):
             params = json.loads(open(setup_file).read())
-            chips_tested.append(params['serial'])
-            useful_directories[params['serial']] = dir
+            if str(params['serial'])[0] == "D":
+              chips_tested.append(params['serial'])
+              useful_directories[params['serial']] = dir
         else:
           setup_file_daonly = glob.glob(dir+"/david_adams_only*.json")
           if setup_file_daonly:
             setup_file_daonly = setup_file_daonly[0]
             if os.path.isfile(setup_file_daonly):
               params = json.loads(open(setup_file_daonly).read())
-              chips_daonly.append(params['serials'][0])
-              useful_directories[params['serials'][0]] = dir                                 
+              if params['serials'][0][0] == "D":
+                chips_daonly.append(params['serials'][0])
+                useful_directories[params['serials'][0]] = dir                                 
               
       chips_tested_full = list(set(chips_tested))
       chips_tested_daonly = list(set(chips_daonly))
