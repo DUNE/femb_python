@@ -43,7 +43,7 @@ def main(**params):
     '''
     print( "FEMB PRODUCTION TEST - START")
 
-    use_sumatra = False
+    use_sumatra = True
     test_category = "femb"      # pick something
 
     #check for any required input paramaters here ie board id etc
