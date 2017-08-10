@@ -56,21 +56,23 @@ class FEMB_UDP(object):
             #print "FEMB_UDP--> Write: reg=%x,value=%x"%(reg,data)
             time.sleep(self.REG_SLEEP)
 
-        if self.doReadBack == False :
+        if (self.doReadBack == False) :
+            return None
+        if (regVal == 0) or (regVal == 1) or (regVal == 2) : #don't try to rewrite certain registers
             return None
 
         #do read back, attempts recursive rewrite if disagreement
         regReadVal = self.read_reg(regVal)
-        print(hex(regReadVal), hex(dataVal))
+        #print("HERE\t",hex(regReadVal),"\t", hex(dataVal))
         if regReadVal != dataVal :
             print("FEMB_UDP--> Error write_reg: Readback failed")
             if writeAttempt > self.MAX_ATTEMPTS :
                 print("FEMB_UDP--> Error write_reg: Max number of rewrite attempts, return")
                 return None
-            if writeAttempt > 50 : #harcoded max number of attempts
+            if writeAttempt > 10 : #harcoded max number of attempts = 10
                 print("FEMB_UDP--> Error write_reg: Max number of rewrite attempts, return")
                 return None
-            self.write_reg(regVal,dataVal,doReadBack,writeAttempt + 1)
+            self.write_reg(regVal,dataVal,writeAttempt + 1)
 
     def write_reg_bits(self, reg , pos, mask, data ):
         try:

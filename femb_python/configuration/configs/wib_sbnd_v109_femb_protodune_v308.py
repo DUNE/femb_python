@@ -79,7 +79,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
-        #self.femb.doReadBack = True #WIB register interface is unreliable
+        self.femb.doReadBack = True #WIB register interface is unreliable
 
         #ASIC config variables
         self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
