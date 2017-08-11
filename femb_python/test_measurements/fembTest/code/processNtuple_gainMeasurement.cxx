@@ -72,8 +72,8 @@ class Analyze {
         const int const_maxCode = 4096;
         const float const_maxRms = 75.; //ADC counts
 	const float const_maxPulseHeight = 4096;
-	const float const_minPulseHeightForFit = 50;
-	const float const_maxPulseHeightForFit = 3000;
+	const float const_minPulseHeightForFit = 200;
+	const float const_maxPulseHeightForFit = 1500;
 	const float const_maxPulsePeakValue = 3900;
 	const float const_maxGain = 10000;
 	const float const_maxEnc = 5000;
@@ -82,12 +82,12 @@ class Analyze {
 	const int const_numSubrun = 64;
 	const int const_preRange = 15;
 	const int const_postRange = 25;
-	const float const_minThreshold = 50;
+	const float const_minThreshold = 150;
 	const int const_minNumberPulses = 10;
 	const int const_cut_numBadChannels = 0;
   	const bool const_doFits = 0;
-        double const_fitRangeLow = 70.E+3;
-        double const_fitRangeHigh = 125.E+3;
+        double const_fitRangeLow = 50.E+3;
+        double const_fitRangeHigh = 200.E+3;
 
 	//data objects
 	TCanvas* c0;
@@ -95,7 +95,9 @@ class Analyze {
         std::vector<unsigned short> wfAll[64][128]; //wfAll[subrun][chan]
 	//histograms
 	TH2F *hSampVsChan;
+        TProfile *pFractionStuckVsChan;
 	TProfile *pMeanVsChan;
+	TProfile *pRawRmsVsChan;
 	TProfile *pRmsVsChan;
 	TProfile2D *pFFTVsChan;
 
@@ -237,7 +239,9 @@ void Analyze::initRootObjects(){
 
   	//output histograms, data objects
   	hSampVsChan = new TH2F("hSampVsChan","",const_numChan,0-0.5,const_numChan-0.5,100,-0.5,const_maxCode-0.5);
+ 	pFractionStuckVsChan = new TProfile("pFractionStuckVsChan","",const_numChan,0-0.5,const_numChan-0.5);
 	pMeanVsChan = new TProfile("pMeanVsChan","",const_numChan,0-0.5,const_numChan-0.5);
+	pRawRmsVsChan = new TProfile("pRawRmsVsChan","",const_numChan,0-0.5,const_numChan-0.5);
   	pRmsVsChan = new TProfile("pRmsVsChan","",const_numChan,0-0.5,const_numChan-0.5);
 	pFFTVsChan = new TProfile2D("pFFTVsChan","",const_numChan,0-0.5,const_numChan-0.5,100,0,const_samplingRate/2.);
 
@@ -291,14 +295,19 @@ void Analyze::organizeData(){
 void Analyze::analyzeChannel(unsigned int chan){
 	if( chan % 10 == 0 )
 		std::cout << "Analyzing channel " << chan << std::endl;
+	//if( chan != 2 ) return;
 
 	//do basic noise measurement
 	ffer_analyzePulses.measureNoise( wfAll[0][chan] );
+	double fracSubrun0 = ffer_analyzePulses.goodCodeFraction;
 	double meanSubrun0 = ffer_analyzePulses.baseMean;
 	double rmsSubrun0 = ffer_analyzePulses.baseRms;
+        double rawRmsSubrun0 = ffer_analyzePulses.rawRms;
 
 	//fill basic noise measurement histograms
+	pFractionStuckVsChan->Fill( chan, 1 - fracSubrun0 );
 	pMeanVsChan->Fill( chan, meanSubrun0 );
+	pRawRmsVsChan->Fill(chan, rawRmsSubrun0);
 	pRmsVsChan->Fill(chan, rmsSubrun0);
 	//get overall sample distribution for low level debugging
 	for( int s = 0 ; s < wfAll[0][chan].size() ; s++ ){
@@ -320,6 +329,8 @@ void Analyze::analyzeChannel(unsigned int chan){
 	for(unsigned int sr = 1 ; sr < const_numSubrun ; sr++){
 		//find pulses
 		findPulses(wfAll[sr][chan],meanSubrun0,rmsSubrun0);
+		//std::cout << "chan " << chan << "\tsubrun " << sr << "\tnum " << pulseRiseStart.size() << std::endl;
+		//continue;
 
 		ffer_analyzePulses.clearData();
 		ffer_analyzePulses.setBaseMeanRms(meanSubrun0, rmsSubrun0);
@@ -484,16 +495,31 @@ void Analyze::measureGain(unsigned int chan, double baseRms){
 		return;
 
         int numInRange = 0;
+	double minRange = const_fitRangeHigh;
+	double maxRange = const_fitRangeLow;
+	double prevDataY = -1;
         for(int n = 0 ; n < gPulseVsSignal[chan]->GetN() ; n++){
 		double dataX, dataY;
 		gPulseVsSignal[chan]->GetPoint(n,dataX,dataY);
-		if( dataX >= const_fitRangeLow && dataX <= const_fitRangeHigh )
-			numInRange++;
+		//if( dataX >= const_fitRangeLow && dataX <= const_fitRangeHigh )
+		//	numInRange++;
+		if( dataY < const_minPulseHeightForFit || dataY > const_maxPulseHeightForFit )
+			continue;
+		if( dataY < prevDataY - 50 ) //hack
+			continue;
+		prevDataY = dataY;
+		numInRange++;
+
+		if( dataX < minRange)
+			minRange = dataX;
+		if( dataX > maxRange)
+			maxRange = dataX;
         }
-	if( numInRange < 2 )
+	if( numInRange < 3 )
    		return;
 
-	TF1 *f1 = new TF1("f1","pol1",const_fitRangeLow,const_fitRangeHigh);
+	//TF1 *f1 = new TF1("f1","pol1",const_fitRangeLow,const_fitRangeHigh);
+	TF1 *f1 = new TF1("f1","pol1",minRange,maxRange);
 	gPulseVsSignal[chan]->Fit("f1","QBR");
 
 	//check if fit succeeded here
@@ -613,6 +639,7 @@ void Analyze::makeSummaryPlot(){
 	pMeanVsChan->GetXaxis()->SetTitle("FEMB Channel #");
 	pMeanVsChan->GetYaxis()->SetTitle("Pedestal Mean (ADC counts)");
 
+	pFFTVsChan->GetYaxis()->SetRangeUser(0.1,1);
 	pFFTVsChan->SetStats(kFALSE);
 	pFFTVsChan->GetXaxis()->SetTitle("FEMB Channel #");
 	pFFTVsChan->GetYaxis()->SetTitle("Frequency (MHz)");
@@ -669,7 +696,9 @@ void Analyze::writeToRootFile(){
  	gOut->Cd("");
 	c0->Write("c0_SummaryPlot");
   	hSampVsChan->Write();
+	pFractionStuckVsChan->Write();
 	pMeanVsChan->Write();
+	pRawRmsVsChan->Write();
   	pRmsVsChan->Write();
 	pFFTVsChan->Write();
 
