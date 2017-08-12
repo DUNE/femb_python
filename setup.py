@@ -136,6 +136,7 @@ setup(
             'femb_lock=femb_python.helper_scripts.locking:lock',
 
             'data_query=femb_python.summary_scripts.check_data:main',
+            'error_query=femb_python.summary_scripts.find_errs:main',
 
             'femb_power_supply=femb_python.helper_scripts.test_instruments:powersupply',
             'femb_function_generator=femb_python.helper_scripts.test_instruments:funcgen',
