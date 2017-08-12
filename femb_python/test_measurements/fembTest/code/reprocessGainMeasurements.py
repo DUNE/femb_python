@@ -9,14 +9,19 @@ import json
 import time
 
 #constants
-reprocessDirName = str("reprocess")
+reprocessDirName = str("reprocess") #directory for reprocessed results
 
 def main():
   #provide FEMB test directory to reprocess
   if len(sys.argv) != 2 :
     print( "Usage: python reprocessGainMeasurements <results directory>")
     return
-  testDir = sys.argv[1]
+  testDir = str(sys.argv[1])
+
+  #check if testdir exists
+  if os.path.isdir( testDir ) == False:
+    print( "Results directory does not exist")
+    return
   print( str("Results directory : ") + str(testDir) )
 
   #check for executable
@@ -27,10 +32,12 @@ def main():
   #get subdirectories
   subdirs = get_immediate_subdirectories(str(testDir))
   if subdirs == None :
+    print( "No subdirectories found")
     return
 
   #check if "reprocess" dir is open, create otherwise
   if os.path.isdir( reprocessDirName ) == False:
+    print("Recreating reprocess directory")
     os.makedirs( reprocessDirName )
 
   #create reprocessed results directory
@@ -39,7 +46,7 @@ def main():
 
   #process individual measurements
   for subdir in subdirs:
-    rundir = str(testDir) + str(subdir)
+    rundir = str(testDir) + str("/") + str(subdir)
     processRunDir( rundir )
 
 #get subdirectory structure
@@ -52,6 +59,7 @@ def get_immediate_subdirectories(a_dir):
 def processRunDir( rundir ):
   #check that original measurement data directory exists
   if os.path.isdir( str(rundir) ) == False:
+    print( "Measurement directory does not exist")
     return None
 
   #define new measurement directory name
