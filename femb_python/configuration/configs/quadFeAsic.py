@@ -207,7 +207,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         baseVal = int( self.feasicBaseline ) #0 = 900mV, 1 = 200mV
         gainVal = int( self.feasicGain )
         shapeVal = int( self.feasicShape )
-        acdcVal = int( self.feasicAcdc ) #AC = 0, DC = 1
+        acdcVal = int( self.feasicAcdc ) #DC = 0, AC = 1
         bufVal = int( self.feasicBuf ) #0 = OFF, 1 = ON
 
         if (testVal < 0 ) or (testVal > 1):
@@ -261,7 +261,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #monitor control, bits 1-2
 
         #AC/DC control, bits 1
-        #
+        asicReg = asicReg + ((acdcVal & 0x01)<<5)
 
         #internal DAC enable, bit 8
 
