@@ -21,19 +21,26 @@ class TEST_QUAD_EPCS(object):
         #Initialize board
         self.femb_config.initBoard()
 
+        #QUICK FIX- status of each chip as it passes through test
+        flashToSkip = [False]*self.nFlashes # previously defined before erase section
+
         #Loop through flashes and check status; if status is bad, exit
         for iFlash in range(self.nFlashes):
             #Check the status
             print("\nChecking status of flash %s" %(iFlash))
             boardStatus = self.femb_config.readStatus(iFlash)
             if(boardStatus != 0):
-                 print("Error!! Status before erasing is bad. Exiting!!\n")
-                 return
+                 print("Flash %s has a problem. Will skip this flash!\n" %(iFlash))
+                 flashToSkip[iFlash] = True
+                 #return
 
         #Loop through flashes and erase
         eraseTried = [0]*self.nFlashes
-        flashToSkip = [False]*self.nFlashes
         for iFlash in range(self.nFlashes):
+            if flashToSkip[iFlash] == True:
+                print("Flash %s has a problem. Will skip this flash!\n" %(iFlash))
+                eraseTried[iFlash] = 9999999
+                continue
             #Erase Flash 
             self.femb_config.eraseFlash(iFlash)
             boardStatus = self.femb_config.readStatus(iFlash)
@@ -63,6 +70,7 @@ class TEST_QUAD_EPCS(object):
         for iFlash in range(self.nFlashes):
             if flashToSkip[iFlash]:
                 failedPages[iFlash] = 9999999
+                print("Flash %s has a problem. Will skip this flash!\n" %(iFlash))
                 continue
             for iPage in range(self.nPages):
                 inputData = []

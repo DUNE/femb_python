@@ -43,7 +43,7 @@ def main(**params):
     '''
     print( "FEMB PRODUCTION TEST - START")
 
-    use_sumatra = False
+    use_sumatra = True
     test_category = "femb"      # pick something
 
     #check for any required input paramaters here ie board id etc
@@ -84,7 +84,7 @@ def main(**params):
                 params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
                                     datasubdir="fembTest_gainenc_test_g"+str(g)+"_s"+str(s)+"_"+pulser_text[i], 
                                     outlabel="fembTest_gainenc_test_"+pulser_text[i],
-                                    gain=g, shape=s, base=1, useInternalPulser=pulser_setting[i])
+                                    gain=g, shape=s, base=0, useInternalPulser=pulser_setting[i], useExtAdcClock=True)
                 tests.append( Test(**params_test) )
         i+=1
 
@@ -92,7 +92,7 @@ def main(**params):
     params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
                         datasubdir="fembTest_gainenc_test_g2_s2_extpulse_intclock", 
                         outlabel="fembTest_gainenc_test_g2_s2_intpulse_intclock", 
-                        gain=2, shape=2, base=1, useInternalPulser=True, useExtAdcClock=False)
+                        gain=2, shape=2, base=0, useInternalPulser=True, useExtAdcClock=False)
     tests.append ( Test(**params_test) )
 
     #Current Measurement

@@ -342,7 +342,9 @@ public:
   void clearData();
   void measureNoise(const std::vector<unsigned short> &wf);
   bool isGoodCode( unsigned short adcCode );
+  bool calculateGoodCodeFraction( const std::vector<unsigned short> &wf );
   bool calculateMean( const std::vector<unsigned short> &wf );
+  bool calculateRawRms( const std::vector<unsigned short> &wf, double mean );
   bool calculateRms( const std::vector<unsigned short> &wf, double mean );
   void addData(unsigned int event, const std::vector<int> &pulseSamples, const std::vector<unsigned short>& wf);
   void setBaseMeanRms(double mean, double rms);
@@ -355,7 +357,9 @@ public:
   FitFeElecResponse_multiPulse fitResponse;
 
   bool disable_isGoodCode = 0;
+  double goodCodeFraction = 0;
   double baseMean = 0;
+  double rawRms = 0;
   double baseRms = 0;
   double measuredPulseHeight = 0;
   bool enablePulseFits = 0;
@@ -409,14 +413,26 @@ void FitFeElecResponse_analyzePulses::addData(unsigned int event, const std::vec
 }
 
 void FitFeElecResponse_analyzePulses::measureNoise( const std::vector<unsigned short> &wf){
+  goodCodeFraction = 0;
+  baseMean = -1;
+  rawRms = -1;
+  baseRms = -1;
   if( wf.size() == 0 )
+    return;
+
+  //calculate good sample fraction
+  if( !calculateGoodCodeFraction( wf ) )
     return;
 
   //calculate mean
   if( !calculateMean( wf ) )
     return;
 
-  //calculate rms
+  //calculate rms  including stuck codes
+  if( !calculateRawRms( wf , baseMean ) )
+    return;
+
+  //calculate rms without stuck codes
   if( !calculateRms( wf , baseMean ) )
     return;
 }
@@ -427,10 +443,23 @@ bool FitFeElecResponse_analyzePulses::isGoodCode( unsigned short adcCode ){
   return 1;
 }
 
+bool FitFeElecResponse_analyzePulses::calculateGoodCodeFraction( const std::vector<unsigned short> &wf ){
+  goodCodeFraction = 0;
+  int totalCount = 0;
+  int count = 0;
+  for( int s = 0 ; s < wf.size() ; s++ ){
+    totalCount++;
+    if( isGoodCode( wf.at(s) ) ) 
+	count++;
+  }
+  if( totalCount <= 0 )
+    return 0;
+  goodCodeFraction = (double)count / (double) totalCount;
+  return 1;
+}
+
 bool FitFeElecResponse_analyzePulses::calculateMean( const std::vector<unsigned short> &wf ){
   baseMean = -1;
-  if( wf.size() == 0 )
-    return 0;
   double mean = 0;
   int count = 0;
   for( int s = 0 ; s < wf.size() ; s++ ){
@@ -445,10 +474,26 @@ bool FitFeElecResponse_analyzePulses::calculateMean( const std::vector<unsigned 
   return 1;
 }
 
-bool FitFeElecResponse_analyzePulses::calculateRms( const std::vector<unsigned short> &wf, double mean ){
-  baseRms = -1;
-  if( wf.size() == 0 )
+bool FitFeElecResponse_analyzePulses::calculateRawRms( const std::vector<unsigned short> &wf, double mean){
+  rawRms = -1;
+  double rms = 0;
+  int count = 0;
+  for( int s = 0 ; s < wf.size() ; s++ ){
+    //if( checkCode == 1 && !isGoodCode( wf.at(s) ) ) continue;
+    double value = wf.at(s);
+    rms += (value-mean)*(value-mean);
+    count++;
+  }
+  if( count <= 1 )
     return 0;
+  if( rms <= 0 )
+    return 0;	
+  rawRms = TMath::Sqrt( rms / (double)( count - 1 ) );
+  return 1;
+}
+
+bool FitFeElecResponse_analyzePulses::calculateRms( const std::vector<unsigned short> &wf, double mean){
+  baseRms = -1;
   double rms = 0;
   int count = 0;
   for( int s = 0 ; s < wf.size() ; s++ ){
@@ -470,6 +515,7 @@ void FitFeElecResponse_analyzePulses::analyzePulses(){
   for(unsigned int ev = 0 ; ev < eventData.size() ; ev++ ){
     for( unsigned int p = 0 ; p < eventData.at(ev).pulseSamples.size() ; p++ ){
       //std::cout << eventData.at(ev).wf.size() << std::endl;
+      if( p > 500 ) break; //hardcoded, bad!
       analyzePulse( eventData.at(ev).pulseSamples.at(p) , eventData.at(ev).wf , 0) ;
     }//end loop over pulses
   }//end loop over events
@@ -500,6 +546,19 @@ void FitFeElecResponse_analyzePulses::analyzePulse(int startSampleNum, const std
 
 void FitFeElecResponse_analyzePulses::getPulseHeight( int startSampleNum, const std::vector<unsigned short> &wf, bool isNeg ){
   measuredPulseHeight = -1;
+
+  //calculate mean before pulse
+  double mean = 0;
+  int count = 0;
+  for( int s = 0 ; s < startSampleNum-const_preRange ; s++ ){
+    //if( !isGoodCode( wf.at(s) ) ) continue;
+    double value = wf.at(s);
+    mean += value;
+    count++;
+  }
+  if( count <= 0 )
+    return;
+  mean = mean / (double) count;
 
   //find maximum sample value in pulse region
   int maxSampVal = -1;
@@ -533,11 +592,36 @@ void FitFeElecResponse_analyzePulses::getPulseHeight( int startSampleNum, const 
   if( maxSamp < 0 || minSamp < 0)
     return;
 
+  //
+  if( minSampVal < mean - const_minPulseHeightForFit )
+	return;
+
   //measure pulse height
   measuredPulseHeight = maxSampVal - baseMean;
   if( isNeg == 1 )
     measuredPulseHeight = minSampVal - baseMean;
   pulseHeights.push_back( measuredPulseHeight );
+
+  //plot
+  /*
+  gChTest->Set(0);
+  for(int s = startSampleNum-const_preRange ; s < startSampleNum + const_postRange ; s++){
+    gChTest->SetPoint(gChTest->GetN() , s , wf.at(s) - baseMean );
+  }
+
+  
+  if(0){
+   //std::cout << mean << "\t" << baseMean << "\t" << minSamp - mean << std::endl;
+   cTest->Clear();
+   gChTest->SetMarkerStyle(21);
+   gChTest->SetMarkerColor(kRed);
+   gChTest->Draw("AP");
+   cTest->Update();
+   usleep(50000);
+   //char ct;
+   //std::cin >> ct;
+  }
+  */
 }
 
 void FitFeElecResponse_analyzePulses::doPulseFit( int startSampleNum, const std::vector<unsigned short> &wf ){

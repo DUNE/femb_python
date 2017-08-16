@@ -270,13 +270,10 @@ class FEMB_TEST_GAIN(object):
                 lines.append(parseline)
             self.jsondict['results'] = lines
 
-        jsonoutput = json.dumps(self.jsondict, indent=4, sort_keys=True)
-        #print( jsonoutput )
- 
         #dump results into json
         jsonFile = self.outpathlabel + "-results.json"
         with open( jsonFile , 'w') as outfile:
-            json.dump(jsonoutput, outfile)
+            json.dump( self.jsondict, outfile, indent=4)
 
         #get required results from dict to propagate to GUI
         """

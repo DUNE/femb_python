@@ -66,7 +66,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.fembNum = 0
         self.useExtAdcClock = True
         self.isRoomTemp = False
-        self.maxSyncAttempts = 20
+        self.maxSyncAttempts = 100
         self.doReSync = True
         self.syncStatus = 0x0
         self.CLKSELECT_val_RT = 0xDF
@@ -79,7 +79,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
-        #self.femb.doReadBack = True #WIB register interface is unreliable
+        self.femb.doReadBack = True #WIB register interface is unreliable
 
         #ASIC config variables
         self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
@@ -87,7 +87,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicAcdc = 0 #AC = 0, DC = 1
         
         self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
-        self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV
+        self.feasicBaseline = 0 #0 = 200mV, 1 = 900mV
         self.feasicGain = 2 #4.7,7.8,14,25
         self.feasicShape = 1 #0.5,1,2,3
         self.feasicBuf = 0 #0 = OFF, 1 = ON
@@ -419,13 +419,17 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         """
 
         #Write ADC ASIC SPI
-        self.femb.write_reg( self.REG_ASIC_RESET, 1)
-        time.sleep(0.01)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.01)
-        self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
-        time.sleep(0.01)
+        if syncAttempt == 0:
+            print("ADC reconfig")
+            self.femb.write_reg( self.REG_ASIC_RESET, 1)
+            time.sleep(0.01)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+            time.sleep(0.01)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+            time.sleep(0.01)
+        #soft reset
         self.femb.write_reg( self.REG_SOFT_ADC_RESET, 0x4)
+        time.sleep(0.01)
 
         #for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
         #    regVal = self.femb.read_reg( regNum)
@@ -759,8 +763,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         ####################external clock timing
         clk_period = 5 #ns
         self.clk_dis = 0 #0 --> enable, 1 disable
-        self.d14_rst_oft  = 0   // clk_period   
-        self.d14_rst_wdt  = (50  // clk_period ) -1   
+        self.d14_rst_oft  = 5   // clk_period   
+        self.d14_rst_wdt  = (45  // clk_period ) -1   
         self.d14_rst_inv  = 1  
         self.d14_read_oft = 480 // clk_period    
         self.d14_read_wdt = 20  // clk_period    
@@ -777,8 +781,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.d14_idl1_wdt = 20  // clk_period    
         self.d14_idl_inv  = 0      
 
-        self.d58_rst_oft  = 0   // clk_period 
-        self.d58_rst_wdt  = (50  // clk_period ) -1
+        self.d58_rst_oft  = 5   // clk_period 
+        self.d58_rst_wdt  = (45  // clk_period ) -1
         self.d58_rst_inv  = 1  
         self.d58_read_oft = 480 // clk_period 
         self.d58_read_wdt = 20  // clk_period 

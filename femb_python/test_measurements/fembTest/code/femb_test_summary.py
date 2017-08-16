@@ -120,7 +120,8 @@ class FEMB_SUMMARY(object):
                     info_file = self.topdir+"/"+mydir+"/params.json"
                     if os.path.isfile(info_file):
                         params_curr = json.loads(open(info_file).read())
-                        results_file = params_curr['datadir']+"/gainMeasurement_femb_"+str(slot)+"-results.json"
+                        #results_file = params_curr['datadir']+"/gainMeasurement_femb_"+str(slot)+"-results.json"
+                        results_file = self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-results.json"
                         if os.path.isfile(results_file):
                             result = json.loads(open(results_file).read())
                             gaininfo.append(gainlabels[int(result['config_gain'])])
@@ -183,7 +184,7 @@ class FEMB_SUMMARY(object):
             if (printgain):
 
                 pdf.ln(7)                
-                pdf.cell(200,5,txt="Average ENC measured with internal pulser (electrons))",align='L',ln=1)
+                pdf.cell(200,5,txt="Average ENC measured with internal pulser (electrons)",align='L',ln=1)
                 pdf.cell(50,5,txt="",)
                 for shape in shapelabels:
                     pdf.cell(25,5,txt=shape+" us",align='L')
@@ -259,9 +260,25 @@ def main():
         print( "SUMMARY START")
         for arg in sys.argv :
             print( arg )
-        import json
-        params = json.loads(open(sys.argv[1]).read())
         
+        params = {}
+
+        #load from input JSON file as part of standard test
+        if len(sys.argv) == 2 :
+            import json
+            params = json.loads(open(sys.argv[1]).read())
+        
+        #load from specified location
+        if len(sys.argv) == 3 :
+            import json
+            paramsFile = str(sys.argv[1])
+            params = json.loads(open(sys.argv[1]).read())
+            newdatadir = str(sys.argv[2])
+            params["paramfile"] = paramsFile
+            params["datadir"] = newdatadir + "/"
+            params["executable"]="femb_test_summary"
+            params["datasubdir"]="fembTest_summary"
+            params["outlabel"]="fembTest_summary"
         print( params )
 
         #check for required parameters
