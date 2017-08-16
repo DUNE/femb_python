@@ -103,6 +103,9 @@ class GUI_WINDOW(Frame):
         self.status_label.grid(row=100,column=columnbase,columnspan=4)
         self.bkg_color = self.status_label.cget("background")
 
+        # initialize WIB in case we are coming out of a power down
+        self.config.initWib()
+    
     def get_options(self):
         operator = self.operator_entry.get()
         boxid = self.boxid_entry.get()
