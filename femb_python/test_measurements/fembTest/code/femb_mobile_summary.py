@@ -89,6 +89,7 @@ class FEMB_SUMMARY(object):
 
             printgain = False
             printcurrent = False
+            printsimple = False
             gainsummary = {}
 
             for mydir in self.subdirs:
@@ -123,6 +124,15 @@ class FEMB_SUMMARY(object):
                             gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 2 us, Internal Pulser"
                             gainimage = self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"
                             printgain = True
+
+
+
+                #Simple Measurement Summary                    
+                if ("simple" in mydir):
+                    if os.path.isfile(self.topdir+"/"+mydir+"/simpleMeasurement_femb_"+str(slot)+"-summaryPlot.png"):
+                        simpletext = "Simple Measurement"
+                        simpleimage = self.topdir+"/"+mydir+"/simpleMeasurement_femb_"+str(slot)+"-summaryPlot.png"
+                        printsimple = True
 
 
                 #Current monitor summary:
@@ -211,7 +221,11 @@ class FEMB_SUMMARY(object):
                 pdf.cell(15, 5, txt="{:3.2f}".format(ion[4]), align='L', ln=1)                
                 pdf.ln(7)
 
-
+            if (printsimple):
+                pdf.ln(7)
+                pdf.cell(200,5,txt=simpletext,align='L',ln=1)
+                pdf.image(simpleimage, w=200)
+                pdf.ln(7)
                 
 
             text = "Data stored on "+params['hostname']+": "
