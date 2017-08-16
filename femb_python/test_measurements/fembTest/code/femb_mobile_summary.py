@@ -63,7 +63,7 @@ class FEMB_SUMMARY(object):
             name = params['box_ids'][i]
             boxtext = "CE Box "
 
-            text_title = "protoDUNE FEMB QC Summary: "+boxtext+name
+            text_title = "protoDUNE FEMB EMT Summary: "+boxtext+name
 
             timestamp = "Timestamp: "+params['session_start_time']
 
