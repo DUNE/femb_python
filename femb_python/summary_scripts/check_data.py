@@ -197,9 +197,10 @@ class FEMB_CHECK_DATA(object):
               params = json.loads(open(params_file).read())
               for iasic in range(0,4):
                 if "asic"+str(iasic)+"id" in params:
-                  chips_tested.append(params["asic"+str(iasic)+"id"])
-                  chips_dirs[params["asic"+str(iasic)+"id"]] = dir
-              useful_directories.append(dir)
+                  if params["asic"+str(iasic)+"id"][0] == "A":
+                    chips_tested.append(params["asic"+str(iasic)+"id"])
+                    chips_dirs[params["asic"+str(iasic)+"id"]] = dir
+                    useful_directories.append(dir)
       #chips_tested_excl = sorted(list(set(chips_tested)),key=lambda x:int(x))
       chips_tested_excl = list(set(chips_tested))
       print("***Number of tests completed ("+self.when+"): ", len(useful_directories), " (4 chips per test)")
@@ -232,14 +233,14 @@ class FEMB_CHECK_DATA(object):
                 useful_directories[params['serials'][0]] = dir                                 
               
       chips_tested_full = list(set(chips_tested))
-      chips_tested_daonly = list(set(chips_daonly))
+      chips_tested_daonly = [x for x in list(set(chips_daonly)) if x not in chips_tested_full]
       print("***Number of tests started ("+self.when+"): ", len(directories_found), "\n")
       print("***",len(chips_tested_full)," Chips Fully Tested: ", chips_tested_full, "\n")
       print("***",len(chips_tested_daonly)," Chips w/ Only DA Data Attempted: ", chips_tested_daonly, "\n")
       if self.verbose:
         print("Directories: ")
         for mykey,dir in useful_directories.items(): print(mykey, dir)
-
+              
     self.status_get_data = 1
 
     
