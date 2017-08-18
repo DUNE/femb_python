@@ -13,5 +13,5 @@ class FEMB_CONFIG(wib_sbnd_v109_femb_protodune_v308.FEMB_CONFIG):
 
         self.CLKSELECT_val_RT = 0xD9
         self.CLKSELECT2_val_RT = 0x26
-        self.CLKSELECT_val_CT = 0x8B
+        self.CLKSELECT_val_CT = 0x83
         self.CLKSELECT2_val_CT = 0xFF

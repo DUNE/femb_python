@@ -11,7 +11,7 @@ class FEMB_CONFIG(wib_sbnd_v109_femb_protodune_v308.FEMB_CONFIG):
     def __init__(self,exitOnError=True):
         super().__init__()
 
-        self.CLKSELECT_val_RT = 0xD9
-        self.CLKSELECT2_val_RT = 0x26
-        self.CLKSELECT_val_CT = 0x8B
+        self.CLKSELECT_val_RT = 0xDF
+        self.CLKSELECT2_val_RT = 0x20
+        self.CLKSELECT_val_CT = 0x53
         self.CLKSELECT2_val_CT = 0xFF
