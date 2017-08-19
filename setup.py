@@ -190,7 +190,14 @@ setup(
             'femb_power_cycle_test=femb_python.test_measurements.fembTest.code.femb_power_cycle_test:main',
             'femb_check_current=femb_python.test_measurements.fembTest.code.femb_check_current:main',
             'femb_test_summary=femb_python.test_measurements.fembTest.code.femb_test_summary:main',
+            'femb_mobile_summary=femb_python.test_measurements.fembTest.code.femb_mobile_summary:main',
             'femb_prod_gui=femb_python.test_measurements.fembTest.gui:main',
+            'femb_mobile_test=femb_python.test_measurements.fembTest.guiMobile:main',
+
+            #quad ADC ASIC production test
+            'quadadc_test=femb_python.test_measurements.quadAdcTester.quadAdcTest:main',
+            'quadadc_prod_gui=femb_python.test_measurements.quadAdcTester.gui:main',
+            'quadadc_test_simple=femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_simpleMeasurement:main',
 
             # what the shifters run:
             'femb_osctest=femb_python.test_measurements.OscillatorTesting.otmain:main',

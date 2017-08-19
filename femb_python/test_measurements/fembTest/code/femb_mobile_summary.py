@@ -59,14 +59,11 @@ class FEMB_SUMMARY(object):
         for slot in slotlist:
  
             i = slotlist.index(slot)
-            if ("na" in params['box_ids'][i].lower()):
-                name = params['am_ids'][i]+"_"+params['fm_ids'][i]
-                boxtext = ""
-            else:
-                name = params['box_ids'][i]
-                boxtext = "CE Box "
+        
+            name = params['box_ids'][i]
+            boxtext = "CE Box "
 
-            text_title = "protoDUNE FEMB QC Summary: "+boxtext+name
+            text_title = "protoDUNE FEMB EMT Summary: "+boxtext+name
 
             timestamp = "Timestamp: "+params['session_start_time']
 
@@ -88,28 +85,9 @@ class FEMB_SUMMARY(object):
             pdf.cell(60, 5, txt=user, align='L')
             pdf.cell(60, 5, txt=temp, align='L',ln=1)
 
-            amt = "Analog MB ID: "
-            fmt = "FPGA Mezz ID: "
-            fet = "FE ASICS: "
-            adct = "ADC ASICS: "
 
-            t1 = amt+params['am_ids'][i]
-            pdf.cell(40, 5, txt=t1, align='L')
-            t2 = fmt+params['fm_ids'][i]
-            pdf.cell(25, 5, txt=t2, align='L',ln=1)
-
-            pdf.cell(25, 5, txt=fet, align='L')            
-            for jfe in params['fe_asics'][i]:
-                pdf.cell(10, 5, txt=str(jfe), align='L')            
-            pdf.ln(5)
-
-            pdf.cell(25, 5, txt=adct, align='L')            
-            for jadc in params['adc_asics'][i]:
-                pdf.cell(10, 5, txt=str(jadc), align='L')
-            pdf.ln(5)
 
             printgain = False
-            printpc = False
             printcurrent = False
             gainsummary = {}
 
@@ -120,8 +98,7 @@ class FEMB_SUMMARY(object):
                     info_file = self.topdir+"/"+mydir+"/params.json"
                     if os.path.isfile(info_file):
                         params_curr = json.loads(open(info_file).read())
-                        #results_file = params_curr['datadir']+"/gainMeasurement_femb_"+str(slot)+"-results.json"
-                        results_file = self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-results.json"
+                        results_file = params_curr['datadir']+"/gainMeasurement_femb_"+str(slot)+"-results.json"
                         if os.path.isfile(results_file):
                             result = json.loads(open(results_file).read())
                             gaininfo.append(gainlabels[int(result['config_gain'])])
@@ -143,13 +120,10 @@ class FEMB_SUMMARY(object):
                     
                     if ("g2_s2_intpulse" in mydir):
                         if os.path.isfile(self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"):
-                            gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 1 us, Internal Pulser"
+                            gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 2 us, Internal Pulser"
                             gainimage = self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"
                             printgain = True
-                #Power cycle summary:
-                if ("powercycle" in mydir):
-                    pc_text = "FEMB power cycled 5 times at beginning of data collection with no failure."
-                    printpc = True
+
 
                 #Current monitor summary:
                 if ("current" in mydir):
@@ -181,41 +155,36 @@ class FEMB_SUMMARY(object):
 
                             printcurrent = True
 
-            if (printgain):
 
+            if (printgain):
                 pdf.ln(7)                
-                pdf.cell(200,5,txt="Average ENC measured with internal pulser (electrons)",align='L',ln=1)
+                pdf.cell(200,5,txt="Average ENC measured with internal pulser (electrons))",align='L',ln=1)
                 pdf.cell(50,5,txt="",)
-                for shape in shapelabels:
-                    pdf.cell(25,5,txt=shape+" us",align='L')
+                pdf.cell(25,5,txt=shapelabels[2]+" us",align='L')
                 pdf.ln(4)
 
                 pdf.cell(50,5,txt=gainlabels[2]+" mV/fC",align='L')
-                for shape in shapelabels:
-                    gainlabel = gainlabels[2]+"_"+shape+"_"+pulselabels[0]
-                    if (gainlabel in gainsummary.keys()):
-                        pdf.cell(25, 5, txt="{:4.0f}".format(gainsummary[gainlabel][3]), align='L')
-                    else:
-                        pdf.cell(25,5, txt="-", align='L')
+                gainlabel = gainlabels[2]+"_"+shapelabels[2]+"_"+pulselabels[0]
+                if (gainlabel in gainsummary.keys()):
+                    pdf.cell(25, 5, txt="{:4.0f}".format(gainsummary[gainlabel][3]), align='L')
+                else:
+                    pdf.cell(25,5, txt="-", align='L')
                 pdf.ln(4)
                 
-                pdf.cell(50,5,txt=gainlabels[3]+" mV/fC",align='L')                
-                for shape in shapelabels:
-                    gainlabel = gainlabels[3]+"_"+shape+"_"+pulselabels[0]
-                    if (gainlabel in gainsummary.keys()):
-                        pdf.cell(25, 5, txt="{:4.0f}".format(gainsummary[gainlabel][3]), align='L')
-                    else:
-                        pdf.cell(25,5, txt="-", align='L')
-                pdf.ln(4)
+              #  pdf.cell(50,5,txt=gainlabels[3]+" mV/fC",align='L')                
+              #  for shape in shapelabels:
+              #      gainlabel = gainlabels[3]+"_"+shape+"_"+pulselabels[0]
+              #      if (gainlabel in gainsummary.keys()):
+              #          pdf.cell(25, 5, txt="{:4.0f}".format(gainsummary[gainlabel][3]), align='L')
+              #     else:
+              #          pdf.cell(25,5, txt="-", align='L')
+              #  pdf.ln(4)
                 
                 pdf.ln(7)
                 pdf.cell(200,5,txt=gaintext,align='L',ln=1)
                 pdf.image(gainimage, w=200)
                 pdf.ln(7)
 
-            if (printpc):
-                pdf.cell(200,5,txt=pc_text,align='L',ln=1)
-                pdf.ln(7)                
 
             if (printcurrent):
                 pdf.cell(200,5,txt=currentmonitortext,align='L',ln=1)
@@ -241,6 +210,8 @@ class FEMB_SUMMARY(object):
                 pdf.cell(15, 5, txt="{:3.2f}".format(ion[3]), align='L')
                 pdf.cell(15, 5, txt="{:3.2f}".format(ion[4]), align='L', ln=1)                
                 pdf.ln(7)
+
+
                 
 
             text = "Data stored on "+params['hostname']+": "
@@ -260,25 +231,9 @@ def main():
         print( "SUMMARY START")
         for arg in sys.argv :
             print( arg )
+        import json
+        params = json.loads(open(sys.argv[1]).read())
         
-        params = {}
-
-        #load from input JSON file as part of standard test
-        if len(sys.argv) == 2 :
-            import json
-            params = json.loads(open(sys.argv[1]).read())
-        
-        #load from specified location
-        if len(sys.argv) == 3 :
-            import json
-            paramsFile = str(sys.argv[1])
-            params = json.loads(open(sys.argv[1]).read())
-            newdatadir = str(sys.argv[2])
-            params["paramfile"] = paramsFile
-            params["datadir"] = newdatadir + "/"
-            params["executable"]="femb_test_summary"
-            params["datasubdir"]="fembTest_summary"
-            params["outlabel"]="fembTest_summary"
         print( params )
 
         #check for required parameters

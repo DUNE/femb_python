@@ -421,6 +421,13 @@ void Analyze::computeFft(unsigned int chan, const std::vector<unsigned short> &w
 
 	TH1F *hFftData = new TH1F("hFftData","",numFftBins,0,numFftBins);
     	hData->FFT(hFftData,"MAG");
+
+        Double_t norm = 1;
+        Double_t integral = hFftData->Integral();
+        if( integral <= 0 ) integral = 1.;
+        Double_t scale = norm/(integral);
+        hFftData->Scale(scale);
+
     	for(int i = 1 ; i < hFftData->GetNbinsX() ; i++ ){
 		double freq = const_samplingRate* i / (double) hFftData->GetNbinsX() ;
 		pFFTVsChan->Fill( chan, freq,  hFftData->GetBinContent(i+1) );
@@ -639,7 +646,7 @@ void Analyze::makeSummaryPlot(){
 	pMeanVsChan->GetXaxis()->SetTitle("FEMB Channel #");
 	pMeanVsChan->GetYaxis()->SetTitle("Pedestal Mean (ADC counts)");
 
-	pFFTVsChan->GetYaxis()->SetRangeUser(0.1,1);
+	pFFTVsChan->GetYaxis()->SetRangeUser(0.05,1);
 	pFFTVsChan->SetStats(kFALSE);
 	pFFTVsChan->GetXaxis()->SetTitle("FEMB Channel #");
 	pFFTVsChan->GetYaxis()->SetTitle("Frequency (MHz)");
