@@ -156,12 +156,28 @@ void Analyze::doAnalysis(){
         c0->Clear();
         c0->Divide(2,2);
         c0->cd(1);
+        hSampVsChan->SetStats(kFALSE);
+        hSampVsChan->SetTitle("ADC Sample Distribution vs ASIC Ch #");
+	hSampVsChan->GetXaxis()->SetTitle("ASIC Ch #");
+	hSampVsChan->GetYaxis()->SetTitle("ADC Sample Code");
  	hSampVsChan->Draw("COLZ");
         c0->cd(2);
+        pMeanVsChan->SetStats(kFALSE);
+        pMeanVsChan->SetTitle("Waveform Sample Mean vs ASIC Ch #");
+	pMeanVsChan->GetXaxis()->SetTitle("ASIC Ch #");
+	pMeanVsChan->GetYaxis()->SetTitle("Waveform Sample Mean (ADC counts)");
  	pMeanVsChan->Draw();
         c0->cd(3);
+        pRmsVsChan->SetStats(kFALSE);
+        pRmsVsChan->SetTitle("Waveform Sample RMS vs ASIC Ch #");
+	pRmsVsChan->GetXaxis()->SetTitle("ASIC Ch #");
+	pRmsVsChan->GetYaxis()->SetTitle("Waveform Sample RMS (ADC counts)");
  	pRmsVsChan->Draw();
         c0->cd(4);
+        pFFTVsChan->SetStats(kFALSE);
+        pFFTVsChan->SetTitle("Waveform FFT vs ASIC Ch #");
+	pFFTVsChan->GetXaxis()->SetTitle("ASIC Ch #");
+	pFFTVsChan->GetYaxis()->SetTitle("Waveform FFT");
  	pFFTVsChan->Draw("COLZ");
 	c0->Update();
 

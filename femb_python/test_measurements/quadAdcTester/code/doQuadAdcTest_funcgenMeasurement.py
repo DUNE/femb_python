@@ -24,10 +24,11 @@ import json
 from femb_python.configuration import CONFIG
 from femb_python.write_data import WRITE_DATA
 from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
+from femb_python.test_instrument_interface.keysight_33600A import Keysight_33600A
 
-class QUADADC_TEST_SIMPLE(object):
+class QUADADC_TEST_FUNCGEN(object):
 
-    def __init__(self, datadir="data", outlabel="simpleMeasurement",asicnum=0,isRoomTemp=True):
+    def __init__(self, datadir="data", outlabel="funcgenMeasurement",asicnum=0,isRoomTemp=True):
         #set internal variables
         self.datadir = datadir
         self.outlabel = outlabel + str("_asic_") + str(asicnum)
@@ -42,6 +43,7 @@ class QUADADC_TEST_SIMPLE(object):
         self.femb_config = CONFIG()
         self.write_data = WRITE_DATA(datadir)
         self.cppfr = CPP_FILE_RUNNER()
+        self.funcgen = Keysight_33600A("/dev/usbtmc0",1) #hardcoded to usbtmc0
 
         #set appropriate UDP packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000 #should be larger than largest expected packet size
@@ -54,14 +56,14 @@ class QUADADC_TEST_SIMPLE(object):
         self.isRoomTemp = isRoomTemp
 
         #define json output
-        self.jsondict = {'type':'quadAdcTest_simple'}
+        self.jsondict = {'type':'quadAdcTest_funcgen'}
         #self.jsondict['version'] = '1.0'
         self.jsondict['timestamp']  = str(self.write_data.date)
         self.jsondict['asicnum']  = str(self.asicnum)
 
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
-        print("SIMPLE MEASUREMENT - CHECKING READOUT STATUS")
+        print("FUNCTION GENERATOR MEASUREMENT - CHECKING READOUT STATUS")
         self.status_check_setup = 0
 
         #make sure output directory exists (should catch permissions issues etc)
@@ -127,12 +129,12 @@ class QUADADC_TEST_SIMPLE(object):
         if not self.cppfr.exists('test_measurements/quadAdcTester/code/parseBinaryFile'):    
             print('Error running test - parseBinaryFile executable not found, run setup.sh')
             return
-        if not self.cppfr.exists('test_measurements/quadAdcTester/code/processNtuple_simpleMeasurement'):
-            print('Error running test - processNtuple_simpleMeasurement executable not found, run setup.sh')
-            return
+        #if not self.cppfr.exists('test_measurements/quadAdcTester/code/processNtuple_funcgenMeasurement'):
+        #    print('Error running test - processNtuple_funcgenMeasurement executable not found, run setup.sh')
+        #    return
 
         #Setup is ok
-        print("SIMPLE MEASUREMENT - READOUT STATUS OK" + "\n")
+        print("FUNCTION GENERATOR MEASUREMENT - READOUT STATUS OK" + "\n")
         self.status_check_setup = 1
 
     def record_data(self):
@@ -144,10 +146,22 @@ class QUADADC_TEST_SIMPLE(object):
             return
 
         #MEASUREMENT SECTION
-        print("SIMPLE MEASUREMENT - RECORDING DATA")
+        print("FUNCTION GENERATOR MEASUREMENT - RECORDING DATA")
 
         #wait to make sure HS link is back on after check_setup function
         sleep(1.)
+
+        #initialize function generator
+        xLow =0.1
+        xHigh = 1.5
+        offsetV = (xLow + xHigh)*0.5
+        amplitudeV = (xHigh - xLow)*0.5
+        freq = 4
+        #freq = 734
+        #freq = 1000
+        self.funcgen.startRamp(freq,xLow,xHigh)
+        #self.funcgen.startSin(freq,amplitudeV,offsetV)
+        sleep(1)
 
         #setup output file and record data
         self.write_data.filename = self.outlabel+".bin"
@@ -158,7 +172,7 @@ class QUADADC_TEST_SIMPLE(object):
             print( "Error running test - Could not open output data file for writing, ending test" )
 
         #record data
-        self.write_data.numpacketsrecord = 100
+        self.write_data.numpacketsrecord = 20000
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -174,7 +188,12 @@ class QUADADC_TEST_SIMPLE(object):
         #Power off ASIC
         self.femb_config.turnOffAsics()
 
-        print("SIMPLE MEASUREMENT - DONE RECORDING DATA" + "\n")
+        #turn off function generator
+        sleep(1)
+        self.funcgen.stop()
+        sleep(1)
+
+        print("FUNCTION GENERATOR MEASUREMENT - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1
 
     def do_analysis(self):
@@ -186,7 +205,7 @@ class QUADADC_TEST_SIMPLE(object):
             return
 
         #ANALYSIS SECTION
-        print("SIMPLE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
+        print("FUNCTION GENERATOR MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
         self.cppfr.run("test_measurements/quadAdcTester/code/parseBinaryFile", [self.write_data.data_file_path])
@@ -198,24 +217,24 @@ class QUADADC_TEST_SIMPLE(object):
 
         #run analysis program
         parseBinaryFile = "output_parseBinaryFile.root"
-        self.cppfr.run("test_measurements/quadAdcTester/code/processNtuple_simpleMeasurement",  [parseBinaryFile])
+        #self.cppfr.run("test_measurements/quadAdcTester/code/processNtuple_funcgenMeasurement",  [parseBinaryFile])
 
         #check for online analysis result files here
-        if os.path.isfile( "output_processNtuple_simpleMeasurement.root" ) == False:
-            print("Error running test - parsed data file not found.")
-            return
+        #if os.path.isfile( "output_processNtuple_funcgenMeasurement.root" ) == False:
+        #    print("Error running test - parsed data file not found.")
+        #    return
 
         #update output file names
         parseBinaryFile = self.outpathlabel + "-parseBinaryFile.root"
         call(["mv", "output_parseBinaryFile.root" , parseBinaryFile])
 
-        processNtupleFile = self.outpathlabel + "-processNtupleFile.root"
-        call(["mv", "output_processNtuple_simpleMeasurement.root" , processNtupleFile])
+        #processNtupleFile = self.outpathlabel + "-processNtupleFile.root"
+        #call(["mv", "output_processNtuple_funcgenMeasurement.root" , processNtupleFile])
 
-        summaryPlot = self.outpathlabel + "-summaryPlot.png"
-        call(["mv", "summaryPlot_simpleMeasurement.png" , summaryPlot])
+        #summaryPlot = self.outpathlabel + "-summaryPlot.png"
+        #call(["mv", "summaryPlot_funcgenMeasurement.png" , summaryPlot])
 
-        print("SIMPLE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
+        print("FUNCTION GENERATOR MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
 
     def archive_results(self):
@@ -230,7 +249,7 @@ class QUADADC_TEST_SIMPLE(object):
             print("Error running test - Results already archived")
             return
         #ARCHIVE SECTION
-        print("SIMPLE MEASUREMENT - ARCHIVE")
+        print("FUNCTION GENERATOR MEASUREMENT - ARCHIVE")
 
         #add summary variables to output
         self.jsondict['filedir'] = str( self.write_data.filedir )
@@ -244,18 +263,18 @@ class QUADADC_TEST_SIMPLE(object):
         with open( jsonFile , 'w') as outfile:
             json.dump( self.jsondict, outfile, indent=4)
 
-        print("SIMPLE MEASUREMENT - DONE ARCHIVING" + "\n")
+        print("FUNCTION GENERATOR MEASUREMENT - DONE ARCHIVING" + "\n")
         self.status_archive_results = 1
 
 def main():
     '''
-    Run a simple measurement.
+    Run a function generator measurement.
     '''
     print("\n\n")
-    print("SIMPLE MEASUREMENT - START")
+    print("FUNCTION GENERATOR MEASUREMENT - START")
     #default parameters
     datadir = "data"
-    asicsockets = [0,1,2]
+    asicsockets = [0]
     isRoomTemp = True
 
     #check for JSON file input
@@ -275,7 +294,7 @@ def main():
       
     #actually run the test, one per FEMB slot
     for asicnum in asicsockets:
-        quadadc_test = QUADADC_TEST_SIMPLE(datadir,"simpleMeasurement",asicnum,isRoomTemp)
+        quadadc_test = QUADADC_TEST_FUNCGEN(datadir,"funcgenMeasurement",asicnum,isRoomTemp)
         quadadc_test.check_setup()
         quadadc_test.record_data()
         quadadc_test.do_analysis()

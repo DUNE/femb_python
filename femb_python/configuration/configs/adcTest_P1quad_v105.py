@@ -54,14 +54,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_FIRMWARE_VERSION = 0xFF # 255 in decimal
         self.CONFIG_FIRMWARE_VERSION = 0x105 # this file is written for this
         
-        self.REG_LATCHLOC_data_2MHz = 0x0
+        self.REG_LATCHLOC_data_2MHz = 0x02010201
         self.REG_LATCHLOC_data_1MHz = 0x0
-        self.REG_LATCHLOC_data_2MHz_cold = 0x0
+        self.REG_LATCHLOC_data_2MHz_cold = 0x02010201
         self.REG_LATCHLOC_data_1MHz_cold = 0x0
 
-        self.REG_CLKPHASE_data_2MHz = 0x3
+        self.REG_CLKPHASE_data_2MHz = 0x4
         self.REG_CLKPHASE_data_1MHz = 0x0
-        self.REG_CLKPHASE_data_2MHz_cold = 0x3
+        self.REG_CLKPHASE_data_2MHz_cold = 0x4
         self.REG_CLKPHASE_data_1MHz_cold = 0x0
 
         self.DEFAULT_FPGA_TST_PATTERN = 0x12
@@ -85,7 +85,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.is1MHzSAMPLERATE = False #False = 1MHz, True = 2MHz
         self.COLD = False
         self.doReSync = True
-        self.syncStatus = 0
+        self.adcSyncStatus = 0
         self.maxSyncAttempts = 10
 
         #initialize FEMB UDP object
@@ -115,18 +115,19 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def initBoard(self):
         # test readback
         readback = self.femb.read_reg(1)
-        if readback is None:
+        if readback is False:
             if self.exitOnError:
                 print("FEMB_CONFIG: Error reading register 0, Exiting.")
                 sys.exit(1)
             else:
                 raise ReadRegError("Couldn't read register 0")
-                return None
+                return False
 
         ##### Start Top-level Labview stacked sequence struct 0
         firmwareVersion = self.femb.read_reg(self.REG_FIRMWARE_VERSION) & 0xFFFF
         if firmwareVersion != self.CONFIG_FIRMWARE_VERSION:
             raise FEMBConfigError("Board firmware version {} doesn't match configuration firmware version {}".format(firmwareVersion, self.CONFIG_FIRMWARE_VERSION))
+            return False
         print("Firmware Version: ",firmwareVersion)
 
         self.femb.write_reg(self.REG_UDP_FRAME_SIZE,0x1FB)
@@ -159,20 +160,22 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz)
                 self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF))
         self.writePLLs(0,0x20001,0)
-        self.setFPGADac(0,1,0,0)
 
         #specify wib mode
         self.femb.write_reg_bits( self.REG_SEL_CH,31,1,1)
 
         #turn OFF ASICs when initializing board
         self.turnOffAsics()
+        return True
 
     def initAsic(self, asicNum=None):
         if asicNum == None :
-            return None
+            print("FEMB_CONFIG: Invalid ASIC # defined, will not initialize ASIC.")
+            return False
         asicNumVal = int(asicNum)
         if (asicNumVal < 0)  or (asicNumVal >= self.NASICS ):
-            return None
+            print("FEMB_CONFIG: Invalid ASIC # defined, will not initialize ASIC.")
+            return False
 
         #turn on ASIC
         self.turnOnAsic(asicNumVal)
@@ -189,7 +192,22 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Configure ADC (and external clock inside)
         self.configAdcAsic(asicNum=asicNumVal, clockMonostable=True)
 
-        self.printSyncRegister()
+        #check SPI + SYNC status here
+        syncStatus = self.getSyncStatus()
+        if syncStatus == None :
+            print("FEMB_CONFIG: ASIC initialization failed")
+        adcSpi = syncStatus[1][asicNumVal]
+        if adcSpi == False:
+            print("FEMB_CONFIG: ADC ASIC SPI readback failed")
+            return False
+
+        #check sync here
+        #self.printSyncRegister()
+        print("SYNC STATUS (0 is good):\t",hex(self.adcSyncStatus))
+        if self.adcSyncStatus != 0 :
+            print("FEMB_CONFIG: ASIC NOT SYNCHRONIZED")
+            return False
+        return True
 
     def configAdcAsic(self,asicNum=None,enableOffsetCurrent=None,offsetCurrent=None,testInput=None,
                             freqInternal=None,sleep=None,pdsr=None,pcsr=None,
@@ -320,25 +338,19 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         regVal = self.femb.read_reg(2)
         if regVal == None:
             print("doAdcAsicConfig: Could not check SYNC status, bad")
-            return
+            return None
 
         syncVal = ((regVal >> 24) & 0xFF)
         syncVal = ((syncVal >> 2*asicNumVal) & 0x3)
-
-        print( "HERE" )
-        print( hex(regVal) )
-        print( hex(syncVal) )
-        return
-
-        self.syncStatus = syncVal
+        self.adcSyncStatus = syncVal
 
         #try again if sync not achieved, note recursion
         if syncVal != 0x0 :
             if syncAttempt >= self.maxSyncAttempts :
-                print("doAsicConfig: Could not sync ADC ASIC, giving up, sync val\t",hex(syncVal))
-                return
+                print("doAsicConfig: Could not sync ADC ASIC, giving up after " + str(self.maxSyncAttempts) + " attempts, sync val\t",hex(syncVal))
+                return None
             else:
-                self.doAdcAsicConfig(syncAttempt+1)
+                self.doAdcAsicConfig(asicNumVal,syncAttempt+1)
 
     def getSyncStatus(self):
         syncBits = None
