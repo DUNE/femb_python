@@ -92,6 +92,7 @@ class QUADADC_TEST_SIMPLE(object):
         #initialize readout to known working state
         print("Initializing board")
         self.femb_config.initBoard()
+        self.femb_config.initAsic(self.asicnum)
 
         #test firmware version goes here
         #if self.femb_config.checkFirmwareVersion() == False:
@@ -147,7 +148,7 @@ class QUADADC_TEST_SIMPLE(object):
             print( "Error running test - Could not open output data file for writing, ending test" )
 
         #record data
-        self.write_data.numpacketsrecord = 1000
+        self.write_data.numpacketsrecord = 100
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -156,12 +157,12 @@ class QUADADC_TEST_SIMPLE(object):
         subrun = 0
         asic = self.asicnum
         asicCh = 0
-        self.femb_config.selectChannel(asic,asicCh)
+        self.femb_config.selectAsic(asic)
         self.write_data.record_data(subrun, asic, asicCh)
         self.write_data.close_file()
 
         #Power off ASIC ?
-        #self.femb_config.powerOffFemb()
+        self.femb_config.turnOffAsics()
 
         print("SIMPLE MEASUREMENT - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1
@@ -264,9 +265,9 @@ def main():
     for asicnum in asicsockets:
         quadadc_test = QUADADC_TEST_SIMPLE(datadir,"simpleMeasurement",asicnum,isRoomTemp)
         quadadc_test.check_setup()
-        quadadc_test.record_data()
-        quadadc_test.do_analysis()
-        quadadc_test.archive_results()
+        #quadadc_test.record_data()
+        #quadadc_test.do_analysis()
+        #quadadc_test.archive_results()
 
 if __name__ == '__main__':
     main()

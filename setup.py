@@ -194,7 +194,7 @@ setup(
             'femb_mobile_test=femb_python.test_measurements.fembTest.guiMobile:main',
 
             #quad ADC ASIC production test
-            'quadadc_test=femb_python.test_measurements.quadAdcTester.quadAdcTest:main',
+            'quadadc_prod_test=femb_python.test_measurements.quadAdcTester.quadAdcTest:main',
             'quadadc_prod_gui=femb_python.test_measurements.quadAdcTester.gui:main',
             'quadadc_test_simple=femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_simpleMeasurement:main',
 
