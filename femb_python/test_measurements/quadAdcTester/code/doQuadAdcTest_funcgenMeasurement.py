@@ -28,7 +28,7 @@ from femb_python.test_instrument_interface.keysight_33600A import Keysight_33600
 
 class QUADADC_TEST_FUNCGEN(object):
 
-    def __init__(self, datadir="data", outlabel="funcgenMeasurement",asicnum=0,isRoomTemp=True):
+    def __init__(self, datadir="data", outlabel="funcgenMeasurement",asicnum=0,doReconfig=True,isExternalClock=True,is1MHzSAMPLERATE=True,isCold=False):
         #set internal variables
         self.datadir = datadir
         self.outlabel = outlabel + str("_asic_") + str(asicnum)
@@ -53,13 +53,25 @@ class QUADADC_TEST_FUNCGEN(object):
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
-        self.isRoomTemp = isRoomTemp
+        
+        #assign input to test and config module internal variables
+        self.doReconfig = doReconfig
+        self.isExternalClock = isExternalClock
+        self.is1MHzSAMPLERATE = is1MHzSAMPLERATE
+        self.isCold = isCold
+        self.femb_config.isExternalClock = self.isExternalClock #False = internal monostable, True = external
+        self.femb_config.is1MHzSAMPLERATE = self.is1MHzSAMPLERATE #False = 1MHz, True = 2MHz
+        self.femb_config.COLD = self.isCold
 
         #define json output
         self.jsondict = {'type':'quadAdcTest_funcgen'}
         #self.jsondict['version'] = '1.0'
         self.jsondict['timestamp']  = str(self.write_data.date)
         self.jsondict['asicnum']  = str(self.asicnum)
+        self.jsondict['doreconfig']  = str(self.doReconfig)
+        self.jsondict['extclock']  = str(self.isExternalClock)
+        self.jsondict['is1MHz']  = str(self.is1MHzSAMPLERATE)
+        self.jsondict['iscold']  = str(self.isCold)
 
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
@@ -96,15 +108,16 @@ class QUADADC_TEST_FUNCGEN(object):
 
         #initialize readout to known working state
         #initialization may identify problem that cancels test
-        print("Initializing board")
-        initStatus = self.femb_config.initBoard()
-        if initStatus == False :
-             print( "Error running test - Could not initialize board, ending test" )
-             return
-        initStatus = self.femb_config.initAsic(self.asicnum)
-        if initStatus == False :
-             print( "Error running test - Could not initialize ASIC, ending test" )
-             return
+        if self.doReconfig == True:
+            print("Initializing board")
+            initStatus = self.femb_config.initBoard()
+            if initStatus == False :
+                print( "Error running test - Could not initialize board, ending test" )
+                return
+            initStatus = self.femb_config.initAsic(self.asicnum)
+            if initStatus == False :
+                print( "Error running test - Could not initialize ASIC, ending test" )
+                return
 
         #firmware version check should be done in initialize, otherwise do here
         #if self.femb_config.checkFirmwareVersion() == False:
@@ -151,6 +164,12 @@ class QUADADC_TEST_FUNCGEN(object):
         #wait to make sure HS link is back on after check_setup function
         sleep(1.)
 
+        #enable external signal input
+        self.femb_config.setFPGADac(0,1,0,0) # write regs 4 and 5
+
+        #print config parameters just before data taking
+        self.femb_config.printParameters()
+
         #data recording parameters
         self.write_data.run = 0
         self.write_data.runtype = 0
@@ -166,7 +185,7 @@ class QUADADC_TEST_FUNCGEN(object):
         #speicify ASIC
         asic = self.asicnum
         asicCh = 0
-        #self.femb_config.selectAsic(asic) #done in initAsic
+        self.femb_config.selectAsic(asic)
 
         #initialize function generator parameters
         xLow =-0.3
@@ -214,6 +233,9 @@ class QUADADC_TEST_FUNCGEN(object):
 
         #Power off ASIC
         #self.femb_config.turnOffAsics()
+
+        #disable external signal input
+        self.femb_config.setFPGADac(0,0,0,0) # write regs 4 and 5
 
         #turn off function generator
         sleep(1)
@@ -302,7 +324,10 @@ def main():
     #default parameters
     datadir = "data"
     asicsockets = [0,1,2]
-    isRoomTemp = True
+    doReconfig=True
+    isExternalClock=True
+    is1MHzSAMPLERATE=True
+    isCold=False
 
     #check for JSON file input
     if len(sys.argv) == 2 :
@@ -311,8 +336,14 @@ def main():
             datadir = params['datadir']
         if 'asicsockets' in params:
             asicsockets = params['asicsockets']
-        if 'isRoomTemp' in params:
-            isRoomTemp = params['isRoomTemp']
+        if 'doReconfig' in params:
+            isRoomTemp = params['doReconfig']
+        if 'isExternalClock' in params:
+            isExternalClock = params['isExternalClock']
+        if 'is1MHzSAMPLERATE' in params:
+            is1MHzSAMPLERATE = params['is1MHzSAMPLERATE']
+        if 'isCold' in params:
+            is1MHzSAMPLERATE = params['isCold']
 
     #do some sanity checks on input parameters
     if len(asicsockets) > 4 :
@@ -321,7 +352,7 @@ def main():
       
     #actually run the test, one per FEMB slot
     for asicnum in asicsockets:
-        quadadc_test = QUADADC_TEST_FUNCGEN(datadir,"funcgenMeasurement",asicnum,isRoomTemp)
+        quadadc_test = QUADADC_TEST_FUNCGEN(datadir,"funcgenMeasurement",asicnum,doReconfig,isExternalClock,is1MHzSAMPLERATE,isCold)
         quadadc_test.check_setup()
         quadadc_test.record_data()
         quadadc_test.do_analysis()

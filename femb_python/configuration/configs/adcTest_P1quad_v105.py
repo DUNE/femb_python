@@ -60,7 +60,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC_data_1MHz_cold = 0x0
 
         self.REG_CLKPHASE_data_2MHz = 0x4
-        self.REG_CLKPHASE_data_1MHz = 0x0
+        self.REG_CLKPHASE_data_1MHz = 0x1
         self.REG_CLKPHASE_data_2MHz_cold = 0x4
         self.REG_CLKPHASE_data_1MHz_cold = 0x0
 
@@ -82,6 +82,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.F2DEFAULT = 0
         self.CLKDEFAULT = "fifo"
 
+        self.isExternalClock = True #False = internal monostable, True = external
         self.is1MHzSAMPLERATE = False #False = 1MHz, True = 2MHz
         self.COLD = False
         self.doReSync = True
@@ -93,6 +94,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #list of adc configuration register mappings
         self.adc_regs = ADC_ASIC_REG_MAPPING()
+
+    def printParameters(self):
+        print("External ADC Clocks    \t",self.isExternalClock)
+        print("Cryogenic temperature  \t",self.COLD)
+        print("MAX SYNC ATTEMPTS      \t",self.maxSyncAttempts)
+        print("Do resync              \t",self.doReSync)
+        print("1MHz Sampling          \t",self.is1MHzSAMPLERATE)
+        print("SYNC STATUS            \t",self.adcSyncStatus)
 
     def resetBoard(self):
         """
@@ -159,7 +168,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             else:
                 self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz)
                 self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF))
-        self.writePLLs(0,0x20001,0)
+
+        #External timing config
+        #self.writePLLs(0,0x20001,0)
+        #writePLL(0,0x60017,0x5000B,0x801E0003)
+        #writePLL(1,0x10000E,0x50009,0x801C0002)
+        #writePLL(2,0x10000E,0x5000D,0x80180005)
+        self.setExtClockRegs()
 
         #specify wib mode
         self.femb.write_reg_bits( self.REG_SEL_CH,31,1,1)
@@ -171,7 +186,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #self.turnOffAsics()
 
         #test only, leave EXT TP mode ON
-        self.setFPGADac(0,1,0,0) # write regs 4 and 5
+        #self.setFPGADac(0,1,0,0) # write regs 4 and 5
         return True
 
     def initAsic(self, asicNum=None):
@@ -196,7 +211,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.selectAsic(asicNumVal)
 
         #Configure ADC (and external clock inside)
-        self.configAdcAsic(asicNum=asicNumVal, clockMonostable=True)
+        if self.isExternalClock == True :
+           self.configAdcAsic(asicNum=asicNumVal, clockExternal=True)
+        else :
+           self.configAdcAsic(asicNum=asicNumVal, clockMonostable=True)
 
         #check SPI + SYNC status here
         syncStatus = self.getSyncStatus()
@@ -293,10 +311,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 f0 = 1
             else:
                 f0 = 0
-        if clockExternal:
-            self.extClock(enable=True)
-        else:
-            self.extClock(enable=False)
+        #moved external clock reg config to init function for now
+        #if clockExternal:
+        #    self.extClock(enable=True)
+        #else:
+        #    self.extClock(enable=False)
 
         #determine register values for requested config
         self.adc_regs.set_chip(en_gr=enableOffsetCurrent,d=offsetCurrent,tstin=testInput,frqc=freqInternal,slp=sleep,pdsr=pdsr,pcsr=pcsr,clk0=clk0,clk1=clk1,f0=f0,f1=f1,f2=f2,f3=f3,f4=f4,f5=f5,slsb=sLSB)
@@ -411,12 +430,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print( "femb_config_femb : selectChan - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
             return
 
-        self.femb.write_reg( self.REG_STOP_ADC, 1)
-        time.sleep(0.05)
+        #self.femb.write_reg( self.REG_STOP_ADC, 1)
+        #time.sleep(0.05)
 
         # in this firmware asic = 0 disables readout, so asics are 1,2,3,4
         self.femb.write_reg_bits( self.REG_SEL_CH , 0, 0x7, asicVal+1 )
-        self.femb.write_reg( self.REG_STOP_ADC, 0)
+        #self.femb.write_reg( self.REG_STOP_ADC, 0)
 
     def extClock(self, enable=False, 
                 period=500, mult=1, 
@@ -494,6 +513,53 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 name = tup[0]
                 val = tup[1]
                 writeRegAndPrint(name,regBase+iReg,val)
+
+    def setExtClockRegs(self):
+        #Coarse Control
+        self.femb.write_reg(10, 0x03030103)
+       
+        #For ADC1
+        self.femb.write_reg(11, 0x00090001)
+        self.femb.write_reg(12, 0x0004005E)
+        self.femb.write_reg(13, 0x0035002C)
+        self.femb.write_reg(14, 0x0003005E)
+        self.femb.write_reg(15, 0x00250008)
+        self.femb.write_reg(16, 0x0003005E)
+       
+        #For ADC2
+        self.femb.write_reg(20, 0x00090001)
+        self.femb.write_reg(21, 0x0003005F)
+        self.femb.write_reg(22, 0x0035002D)
+        self.femb.write_reg(23, 0x0003005F)
+        self.femb.write_reg(24, 0x00250008)
+        self.femb.write_reg(25, 0x0003005E)
+       
+        #For ADC3
+        self.femb.write_reg(29, 0x00090001)
+        self.femb.write_reg(30, 0x0003005F)
+        self.femb.write_reg(31, 0x0035002D)
+        self.femb.write_reg(32, 0x0003005F)
+        self.femb.write_reg(33, 0x00250008)
+        self.femb.write_reg(34, 0x0003005E)
+       
+        #Fine Control
+        #For ADC1
+        self.femb.write_reg(17, 0x00060017)
+        self.femb.write_reg(18, 0x0005000B)
+        self.femb.write_reg(19, 0x001E0003)
+        self.femb.write_reg(19, 0x801E0003)
+       
+        #For ADC2
+        self.femb.write_reg(26, 0x0010000E)
+        self.femb.write_reg(27, 0x00050009)
+        self.femb.write_reg(28, 0x001C0002)
+        self.femb.write_reg(28, 0x801C0002)
+        time.sleep(0.1)
+        #For ADC3
+        self.femb.write_reg(35, 0x0010000E)
+        self.femb.write_reg(36, 0x0005000D)
+        self.femb.write_reg(37, 0x00180004)
+        self.femb.write_reg(37, 0x80180004)
 
     def turnOffAsics(self):
         self.femb.write_reg_bits( self.REG_PWR_CTRL , 0, 0xF, 0x0 )

@@ -46,6 +46,9 @@ def main():
 
     #initialize board
     femb_config = CONFIG()
+    #femb_config.isExternalClock = True
+    #femb_config.is1MHzSAMPLERATE = False #COOL
+
     #initialize readout to known working state
     print("Initializing board")
     initStatus = femb_config.initBoard()
@@ -53,15 +56,19 @@ def main():
         #setup in bad state
         completeFailure()
         return
+    asicStatus = [1,1,1]
     initStatus = femb_config.initAsic(0)
     if initStatus == False :
         print( "Could not initialize ASIC ", 0 )
+        asicStatus[0] = 0
     initStatus = femb_config.initAsic(1)
     if initStatus == False :
         print( "Could not initialize ASIC ", 1 )
+        asicStatus[1] = 0
     initStatus = femb_config.initAsic(2)
     if initStatus == False :
         print( "Could not initialize ASIC ", 2 )
+        asicStatus[2] = 0
 
     #use external pulser
     femb_config.setFPGADac(0,1,0,0) # write regs 4 and 5
@@ -79,6 +86,7 @@ def main():
 
     #setup is in good state
     totalVictory()
+    print("ASIC STATUS","\t",asicStatus)
 
 if __name__ == '__main__':
     main()

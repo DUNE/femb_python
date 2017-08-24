@@ -142,9 +142,9 @@ class GUI_WINDOW(Frame):
         variables = [operator,self.ct_bool,teststandid,boardid,asicsockets_filled, asicids_filled]
 
         if (self.ct_bool.get() == "1"):
-            isRoomTemp = False
+            isCold = True
         else:
-            isRoomTemp = True
+            isCold = False
         
         for var in variables:
             if var == "" :
@@ -159,7 +159,7 @@ class GUI_WINDOW(Frame):
             "teststandid": teststandid,
             "boardid": boardid,
             "asic_ids": asicids_filled,
-            "isRoomTemp": isRoomTemp,
+            "isCold": isCold,
             "asicsockets": asicsockets_filled,
         }
         print(inputOptions)
