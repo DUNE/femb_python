@@ -54,12 +54,16 @@ def main(**params):
     #Explicitly define list of production tests to perform
     tests = []
     
-    #Test 1 - Simple dead or alive test
+    #configurations to test: 1+2MHz, internal vs external clocks
+
+    #Test 0 - no reconfig long ramp test - configuration happens BEFORE cooldown
+
+    #Test 1 - function generator test
     params_test_1 = dict(params)
     params_test_1.update( executable = "quadadc_test_simple", argstr="{paramfile}", datasubdir = "quadAdcTest_simple", outlabel = "quadAdcTest_simple",)
     tests.append( Test(**params_test_1) )
 
-    ##add more tests as needed
+    #Test 2 - ADC ASIC input pin test with FE-ASIC
 
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)
