@@ -54,9 +54,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_FIRMWARE_VERSION = 0xFF # 255 in decimal
         self.CONFIG_FIRMWARE_VERSION = 0x105 # this file is written for this
         
-        self.REG_LATCHLOC_data_2MHz = 0x02010201
+        self.REG_LATCHLOC_data_2MHz = 0x02010202
         self.REG_LATCHLOC_data_1MHz = 0x0
-        self.REG_LATCHLOC_data_2MHz_cold = 0x02010201
+        self.REG_LATCHLOC_data_2MHz_cold = 0x02010202
         self.REG_LATCHLOC_data_1MHz_cold = 0x0
 
         self.REG_CLKPHASE_data_2MHz = 0x4
@@ -164,8 +164,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #specify wib mode
         self.femb.write_reg_bits( self.REG_SEL_CH,31,1,1)
 
+        #turn ON ASICs when initializing board
+        self.turnOnAsics()
+
         #turn OFF ASICs when initializing board
-        self.turnOffAsics()
+        #self.turnOffAsics()
+
+        #test only, leave EXT TP mode ON
+        self.setFPGADac(0,1,0,0) # write regs 4 and 5
         return True
 
     def initAsic(self, asicNum=None):
@@ -178,7 +184,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             return False
 
         #turn on ASIC
-        self.turnOnAsic(asicNumVal)
+        #self.turnOnAsic(asicNumVal)
 
         #Reset ASICs
         self.femb.write_reg( self.REG_ASIC_SPIPROG_RESET, 0x0) # zero out reg
@@ -501,7 +507,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def turnOnAsics(self):
         print( "turnOnAsics 0-{}".format(int(self.NASICS -1)))
         for iAsic in range(0,self.NASICS,1):
-            self.turnOnAsic(self,iAsic)
+            self.turnOnAsic(iAsic)
 
     def setFPGADac(self,amp,mode,freq,delay):
         """

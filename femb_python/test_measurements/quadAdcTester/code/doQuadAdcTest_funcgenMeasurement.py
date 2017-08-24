@@ -152,8 +152,8 @@ class QUADADC_TEST_FUNCGEN(object):
         sleep(1.)
 
         #initialize function generator
-        xLow =0.1
-        xHigh = 1.5
+        xLow =-0.3
+        xHigh = 1.7
         offsetV = (xLow + xHigh)*0.5
         amplitudeV = (xHigh - xLow)*0.5
         freq = 4
@@ -172,7 +172,7 @@ class QUADADC_TEST_FUNCGEN(object):
             print( "Error running test - Could not open output data file for writing, ending test" )
 
         #record data
-        self.write_data.numpacketsrecord = 1000
+        self.write_data.numpacketsrecord = 7000
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -186,7 +186,7 @@ class QUADADC_TEST_FUNCGEN(object):
         self.write_data.close_file()
 
         #Power off ASIC
-        self.femb_config.turnOffAsics()
+        #self.femb_config.turnOffAsics()
 
         #turn off function generator
         sleep(1)
@@ -274,7 +274,7 @@ def main():
     print("FUNCTION GENERATOR MEASUREMENT - START")
     #default parameters
     datadir = "data"
-    asicsockets = [0]
+    asicsockets = [0,1,2]
     isRoomTemp = True
 
     #check for JSON file input

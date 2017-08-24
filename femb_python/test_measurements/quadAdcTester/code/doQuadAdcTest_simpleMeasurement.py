@@ -158,7 +158,7 @@ class QUADADC_TEST_SIMPLE(object):
             print( "Error running test - Could not open output data file for writing, ending test" )
 
         #record data
-        self.write_data.numpacketsrecord = 100
+        self.write_data.numpacketsrecord = 1000
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -172,7 +172,7 @@ class QUADADC_TEST_SIMPLE(object):
         self.write_data.close_file()
 
         #Power off ASIC
-        self.femb_config.turnOffAsics()
+        #self.femb_config.turnOffAsics()
 
         print("SIMPLE MEASUREMENT - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1
