@@ -158,7 +158,7 @@ class QUADADC_TEST_SIMPLE(object):
             print( "Error running test - Could not open output data file for writing, ending test" )
 
         #record data
-        self.write_data.numpacketsrecord = 1000
+        self.write_data.numpacketsrecord = 20000
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0

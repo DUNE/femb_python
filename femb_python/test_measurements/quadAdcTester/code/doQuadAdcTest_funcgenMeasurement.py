@@ -151,38 +151,65 @@ class QUADADC_TEST_FUNCGEN(object):
         #wait to make sure HS link is back on after check_setup function
         sleep(1.)
 
-        #initialize function generator
-        xLow =-0.3
-        xHigh = 1.7
-        offsetV = (xLow + xHigh)*0.5
-        amplitudeV = (xHigh - xLow)*0.5
-        freq = 4
-        #freq = 734
-        #freq = 1000
-        self.funcgen.startRamp(freq,xLow,xHigh)
-        #self.funcgen.startSin(freq,amplitudeV,offsetV)
-        sleep(1)
-
-        #setup output file and record data
-        self.write_data.filename = self.outlabel+".bin"
-        print("Recording " + self.write_data.filename )
-
-        isOpen = self.write_data.open_file()
-        if isOpen == 0 :
-            print( "Error running test - Could not open output data file for writing, ending test" )
-
-        #record data
-        self.write_data.numpacketsrecord = 7000
+        #data recording parameters
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
 
-        #loop over each ASIC, record some data
-        subrun = 0
+        #setup output file and record data
+        self.write_data.filename = self.outlabel+".bin"
+        print("Recording " + self.write_data.filename )
+        isOpen = self.write_data.open_file()
+        if isOpen == 0 :
+            print( "Error running test - Could not open output data file for writing, ending test" )
+
+        #speicify ASIC
         asic = self.asicnum
         asicCh = 0
-        self.femb_config.selectAsic(asic)
+        #self.femb_config.selectAsic(asic) #done in initAsic
+
+        #initialize function generator parameters
+        xLow =-0.3
+        xHigh = 1.7
+        offsetV = (xLow + xHigh)*0.5
+        amplitudeV = (xHigh - xLow)*0.5
+        settlingTime = 0.1
+
+        #take a bunch of function generator data in sequence and stick it all in the same output file
+
+        #long ramp
+        subrun = 0
+        freq = 4
+        self.funcgen.startRamp(freq,xLow,xHigh)
+        sleep(settlingTime)
+        self.write_data.numpacketsrecord = 20000 #long
         self.write_data.record_data(subrun, asic, asicCh)
+        
+        #short ramp
+        subrun = subrun + 1
+        freq = 734
+        self.funcgen.startRamp(freq,xLow,xHigh)
+        sleep(settlingTime)
+        self.write_data.numpacketsrecord = 1600
+        self.write_data.record_data(subrun, asic, asicCh)
+
+        #DC [0.2,0.5,1.,1.6]
+        for dc in [0.2,0.5,1.,1.6]:
+            subrun = subrun + 1
+            self.funcgen.startDC(dc)
+            sleep(settlingTime)
+            self.write_data.numpacketsrecord = 160
+            self.write_data.record_data(subrun, asic, asicCh)
+
+        #SINE [6.2365e4,4.83587e5,9.515125e5]
+        for freq in [6.2365e4,4.83587e5,9.515125e5]:
+            subrun = subrun + 1
+            self.funcgen.startSin(freq,amplitudeV,offsetV)
+            sleep(settlingTime)
+            self.write_data.numpacketsrecord = 1600
+            self.write_data.record_data(subrun, asic, asicCh)
+
+        #done taking data
         self.write_data.close_file()
 
         #Power off ASIC

@@ -52,17 +52,17 @@ class Keysight_33600A(object):
         """
 
         #print("Writing command '{}'".format(command))
-        if os.path.isfile( self.filename ) == False:
-            print("Error while writing to function generator USB-TMC. Device doesn't exist.")
-            return
-
         try:
             with open(self.filename,'w') as wfile:
                 wfile.write(command)
                 time.sleep(0.1)
+        except PermissionError as e:
+            print("Error while writing to function generator USB-TMC, reraising...")
         except BrokenPipeError as e:
             print("Error while writing to function generator USB-TMC, reraising...")
             raise e
+        else:
+            return
 
     def stop(self):
         """

@@ -133,7 +133,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(self.REG_UDP_FRAME_SIZE,0x1FB)
         time.sleep(0.05)
         self.setFPGADac(0,0,0,0) # write regs 4 and 5
-        self.femb.write_reg(1,0) # pwr ctrl
+        #self.femb.write_reg(1,0) # pwr ctrl --disabled BK
         self.femb.write_reg(3, (5 << 8 )) # chn sel
         self.femb.write_reg(6,self.DEFAULT_FPGA_TST_PATTERN)  #tst pattern
         self.femb.write_reg(7,13)  #adc clk
@@ -310,7 +310,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #acutally program the ADC
         self.doAdcAsicConfig(asicNumVal)
 
-    #function programs ADC SPI and tries to ensure sync is good, note uses recursion
+    #function programs ADC SPI and does multiple tests to ensure sync is good, note uses recursion
     def doAdcAsicConfig(self,asicNum=None, syncAttempt=0):
         if asicNum == None :
             return None
@@ -318,7 +318,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if (asicNumVal < 0)  or (asicNumVal >= self.NASICS ):
             return None
 
-        #write ADC ASIC SPI
+        #write ADC ASIC SPI, do on intial sync attempt ONLY
         if syncAttempt == 0:
             print("Program ADC ASIC SPI")
             #self.REG_ASIC_SPIPROG_RESET = 2 # bit 0 FE SPI, 1 ADC SPI, 4 FE ASIC RESET, 5 ADC ASIC RESET, 6 SOFT ADC RESET & SPI readback check
@@ -337,21 +337,28 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x40) # soft reset
         self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
 
-        #check the sync
+        #optionally check the ADC sync
         if self.doReSync == False:
             return
 
-        regVal = self.femb.read_reg(2)
-        if regVal == None:
-            print("doAdcAsicConfig: Could not check SYNC status, bad")
-            return None
+        #check ADC sync bits several times to ensure sync is stable
+        isSync = 0
+        syncVal = 0
+        for syncTest in range(0,10,1):
+            regVal = self.femb.read_reg(2)
+            if regVal == None:
+                print("doAdcAsicConfig: Could not check SYNC status, bad")
+                return None
 
-        syncVal = ((regVal >> 24) & 0xFF)
-        syncVal = ((syncVal >> 2*asicNumVal) & 0x3)
-        self.adcSyncStatus = syncVal
+            syncVal = ((regVal >> 24) & 0xFF)
+            syncVal = ((syncVal >> 2*asicNumVal) & 0x3)
+            if syncVal != 0x0 :
+                isSync = 1
+                break
+        self.adcSyncStatus = isSync
 
-        #try again if sync not achieved, note recursion
-        if syncVal != 0x0 :
+        #try again if sync not achieved, note recursion, stops after some maximum number of attempts
+        if isSync == 1 :
             if syncAttempt >= self.maxSyncAttempts :
                 print("doAsicConfig: Could not sync ADC ASIC, giving up after " + str(self.maxSyncAttempts) + " attempts, sync val\t",hex(syncVal))
                 return None
@@ -499,8 +506,19 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
             print( "femb_config_femb : turnOnAsics - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
-            return
+            return None
 
+        #check if ASIC is already on in attempt to save time
+        regVal = self.femb.read_reg(self.REG_PWR_CTRL)
+        if regVal == None :
+            return None
+        isAsicOn = int(regVal)
+        isAsicOn = ((isAsicOn >> asicVal) & 0x1)
+        #print("isAsicOn ", hex(regVal), isAsicOn)
+        if isAsicOn == 0x1 :
+           return
+
+        print("Turning on ASIC ",asicVal)
         self.femb.write_reg_bits( self.REG_PWR_CTRL , asicVal, 0x1, 0x1 )
         time.sleep(2) #pause after turn on
 
