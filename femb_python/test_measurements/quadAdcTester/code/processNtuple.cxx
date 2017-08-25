@@ -83,7 +83,7 @@ Analyze::Analyze(std::string inputFileName){
 	else
 		outputFileName = "output_processNtuple.root";
 
-  	gOut = new TFile(outputFileName.c_str() , "RECREATE");
+  	//gOut = new TFile(outputFileName.c_str() , "RECREATE");
 
   	//initialize canvas
   	c0 = new TCanvas("c0", "c0",1400,800);
@@ -131,8 +131,8 @@ void Analyze::doAnalysis(){
     		analyzeChannel();
   	}//entries
 
-    	gOut->Cd("");
-  	gOut->Close();
+    	//gOut->Cd("");
+  	//gOut->Close();
 }
 
 void Analyze::analyzeChannel(){
@@ -191,7 +191,7 @@ void Analyze::analyzeChannel(){
 	}
 
 	//draw waveform if wanted
-	if( 1 ){
+	if( chan == 0 ){
 		gCh->Set(0);
 		for( int s = 0 ; s < wf->size() ; s++ )
 			gCh->SetPoint(gCh->GetN() , gCh->GetN() , wf->at(s) );
@@ -201,7 +201,7 @@ void Analyze::analyzeChannel(){
 		gCh->SetTitle( title.c_str() );
 		gCh->GetXaxis()->SetTitle("Sample Number");
 		gCh->GetYaxis()->SetTitle("Sample Value (ADC counts)");
-		//gCh->GetXaxis()->SetRangeUser(0,128);
+		//gCh->GetXaxis()->SetRangeUser(0,2000);
 		//gCh->GetXaxis()->SetRangeUser(0,num);
 		//gCh->GetYaxis()->SetRangeUser(500,1000);
 		gCh->Draw("ALP");
@@ -215,8 +215,8 @@ void Analyze::analyzeChannel(){
 		hFftData->Draw();
 		*/
 		c0->Update();
-		//char ct;
-		//std::cin >> ct;
+		char ct;
+		std::cin >> ct;
 		usleep(1000);
 	}
 

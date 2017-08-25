@@ -44,7 +44,7 @@ def main(**params):
     '''
     print( "QUAD ADC PRODUCTION TEST - START")
 
-    use_sumatra = False 
+    use_sumatra = True
     test_category = "example"      # pick something
     now = time.time()
     params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
@@ -53,13 +53,56 @@ def main(**params):
 
     #Explicitly define list of production tests to perform
     tests = []
-    
-    #Test 1 - Simple dead or alive test
-    params_test_1 = dict(params)
-    params_test_1.update( executable = "quadadc_test_simple", argstr="{paramfile}", datasubdir = "quadAdcTest_simple", outlabel = "quadAdcTest_simple",)
-    tests.append( Test(**params_test_1) )
 
-    ##add more tests as needed
+    #Test 0 - no reconfig long ramp test - configuration happens BEFORE cooldown
+    params_test_0 = dict(params)
+    params_test_0.update( executable = "quadadc_test_funcgen", argstr="{paramfile}", 
+                          datasubdir = "quadAdcTest_noreconfig", outlabel = "quadAdcTest_noreconfig",doReconfig=False)
+    tests.append( Test(**params_test_0) )
+
+    #shut down setup before starting normal testing
+    params_test_init_shutdown = dict(params)
+    params_test_init_shutdown.update( executable = "quadadc_prod_shutdownSetup", argstr="{paramfile}", 
+                          datasubdir = "quadAdcTest_init_shutdown", outlabel = "quadAdcTest_init_shutdown")
+    tests.append( Test(**params_test_0) )
+
+    #Take test data using internal vs exteranl ADC clock signals, 1MHz vs 2MHz
+    #External + 2MHz
+
+    params_test_funcgen_extclk_2MHz = dict(params)
+    params_test_funcgen_extclk_2MHz.update( executable = "quadadc_test_funcgen", argstr="{paramfile}", 
+                                            datasubdir = "quadAdcTest_funcgen_extclk_2MHz", outlabel = "quadAdcTest_funcgen_extclk_2MHz",
+                                            isExternalClock = True, is1MHzSAMPLERATE=False)
+    tests.append( Test(**params_test_funcgen_extclk_2MHz) )
+
+    #Internal + 2MHz
+    params_test_funcgen_intclk_2MHz = dict(params)
+    params_test_funcgen_intclk_2MHz.update( executable = "quadadc_test_funcgen", argstr="{paramfile}", 
+                                            datasubdir = "quadAdcTest_funcgen_intclk_2MHz", outlabel = "quadAdcTest_funcgen_intclk_2MHz",
+                                            isExternalClock = False, is1MHzSAMPLERATE=False)
+    tests.append( Test(**params_test_funcgen_intclk_2MHz) )
+
+    #External + 1MHz
+    params_test_funcgen_extclk_1MHz = dict(params)
+    params_test_funcgen_extclk_1MHz.update( executable = "quadadc_test_funcgen", argstr="{paramfile}", 
+                                            datasubdir = "quadAdcTest_funcgen_extclk_1MHz", outlabel = "quadAdcTest_funcgen_extclk_1MHz",
+                                            isExternalClock = True, is1MHzSAMPLERATE=True)
+    tests.append( Test(**params_test_funcgen_extclk_1MHz) )
+
+    #Internal + 1MHz
+    params_test_funcgen_intclk_1MHz = dict(params)
+    params_test_funcgen_intclk_1MHz.update( executable = "quadadc_test_funcgen", argstr="{paramfile}", 
+                                            datasubdir = "quadAdcTest_funcgen_intclk_1MHz", outlabel = "quadAdcTest_funcgen_intclk_1MHz",
+                                            isExternalClock = False, is1MHzSAMPLERATE=True)
+    tests.append( Test(**params_test_funcgen_intclk_1MHz) )
+
+    #ADC input pin functionality test here
+
+    #final shut down
+    params_test_final_shutdown = dict(params)
+    params_test_final_shutdown.update( executable = "quadadc_prod_shutdownSetup", argstr="{paramfile}", 
+                          datasubdir = "quadAdcTest_final_shutdown", outlabel = "quadAdcTest_final_shutdown")
+    tests.append( Test(**params_test_0) )
 
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)

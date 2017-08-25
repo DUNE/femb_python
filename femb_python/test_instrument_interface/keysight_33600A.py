@@ -50,14 +50,19 @@ class Keysight_33600A(object):
         """
         Writes a command string to the function generator
         """
+
         #print("Writing command '{}'".format(command))
         try:
             with open(self.filename,'w') as wfile:
                 wfile.write(command)
                 time.sleep(0.1)
+        except PermissionError as e:
+            print("Error while writing to function generator USB-TMC, reraising...")
         except BrokenPipeError as e:
             print("Error while writing to function generator USB-TMC, reraising...")
             raise e
+        else:
+            return
 
     def stop(self):
         """
