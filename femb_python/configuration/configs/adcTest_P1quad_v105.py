@@ -123,7 +123,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def initBoard(self):
         # test readback
-        readback = self.femb.read_reg(1)
+        readback = self.femb.read_reg(self.REG_FIRMWARE_VERSION)
+        if readback is None:
+           print("FEMB_CONFIG: Error reading register 0, Exiting.")
+           return False
         if readback is False:
             if self.exitOnError:
                 print("FEMB_CONFIG: Error reading register 0, Exiting.")
@@ -134,6 +137,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         ##### Start Top-level Labview stacked sequence struct 0
         firmwareVersion = self.femb.read_reg(self.REG_FIRMWARE_VERSION) & 0xFFFF
+        if firmwareVersion == None:
+            print("FEMB_CONFIG: Error reading register 0, Exiting.")
+            return False
         if firmwareVersion != self.CONFIG_FIRMWARE_VERSION:
             raise FEMBConfigError("Board firmware version {} doesn't match configuration firmware version {}".format(firmwareVersion, self.CONFIG_FIRMWARE_VERSION))
             return False
@@ -220,6 +226,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         syncStatus = self.getSyncStatus()
         if syncStatus == None :
             print("FEMB_CONFIG: ASIC initialization failed")
+            return False
         adcSpi = syncStatus[1][asicNumVal]
         if adcSpi == False:
             print("FEMB_CONFIG: ADC ASIC SPI readback failed")

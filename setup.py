@@ -199,6 +199,7 @@ setup(
             'quadadc_test_simple=femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_simpleMeasurement:main',
             'quadadc_test_funcgen=femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_funcgenMeasurement:main',
             'quadadc_prod_initSetup=femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_initializeSetup:main',
+            'quadadc_prod_shutdownSetup=femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_shutdownSetup:main',
             'quadadc_trace_window=femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_allchan_window:main',
 
             # what the shifters run:

@@ -60,6 +60,12 @@ def main(**params):
                           datasubdir = "quadAdcTest_noreconfig", outlabel = "quadAdcTest_noreconfig",doReconfig=False)
     tests.append( Test(**params_test_0) )
 
+    #shut down setup before starting normal testing
+    params_test_init_shutdown = dict(params)
+    params_test_init_shutdown.update( executable = "quadadc_prod_shutdownSetup", argstr="{paramfile}", 
+                          datasubdir = "quadAdcTest_init_shutdown", outlabel = "quadAdcTest_init_shutdown")
+    tests.append( Test(**params_test_0) )
+
     #Take test data using internal vs exteranl ADC clock signals, 1MHz vs 2MHz
     #External + 2MHz
 
@@ -91,6 +97,12 @@ def main(**params):
     tests.append( Test(**params_test_funcgen_intclk_1MHz) )
 
     #ADC input pin functionality test here
+
+    #final shut down
+    params_test_final_shutdown = dict(params)
+    params_test_final_shutdown.update( executable = "quadadc_prod_shutdownSetup", argstr="{paramfile}", 
+                          datasubdir = "quadAdcTest_final_shutdown", outlabel = "quadAdcTest_final_shutdown")
+    tests.append( Test(**params_test_0) )
 
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)
