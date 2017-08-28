@@ -63,17 +63,17 @@ class GUI_WINDOW(Frame):
         self.asicsocket0_button = Checkbutton(self,text="ADC Socket 0", variable=self.asicsocket0)
         self.asicsocket1_button = Checkbutton(self,text="ADC Socket 1", variable=self.asicsocket1)
         self.asicsocket2_button = Checkbutton(self,text="ADC Socket 2", variable=self.asicsocket2)
-        self.asicsocket3_button = Checkbutton(self,text="ADC Socket 3", variable=self.asicsocket3)
+        #self.asicsocket3_button = Checkbutton(self,text="ADC Socket 3", variable=self.asicsocket3)
         self.asicsocket0_button.grid(sticky=W,row=3,column=columnbase+0)
         self.asicsocket1_button.grid(sticky=W,row=4,column=columnbase+0)
         self.asicsocket2_button.grid(sticky=W,row=5,column=columnbase+0)
-        self.asicsocket3_button.grid(sticky=W,row=6,column=columnbase+0)
+        #self.asicsocket3_button.grid(sticky=W,row=6,column=columnbase+0)
 
         self.ct_bool = StringVar()
-        self.temp_radio1 = Radiobutton(self, text="Room Temperature", variable=self.ct_bool, value=0)
-        self.temp_radio2 = Radiobutton(self, text="Cryo Temperature", variable=self.ct_bool, value=1)
-        self.temp_radio1.grid(sticky=W,row=3,column=columnbase+1)
-        self.temp_radio2.grid(sticky=W,row=4,column=columnbase+1)
+        #self.temp_radio1 = Radiobutton(self, text="Room Temperature", variable=self.ct_bool, value=0)
+        #self.temp_radio2 = Radiobutton(self, text="Cryo Temperature", variable=self.ct_bool, value=1)
+        #self.temp_radio1.grid(sticky=W,row=3,column=columnbase+1)
+        #self.temp_radio2.grid(sticky=W,row=4,column=columnbase+1)
 
         # Adding electronics ID and read entry box
 
@@ -113,11 +113,11 @@ class GUI_WINDOW(Frame):
         self.asicid2_entry.grid(sticky=W,row=11,column=columnbase+1)
 
         #Socket 3
-        self.asicid3_label = Label(self,text="ASIC 3 ID:",width=15)
-        self.asicid3_label.grid(sticky=W,row=12,column=columnbase+0)
+        #self.asicid3_label = Label(self,text="ASIC 3 ID:",width=15)
+        #self.asicid3_label.grid(sticky=W,row=12,column=columnbase+0)
 
-        self.asicid3_entry = Entry(self,width=15)
-        self.asicid3_entry.grid(sticky=W,row=12,column=columnbase+1)
+        #self.asicid3_entry = Entry(self,width=15)
+        #self.asicid3_entry.grid(sticky=W,row=12,column=columnbase+1)
         
         #Setup teststand button
         self.setup_button = Button(self, text="Power-up & Setup Board", command=self.setup_teststand,width=25)
@@ -143,18 +143,21 @@ class GUI_WINDOW(Frame):
         operator = self.operator_entry.get()
         teststandid = self.teststandid_entry.get()
         boardid = self.boardid_entry.get()
-        asicids = [self.asicid0_entry.get(), self.asicid1_entry.get(), self.asicid2_entry.get(), self.asicid3_entry.get()]
-        asicsockets_all = [self.asicsocket0.get(), self.asicsocket1.get(), self.asicsocket2.get(), self.asicsocket3.get()]
+        #asicids = [self.asicid0_entry.get(), self.asicid1_entry.get(), self.asicid2_entry.get(), self.asicid3_entry.get()]
+        #asicsockets_all = [self.asicsocket0.get(), self.asicsocket1.get(), self.asicsocket2.get(), self.asicsocket3.get()]
+        asicids = [self.asicid0_entry.get(), self.asicid1_entry.get(), self.asicid2_entry.get()]
+        asicsockets_all = [self.asicsocket0.get(), self.asicsocket1.get(), self.asicsocket2.get()]
 
         asicsockets_filled = [x for x in range(len(asicsockets_all)) if asicsockets_all[x]==1]
         asicids_filled = [x for x in asicids if asicids.index(x) in asicsockets_filled]
 
         variables = [operator,self.ct_bool,teststandid,boardid,asicsockets_filled, asicids_filled]
 
-        if (self.ct_bool.get() == "1"):
-            isCold = True
-        else:
-            isCold = False
+        #if (self.ct_bool.get() == "1"):
+        #    isCold = True
+        #else:
+        #    isCold = False
+        isCold = True
         
         for var in variables:
             if var == "" :
@@ -203,12 +206,12 @@ class GUI_WINDOW(Frame):
         self.asicid1_entry["state"] = "normal"
         self.asicid2_label["state"] = "normal"
         self.asicid2_entry["state"] = "normal"
-        self.asicid3_label["state"] = "normal"
-        self.asicid3_entry["state"] = "normal"
+        #self.asicid3_label["state"] = "normal"
+        #self.asicid3_entry["state"] = "normal"
         self.asicid0_entry.delete(0,END)
         self.asicid1_entry.delete(0,END)
         self.asicid2_entry.delete(0,END)
-        self.asicid3_entry.delete(0,END)
+        #self.asicid3_entry.delete(0,END)
 
         self.reset_button["bg"] ="#FF9900"
         self.reset_button["activebackground"] ="#FFCF87"

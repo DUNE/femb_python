@@ -46,6 +46,7 @@ def main():
 
     #initialize board
     femb_config = CONFIG()
+    femb_config.COLD = False
     #femb_config.isExternalClock = True
     #femb_config.is1MHzSAMPLERATE = False #COOL
 

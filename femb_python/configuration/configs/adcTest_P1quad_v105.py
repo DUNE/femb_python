@@ -61,7 +61,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.REG_CLKPHASE_data_2MHz = 0x4
         self.REG_CLKPHASE_data_1MHz = 0x1
-        self.REG_CLKPHASE_data_2MHz_cold = 0x4
+        self.REG_CLKPHASE_data_2MHz_cold = 0x0 #double check socket 1 value
         self.REG_CLKPHASE_data_1MHz_cold = 0x0
 
         self.DEFAULT_FPGA_TST_PATTERN = 0x12
@@ -88,6 +88,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.doReSync = True
         self.adcSyncStatus = 0
         self.maxSyncAttempts = 10
+        self.numSyncTests = 25
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
@@ -370,7 +371,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #check ADC sync bits several times to ensure sync is stable
         isSync = 0
         syncVal = 0
-        for syncTest in range(0,10,1):
+        for syncTest in range(0,self.numSyncTests,1):
             regVal = self.femb.read_reg(2)
             if regVal == None:
                 print("doAdcAsicConfig: Could not check SYNC status, bad")
