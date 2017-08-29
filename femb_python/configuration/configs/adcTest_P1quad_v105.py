@@ -83,7 +83,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.CLKDEFAULT = "fifo"
 
         self.isExternalClock = True #False = internal monostable, True = external
-        self.is1MHzSAMPLERATE = False #False = 1MHz, True = 2MHz
+        self.is1MHzSAMPLERATE = False #True = 1MHz, False = 2MHz
         self.COLD = False
         self.doReSync = True
         self.adcSyncStatus = 0

@@ -327,7 +327,7 @@ def main():
     doReconfig=True
     isExternalClock=True
     is1MHzSAMPLERATE=True
-    isCold=False
+    isCold=True
 
     #check for JSON file input
     if len(sys.argv) == 2 :
@@ -343,7 +343,7 @@ def main():
         if 'is1MHzSAMPLERATE' in params:
             is1MHzSAMPLERATE = params['is1MHzSAMPLERATE']
         if 'isCold' in params:
-            is1MHzSAMPLERATE = params['isCold']
+            isCold = params['isCold']
 
     #do some sanity checks on input parameters
     if len(asicsockets) > 4 :
