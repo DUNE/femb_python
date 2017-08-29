@@ -150,7 +150,7 @@ class FEMB_TEST_GAIN(object):
         print("GAIN MEASUREMENT - RECORDING DATA")
 
         #wait to make sure HS link is back on after check_setup
-        sleep(0.5)
+        sleep(5)
 
         #setup output file
         self.write_data.filename = self.outlabel+".bin"

@@ -202,7 +202,7 @@ class FEMB_UDP(object):
         except TypeError:
             return None
         if (numVal < 0) or (numVal > self.MAX_NUM_PACKETS):
-            #print "FEMB_UDP--> Error record_hs_data: Invalid number of data packets requested"
+            print( "FEMB_UDP--> Error get_data_packets: Invalid number of data packets requested" )
             return None
 
         with FEMB_LOCK() as lock:
@@ -274,7 +274,7 @@ class FEMB_UDP(object):
         self.UDP_PORT_HSDATA = 32003
         self.MAX_REG_NUM = 0xFFFF
         self.MAX_REG_VAL = 0xFFFFFFFF
-        self.MAX_NUM_PACKETS = 7000
+        self.MAX_NUM_PACKETS = 20000
         self.MAX_PACKET_SIZE = 1024
         self.REG_SLEEP = 0.001
         self.MAX_ATTEMPTS = 5

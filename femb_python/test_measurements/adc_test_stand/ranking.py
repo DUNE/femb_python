@@ -63,6 +63,19 @@ def getBoard_version(summaryDict):
     board = summaryDict["board_id"]
     version = getVersion(summaryDict)
     return str(version) +" board "+ str(board)
+def getSerialInt(summaryDict):
+    serial = summaryDict["serial"]
+    try:
+        serial = int(serial)
+    except ValueError:
+        match = re.match(r"[\D]*(\d+)[\D]*",serial)
+        if not match:
+            print("Warning: Couldn't convert serial number '{}' to an integer by removing front/back letters".format(serial))
+            return
+        serial = int(match.group(1))
+    if serial < 0:
+        serial = None
+    return serial
 
 class RANKING(object):
 
@@ -244,7 +257,12 @@ class RANKING(object):
                         doMin = self.statsToDraw[statName]["min"]
                     except KeyError:
                         pass
-                    allVals = maxValsAll[statName]
+                    allVals = None
+                    try:
+                        allVals = maxValsAll[statName]
+                    except KeyError as e:
+                        print("Warning: no {} found".format(statName))
+                        continue
                     if doMin:
                         allVals = minValsAll[statName]
                     allVals = numpy.array(allVals)
@@ -370,7 +388,12 @@ class RANKING(object):
                     else:
                         ax.set_ylabel("Channels / bin")
                         ax.set_xlabel("{}".format(statName))
-                    allTheseVals = numpy.array(allVals[statName])
+                    allTheseVals = None
+                    try:
+                        allTheseVals = numpy.array(allVals[statName])
+                    except KeyError as e:
+                        print("Warning: no {} found".format(statName))
+                        continue
                     allTheseValsFinite = allTheseVals[numpy.isfinite(allTheseVals)]
                     histRange = (min(allTheseValsFinite),max(allTheseValsFinite))
                     nVals = len(allTheseVals)
@@ -909,7 +932,7 @@ class RANKING(object):
         try:
             sortedserials = sorted(resultdict,key=lambda x: int(x))
         except:
-            sortedserials = sorted(resultdict)
+            sortedserials = sorted(resultdict,key=lambda x: str(x))
         result = []
         for serial in sortedserials:
             datadict = resultdict[serial]
@@ -959,7 +982,7 @@ class RANKING(object):
             try:
                 sortedserials[keyval] = sorted(resultdict[keyval],key=lambda x: int(x))
             except:
-                sortedserials[keyval] = sorted(resultdict[keyval])
+                sortedserials[keyval] = sorted(resultdict[keyval],key=lambda x: str(x))
         result = {}
         print("getlatestdataperkey result:")
         print("{:30}  {:5}  {}".format("Key","Chip #","Timestamp"))
@@ -1096,8 +1119,8 @@ def main():
     data = ranking.getalldataperkey(getTemperature)
     ranking.worstChannelVVar(data,getTimestamp,"All Tests, Worst Channel per Chip v. Timestamp",args.outprefix+"ADCVTime_per_temp",legendTitle="Temperature")
 
-    ranking.worstChannelVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #",args.outprefix+"ADCVserial_per_temp",xlabel="Chip #",legendTitle="Temperature")
-    #ranking.worstChannelVVar(data,lambda x: x["serial"],"All Tests, Worst Channel per Chip v Chip #",args.outprefix+"ADCVserial_per_temp_zoom",xlabel="Chip #",xlims=(0,50),legendTitle="Temperature")
+    ranking.worstChannelVVar(data,getSerialInt,"All Tests, Worst Channel per Chip v Chip # (leading/trailing letters removed)",args.outprefix+"ADCVserial_per_temp",xlabel="Chip #",legendTitle="Temperature")
+    #ranking.worstChannelVVar(data,getSerialInt,"All Tests, Worst Channel per Chip v Chip #",args.outprefix+"ADCVserial_per_temp_zoom",xlabel="Chip #",xlims=(0,50),legendTitle="Temperature")
 
     if args.all:
         d = ranking.getlatestdataperkey(getBoard_version)

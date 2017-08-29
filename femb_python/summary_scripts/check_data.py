@@ -24,13 +24,14 @@ class FEMB_CHECK_DATA(object):
     self.what = None
     self.when = None
     self.verbose = False
+    self.select = False
 
-  def readargs(self, what=None, when=None, verbose=False):
+  def readargs(self, what=None, when=None, verbose=False, select=False):
 
     print("Read arguments")
 
     supported_what = ["adc_cold", "osc", "femb","fe_warm","femb","flash"]
-    supported_when = ["today", "yesterday", "this_week", "all"]
+    supported_when = ["today", "yesterday", "this_week", "this_month", "all"]
 
     if what.lower() in supported_what:
       self.what = what.lower()
@@ -55,6 +56,7 @@ class FEMB_CHECK_DATA(object):
             self.when = userwhen
 
     self.verbose = verbose
+    self.select = select
     self.status_read_args = 1
   
   def getdata(self):
@@ -96,6 +98,11 @@ class FEMB_CHECK_DATA(object):
       search_time_upper = tsnow[0:8]
     elif("this_week" in self.when):
       search_date = datetime.datetime(int(tsnow[0:4]), int(tsnow[4:6]), int(tsnow[6:8])) + relativedelta(weekday=MO(-1))
+      search_month = str(search_date.month).zfill(2)
+      search_day = str(search_date.day).zfill(2)
+      search_time = tsnow[0:4]+search_month+search_day
+    elif("this_month" in self.when):
+      search_date = datetime.datetime(int(tsnow[0:4]), int(tsnow[4:6]), 1)
       search_month = str(search_date.month).zfill(2)
       search_day = str(search_date.day).zfill(2)
       search_time = tsnow[0:4]+search_month+search_day
@@ -197,9 +204,10 @@ class FEMB_CHECK_DATA(object):
               params = json.loads(open(params_file).read())
               for iasic in range(0,4):
                 if "asic"+str(iasic)+"id" in params:
-                  chips_tested.append(params["asic"+str(iasic)+"id"])
-                  chips_dirs[params["asic"+str(iasic)+"id"]] = dir
-              useful_directories.append(dir)
+                  if params["asic"+str(iasic)+"id"][0] == "A":
+                    chips_tested.append(params["asic"+str(iasic)+"id"])
+                    chips_dirs[params["asic"+str(iasic)+"id"]] = dir
+                    useful_directories.append(dir)
       #chips_tested_excl = sorted(list(set(chips_tested)),key=lambda x:int(x))
       chips_tested_excl = list(set(chips_tested))
       print("***Number of tests completed ("+self.when+"): ", len(useful_directories), " (4 chips per test)")
@@ -211,6 +219,7 @@ class FEMB_CHECK_DATA(object):
     if "adc_cold" in self.what:
       useful_directories = {}
       chips_tested = []
+      chips_failed_input = []
       chips_daonly = []
       for dir in directories_found:
         setup_file = glob.glob(dir+"/adcTest_*.json")
@@ -221,6 +230,18 @@ class FEMB_CHECK_DATA(object):
             if str(params['serial'])[0] == "D":
               chips_tested.append(params['serial'])
               useful_directories[params['serial']] = dir
+              if self.select:
+                try:
+                  input_pins = params["inputPin"]["2000000"]["0"]["-1"]["mean"]
+                except:
+                  input_pins = []
+                  chips_failed_input.append(params['serial'])
+                for pin in input_pins:
+                  if float(pin)>3000:
+                    chips_failed_input.append(params['serial'])
+                    break
+                                              
+
         else:
           setup_file_daonly = glob.glob(dir+"/david_adams_only*.json")
           if setup_file_daonly:
@@ -232,14 +253,17 @@ class FEMB_CHECK_DATA(object):
                 useful_directories[params['serials'][0]] = dir                                 
               
       chips_tested_full = list(set(chips_tested))
-      chips_tested_daonly = list(set(chips_daonly))
+      chips_tested_daonly = [x for x in list(set(chips_daonly)) if x not in chips_tested_full]
+      chips_passed = [x for x in chips_tested_full if x not in chips_failed_input]
       print("***Number of tests started ("+self.when+"): ", len(directories_found), "\n")
       print("***",len(chips_tested_full)," Chips Fully Tested: ", chips_tested_full, "\n")
       print("***",len(chips_tested_daonly)," Chips w/ Only DA Data Attempted: ", chips_tested_daonly, "\n")
       if self.verbose:
         print("Directories: ")
         for mykey,dir in useful_directories.items(): print(mykey, dir)
-
+      if self.select:
+        print("***",len(chips_passed)," Chips Fully Tested passing Input Pin test: ", chips_passed, "\n")
+              
     self.status_get_data = 1
 
     
@@ -257,18 +281,23 @@ def main():
     when = ""
 
   if len(sys.argv)>3:
-    verbose = True
+    verbose = sys.argv[3]=="verbose"
   else:
-    verbose = ""
+    verbose = False
 
-    host = os.uname()[1]
-    if not ("hothstor2" in host):
-      print("Running on "+host+" -- you must be logged in to hothstor2")
-      return
+  if len(sys.argv)>4:
+    select = sys.argv[4]=="select"
+  else:
+    select = False
+
+  host = os.uname()[1]
+  if not ("hothstor2" in host):
+    print("Running on "+host+" -- you must be logged in to hothstor2")
+    return
     
     
   doit = FEMB_CHECK_DATA()
-  doit.readargs(what, when, verbose)
+  doit.readargs(what, when, verbose, select)
   doit.getdata()
   
 
