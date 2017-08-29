@@ -89,6 +89,7 @@ class FEMB_SUMMARY(object):
 
             printgain = False
             printcurrent = False
+            printsimple = False
             gainsummary = {}
 
             for mydir in self.subdirs:
@@ -125,6 +126,15 @@ class FEMB_SUMMARY(object):
                             printgain = True
 
 
+
+                #Simple Measurement Summary                    
+                if ("simple" in mydir):
+                    if os.path.isfile(self.topdir+"/"+mydir+"/simpleMeasurement_femb_"+str(slot)+"-summaryPlot.png"):
+                        simpletext = "Simple Measurement"
+                        simpleimage = self.topdir+"/"+mydir+"/simpleMeasurement_femb_"+str(slot)+"-summaryPlot.png"
+                        printsimple = True
+
+
                 #Current monitor summary:
                 if ("current" in mydir):
                     currentmonitortext = "Current Monitoring:"
@@ -154,16 +164,15 @@ class FEMB_SUMMARY(object):
                                    result["all_on_femb"+str(slot)+"_v5"] ]
 
                             printcurrent = True
-
-
-            if (printgain):
-                pdf.ln(7)                
-                pdf.cell(200,5,txt="Average ENC measured with internal pulser (electrons))",align='L',ln=1)
-                pdf.cell(50,5,txt="",)
-                pdf.cell(25,5,txt=shapelabels[2]+" us",align='L')
+            if (printsimple):
+                pdf.ln(4)
+                pdf.cell(200,5,txt=simpletext,align='L',ln=1)
+                pdf.image(simpleimage, w=150)
                 pdf.ln(4)
 
-                pdf.cell(50,5,txt=gainlabels[2]+" mV/fC",align='L')
+            if (printgain):
+                pdf.ln(4)                
+                pdf.cell(100,5,txt="Average ENC measured with internal pulser (electrons): ",align='L')
                 gainlabel = gainlabels[2]+"_"+shapelabels[2]+"_"+pulselabels[0]
                 if (gainlabel in gainsummary.keys()):
                     pdf.cell(25, 5, txt="{:4.0f}".format(gainsummary[gainlabel][3]), align='L')
@@ -180,10 +189,10 @@ class FEMB_SUMMARY(object):
               #          pdf.cell(25,5, txt="-", align='L')
               #  pdf.ln(4)
                 
-                pdf.ln(7)
+                pdf.ln(4)
                 pdf.cell(200,5,txt=gaintext,align='L',ln=1)
-                pdf.image(gainimage, w=200)
-                pdf.ln(7)
+                pdf.image(gainimage, w=150)
+                pdf.ln(4)
 
 
             if (printcurrent):
@@ -209,15 +218,14 @@ class FEMB_SUMMARY(object):
                 pdf.cell(15, 5, txt="{:3.2f}".format(ion[2]), align='L')
                 pdf.cell(15, 5, txt="{:3.2f}".format(ion[3]), align='L')
                 pdf.cell(15, 5, txt="{:3.2f}".format(ion[4]), align='L', ln=1)                
-                pdf.ln(7)
-
+                pdf.ln(4)
 
                 
 
             text = "Data stored on "+params['hostname']+": "
-            pdf.cell(200, 5, txt=text, align='L', ln=1)
+            pdf.cell(50, 5, txt=text, align='L')
             text = self.topdir
-            pdf.cell(200, 5, txt=text, align='L', ln=1)
+            pdf.cell(100, 5, txt=text, align='L', ln=1)
             text = "Position on WIB for test: "+str(slot)
             pdf.cell(200, 5, txt=text, align='L', ln=1)
             pdf.output(self.datadir+"/femb"+name+"_summary.pdf",'F')
