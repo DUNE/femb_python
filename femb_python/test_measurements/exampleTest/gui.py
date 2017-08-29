@@ -26,7 +26,8 @@ import subprocess
 #import the test module
 import femb_python
 from femb_python.configuration import CONFIG
-from .exampleProductionTest import main as maintest
+from femb_python.configuration.argument_parser import ArgumentParser
+from femb_python.test_measurements.exampleTest.exampleProductionTest import main as maintest
 
 class GUI_WINDOW(Frame):
 
@@ -78,23 +79,17 @@ class GUI_WINDOW(Frame):
     def get_options(self,getCurrent=False):
         operator = self.operator_entry.get()
         boxid = self.boxid_entry.get()
-        amid = self.amid_entry.get()
-        fmid = self.fmid_entry.get()
 
-        variables = [operator,boxid,amid,fmid]
+        variables = [operator,boxid]
         for var in variables:
             if var == "" :
                 return
         print("Operator Name: '{}'".format(operator))
         print("CE Box ID: '{}'".format(boxid))
-        print("Analog MB ID: '{}'".format(amid))
-        print("FPGA Mezz ID: '{}'".format(fmid))
 
         inputOptions = {
             "operator": operator,
             "box_id": boxid,
-            "fm_id": fmid,
-            "am_id": amid,
         }
         print(inputOptions)
         return inputOptions
@@ -120,14 +115,8 @@ class GUI_WINDOW(Frame):
         self.operator_entry["state"] = "normal"
         self.boxid_label["state"] = "normal"
         self.boxid_entry["state"] = "normal"
-        self.amid_label["state"] = "normal"
-        self.amid_entry["state"] = "normal"
-        self.fmid_label["state"] = "normal"
-        self.fmid_entry["state"] = "normal"
 
         self.boxid_entry.delete(0,END)
-        self.amid_entry.delete(0,END)
-        self.fmid_entry.delete(0,END)
         
         self.reset_button["bg"] ="#FF9900"
         self.reset_button["activebackground"] ="#FFCF87"
@@ -168,7 +157,6 @@ class GUI_WINDOW(Frame):
         self.master.destroy()
 
 def main():
-    from ...configuration.argument_parser import ArgumentParser
 
     parser = ArgumentParser(description="Example GUI")
 
@@ -178,3 +166,6 @@ def main():
     root.title("FEMB Test GUI")
     window = GUI_WINDOW(root)
     root.mainloop() 
+
+if __name__ == '__main__':
+    main()
