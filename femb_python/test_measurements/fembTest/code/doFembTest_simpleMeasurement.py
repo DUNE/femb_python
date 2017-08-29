@@ -131,7 +131,7 @@ class FEMB_TEST_SIMPLE(object):
         print("SIMPLE MEASUREMENT - RECORDING DATA")
 
         #wait to make sure HS link is back on after check_setup
-        sleep(0.5)
+        sleep(5)
 
         self.femb_config.printParameters()
 

@@ -35,10 +35,15 @@ class WRITE_DATA(object):
         return os.path.join(self.filedir,self.filename)
 
     def assure_filedir(self):
-        #check local directory structure, available space
+        #check local directory structure
         if os.path.isdir( str(self.filedir) ) == False:
             print("write_data: Data directory not found, making now.")
             os.makedirs( str(self.filedir) )
+        #check if directory actually created
+        if os.path.isdir( str(self.filedir) ) == False:
+            print("write_data: Error creating data directory, check filesystem.")
+            return None
+        return 1
 
     def open_file(self):
         print("write_data: Open file: %s" % self.data_file_path )

@@ -152,7 +152,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #FEMB power enable on WIB
         self.powerOnFemb(self.fembNum)
-        time.sleep(0.5)
+        time.sleep(10)
 
         #Make sure register interface is for correct FEMB
         self.selectFemb(self.fembNum)

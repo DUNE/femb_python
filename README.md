@@ -15,11 +15,14 @@ source /opt/sw/root-6.09.02/bin/thisroot.sh
 
 git clone git@github.com:DUNE/femb_python.git
 cd femb_python/
-python3 setup.py develop
+pip install -e .
 ./setup.sh
 ```
 
-Thereafter, repeat just the two `source` commands.
+Note:
+* Later, to reuse the area just repeat the two `source` commands.
+* Need to use `pip install -e .` not `python setup.yp develop`.
+* You run `./setup.sh` and do not source it.
 
 
 ## Installing on Scientific Linux 7 and Recent Ubuntu/Fedora
