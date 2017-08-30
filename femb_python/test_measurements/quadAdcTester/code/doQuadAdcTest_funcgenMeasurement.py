@@ -267,22 +267,26 @@ class QUADADC_TEST_FUNCGEN(object):
 
         #run analysis program
         parseBinaryFile = "output_parseBinaryFile.root"
-        #self.cppfr.run("test_measurements/quadAdcTester/code/processNtuple_funcgenMeasurement",  [parseBinaryFile])
+        self.cppfr.run("test_measurements/quadAdcTester/code/processNtuple_funcgenMeasurement",  [parseBinaryFile])
 
         #check for online analysis result files here
-        #if os.path.isfile( "output_processNtuple_funcgenMeasurement.root" ) == False:
-        #    print("Error running test - parsed data file not found.")
-        #    return
+        if os.path.isfile( "output_processNtuple_funcgenMeasurement.root" ) == False:
+            print("Error running test - processed data file not found.")
+            return
+
+        if os.path.isfile( "summaryPlot_funcgenMeasurement.png" ) == False:
+            print("Error running test - summary plot file not found.")
+            return
 
         #update output file names
         parseBinaryFile = self.outpathlabel + "-parseBinaryFile.root"
         call(["mv", "output_parseBinaryFile.root" , parseBinaryFile])
 
-        #processNtupleFile = self.outpathlabel + "-processNtupleFile.root"
-        #call(["mv", "output_processNtuple_funcgenMeasurement.root" , processNtupleFile])
+        processNtupleFile = self.outpathlabel + "-processNtupleFile.root"
+        call(["mv", "output_processNtuple_funcgenMeasurement.root" , processNtupleFile])
 
-        #summaryPlot = self.outpathlabel + "-summaryPlot.png"
-        #call(["mv", "summaryPlot_funcgenMeasurement.png" , summaryPlot])
+        summaryPlot = self.outpathlabel + "-summaryPlot.png"
+        call(["mv", "summaryPlot_funcgenMeasurement.png" , summaryPlot])
 
         print("FUNCTION GENERATOR MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
