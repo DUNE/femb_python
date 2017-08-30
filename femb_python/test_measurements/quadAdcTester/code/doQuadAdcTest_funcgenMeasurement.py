@@ -62,6 +62,7 @@ class QUADADC_TEST_FUNCGEN(object):
         self.femb_config.isExternalClock = self.isExternalClock #False = internal monostable, True = external
         self.femb_config.is1MHzSAMPLERATE = self.is1MHzSAMPLERATE #False = 1MHz, True = 2MHz
         self.femb_config.COLD = self.isCold
+        self.femb_config.enableTest = 1 # 0 = no test input, 1 = enabled
 
         #define json output
         self.jsondict = {'type':'quadAdcTest_funcgen'}
@@ -326,8 +327,8 @@ def main():
     asicsockets = [0,1,2]
     doReconfig=True
     isExternalClock=True
-    is1MHzSAMPLERATE=True
-    isCold=True
+    is1MHzSAMPLERATE=False
+    isCold=False
 
     #check for JSON file input
     if len(sys.argv) == 2 :

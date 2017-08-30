@@ -85,6 +85,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.isExternalClock = True #False = internal monostable, True = external
         self.is1MHzSAMPLERATE = False #True = 1MHz, False = 2MHz
         self.COLD = False
+        self.enableTest = 0
         self.doReSync = True
         self.adcSyncStatus = 0
         self.maxSyncAttempts = 10
@@ -99,6 +100,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def printParameters(self):
         print("External ADC Clocks    \t",self.isExternalClock)
         print("Cryogenic temperature  \t",self.COLD)
+        print("Enable ADC test input  \t",self.enableTest)
         print("MAX SYNC ATTEMPTS      \t",self.maxSyncAttempts)
         print("Do resync              \t",self.doReSync)
         print("1MHz Sampling          \t",self.is1MHzSAMPLERATE)
@@ -219,9 +221,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #Configure ADC (and external clock inside)
         if self.isExternalClock == True :
-           self.configAdcAsic(asicNum=asicNumVal, clockExternal=True)
+           self.configAdcAsic(asicNum=asicNumVal, testInput=self.enableTest, clockExternal=True)
         else :
-           self.configAdcAsic(asicNum=asicNumVal, clockMonostable=True)
+           self.configAdcAsic(asicNum=asicNumVal, testInput=self.enableTest, clockMonostable=True)
 
         #check SPI + SYNC status here
         syncStatus = self.getSyncStatus()
@@ -594,7 +596,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         print("Turning on ASIC ",asicVal)
         self.femb.write_reg_bits( self.REG_PWR_CTRL , asicVal, 0x1, 0x1 )
-        time.sleep(2) #pause after turn on
+        time.sleep(5) #pause after turn on
 
     def turnOnAsics(self):
         print( "turnOnAsics 0-{}".format(int(self.NASICS -1)))
