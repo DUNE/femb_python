@@ -201,6 +201,7 @@ setup(
             'quadadc_prod_initSetup=femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_initializeSetup:main',
             'quadadc_prod_shutdownSetup=femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_shutdownSetup:main',
             'quadadc_trace_window=femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_allchan_window:main',
+            'quadadc_test_summary=femb_python.test_measurements.quadAdcTester.code.quadadc_test_summary:main',
 
             # what the shifters run:
             'femb_osctest=femb_python.test_measurements.OscillatorTesting.otmain:main',
