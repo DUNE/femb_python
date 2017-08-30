@@ -109,6 +109,12 @@ def main(**params):
     #                      datasubdir = "quadAdcTest_final_shutdown", outlabel = "quadAdcTest_final_shutdown")
     #tests.append( Test(**params_test_final_shutdown) )
 
+    #create summary plots
+    params_test_funcgen_summary = dict(params)
+    params_test_funcgen_summary.update( executable = "quadadc_test_summary", argstr="{paramfile}", 
+                                            datasubdir = "quadAdcTest_summary", outlabel = "quadAdcTest_summary")
+    tests.append( Test(**params_test_funcgen_summary) )
+
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)
     if r == None:
