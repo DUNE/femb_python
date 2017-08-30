@@ -102,9 +102,6 @@ class GUI_WINDOW(Frame):
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
         self.status_label.grid(row=100,column=columnbase,columnspan=4)
         self.bkg_color = self.status_label.cget("background")
-
-        # initialize WIB in case we are coming out of a power down
-        self.config.initWib()
     
     def get_options(self):
         operator = self.operator_entry.get()
@@ -178,6 +175,11 @@ class GUI_WINDOW(Frame):
         self.status_label["text"] = "TESTS IN PROGRESS..."
         self.status_label["fg"] = "#000000"
         self.update_idletasks()
+
+        #Init WIB
+        self.config.initWib()
+
+        #Run tests
         maintest(**params)
         self.done_measuring(params)
         
