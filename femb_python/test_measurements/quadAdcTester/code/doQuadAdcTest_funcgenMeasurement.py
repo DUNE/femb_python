@@ -143,9 +143,9 @@ class QUADADC_TEST_FUNCGEN(object):
         if not self.cppfr.exists('test_measurements/quadAdcTester/code/parseBinaryFile'):    
             print('Error running test - parseBinaryFile executable not found, run setup.sh')
             return
-        #if not self.cppfr.exists('test_measurements/quadAdcTester/code/processNtuple_funcgenMeasurement'):
-        #    print('Error running test - processNtuple_funcgenMeasurement executable not found, run setup.sh')
-        #    return
+        if not self.cppfr.exists('test_measurements/quadAdcTester/code/processNtuple_funcgenMeasurement'):
+            print('Error running test - processNtuple_funcgenMeasurement executable not found, run setup.sh')
+            return
 
         #Setup is ok
         print("FUNCTION GENERATOR MEASUREMENT - READOUT STATUS OK" + "\n")
