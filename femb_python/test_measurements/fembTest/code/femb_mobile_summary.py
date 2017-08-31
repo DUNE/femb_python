@@ -60,7 +60,7 @@ class FEMB_SUMMARY(object):
  
             i = slotlist.index(slot)
         
-            name = params['box_ids'][i]
+            name = params['box_ids']
             boxtext = "CE Box "
 
             text_title = "protoDUNE FEMB EMT Summary: "+boxtext+name
