@@ -74,6 +74,12 @@ class GUI_WINDOW(Frame):
         self.temp_radio1.grid(sticky=W,row=3,column=columnbase+1)
         self.temp_radio2.grid(sticky=W,row=4,column=columnbase+1)
 
+        self.apa_bool = StringVar()
+        self.temp_radio3 = Radiobutton(self, text="On Bench", variable=self.apa_bool, value=0)
+        self.temp_radio4 = Radiobutton(self, text="On APA", variable=self.apa_bool, value=1)
+        self.temp_radio3.grid(sticky=W,row=6,column=columnbase+1)
+        self.temp_radio4.grid(sticky=W,row=7,column=columnbase+1)
+        
         # Adding electronics ID and read entry box
 
         
@@ -118,6 +124,11 @@ class GUI_WINDOW(Frame):
             isRoomTemp = False
         else:
             isRoomTemp = True
+
+        if (self.ct_apa.get() == "1"):
+            isAPA = True
+        else:
+            isAPA = False
         
         for var in variables:
             if var == "" :
@@ -130,6 +141,7 @@ class GUI_WINDOW(Frame):
             "box_ids": boxid,
             "apa_pos": apapos,
             "isRoomTemp": isRoomTemp,
+            "isAPA": isAPA,
             "wibslots": wibslots_filled,
         }
         print(inputOptions)

@@ -61,6 +61,7 @@ class FEMB_TEST_GAIN(object):
         self.useInternalPulser = False
         self.useExtAdcClock = False
         self.isRoomTemp = False
+        self.isAPA = False
 
         #json output, note module version number defined here
         self.jsondict = {'type':'fembTest_gain'}
@@ -185,6 +186,7 @@ class FEMB_TEST_GAIN(object):
 
         #record data
         self.write_data.numpacketsrecord = 500
+        if self.isAPA: self.write_data.numpacketsrecord = 5000
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -326,6 +328,7 @@ def main():
     useInternalPulser = True
     useExtAdcClock = True
     isRoomTemp = True
+    isAPA = False
 
     #get parameters from input JSON file
     if len(sys.argv) == 2 :
@@ -348,6 +351,8 @@ def main():
             useExtAdcClock = params['useExtAdcClock']
         if 'isRoomTemp' in params:
             isRoomTemp = params['isRoomTemp']
+        if 'isAPA' in params:
+            isAPA = params['isAPA']
 
     #do some sanity checks
     if len(wibslots) > 4 :
