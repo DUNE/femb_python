@@ -60,7 +60,6 @@ def main(**params):
     #Explicitly define list of production tests to perform
     tests = []
 
-
     #Simple Measurement
     params_simple = dict(params)
     params_simple.update( executable="femb_test_simple", argstr="{paramfile}",
