@@ -373,7 +373,7 @@ def make_runner(test_category, use_sumatra=True, **params):
     freedisks = list()
     datadisks=["/tmp"]
     hostname = os.uname()[1]
-    if hostname.startswith("hoth"):
+    if (hostname.startswith("hoth") or hostname.startswith("hunk")):
         datadisks = ["/dsk/1", "/dsk/2"]
     for dd in datadisks:
         stat = os.statvfs(dd)
