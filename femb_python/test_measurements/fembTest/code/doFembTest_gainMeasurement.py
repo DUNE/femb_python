@@ -186,7 +186,6 @@ class FEMB_TEST_GAIN(object):
 
         #record data
         self.write_data.numpacketsrecord = 500
-        if self.isAPA: self.write_data.numpacketsrecord = 5000
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -368,6 +367,7 @@ def main():
         femb_test.useInternalPulser = useInternalPulser
         femb_test.useExtAdcClock = useExtAdcClock
         femb_test.isRoomTemp = isRoomTemp
+        femb_test.isAPA = isAPA
 
         femb_test.check_setup()
         femb_test.record_data()

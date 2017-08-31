@@ -125,7 +125,7 @@ class GUI_WINDOW(Frame):
         else:
             isRoomTemp = True
 
-        if (self.ct_apa.get() == "1"):
+        if (self.apa_bool.get() == "1"):
             isAPA = True
         else:
             isAPA = False
