@@ -253,7 +253,7 @@ class FEMB_TEST_GAIN(object):
         useDefaultGainFactorFlag = "1"
         if self.useInternalPulser == False :
             useInternalPulserFlag = "0"
-        if self.useDefaultGainFactor == False:
+        if (self.useDefaultGainFactor == False):
             useDefaultGainFactorFlag = "0"
         self.cppfr.run("test_measurements/fembTest/code/processNtuple_gainMeasurement",  [parseBinaryFile,useInternalPulserFlag,useDefaultGainFactorFlag])
         #if self.useInternalPulser == False :
@@ -359,10 +359,10 @@ def main():
             useExtAdcClock = params['useExtAdcClock']
         if 'isRoomTemp' in params:
             isRoomTemp = params['isRoomTemp']
-        if 'isAPA' in params:
-            isAPA = params['isAPA']
         if 'useDefaultGainFactor' in params:
             useDefaultGainFactor = params['useDefaultGainFactor']
+        if 'isAPA' in params:
+            isAPA = params['isAPA']
 
     #do some sanity checks
     if len(wibslots) > 4 :

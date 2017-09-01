@@ -77,8 +77,14 @@ class GUI_WINDOW(Frame):
         self.apa_bool = StringVar()
         self.temp_radio3 = Radiobutton(self, text="On Bench", variable=self.apa_bool, value=0)
         self.temp_radio4 = Radiobutton(self, text="On APA", variable=self.apa_bool, value=1)
-        self.temp_radio3.grid(sticky=W,row=6,column=columnbase+1)
-        self.temp_radio4.grid(sticky=W,row=7,column=columnbase+1)
+        self.temp_radio3.grid(sticky=W,row=5,column=columnbase+1)
+        self.temp_radio4.grid(sticky=W,row=6,column=columnbase+1)
+
+        self.defaultgain_bool = StringVar()
+        self.temp_radio5 = Radiobutton(self, text="Regular Gain", variable=self.defaultgain_bool, value=0)
+        self.temp_radio6 = Radiobutton(self, text="Default Gain", variable=self.defaultgain_bool, value=1)
+        self.temp_radio5.grid(sticky=W,row=7,column=columnbase+1)
+        self.temp_radio6.grid(sticky=W,row=8,column=columnbase+1)
         
         # Adding electronics ID and read entry box
 
@@ -129,7 +135,12 @@ class GUI_WINDOW(Frame):
             isAPA = True
         else:
             isAPA = False
-        
+
+        if (self.defaultgain_bool.get() == "1"):
+            useDefaultGain = True
+        else:
+            useDefaultGain = False
+            
         for var in variables:
             if var == "" :
                 return
@@ -142,6 +153,7 @@ class GUI_WINDOW(Frame):
             "apa_pos": apapos,
             "isRoomTemp": isRoomTemp,
             "isAPA": isAPA,
+            "useDefaultGainFactor": useDefaultGain,
             "wibslots": wibslots_filled,
         }
         print(inputOptions)
