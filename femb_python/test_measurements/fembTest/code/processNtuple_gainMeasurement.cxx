@@ -30,7 +30,7 @@ TApplication *theApp;
 
 class Analyze {
 	public:
-	Analyze(std::string inputName,bool useInternalPulser);
+	Analyze(std::string inputName,bool useInternalPulser,bool useDefaultGain);
 
 	void getInputFile();
   	void getInputTree();
@@ -123,13 +123,14 @@ class Analyze {
 		1.156,1.175,1.194,1.213,1.232,1.251,1.269,1.288,1.307,1.326,1.345,1.364,1.383,1.402,1.421,1.440,
 		1.459,1.478, 1.497,1.516,1.535,1.554,1.573,1.592,1.611,1.629,1.648,1.667,1.686,1.705,1.724,1.743,
 		1.762,1.781,1.800};
+        bool useDefaultGainFactor = 0;
 
 	//ASIC status
 	bool badChannelMask[128];
 	bool badAsicMask[8];
 };
 
-Analyze::Analyze(std::string inputName,bool useInternalPulser=0){
+Analyze::Analyze(std::string inputName,bool useInternalPulser=0,bool useDefaultGain=0){
 
 	inputFileName = inputName;
         getInputFile();
@@ -167,6 +168,8 @@ Analyze::Analyze(std::string inputName,bool useInternalPulser=0){
 			signalSizes[sr] = sr*0.01875*183*6241;
 		}
 	}
+
+        useDefaultGainFactor = useDefaultGain;
 
 	initRootObjects();
 }
@@ -496,63 +499,66 @@ void Analyze::getAveragePulseHeight(const std::vector<double> &pulseHeights){
 void Analyze::measureGain(unsigned int chan, double baseRms){
 	measuredGain = -1;
 	measuredEnc = -1;
-	if( gPulseVsSignal[chan]->GetN() < 1 ) 
-		return;
 	if( baseRms <= 0 )
 		return;
+        
+        measuredGain = 140.; //e-/ADC
+        if( useDefaultGainFactor == 0 ){
+		if( gPulseVsSignal[chan]->GetN() < 1 ) 
+			return;
 
-        int numInRange = 0;
-	double minRange = const_fitRangeHigh;
-	double maxRange = const_fitRangeLow;
-	double prevDataY = -1;
-        for(int n = 0 ; n < gPulseVsSignal[chan]->GetN() ; n++){
-		double dataX, dataY;
-		gPulseVsSignal[chan]->GetPoint(n,dataX,dataY);
-		//if( dataX >= const_fitRangeLow && dataX <= const_fitRangeHigh )
-		//	numInRange++;
-		if( dataY < const_minPulseHeightForFit || dataY > const_maxPulseHeightForFit )
-			continue;
-		if( dataY < prevDataY - 50 ) //hack
-			continue;
-		prevDataY = dataY;
-		numInRange++;
+        	int numInRange = 0;
+		double minRange = const_fitRangeHigh;
+		double maxRange = const_fitRangeLow;
+		double prevDataY = -1;
+        	for(int n = 0 ; n < gPulseVsSignal[chan]->GetN() ; n++){
+			double dataX, dataY;
+			gPulseVsSignal[chan]->GetPoint(n,dataX,dataY);
+			//if( dataX >= const_fitRangeLow && dataX <= const_fitRangeHigh )
+			//	numInRange++;
+			if( dataY < const_minPulseHeightForFit || dataY > const_maxPulseHeightForFit )
+				continue;
+			if( dataY < prevDataY - 50 ) //hack
+				continue;
+			prevDataY = dataY;
+			numInRange++;
 
-		if( dataX < minRange)
-			minRange = dataX;
-		if( dataX > maxRange)
-			maxRange = dataX;
+			if( dataX < minRange)
+				minRange = dataX;
+			if( dataX > maxRange)
+				maxRange = dataX;
+        	}
+		if( numInRange < 3 )
+   			return;
+
+
+		//TF1 *f1 = new TF1("f1","pol1",const_fitRangeLow,const_fitRangeHigh);
+		TF1 *f1 = new TF1("f1","pol1",minRange,maxRange);
+		gPulseVsSignal[chan]->Fit("f1","QBR");
+
+		//check if fit succeeded here
+
+		double gain_AdcPerE = f1->GetParameter(1);
+		double gain_ePerAdc = 0;
+		if( gain_AdcPerE > 0 )
+			gain_ePerAdc = 1./ gain_AdcPerE;
+		if( gain_ePerAdc > const_maxGain )
+			gain_ePerAdc = 0;
+		measuredGain = gain_ePerAdc;
+
+		delete f1;
         }
-	if( numInRange < 3 )
-   		return;
-
-	//TF1 *f1 = new TF1("f1","pol1",const_fitRangeLow,const_fitRangeHigh);
-	TF1 *f1 = new TF1("f1","pol1",minRange,maxRange);
-	gPulseVsSignal[chan]->Fit("f1","QBR");
-
-	//check if fit succeeded here
-
-	double gain_AdcPerE = f1->GetParameter(1);
-	double gain_ePerAdc = 0;
-	if( gain_AdcPerE > 0 )
-		gain_ePerAdc = 1./ gain_AdcPerE;
-	if( gain_ePerAdc > const_maxGain )
-		gain_ePerAdc = 0;
-	double enc = baseRms*gain_ePerAdc;
-
-	measuredGain = gain_ePerAdc;
-	measuredEnc = enc;
+	measuredEnc = baseRms*measuredGain;
 	
 	if(0){
-		std::cout << gain_ePerAdc << std::endl;
-		std::cout<< enc << std::endl;
+		std::cout << measuredGain << std::endl;
+		std::cout<< measuredEnc << std::endl;
 		c0->Clear();
 		gPulseVsSignal[chan]->Draw("ALP");
 		c0->Update();
 		char ct;
 		std::cin >> ct;
 	}
-
-	delete f1;
 
 	return;
 }
@@ -741,16 +747,17 @@ void Analyze::writeToRootFile(){
   	gOut->Close();
 }
 
-void processNtuple(std::string inputFileName, bool useInternalPulser=0) {
-  Analyze ana(inputFileName,useInternalPulser);
+void processNtuple(std::string inputFileName, bool useInternalPulser=0, bool useDefaultGain=0) {
+  Analyze ana(inputFileName,useInternalPulser,useDefaultGain);
   ana.doAnalysis();
   return;
 }
 
 int main(int argc, char *argv[]){
-  if(argc!=2 && argc!=3){
+  if(argc!=2 && argc!=3 && argc!=4){
     cout<<"Usage: processNtuple [inputFilename]"<<endl;
     cout<<"OR: processNtuple [inputFilename] [useInternalPulser]"<<endl;
+    cout<<"OR: processNtuple [inputFilename] [useInternalPulser] [useDefaultGain]"<<endl;
     return 0;
   }
 
@@ -765,10 +772,19 @@ int main(int argc, char *argv[]){
     }
   }
 
+  bool useDefaultGain = 0;
+  if( argc == 4 ){
+    useDefaultGain = atoi(argv[3]);
+    if( useDefaultGain != 0 && useDefaultGain != 1 ){
+      cout<<"Invalid default gain setting requested, exiting"<<endl;
+      return 0;  
+    }
+  }
+
   gROOT->SetBatch(true);
   //define ROOT application object
   theApp = new TApplication("App", &argc, argv);
-  processNtuple(inputFileName,useInternalPulser); 
+  processNtuple(inputFileName,useInternalPulser,useDefaultGain); 
 
   //return 1;
   gSystem->Exit(0);
