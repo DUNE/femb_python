@@ -62,6 +62,7 @@ class QUADADC_TEST_FUNCGEN(object):
         self.femb_config.isExternalClock = self.isExternalClock #False = internal monostable, True = external
         self.femb_config.is1MHzSAMPLERATE = self.is1MHzSAMPLERATE #False = 1MHz, True = 2MHz
         self.femb_config.COLD = self.isCold
+        self.femb_config.enableTest = 1 # 0 = no test input, 1 = enabled
 
         #define json output
         self.jsondict = {'type':'quadAdcTest_funcgen'}
@@ -142,9 +143,9 @@ class QUADADC_TEST_FUNCGEN(object):
         if not self.cppfr.exists('test_measurements/quadAdcTester/code/parseBinaryFile'):    
             print('Error running test - parseBinaryFile executable not found, run setup.sh')
             return
-        #if not self.cppfr.exists('test_measurements/quadAdcTester/code/processNtuple_funcgenMeasurement'):
-        #    print('Error running test - processNtuple_funcgenMeasurement executable not found, run setup.sh')
-        #    return
+        if not self.cppfr.exists('test_measurements/quadAdcTester/code/processNtuple_funcgenMeasurement'):
+            print('Error running test - processNtuple_funcgenMeasurement executable not found, run setup.sh')
+            return
 
         #Setup is ok
         print("FUNCTION GENERATOR MEASUREMENT - READOUT STATUS OK" + "\n")
@@ -266,22 +267,26 @@ class QUADADC_TEST_FUNCGEN(object):
 
         #run analysis program
         parseBinaryFile = "output_parseBinaryFile.root"
-        #self.cppfr.run("test_measurements/quadAdcTester/code/processNtuple_funcgenMeasurement",  [parseBinaryFile])
+        self.cppfr.run("test_measurements/quadAdcTester/code/processNtuple_funcgenMeasurement",  [parseBinaryFile])
 
         #check for online analysis result files here
-        #if os.path.isfile( "output_processNtuple_funcgenMeasurement.root" ) == False:
-        #    print("Error running test - parsed data file not found.")
-        #    return
+        if os.path.isfile( "output_processNtuple_funcgenMeasurement.root" ) == False:
+            print("Error running test - processed data file not found.")
+            return
+
+        if os.path.isfile( "summaryPlot_funcgenMeasurement.png" ) == False:
+            print("Error running test - summary plot file not found.")
+            return
 
         #update output file names
         parseBinaryFile = self.outpathlabel + "-parseBinaryFile.root"
         call(["mv", "output_parseBinaryFile.root" , parseBinaryFile])
 
-        #processNtupleFile = self.outpathlabel + "-processNtupleFile.root"
-        #call(["mv", "output_processNtuple_funcgenMeasurement.root" , processNtupleFile])
+        processNtupleFile = self.outpathlabel + "-processNtupleFile.root"
+        call(["mv", "output_processNtuple_funcgenMeasurement.root" , processNtupleFile])
 
-        #summaryPlot = self.outpathlabel + "-summaryPlot.png"
-        #call(["mv", "summaryPlot_funcgenMeasurement.png" , summaryPlot])
+        summaryPlot = self.outpathlabel + "-summaryPlot.png"
+        call(["mv", "summaryPlot_funcgenMeasurement.png" , summaryPlot])
 
         print("FUNCTION GENERATOR MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
@@ -326,7 +331,7 @@ def main():
     asicsockets = [0,1,2]
     doReconfig=True
     isExternalClock=True
-    is1MHzSAMPLERATE=True
+    is1MHzSAMPLERATE=False
     isCold=False
 
     #check for JSON file input
@@ -343,7 +348,7 @@ def main():
         if 'is1MHzSAMPLERATE' in params:
             is1MHzSAMPLERATE = params['is1MHzSAMPLERATE']
         if 'isCold' in params:
-            is1MHzSAMPLERATE = params['isCold']
+            isCold = params['isCold']
 
     #do some sanity checks on input parameters
     if len(asicsockets) > 4 :

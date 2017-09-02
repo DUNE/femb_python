@@ -61,7 +61,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.REG_CLKPHASE_data_2MHz = 0x4
         self.REG_CLKPHASE_data_1MHz = 0x1
-        self.REG_CLKPHASE_data_2MHz_cold = 0x4
+        self.REG_CLKPHASE_data_2MHz_cold = 0x0 #double check socket 1 value
         self.REG_CLKPHASE_data_1MHz_cold = 0x0
 
         self.DEFAULT_FPGA_TST_PATTERN = 0x12
@@ -83,11 +83,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.CLKDEFAULT = "fifo"
 
         self.isExternalClock = True #False = internal monostable, True = external
-        self.is1MHzSAMPLERATE = False #False = 1MHz, True = 2MHz
+        self.is1MHzSAMPLERATE = False #True = 1MHz, False = 2MHz
         self.COLD = False
+        self.enableTest = 0
         self.doReSync = True
         self.adcSyncStatus = 0
         self.maxSyncAttempts = 10
+        self.numSyncTests = 25
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
@@ -98,6 +100,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def printParameters(self):
         print("External ADC Clocks    \t",self.isExternalClock)
         print("Cryogenic temperature  \t",self.COLD)
+        print("Enable ADC test input  \t",self.enableTest)
         print("MAX SYNC ATTEMPTS      \t",self.maxSyncAttempts)
         print("Do resync              \t",self.doReSync)
         print("1MHz Sampling          \t",self.is1MHzSAMPLERATE)
@@ -218,9 +221,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #Configure ADC (and external clock inside)
         if self.isExternalClock == True :
-           self.configAdcAsic(asicNum=asicNumVal, clockExternal=True)
+           self.configAdcAsic(asicNum=asicNumVal, testInput=self.enableTest, clockExternal=True)
         else :
-           self.configAdcAsic(asicNum=asicNumVal, clockMonostable=True)
+           self.configAdcAsic(asicNum=asicNumVal, testInput=self.enableTest, clockMonostable=True)
 
         #check SPI + SYNC status here
         syncStatus = self.getSyncStatus()
@@ -370,7 +373,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #check ADC sync bits several times to ensure sync is stable
         isSync = 0
         syncVal = 0
-        for syncTest in range(0,10,1):
+        for syncTest in range(0,self.numSyncTests,1):
             regVal = self.femb.read_reg(2)
             if regVal == None:
                 print("doAdcAsicConfig: Could not check SYNC status, bad")
@@ -593,7 +596,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         print("Turning on ASIC ",asicVal)
         self.femb.write_reg_bits( self.REG_PWR_CTRL , asicVal, 0x1, 0x1 )
-        time.sleep(2) #pause after turn on
+        time.sleep(5) #pause after turn on
 
     def turnOnAsics(self):
         print( "turnOnAsics 0-{}".format(int(self.NASICS -1)))

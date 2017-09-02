@@ -74,6 +74,18 @@ class GUI_WINDOW(Frame):
         self.temp_radio1.grid(sticky=W,row=3,column=columnbase+1)
         self.temp_radio2.grid(sticky=W,row=4,column=columnbase+1)
 
+        self.apa_bool = StringVar()
+        self.temp_radio3 = Radiobutton(self, text="On Bench", variable=self.apa_bool, value=0)
+        self.temp_radio4 = Radiobutton(self, text="On APA", variable=self.apa_bool, value=1)
+        self.temp_radio3.grid(sticky=W,row=5,column=columnbase+1)
+        self.temp_radio4.grid(sticky=W,row=6,column=columnbase+1)
+
+        self.defaultgain_bool = StringVar()
+        self.temp_radio5 = Radiobutton(self, text="Regular Gain", variable=self.defaultgain_bool, value=0)
+        self.temp_radio6 = Radiobutton(self, text="Default Gain", variable=self.defaultgain_bool, value=1)
+        self.temp_radio5.grid(sticky=W,row=7,column=columnbase+1)
+        self.temp_radio6.grid(sticky=W,row=8,column=columnbase+1)
+        
         # Adding electronics ID and read entry box
 
         
@@ -102,9 +114,6 @@ class GUI_WINDOW(Frame):
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
         self.status_label.grid(row=100,column=columnbase,columnspan=4)
         self.bkg_color = self.status_label.cget("background")
-
-        # initialize WIB in case we are coming out of a power down
-        self.config.initWib()
     
     def get_options(self):
         operator = self.operator_entry.get()
@@ -121,7 +130,17 @@ class GUI_WINDOW(Frame):
             isRoomTemp = False
         else:
             isRoomTemp = True
-        
+
+        if (self.apa_bool.get() == "1"):
+            isAPA = True
+        else:
+            isAPA = False
+
+        if (self.defaultgain_bool.get() == "1"):
+            useDefaultGain = True
+        else:
+            useDefaultGain = False
+            
         for var in variables:
             if var == "" :
                 return
@@ -133,6 +152,8 @@ class GUI_WINDOW(Frame):
             "box_ids": boxid,
             "apa_pos": apapos,
             "isRoomTemp": isRoomTemp,
+            "isAPA": isAPA,
+            "useDefaultGainFactor": useDefaultGain,
             "wibslots": wibslots_filled,
         }
         print(inputOptions)
@@ -178,6 +199,11 @@ class GUI_WINDOW(Frame):
         self.status_label["text"] = "TESTS IN PROGRESS..."
         self.status_label["fg"] = "#000000"
         self.update_idletasks()
+
+        #Init WIB
+        self.config.initWib()
+
+        #Run tests
         maintest(**params)
         self.done_measuring(params)
         

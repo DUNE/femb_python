@@ -27,7 +27,7 @@ from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
 class QUADADC_TEST_SIMPLE(object):
 
-    def __init__(self, datadir="data", outlabel="simpleMeasurement",asicnum=0,isRoomTemp=True):
+    def __init__(self, datadir="data", outlabel="simpleMeasurement",asicnum=0,isCold=False):
         #set internal variables
         self.datadir = datadir
         self.outlabel = outlabel + str("_asic_") + str(asicnum)
@@ -51,7 +51,7 @@ class QUADADC_TEST_SIMPLE(object):
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
-        self.isRoomTemp = isRoomTemp
+        self.isCold = isCold
 
         #define json output
         self.jsondict = {'type':'quadAdcTest_simple'}
@@ -158,7 +158,7 @@ class QUADADC_TEST_SIMPLE(object):
             print( "Error running test - Could not open output data file for writing, ending test" )
 
         #record data
-        self.write_data.numpacketsrecord = 20000
+        self.write_data.numpacketsrecord = 10
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -256,7 +256,7 @@ def main():
     #default parameters
     datadir = "data"
     asicsockets = [0,1,2]
-    isRoomTemp = True
+    isCold=False
 
     #check for JSON file input
     if len(sys.argv) == 2 :
@@ -265,8 +265,8 @@ def main():
             datadir = params['datadir']
         if 'asicsockets' in params:
             asicsockets = params['asicsockets']
-        if 'isRoomTemp' in params:
-            isRoomTemp = params['isRoomTemp']
+        if 'isCold' in params:
+            isCold = params['isCold']
 
     #do some sanity checks on input parameters
     if len(asicsockets) > 4 :
@@ -275,7 +275,7 @@ def main():
       
     #actually run the test, one per FEMB slot
     for asicnum in asicsockets:
-        quadadc_test = QUADADC_TEST_SIMPLE(datadir,"simpleMeasurement",asicnum,isRoomTemp)
+        quadadc_test = QUADADC_TEST_SIMPLE(datadir,"simpleMeasurement",asicnum,isCold)
         quadadc_test.check_setup()
         quadadc_test.record_data()
         quadadc_test.do_analysis()

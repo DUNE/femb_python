@@ -61,6 +61,8 @@ class FEMB_TEST_GAIN(object):
         self.useInternalPulser = False
         self.useExtAdcClock = False
         self.isRoomTemp = False
+        self.isAPA = False
+        self.useDefaultGainFactor = False
 
         #json output, note module version number defined here
         self.jsondict = {'type':'fembTest_gain'}
@@ -247,10 +249,17 @@ class FEMB_TEST_GAIN(object):
         #run analysis program
         parseBinaryFile = self.outpathlabel + "-parseBinaryFile.root"
         call(["mv", "output_parseBinaryFile.root" , parseBinaryFile])
-        if self.useInternalPulser == False : 
-            self.cppfr.run("test_measurements/fembTest/code/processNtuple_gainMeasurement",  [parseBinaryFile])
-        else :
-            self.cppfr.run("test_measurements/fembTest/code/processNtuple_gainMeasurement",  [parseBinaryFile,"1"])
+        useInternalPulserFlag = "1"
+        useDefaultGainFactorFlag = "1"
+        if self.useInternalPulser == False :
+            useInternalPulserFlag = "0"
+        if (self.useDefaultGainFactor == False):
+            useDefaultGainFactorFlag = "0"
+        self.cppfr.run("test_measurements/fembTest/code/processNtuple_gainMeasurement",  [parseBinaryFile,useInternalPulserFlag,useDefaultGainFactorFlag])
+        #if self.useInternalPulser == False :
+        #    self.cppfr.run("test_measurements/fembTest/code/processNtuple_gainMeasurement",  [parseBinaryFile,"0"])
+        #else :
+        #    self.cppfr.run("test_measurements/fembTest/code/processNtuple_gainMeasurement",  [parseBinaryFile,"1"])
 
         processNtupleFile = self.outpathlabel + "-processNtupleFile.root"
         call(["mv", "output_processNtuple_gainMeasurement.root" , processNtupleFile])
@@ -326,6 +335,8 @@ def main():
     useInternalPulser = True
     useExtAdcClock = True
     isRoomTemp = True
+    isAPA = False
+    useDefaultGainFactor = False
 
     #get parameters from input JSON file
     if len(sys.argv) == 2 :
@@ -348,6 +359,10 @@ def main():
             useExtAdcClock = params['useExtAdcClock']
         if 'isRoomTemp' in params:
             isRoomTemp = params['isRoomTemp']
+        if 'useDefaultGainFactor' in params:
+            useDefaultGainFactor = params['useDefaultGainFactor']
+        if 'isAPA' in params:
+            isAPA = params['isAPA']
 
     #do some sanity checks
     if len(wibslots) > 4 :
@@ -363,6 +378,8 @@ def main():
         femb_test.useInternalPulser = useInternalPulser
         femb_test.useExtAdcClock = useExtAdcClock
         femb_test.isRoomTemp = isRoomTemp
+        femb_test.isAPA = isAPA
+        femb_test.useDefaultGainFactor = useDefaultGainFactor
 
         femb_test.check_setup()
         femb_test.record_data()

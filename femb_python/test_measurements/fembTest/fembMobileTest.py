@@ -60,13 +60,12 @@ def main(**params):
     #Explicitly define list of production tests to perform
     tests = []
 
-
     #Simple Measurement
     params_simple = dict(params)
     params_simple.update( executable="femb_test_simple", argstr="{paramfile}",
                            datasubdir="fembTest_simple",
                            outlabel="fembTest_simple")
-    tests.append( Test(**params_simple) )
+    #tests.append( Test(**params_simple) )
 
     
     #ENC Measurements: Loop over gain and shaping times
@@ -85,7 +84,7 @@ def main(**params):
     params_test_current.update( executable="femb_check_current", argstr="{paramfile}",
                                 datasubdir="fembTest_check_current_test",
                                 outlabel="fembTest_check_current_test")
-    tests.append( Test(**params_test_current) )
+    #tests.append( Test(**params_test_current) )
     
 
     #Summarize Results

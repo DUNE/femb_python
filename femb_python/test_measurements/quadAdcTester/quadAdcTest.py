@@ -61,10 +61,10 @@ def main(**params):
     tests.append( Test(**params_test_0) )
 
     #shut down setup before starting normal testing
-    params_test_init_shutdown = dict(params)
-    params_test_init_shutdown.update( executable = "quadadc_prod_shutdownSetup", argstr="{paramfile}", 
-                          datasubdir = "quadAdcTest_init_shutdown", outlabel = "quadAdcTest_init_shutdown")
-    tests.append( Test(**params_test_0) )
+    #params_test_init_shutdown = dict(params)
+    #params_test_init_shutdown.update( executable = "quadadc_prod_shutdownSetup", argstr="{paramfile}", 
+    #                      datasubdir = "quadAdcTest_init_shutdown", outlabel = "quadAdcTest_init_shutdown")
+    #tests.append( Test(**params_test_init_shutdown) )
 
     #Take test data using internal vs exteranl ADC clock signals, 1MHz vs 2MHz
     #External + 2MHz
@@ -97,12 +97,23 @@ def main(**params):
     tests.append( Test(**params_test_funcgen_intclk_1MHz) )
 
     #ADC input pin functionality test here
+    params_test_funcgen_simple = dict(params)
+    params_test_funcgen_simple.update( executable = "quadadc_test_simple", argstr="{paramfile}", 
+                                            datasubdir = "quadAdcTest_simple", outlabel = "quadAdcTest_simple",
+                                            isExternalClock = False, is1MHzSAMPLERATE=False)
+    tests.append( Test(**params_test_funcgen_simple) )
 
     #final shut down
-    params_test_final_shutdown = dict(params)
-    params_test_final_shutdown.update( executable = "quadadc_prod_shutdownSetup", argstr="{paramfile}", 
-                          datasubdir = "quadAdcTest_final_shutdown", outlabel = "quadAdcTest_final_shutdown")
-    tests.append( Test(**params_test_0) )
+    #params_test_final_shutdown = dict(params)
+    #params_test_final_shutdown.update( executable = "quadadc_prod_shutdownSetup", argstr="{paramfile}", 
+    #                      datasubdir = "quadAdcTest_final_shutdown", outlabel = "quadAdcTest_final_shutdown")
+    #tests.append( Test(**params_test_final_shutdown) )
+
+    #create summary plots
+    params_test_funcgen_summary = dict(params)
+    params_test_funcgen_summary.update( executable = "quadadc_test_summary", argstr="{paramfile}", 
+                                            datasubdir = "quadAdcTest_summary", outlabel = "quadAdcTest_summary")
+    tests.append( Test(**params_test_funcgen_summary) )
 
     #actually run tests here
     r = runpolicy.make_runner(test_category, use_sumatra, **params)

@@ -143,7 +143,7 @@ class FEMB_SUMMARY(object):
                     
                     if ("g2_s2_intpulse" in mydir):
                         if os.path.isfile(self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"):
-                            gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 1 us, Internal Pulser"
+                            gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 2 us, Internal Pulser"
                             gainimage = self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"
                             printgain = True
                 #Power cycle summary:

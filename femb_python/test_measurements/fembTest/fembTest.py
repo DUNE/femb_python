@@ -90,7 +90,7 @@ def main(**params):
 
     #Test with internal clocks
     params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
-                        datasubdir="fembTest_gainenc_test_g2_s2_extpulse_intclock", 
+                        datasubdir="fembTest_gainenc_test_g2_s2_intpulse_intclock", 
                         outlabel="fembTest_gainenc_test_g2_s2_intpulse_intclock", 
                         gain=2, shape=2, base=0, useInternalPulser=True, useExtAdcClock=False)
     tests.append ( Test(**params_test) )
