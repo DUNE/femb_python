@@ -526,50 +526,50 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def setExtClockRegs(self):
         #Coarse Control
-        self.femb.write_reg(10, 0x03030103)
+        self.femb.write_reg(10, 0x03030103) #Invert/Disable all ADC Clocks
        
         #For ADC1
-        self.femb.write_reg(11, 0x00090001)
-        self.femb.write_reg(12, 0x0004005E)
-        self.femb.write_reg(13, 0x0035002C)
-        self.femb.write_reg(14, 0x0003005E)
-        self.femb.write_reg(15, 0x00250008)
-        self.femb.write_reg(16, 0x0003005E)
+        self.femb.write_reg(11, 0x00090001) #ADC1 - RST Offset and Width
+        self.femb.write_reg(12, 0x0004005E) #ADC1 - READ Offset and Width
+        self.femb.write_reg(13, 0x0035002C) #ADC1 - IDXM Offset and Width
+        self.femb.write_reg(14, 0x0003005E) #ADC1 - IDXL Offset and Width
+        self.femb.write_reg(15, 0x00250008) #ADC1 - IDL1 Offset and Width
+        self.femb.write_reg(16, 0x0003005E) #ADC1 - IDL2 Offset and Width
        
         #For ADC2
-        self.femb.write_reg(20, 0x00090001)
-        self.femb.write_reg(21, 0x0003005F)
-        self.femb.write_reg(22, 0x0035002D)
-        self.femb.write_reg(23, 0x0003005F)
-        self.femb.write_reg(24, 0x00250008)
-        self.femb.write_reg(25, 0x0003005E)
+        self.femb.write_reg(20, 0x00090001) #ADC2 - RST Offset and Width
+        self.femb.write_reg(21, 0x0003005F) #ADC2 - READ Offset and Width
+        self.femb.write_reg(22, 0x0035002D) #ADC2 - IDXM Offset and Width
+        self.femb.write_reg(23, 0x0003005F) #ADC2 - IDXL Offset and Width
+        self.femb.write_reg(24, 0x00250008) #ADC2 - IDL1 Offset and Width
+        self.femb.write_reg(25, 0x0003005E) #ADC2 - IDL2 Offset and Width
        
         #For ADC3
-        self.femb.write_reg(29, 0x00090001)
-        self.femb.write_reg(30, 0x0003005F)
-        self.femb.write_reg(31, 0x0035002D)
-        self.femb.write_reg(32, 0x0003005F)
-        self.femb.write_reg(33, 0x00250008)
-        self.femb.write_reg(34, 0x0003005E)
+        self.femb.write_reg(29, 0x00090001) #ADC2 - RST Offset and Width
+        self.femb.write_reg(30, 0x0003005F) #ADC3 - READ Offset and Width
+        self.femb.write_reg(31, 0x0035002D) #ADC3 - IDXM Offset and Width
+        self.femb.write_reg(32, 0x0003005F) #ADC3 - IDXL Offset and Width
+        self.femb.write_reg(33, 0x00250008) #ADC3 - IDL1 Offset and Width
+        self.femb.write_reg(34, 0x0003005E) #ADC3 - IDL2 Offset and Width
        
         #Fine Control
         #For ADC1
-        self.femb.write_reg(17, 0x00060017)
-        self.femb.write_reg(18, 0x0005000B)
-        self.femb.write_reg(19, 0x001E0003)
-        self.femb.write_reg(19, 0x801E0003)
+        self.femb.write_reg(17, 0x00060009) #ADC1 - READ and IDXM Phase Shift
+        self.femb.write_reg(18, 0x0005000B) #ADC1 - IDXL and IDL1 Phase Shift
+        self.femb.write_reg(19, 0x001F0003) #ADC1 - IDL2 Phase Shift and inversion
+        self.femb.write_reg(19, 0x801F0003) #ADC1 - OK
        
         #For ADC2
-        self.femb.write_reg(26, 0x0010000E)
-        self.femb.write_reg(27, 0x00050009)
-        self.femb.write_reg(28, 0x001C0002)
-        self.femb.write_reg(28, 0x801C0002)
+        self.femb.write_reg(26, 0x0010000E) #ADC2 - READ and IDXM Phase Shift
+        self.femb.write_reg(27, 0x00030009) #ADC2 - IDXL and IDL1 Phase Shift
+        self.femb.write_reg(28, 0x001C0002) #ADC2 - IDL2 Phase Shift and inversion
+        self.femb.write_reg(28, 0x801C0002) #ADC2 - OK
         time.sleep(0.1)
         #For ADC3
-        self.femb.write_reg(35, 0x0010000E)
-        self.femb.write_reg(36, 0x0005000D)
-        self.femb.write_reg(37, 0x00180004)
-        self.femb.write_reg(37, 0x80180004)
+        self.femb.write_reg(35, 0x0010000E) #ADC3 - READ and IDXM Phase Shift
+        self.femb.write_reg(36, 0x0005000D) #ADC3 - IDXL and IDL1 Phase Shift
+        self.femb.write_reg(37, 0x00180004) #ADC3 - IDL2 Phase Shift and inversion
+        self.femb.write_reg(37, 0x80180004) #ADC3 - OK
 
     def turnOffAsics(self):
         self.femb.write_reg_bits( self.REG_PWR_CTRL , 0, 0xF, 0x0 )
