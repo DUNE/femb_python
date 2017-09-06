@@ -4,6 +4,8 @@ import time
 import random
 import json
 
+from ..OscillatorTesting.code.driverUSBTMC import DriverUSBTMC
+
 from femb_python.configuration import CONFIG
 
 class TEST_QUAD_EPCS(object):
@@ -16,10 +18,44 @@ class TEST_QUAD_EPCS(object):
         self.nPages = 20
         self.nWriteTries = 3
         self.nTimeToErase = 240 #Erase bulk cycle time for EPCS64 is 160s max
+
+        self.powerSupplyDevice = None
         self.printData = False
         
     def doTesting(self):
 
+        #Check power source: RIGOL DP832 Programmable DC Power Supply
+        dirList = os.listdir("/dev")
+        for fName in dirList:
+            if(fName.startswith("usbtmc")):
+                device = DriverUSBTMC("/dev/" + fName)
+                deviceID = device.getID()
+                if(deviceID.startswith(b"RIGOL TECHNOLOGIES,DP832")):
+                    print("DC Power Supply found with identification %s" %(deviceID.decode()))
+                    self.powerSupplyDevice = device
+                    
+        if self.powerSupplyDevice is None:
+            print("Power supply of our interest not found!\nExiting!\n")
+            sys.exit(1)
+
+        #Turn channels 1 off
+        self.powerSupplyDevice.write(":OUTP CH1, OFF")
+        time.sleep(1)
+
+        #Choose channel 1
+        self.powerSupplyDevice.write(":INST CH1")
+
+        #Set voltage to 5.0 V
+        self.powerSupplyDevice.write(":VOLT 5.0")
+        self.powerSupplyDevice.write(":OUTP CH1, ON")
+        time.sleep(5)
+    
+        #Measure initial volatage and current
+        self.powerSupplyDevice.write(":MEAS:VOLT?")
+        initialVoltage = float(self.powerSupplyDevice.read().strip().decode())
+        self.powerSupplyDevice.write(":MEAS:CURR?")
+        initialCurrent = float(self.powerSupplyDevice.read().lstrip().decode())
+        
         print("*" * 75)
         #Initialize board
         self.femb_config.initBoard()
@@ -33,7 +69,7 @@ class TEST_QUAD_EPCS(object):
         flashToSkip = [True]*self.nFlashes
         timeToErase = [9999]*self.nFlashes        
 
-        print("\n\nWaiting %s seconds for flashes to be erased" %(self.nTimeToErase))
+        print("Waiting %s seconds for flashes to be erased\n" %(self.nTimeToErase))
         print("*" * 75)
         
         startTime = time.time()
@@ -49,17 +85,16 @@ class TEST_QUAD_EPCS(object):
         #Check a page (page 5 here) to make sure if things make sense; memory should be erased to 0xFFFFFFFF
         for iFlash in range(self.nFlashes):
             if flashToSkip[iFlash]:
-                print("Couldn't erase flash %s, skipping it\n" %(iFlash))
+                print("Couldn't erase flash %s, skipping it" %(iFlash))
             else:
-                print("Successfully erased flash %s\n" %(iFlash))
+                print("Successfully erased flash %s" %(iFlash))
 
                 if self.printData:
                     outputData = self.femb_config.readFlash(iFlash, 5)
                     print("\nPrinting page 5 of flash %s, expecting all 0xffffffff\n" %(iFlash))
                     outputDataHex = [hex(x) for x in outputData]
                     print(outputDataHex)
-        print("*" * 75)
-
+ 
         print("*" * 75)
         print("\nDone erasing flashes! Begining the tests.\n")
          
@@ -106,7 +141,16 @@ class TEST_QUAD_EPCS(object):
                     else:
                         writeSuccess[iFlash][iPage][iTry]  = 0
                         print("Failed!!")
-                                    
+                        
+        #Measure final volatage and current
+        self.powerSupplyDevice.write(":MEAS:VOLT?")
+        finalVoltage = float(self.powerSupplyDevice.read().strip().decode())
+        self.powerSupplyDevice.write(":MEAS:CURR?")
+        finalCurrent = float(self.powerSupplyDevice.read().lstrip().decode())
+
+        #Turn channels 1 off
+        self.powerSupplyDevice.write(":OUTP CH1, OFF")
+                
         #Print the results
         flashSuccess = [False]*self.nFlashes
         failedPages = [0]*self.nFlashes
@@ -124,6 +168,9 @@ class TEST_QUAD_EPCS(object):
         print("*" * 75)
         print("Printing results:")
         print("\nTested %s flashes over %s pages (with %s write tries)." %(self.nFlashes, self.nPages, self.nWriteTries))
+        print("Initial voltage: %s, final voltage: %s", %(initialVoltage, finalVoltage))
+        print("Initial current: %s, final current: %s", %(initialCurrent, finalCurrent))
+        
         for iFlash in range(self.nFlashes):
             if flashSuccess[iFlash]:
                 print("\nFlash %s passed!!" %(iFlash))
@@ -142,6 +189,8 @@ class TEST_QUAD_EPCS(object):
             json.dump({'Passed? : ':flashSuccess}, outFile, indent=4)
             json.dump({'Failed pages: ':failedPages}, outFile, indent=4)
             json.dump({'Erase time : ':timeToErase}, outFile, indent=4)
+            json.dump({'Voltage (inital, final): ':[initialVoltage, finalVoltage]}, outFile, indent=4)
+            json.dump({'Current (inital, final): ':[initialCurrent, finalCurrent]}, outFile, indent=4)
             json.dump({'All related info: ':writeSuccess}, outFile, indent=4)
             
 def main():
