@@ -69,7 +69,7 @@ class TEST_QUAD_EPCS(object):
         flashToSkip = [True]*self.nFlashes
         timeToErase = [9999]*self.nFlashes        
 
-        print("Waiting %s seconds for flashes to be erased\n" %(self.nTimeToErase))
+        print("\nWaiting %s seconds for flashes to be erased\n" %(self.nTimeToErase))
         print("*" * 75)
         
         startTime = time.time()
@@ -168,8 +168,8 @@ class TEST_QUAD_EPCS(object):
         print("*" * 75)
         print("Printing results:")
         print("\nTested %s flashes over %s pages (with %s write tries)." %(self.nFlashes, self.nPages, self.nWriteTries))
-        print("Initial voltage: %s, final voltage: %s", %(initialVoltage, finalVoltage))
-        print("Initial current: %s, final current: %s", %(initialCurrent, finalCurrent))
+        print("Initial voltage: %s, final voltage: %s" %(initialVoltage, finalVoltage))
+        print("Initial current: %s, final current: %s" %(initialCurrent, finalCurrent))
         
         for iFlash in range(self.nFlashes):
             if flashSuccess[iFlash]:
@@ -188,7 +188,7 @@ class TEST_QUAD_EPCS(object):
         with open(self.outpathlabel+".json", 'w') as outFile:
             json.dump({'Passed? : ':flashSuccess}, outFile, indent=4)
             json.dump({'Failed pages: ':failedPages}, outFile, indent=4)
-            json.dump({'Erase time : ':timeToErase}, outFile, indent=4)
+            json.dump({'Erase time (seconds) : ':timeToErase}, outFile, indent=4)
             json.dump({'Voltage (inital, final): ':[initialVoltage, finalVoltage]}, outFile, indent=4)
             json.dump({'Current (inital, final): ':[initialCurrent, finalCurrent]}, outFile, indent=4)
             json.dump({'All related info: ':writeSuccess}, outFile, indent=4)
