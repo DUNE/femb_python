@@ -15,14 +15,16 @@ class TEST_QUAD_EPCS(object):
         self.nFlashes = 4
         self.nPages = 20
         self.nWriteTries = 3
+        self.nTimeToErase = 240 #Erase bulk cycle time for EPCS64 is 160s max
         self.printData = False
         
     def doTesting(self):
+
         print("*" * 75)
         #Initialize board
         self.femb_config.initBoard()
         print("*" * 75)
-                
+        
         #Loop through flashes and erase
         for iFlash in range(self.nFlashes):
             self.femb_config.eraseFlash(iFlash)
@@ -31,18 +33,18 @@ class TEST_QUAD_EPCS(object):
         flashToSkip = [True]*self.nFlashes
         timeToErase = [9999]*self.nFlashes        
 
+        print("\n\nWaiting %s seconds for flashes to be erased" %(self.nTimeToErase))
         print("*" * 75)
-        #Erase bulk cycle time for EPCS64 is 160s max, trying 3 mins (180s)
-        print("\n\nWaiting 3 mins for flashes to be erased\n")
+        
         startTime = time.time()
-        for t in range(180):
+        for t in range(self.nTimeToErase):
             for iFlash in range(self.nFlashes):
                 if flashToSkip[iFlash] == False: continue 
                 status = self.femb_config.readStatus(iFlash)
                 if(status == 0):
                     flashToSkip[iFlash] = False
                     timeToErase[iFlash] = time.time() - startTime
-        time.sleep(1)
+            time.sleep(1)
 
         #Check a page (page 5 here) to make sure if things make sense; memory should be erased to 0xFFFFFFFF
         for iFlash in range(self.nFlashes):
@@ -114,7 +116,7 @@ class TEST_QUAD_EPCS(object):
                 for iTry in range(self.nWriteTries):
                     if writeSuccess[iFlash][iPage][iTry] == 1:
                         flashSuccess[iFlash] = True
-                        filedPage = False
+                        failedPage = False
                 if failedPage:
                     failedPages[iFlash] +=1
         print("*" * 75)
@@ -125,14 +127,14 @@ class TEST_QUAD_EPCS(object):
         for iFlash in range(self.nFlashes):
             if flashSuccess[iFlash]:
                 print("\nFlash %s passed!!" %(iFlash))
-                print("\tErase time: %.4s seconds" %(timeToErase[iFlash]))
+                print("\tErase time: %.7s seconds" %(timeToErase[iFlash]))
             else:
                 print("\nFlash %s failed!!" %(iFlash))
                 if flashToSkip[iFlash]:
                     print("\tIt failed during erase")
                 else:
                     print("\tIt failed on %s pages" %(failedPages[iFlash]))
-                    print("\tErase time: %.4s seconds" %(timeToErase[iFlash]))
+                    print("\tErase time: %.7s seconds" %(timeToErase[iFlash]))
         print("*" * 75)
 
         #Save the results
@@ -140,7 +142,7 @@ class TEST_QUAD_EPCS(object):
             json.dump({'Passed? : ':flashSuccess}, outFile, indent=4)
             json.dump({'Failed pages: ':failedPages}, outFile, indent=4)
             json.dump({'Erase time : ':timeToErase}, outFile, indent=4)
-            json.dump(writeSuccess, outFile, indent=4)
+            json.dump({'All related info: ':writeSuccess}, outFile, indent=4)
             
 def main():
     datadir = sys.argv[1]
