@@ -52,11 +52,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print("Error!! Status is None.")
             return
 
-        print("STATUS BIT: ",statusVal)
         return statusVal
 
     def readFlash(self, epcsNum = 0, pageNum = 0):
-        print("\nReading flash %s, page %s" %(epcsNum, pageNum))
         #EPCS OP Code
         op_reg = 1 + 3*epcsNum
         #EPCS address
@@ -86,7 +84,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         return outputData
 
     def eraseFlash(self, epcsNum = 0):
-        print("\nErasing flash %s" %(epcsNum))
+        print("Erasing flash %s" %(epcsNum))
         #EPCS OP Code
         op_reg = 1 + 3*epcsNum
 
@@ -101,18 +99,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(op_reg,0x1C7)
         time.sleep(0.1)
         self.femb.write_reg(op_reg,0xC7)
-
-        #Erase bulk cycle time for EPCS64 is 160s max
-        for t in range(160): 
-            status = self.readStatus(epcsNum)
-            time.sleep(1)
-            if(status == 0):
-                self.readStatus(epcsNum)
-                break
             
     def programFlash(self, epcsNum = 0, pageNum = 0, inputData = None):
-        print("\nPrograming flash %s, page %s" %(epcsNum, pageNum))
- 
         #EPCS OP Code
         op_reg = 1 + 3*epcsNum
 
@@ -143,11 +131,3 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(op_reg,0x102)
         time.sleep(0.1)
         self.femb.write_reg(op_reg,0x2)
-
-        #Write byte cycle time for EPCS64 is 5s max
-        for t in range(5):
-            status = self.readStatus(epcsNum)
-            time.sleep(1)
-            if(status == 0):
-                self.readStatus(epcsNum)
-                break
