@@ -17,7 +17,7 @@ class TEST_QUAD_EPCS(object):
         self.nFlashes = 4
         self.nPages = 20
         self.nWriteTries = 3
-        self.nTimeToErase = 240 #Erase bulk cycle time for EPCS64 is 160s max
+        self.nTimeToErase = 180 #Erase bulk cycle time for EPCS64 is 160s max
 
         self.powerSupplyDevice = None
         self.printData = False
@@ -71,17 +71,19 @@ class TEST_QUAD_EPCS(object):
 
         print("\nWaiting %s seconds for flashes to be erased\n" %(self.nTimeToErase))
         print("*" * 75)
-        
+
+        #This loop takes up to 268 seconds
         startTime = time.time()
         for t in range(self.nTimeToErase):
+            print(time.time())
+            time.sleep(1)
             for iFlash in range(self.nFlashes):
                 if flashToSkip[iFlash] == False: continue 
                 status = self.femb_config.readStatus(iFlash)
                 if(status == 0):
                     flashToSkip[iFlash] = False
                     timeToErase[iFlash] = time.time() - startTime
-            time.sleep(1)
-
+        
         #Check a page (page 5 here) to make sure if things make sense; memory should be erased to 0xFFFFFFFF
         for iFlash in range(self.nFlashes):
             if flashToSkip[iFlash]:
@@ -168,7 +170,7 @@ class TEST_QUAD_EPCS(object):
         print("*" * 75)
         print("Printing results:")
         print("\nTested %s flashes over %s pages (with %s write tries)." %(self.nFlashes, self.nPages, self.nWriteTries))
-        print("Initial voltage: %s, final voltage: %s" %(initialVoltage, finalVoltage))
+        print("\nInitial voltage: %s, final voltage: %s" %(initialVoltage, finalVoltage))
         print("Initial current: %s, final current: %s" %(initialCurrent, finalCurrent))
         
         for iFlash in range(self.nFlashes):
