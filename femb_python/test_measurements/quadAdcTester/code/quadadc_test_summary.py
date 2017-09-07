@@ -121,6 +121,11 @@ def main():
         
         params = {}
 
+        #require JSON input or additional arguments
+        if len(sys.argv) < 2 :
+            print("quadadc_test_summary: invalid number of arguments, will not run")
+            return None
+
         #load from input JSON file as part of standard test
         if len(sys.argv) == 2 :
             import json
@@ -150,6 +155,18 @@ def main():
             outlabel = params['outlabel']
         else:
             print( "SUMMARY - outputlabel not defined, return" )
+            return None
+
+        if 'asicsockets' in params:
+            pass
+        else:
+            print( "SUMMARY - asicsockets not defined, return" )
+            return None
+
+        if 'asic_ids' in params:
+            pass
+        else:
+            print( "SUMMARY - asic_ids not defined, return" )
             return None
 
         #instantiate the actual test object, pass required parameters to internal variables
