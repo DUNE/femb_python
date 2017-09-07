@@ -54,8 +54,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_FIRMWARE_VERSION = 0xFF # 255 in decimal
         self.CONFIG_FIRMWARE_VERSION = 0x105 # this file is written for this
         
-        self.REG_LATCHLOC_data_2MHz = 0x02010202
+        self.REG_LATCHLOC_data_2MHz = 0x02010201
         self.REG_LATCHLOC_data_1MHz = 0x0
+
         self.REG_LATCHLOC_data_2MHz_cold = 0x02010202
         self.REG_LATCHLOC_data_1MHz_cold = 0x0
 
@@ -63,6 +64,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_CLKPHASE_data_1MHz = 0x1
         self.REG_CLKPHASE_data_2MHz_cold = 0x0 #double check socket 1 value
         self.REG_CLKPHASE_data_1MHz_cold = 0x0
+
+        self.REG_HDR_ERROR_RESET = 47
+        self.REG_HDR_ERROR_BASES = [49,51,53,55] # for each chip
 
         self.DEFAULT_FPGA_TST_PATTERN = 0x12
         self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
@@ -371,6 +375,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             return
 
         #check ADC sync bits several times to ensure sync is stable
+        """
         isSync = 0
         syncVal = 0
         for syncTest in range(0,self.numSyncTests,1):
@@ -384,7 +389,25 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             if syncVal != 0x0 :
                 isSync = 1
                 break
-        self.adcSyncStatus = isSync
+        """
+  
+        #check header error count
+        self.femb.write_reg(self.REG_HDR_ERROR_RESET,0)
+        self.femb.write_reg(self.REG_HDR_ERROR_RESET,0x1) #reset counters
+        self.femb.write_reg(self.REG_HDR_ERROR_RESET,0)
+
+        time.sleep(0.01) #optional delay
+
+        errRegNum = self.REG_HDR_ERROR_BASES[asicNumVal]
+        errorCount = self.femb.read_reg(errRegNum)
+        if errorCount == None:
+            print("doAdcAsicConfig: Could not check SYNC status, bad")
+            return None           
+
+        isSync = 0
+        if errorCount != 0x0 :
+            isSync = 1
+        self.adcSyncStatus = errorCount
 
         #try again if sync not achieved, note recursion, stops after some maximum number of attempts
         if isSync == 1 :
