@@ -75,7 +75,6 @@ class TEST_QUAD_EPCS(object):
         #This loop takes up to 268 seconds
         startTime = time.time()
         for t in range(self.nTimeToErase):
-            print(time.time())
             time.sleep(1)
             for iFlash in range(self.nFlashes):
                 if flashToSkip[iFlash] == False: continue 
