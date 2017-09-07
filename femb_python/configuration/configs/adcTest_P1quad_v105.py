@@ -57,7 +57,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC_data_2MHz = 0x02010201
         self.REG_LATCHLOC_data_1MHz = 0x0
 
-        self.REG_LATCHLOC_data_2MHz_cold = 0x02010202
+        self.REG_LATCHLOC_data_2MHz_cold = 0x02010201
         self.REG_LATCHLOC_data_1MHz_cold = 0x0
 
         self.REG_CLKPHASE_data_2MHz = 0x4
@@ -389,6 +389,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             if syncVal != 0x0 :
                 isSync = 1
                 break
+        self.adcSyncStatus = isSync
         """
   
         #check header error count
@@ -396,7 +397,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(self.REG_HDR_ERROR_RESET,0x1) #reset counters
         self.femb.write_reg(self.REG_HDR_ERROR_RESET,0)
 
-        time.sleep(0.01) #optional delay
+        time.sleep(0.05) #optional delay
 
         errRegNum = self.REG_HDR_ERROR_BASES[asicNumVal]
         errorCount = self.femb.read_reg(errRegNum)
@@ -412,7 +413,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #try again if sync not achieved, note recursion, stops after some maximum number of attempts
         if isSync == 1 :
             if syncAttempt >= self.maxSyncAttempts :
-                print("doAsicConfig: Could not sync ADC ASIC, giving up after " + str(self.maxSyncAttempts) + " attempts, sync val\t",hex(syncVal))
+                print("doAsicConfig: Could not sync ADC ASIC, giving up after " + str(self.maxSyncAttempts) + " attempts, sync val\t",hex(self.adcSyncStatus))
                 return None
             else:
                 self.doAdcAsicConfig(asicNumVal,syncAttempt+1)
