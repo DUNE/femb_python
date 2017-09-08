@@ -476,7 +476,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                     print("FEMB_CONFIG--> ADC synchronized")
                     return True
         #if program reaches here, sync has failed
-        print("Error: FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc))
+        print("Error: FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(asicNumVal))
         print("Setting back to original values: LATCHLOC: {:#010x}, PHASE: {:#010x}".format(initLATCH,initPHASE & 0xF))
         self.femb.write_reg ( self.REG_LATCHLOC, initLATCH )
         self.femb.write_reg ( self.REG_ADC_CLK, initPHASE )
