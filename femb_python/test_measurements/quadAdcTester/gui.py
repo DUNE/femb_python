@@ -27,6 +27,7 @@ import femb_python
 from femb_python.configuration import CONFIG
 from femb_python.test_measurements.quadAdcTester.quadAdcTest import main as maintest
 from femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_initializeSetup import main as mainsetup
+from femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_syncADCs import main as syncadcs
 from femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_allchan_window import main as mainviewer
 
 class GUI_WINDOW(Frame):
@@ -120,23 +121,26 @@ class GUI_WINDOW(Frame):
         #self.asicid3_entry.grid(sticky=W,row=12,column=columnbase+1)
         
         #Setup teststand button
-        self.setup_button = Button(self, text="Power-up & Setup Board", command=self.setup_teststand,width=25)
+        self.setup_button = Button(self, text="Setup Board at Room Temp.", command=self.setup_teststand,width=25)
         self.setup_button.grid(row=13,column=columnbase,columnspan=4,pady=30)
+
+        self.setup_button = Button(self, text="Sync ADCs", command=self.sync_adcs,width=25)
+        self.setup_button.grid(row=14,column=columnbase,columnspan=4,pady=30)
 
         #Start waveforms button
         self.viewer_button = Button(self, text="Start Waveform Viewer", command=self.start_viewer,width=25)
-        self.viewer_button.grid(row=14,column=columnbase,columnspan=4,pady=30)
+        self.viewer_button.grid(row=15,column=columnbase,columnspan=4,pady=30)
 
         #Start button
         self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        self.start_button.grid(row=15,column=columnbase,columnspan=4,pady=30)
+        self.start_button.grid(row=16,column=columnbase,columnspan=4,pady=30)
 
         #Reset button
         self.reset_button = Button(self, text="Reset", command=self.reset,width=25,bg="#FF8000")
-        self.reset_button.grid(row=16,column=columnbase,columnspan=4)
+        self.reset_button.grid(row=17,column=columnbase,columnspan=4)
 
         self.status_label = Label(self, text="NOT STARTED",bd=1,relief=SUNKEN,width=50)
-        self.status_label.grid(row=17,column=columnbase,columnspan=4)
+        self.status_label.grid(row=18,column=columnbase,columnspan=4)
         self.bkg_color = self.status_label.cget("background")
 
     def get_options(self):
@@ -158,6 +162,7 @@ class GUI_WINDOW(Frame):
         #else:
         #    isCold = False
         isCold = True
+        #isCold = False
         
         for var in variables:
             if var == "" :
@@ -217,11 +222,18 @@ class GUI_WINDOW(Frame):
         self.reset_button["activebackground"] ="#FFCF87"
 
     def setup_teststand(self):
-        print("Power-up & Setup Board")
+        print("Power-up & Setup Board at Room Temperature")
         self.status_label["text"] = "Power-up & Setup Board..."
         self.status_label["fg"] = "#000000"
         self.update_idletasks()
-        mainsetup()
+        mainsetup(False)
+
+    def sync_adcs(self):
+        print("Synchronizing ADC ASICs")
+        self.status_label["text"] = "Synchronizing ADCs..."
+        self.status_label["fg"] = "#000000"
+        self.update_idletasks()
+        syncadcs()
 
     def start_viewer(self):
         print("Starting Waveform Vieiwer")

@@ -90,8 +90,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.is1MHzSAMPLERATE = False #True = 1MHz, False = 2MHz
         self.COLD = False
         self.enableTest = 0
+        self.doSpiWrite = True
         self.doReSync = True
-        self.adcSyncStatus = 0
+        self.scanSyncSettings = True
+        self.adcSyncStatus = False
         self.maxSyncAttempts = 10
         self.numSyncTests = 25
 
@@ -105,8 +107,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("External ADC Clocks    \t",self.isExternalClock)
         print("Cryogenic temperature  \t",self.COLD)
         print("Enable ADC test input  \t",self.enableTest)
+        print("Enable SPI writing     \t",self.doSpiWrite)
         print("MAX SYNC ATTEMPTS      \t",self.maxSyncAttempts)
         print("Do resync              \t",self.doReSync)
+        print("Try all sync settings  \t",self.scanSyncSettings)
         print("1MHz Sampling          \t",self.is1MHzSAMPLERATE)
         print("SYNC STATUS            \t",self.adcSyncStatus)
 
@@ -223,11 +227,18 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #specify ASIC for streaming data output
         self.selectAsic(asicNumVal)
 
-        #Configure ADC (and external clock inside)
+        #Configure ADC ASIC registers (and external clock inside)
         if self.isExternalClock == True :
            self.configAdcAsic(asicNum=asicNumVal, testInput=self.enableTest, clockExternal=True)
         else :
            self.configAdcAsic(asicNum=asicNumVal, testInput=self.enableTest, clockMonostable=True)
+
+        #acutally program the ADC using the default parameters
+        self.doAdcAsicConfig(asicNumVal)
+
+        #if sync fails, optionally attempt to try all other parameters to achieve sync
+        if (self.adcSyncStatus == False) and (self.scanSyncSettings == True):
+            self.fixUnsync(asicNumVal)
 
         #check SPI + SYNC status here
         syncStatus = self.getSyncStatus()
@@ -241,8 +252,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #check sync here
         #self.printSyncRegister()
-        print("SYNC STATUS (0 is good):\t",hex(self.adcSyncStatus))
-        if self.adcSyncStatus != 0 :
+        print("SYNC STATUS:\t",self.adcSyncStatus)
+        if self.adcSyncStatus == False :
             print("FEMB_CONFIG: ASIC NOT SYNCHRONIZED")
             return False
         return True
@@ -340,9 +351,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg(self.REG_ADCSPI_BASES[asicNumVal]+iReg, self.adc_regs.REGS[iReg])
             #print("{:3}  {:#010x}".format(self.REG_ADCSPI_BASES[iChip]+iReg, chipRegs[iReg]))
 
-        #acutally program the ADC
-        self.doAdcAsicConfig(asicNumVal)
-
     #function programs ADC SPI and does multiple tests to ensure sync is good, note uses recursion
     def doAdcAsicConfig(self,asicNum=None, syncAttempt=0):
         if asicNum == None :
@@ -352,7 +360,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             return None
 
         #write ADC ASIC SPI, do on intial sync attempt ONLY
-        if syncAttempt == 0:
+        if (self.doSpiWrite == True) and (syncAttempt == 0):
             print("Program ADC ASIC SPI")
             #self.REG_ASIC_SPIPROG_RESET = 2 # bit 0 FE SPI, 1 ADC SPI, 4 FE ASIC RESET, 5 ADC ASIC RESET, 6 SOFT ADC RESET & SPI readback check
             self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x0)
@@ -374,25 +382,52 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if self.doReSync == False:
             return
 
-        #check ADC sync bits several times to ensure sync is stable
-        """
-        isSync = 0
-        syncVal = 0
+        #self.checkAdcSyncBits(asicNumVal)
+        self.checkAdcErrorCount(asicNumVal)
+
+        #try again if sync not achieved, note recursion, stops after some maximum number of attempts
+        if self.adcSyncStatus == False :
+            if syncAttempt >= self.maxSyncAttempts :
+                print("doAsicConfig: Could not sync ADC ASIC, giving up after " + str(self.maxSyncAttempts) + " attempts.")
+                return None
+            else:
+                self.doAdcAsicConfig(asicNumVal,syncAttempt+1)
+
+    #check ADC sync bits several times to ensure sync is stable
+    def checkAdcSyncBits(self,asicNum):
+        if asicNum == None :
+            return None
+        asicNumVal = int(asicNum)
+        if (asicNumVal < 0)  or (asicNumVal >= self.NASICS ):
+            return None
+
+        self.adcSyncStatus = False #assume sync is BAD initially
+        isSync = True
         for syncTest in range(0,self.numSyncTests,1):
             regVal = self.femb.read_reg(2)
             if regVal == None:
                 print("doAdcAsicConfig: Could not check SYNC status, bad")
+                self.adcSyncStatus = False
                 return None
 
             syncVal = ((regVal >> 24) & 0xFF)
             syncVal = ((syncVal >> 2*asicNumVal) & 0x3)
             if syncVal != 0x0 :
-                isSync = 1
+                #bad sync detected
+                isSync = False
                 break
         self.adcSyncStatus = isSync
-        """
   
+    def checkAdcErrorCount(self,asicNum):
+        if asicNum == None :
+            return None
+        asicNumVal = int(asicNum)
+        if (asicNumVal < 0)  or (asicNumVal >= self.NASICS ):
+            return None
+
         #check header error count
+        self.adcSyncStatus = False #assume sync is BAD initially
+
         self.femb.write_reg(self.REG_HDR_ERROR_RESET,0)
         self.femb.write_reg(self.REG_HDR_ERROR_RESET,0x1) #reset counters
         self.femb.write_reg(self.REG_HDR_ERROR_RESET,0)
@@ -403,20 +438,49 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         errorCount = self.femb.read_reg(errRegNum)
         if errorCount == None:
             print("doAdcAsicConfig: Could not check SYNC status, bad")
-            return None           
+            return None        
 
-        isSync = 0
-        if errorCount != 0x0 :
-            isSync = 1
-        self.adcSyncStatus = errorCount
+        if errorCount == 0:
+            self.adcSyncStatus = True
 
-        #try again if sync not achieved, note recursion, stops after some maximum number of attempts
-        if isSync == 1 :
-            if syncAttempt >= self.maxSyncAttempts :
-                print("doAsicConfig: Could not sync ADC ASIC, giving up after " + str(self.maxSyncAttempts) + " attempts, sync val\t",hex(self.adcSyncStatus))
-                return None
-            else:
-                self.doAdcAsicConfig(asicNumVal,syncAttempt+1)
+    def fixUnsync(self, asicNum):
+        if asicNum == None :
+            return None
+        asicNumVal = int(asicNum)
+        if (asicNumVal < 0)  or (asicNumVal >= self.NASICS ):
+            return None
+
+        initLATCH = self.femb.read_reg ( self.REG_LATCHLOC )
+        initPHASE = self.femb.read_reg ( self.REG_ADC_CLK ) # remember bit 16 sample rate
+
+        phases = [0,1]
+        if self.COLD:
+            phases = [0,1,0,1,0]
+
+        #loop through sync parameters
+        for shift in range(0,6,1):
+            shiftMask = (0xFF << 8*asicNum)
+            testShift = ( (initLATCH & ~(shiftMask)) | (shift << 8*asicNum) )
+            self.femb.write_reg ( self.REG_LATCHLOC, testShift )
+            time.sleep(0.01)
+            for phase in phases:
+                clkMask = (0x1 << asicNum)
+                testPhase = ( (initPHASE & ~(clkMask)) | (phase << asicNum) ) 
+                self.femb.write_reg ( self.REG_ADC_CLK, testPhase )
+                time.sleep(0.01)
+                print("try shift: {} phase: {} testingUnsync...".format(shift,phase))
+                #try ADC config with new
+                self.doAdcAsicConfig(asicNumVal)
+
+                if self.adcSyncStatus == True :
+                    print("FEMB_CONFIG--> ADC synchronized")
+                    return True
+        #if program reaches here, sync has failed
+        print("Error: FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc))
+        print("Setting back to original values: LATCHLOC: {:#010x}, PHASE: {:#010x}".format(initLATCH,initPHASE & 0xF))
+        self.femb.write_reg ( self.REG_LATCHLOC, initLATCH )
+        self.femb.write_reg ( self.REG_ADC_CLK, initPHASE )
+        self.adcSyncStatus  = False
 
     def getSyncStatus(self):
         syncBits = None
