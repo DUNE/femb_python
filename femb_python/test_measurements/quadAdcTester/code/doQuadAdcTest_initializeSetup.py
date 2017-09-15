@@ -28,7 +28,7 @@ def completeFailure():
     print("\n")
     print("-------------------")
     print("\n")
-    print( "FAILED TO INITILIAZE SETUP!" )
+    print( "FAILED TO INITILIAZE TEST SETUP!" )
     print("\n")
     print("-------------------")
     print("\n")
@@ -37,19 +37,28 @@ def totalVictory():
     print("\n")
     print("-------------------")
     print("\n")
-    print( "SETUP INITIALIZED!" )
+    print( "TEST SETUP INITIALIZED!" )
     print("\n")
     print("-------------------")
     print("\n")
 
-def main():
+def main( isCold=False ):
+
+    if (isCold != True) and (isCold != False) :
+        print("Invalid input temperature parameter, will assume room temperature")
+        isCold = False
 
     #initialize board
     femb_config = CONFIG()
-    femb_config.COLD = False
+    femb_config.COLD = isCold
     femb_config.enableTest = 1
     #femb_config.isExternalClock = True
     #femb_config.is1MHzSAMPLERATE = False #COOL
+
+    print("\n")
+    print("Running test setup initialization process")
+    print("Configuration parameters:")
+    femb_config.printParameters()
 
     #initialize readout to known working state
     print("Initializing board")

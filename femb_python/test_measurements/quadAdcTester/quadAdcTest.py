@@ -49,6 +49,9 @@ def main(**params):
     now = time.time()
     params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
 
+    #print input params
+    print(params)
+
     #check for executables used in test
 
     #Explicitly define list of production tests to perform

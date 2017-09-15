@@ -342,7 +342,7 @@ def main():
         if 'asicsockets' in params:
             asicsockets = params['asicsockets']
         if 'doReconfig' in params:
-            isRoomTemp = params['doReconfig']
+            doReconfig = params['doReconfig']
         if 'isExternalClock' in params:
             isExternalClock = params['isExternalClock']
         if 'is1MHzSAMPLERATE' in params:
