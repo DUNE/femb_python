@@ -46,12 +46,12 @@ class Analyze {
 	//Constants
 	const int numChan = 128;// 35t
 	const float SAMP_PERIOD = 0.5; //us
-	const int numSubrun = 256;
+	const int numSubrun = 25;
 
 	//data objects
 	TCanvas* c0;
 	TGraph *gCh;
-        std::vector<unsigned short> wfAll[256][128];
+        std::vector<unsigned short> wfAll[25][128];
 
 	//histograms
 	TH2F *hSampVsChan;

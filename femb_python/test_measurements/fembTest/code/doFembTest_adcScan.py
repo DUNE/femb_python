@@ -192,7 +192,7 @@ class FEMB_TEST_ADCSCAN(object):
         self.femb_config.printParameters()
 
         #record data
-        self.write_data.numpacketsrecord = 500
+        self.write_data.numpacketsrecord = 5000
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
@@ -200,7 +200,7 @@ class FEMB_TEST_ADCSCAN(object):
         #loop over pulser configurations, each configuration is it's own subrun
         subrun = 0
         asicCh = 0
-        for shift in range(0,256,1):
+        for shift in range(0,25,1):
             shiftVal = int(shift)
             print("Pulse delay ", shiftVal)
             self.femb_config.femb.write_reg_bits( self.femb_config.REG_TP, 8,0xFF,shift) #test pulse delay
