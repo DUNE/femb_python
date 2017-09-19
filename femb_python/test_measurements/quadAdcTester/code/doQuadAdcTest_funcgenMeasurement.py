@@ -123,7 +123,7 @@ class QUADADC_TEST_FUNCGEN(object):
             #if not doing initialization, at least check that ADCs are synced
             self.femb_config.selectAsic(self.asicnum)
             #write external clock specific registers
-            self.setExtClockRegs(self.asicnum)
+            self.femb_config.setExtClockRegs(self.asicnum)
             #attempt sync
             self.femb_config.doAdcAsicConfig(self.asicnum)
             if (self.femb_config.adcSyncStatus == False) and (self.femb_config.scanSyncSettings == True) :

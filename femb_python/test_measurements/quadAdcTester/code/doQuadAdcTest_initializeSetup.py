@@ -52,7 +52,7 @@ def main( isCold=False ):
     femb_config = CONFIG()
     femb_config.COLD = isCold
     femb_config.enableTest = 1
-    #femb_config.isExternalClock = True
+    #femb_config.isExternalClock = False
     #femb_config.is1MHzSAMPLERATE = False #COOL
 
     print("\n")
@@ -70,8 +70,10 @@ def main( isCold=False ):
     asicStatus = [1,1,1,1]
     for asic in [0,1,2,3]:
         asicNum = int(asic)
-        if (asicNum < 0) or (asicNum>2) :
+        if (asicNum < 0) or (asicNum > 3) :
             continue 
+        print("\n")
+        print("Try initializing ASIC ", asicNum)
         initStatus = femb_config.initAsic(asicNum)
         if initStatus == False :
             print( "Could not initialize ASIC ", asicNum )

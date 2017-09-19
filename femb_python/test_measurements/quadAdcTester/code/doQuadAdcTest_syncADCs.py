@@ -45,7 +45,7 @@ def main():
     asicStatus = [1,1,1,1]
     for asic in [0,1,2,3]:
         asicNum = int(asic)
-        if (asicNum < 0) or (asicNum>2) :
+        if (asicNum < 0) or (asicNum>3) :
             continue 
         femb_config.doAdcAsicConfig(asicNum)
         if femb_config.adcSyncStatus == False :

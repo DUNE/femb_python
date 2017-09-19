@@ -174,17 +174,17 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if self.is1MHzSAMPLERATE == True:
             if self.COLD:
                 self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_1MHz_cold)
-                self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz_cold & 0xF) | (1 << 8))
+                self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz_cold & 0xFF) | (1 << 8))
             else:
                 self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_1MHz)
-                self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz & 0xF) | (1 << 8))
+                self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_1MHz & 0xFF) | (1 << 8))
         else: # use 2 MHz values
             if self.COLD:
                 self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz_cold)
-                self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz_cold & 0xF))
+                self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz_cold & 0xFF))
             else:
                 self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz)
-                self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xF))
+                self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xFF))
 
         #specify wib mode
         self.femb.write_reg_bits( self.REG_SEL_CH,31,1,1)
@@ -370,9 +370,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             time.sleep(0.01)
 
         #soft reset
-        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
-        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x40) # soft reset
-        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+        #self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+        #self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x40) # soft reset
+        #self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+
+        self.femb.write_reg(9,0x1)
+        time.sleep(0.01)
+        self.femb.write_reg(9,0x0)
+        time.sleep(0.01)
 
         #optionally check the ADC sync
         if self.doReSync == False:
@@ -451,9 +456,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if (initLATCH == None ) or (initPHASE == None ) :
             return None
 
-        phases = [0,1]
+        phases = [0,1,2,3]
         if self.COLD:
-            phases = [0,1,0,1,0]
+            phases = [0,1,2,3,0,3,2,1]
 
         #loop through sync parameters
         for shift in range(0,6,1):
@@ -463,7 +468,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             time.sleep(0.01)
             for phase in phases:
                 clkMask = (0x1 << asicNum)
-                testPhase = ( (initPHASE & ~(clkMask)) | (phase << asicNum) ) 
+                testPhase = ( (initPHASE & ~(clkMask)) | (phase << 2*asicNum) ) 
                 self.femb.write_reg ( self.REG_ADC_CLK, testPhase )
                 time.sleep(0.01)
                 print("try shift: {} phase: {} testingUnsync...".format(shift,phase))
