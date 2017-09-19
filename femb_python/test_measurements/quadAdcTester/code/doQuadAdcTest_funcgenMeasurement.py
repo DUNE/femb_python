@@ -119,6 +119,18 @@ class QUADADC_TEST_FUNCGEN(object):
             if initStatus == False :
                 print( "Error running test - Could not initialize ASIC, ending test" )
                 return
+        else :
+            #if not doing initialization, at least check that ADCs are synced
+            self.femb_config.selectAsic(self.asicnum)
+            #write external clock specific registers
+            self.setExtClockRegs(self.asicnum)
+            #attempt sync
+            self.femb_config.doAdcAsicConfig(self.asicnum)
+            if (self.femb_config.adcSyncStatus == False) and (self.femb_config.scanSyncSettings == True) :
+                self.femb_config.fixUnsync(self.asicNum)
+            if self.femb_config.adcSyncStatus == False :
+                print( "Error running test - Could not synchronize ASIC, ending test" )
+                return
 
         #firmware version check should be done in initialize, otherwise do here
         #if self.femb_config.checkFirmwareVersion() == False:
@@ -186,7 +198,6 @@ class QUADADC_TEST_FUNCGEN(object):
         #speicify ASIC
         asic = self.asicnum
         asicCh = 0
-        self.femb_config.selectAsic(asic)
 
         #initialize function generator parameters
         xLow =-0.3

@@ -78,15 +78,15 @@ class TRACE_ALLCHAN_WINDOW(Tk.Frame):
     self.femb = FEMB_UDP()
     self.femb_config = CONFIG()
     self.figure.clf()
-    self.subgs = [None]*16*3
-    self.ax = [None]*16*3
-    self.plot = [None]*16*3
+    self.subgs = [None]*16*4
+    self.ax = [None]*16*4
+    self.plot = [None]*16*4
 
-    # 4x4x3 grid, one cell per channel
-    self.gs  = gridspec.GridSpec(3,16)
+    # 4x4x4 grid, one cell per channel
+    self.gs  = gridspec.GridSpec(4,16)
     self.gs.update(wspace=0.2,hspace=0.2)
     # 1 plots per channel
-    for row in range(3):
+    for row in range(4):
       for col in range(16):        
         self.subgs[col+16*row] = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=self.gs[col+16*row],hspace=0.0)
         self.ax[col+16*row] = self.figure.add_subplot(self.subgs[col+16*row][0])
@@ -146,7 +146,7 @@ class TRACE_ALLCHAN_WINDOW(Tk.Frame):
     # In case no data, return an empty plot
     self.plot[0] = self.ax[0].plot()
 
-    for a in range(3):
+    for a in range(4):
         self.femb_config.selectAsic(a)
         chPlots, thistimestamp = self.getTraceAndFFT(iTrace=iTrace)    
         if chPlots == None:

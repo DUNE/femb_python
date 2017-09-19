@@ -35,9 +35,15 @@ def main():
     print("Configuration parameters:")
     femb_config.printParameters()
 
-    asicStatus = [1,1,1]
+    #check if register interface still working
+    regVal = femb_config.femb.read_reg(femb_config.REG_FIRMWARE_VERSION)
+    if regVal == None :
+        print( "Register interface error, could not synchronize ASIC " )
+        return
 
-    for asic in [0,1,2]:
+    #do sync
+    asicStatus = [1,1,1,1]
+    for asic in [0,1,2,3]:
         asicNum = int(asic)
         if (asicNum < 0) or (asicNum>2) :
             continue 
