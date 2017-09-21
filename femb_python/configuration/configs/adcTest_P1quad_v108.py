@@ -45,7 +45,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.REG_FPGA_TST_PATT = 6 # bit 0-11 tst patt, 16 enable
 
-        self.REG_ADC_CLK = 7 # bit 0-3 clk phase, 8 clk speed sel
+        self.REG_ADC_CLK = 7 # bit 0-7 clk phase, 8 clk speed sel
         self.REG_LATCHLOC = 8 # bit 0-7 ADC1, 8-15 ADC2, 16-23 ADC3, 24-31 ADC4
 
         self.REG_STOP_ADC = 9 # bit 0 stops sending convert, read ADC HEADER redundant with reg 2
@@ -74,7 +74,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         # registers 64-88 are SPI to ASICs
         # 88 is last register besides 255 which is firmware version
         self.REG_FESPI_BASE = 84 # this configures all FE ASICs
-        self.REG_ADCSPI_BASES = [64,69,74,79] # for each chip
+        self.REG_ADCSPI_BASES = [0x40,0x40,0x40,0x40] # for each chip
+        #self.REG_ADCSPI_BASES = [64,69,74,79]
 
         self.REG_EXTCLK_INV = 10
         self.REG_EXTCLK_BASES = [11,20,29,38] # for each chip
@@ -186,7 +187,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.femb.write_reg( self.REG_LATCHLOC, self.REG_LATCHLOC_data_2MHz)
                 self.femb.write_reg( self.REG_ADC_CLK, (self.REG_CLKPHASE_data_2MHz & 0xFF))
 
-        #specify wib mode
+        #specify wib data format mode
         self.femb.write_reg_bits( self.REG_SEL_CH,31,1,1)
 
         #turn ON ASICs when initializing board
@@ -220,14 +221,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #specify ASIC for streaming data output
         self.selectAsic(asicNumVal)
 
+        #write external clock specific registers
+        self.setExtClockRegs(asicNumVal)
+
         #Configure ADC ASIC registers (and external clock inside)
         if self.isExternalClock == True :
            self.configAdcAsic(asicNum=asicNumVal, testInput=self.enableTest, clockExternal=True)
         else :
            self.configAdcAsic(asicNum=asicNumVal, testInput=self.enableTest, clockMonostable=True)
-
-        #write external clock specific registers
-        self.setExtClockRegs(asicNumVal)
 
         #acutally program the ADC using the default parameters
         self.doAdcAsicConfig(asicNumVal)
@@ -359,25 +360,30 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if (self.doSpiWrite == True) and (syncAttempt == 0):
             print("Program ADC ASIC SPI")
             #self.REG_ASIC_SPIPROG_RESET = 2 # bit 0 FE SPI, 1 ADC SPI, 4 FE ASIC RESET, 5 ADC ASIC RESET, 6 SOFT ADC RESET & SPI readback check
-            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x0)
-            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x20) #ADC reset
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x0)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x40)
             time.sleep(0.01)
-            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x0)
-            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x2) #ADC SPI write
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x0)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x20)
             time.sleep(0.01)
-            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x0)
-            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x2) #ADC SPI write
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x0)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x40)
             time.sleep(0.01)
+            #self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x0)
+            #self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x20) #ADC reset
+            #time.sleep(0.01)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x0)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x2) #ADC SPI write
+            time.sleep(0.01)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x0)
+            self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET, 0x2) #ADC SPI write
+            time.sleep(0.01)
+            self.femb.write_reg ( self.REG_ASIC_SPIPROG_RESET, 0)
 
         #soft reset
-        #self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
-        #self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x40) # soft reset
-        #self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
-
-        self.femb.write_reg(9,0x1)
-        time.sleep(0.01)
-        self.femb.write_reg(9,0x0)
-        time.sleep(0.01)
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0x40) # soft reset
+        self.femb.write_reg(self.REG_ASIC_SPIPROG_RESET,0)
 
         #optionally check the ADC sync
         if self.doReSync == False:
@@ -461,7 +467,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             phases = [0,1,2,3,0,3,2,1]
 
         #loop through sync parameters
-        for shift in range(0,6,1):
+        for shift in range(0,8,1):
             shiftMask = (0xFF << 8*asicNum)
             testShift = ( (initLATCH & ~(shiftMask)) | (shift << 8*asicNum) )
             self.femb.write_reg ( self.REG_LATCHLOC, testShift )
@@ -531,12 +537,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print( "femb_config_femb : selectChan - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
             return
 
-        #self.femb.write_reg( self.REG_STOP_ADC, 1)
-        #time.sleep(0.05)
+        self.femb.write_reg( self.REG_STOP_ADC, 1)
+        time.sleep(0.05)
 
         # in this firmware asic = 0 disables readout, so asics are 1,2,3,4
         self.femb.write_reg_bits( self.REG_SEL_CH , 0, 0x7, asicVal+1 )
-        #self.femb.write_reg( self.REG_STOP_ADC, 0)
+        self.femb.write_reg( self.REG_STOP_ADC, 0)
 
     def extClock(self, enable=False, 
                 period=500, mult=1, 
