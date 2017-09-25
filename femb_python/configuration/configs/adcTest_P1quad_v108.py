@@ -54,14 +54,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_FIRMWARE_VERSION = 0xFF # 255 in decimal
         self.CONFIG_FIRMWARE_VERSION = 0x108 # this file is written for this
         
-        self.REG_LATCHLOC_data_2MHz = 0x02010201
+        self.REG_LATCHLOC_data_2MHz = 0x6050505
         self.REG_LATCHLOC_data_1MHz = 0x0
 
         self.REG_LATCHLOC_data_2MHz_cold = 0x02010201
         self.REG_LATCHLOC_data_1MHz_cold = 0x0
 
-        self.REG_CLKPHASE_data_2MHz = 0x4
+        self.REG_CLKPHASE_data_2MHz = 0x12
         self.REG_CLKPHASE_data_1MHz = 0x1
+
         self.REG_CLKPHASE_data_2MHz_cold = 0x0 #double check socket 1 value
         self.REG_CLKPHASE_data_1MHz_cold = 0x0
 
@@ -74,8 +75,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         # registers 64-88 are SPI to ASICs
         # 88 is last register besides 255 which is firmware version
         self.REG_FESPI_BASE = 84 # this configures all FE ASICs
-        self.REG_ADCSPI_BASES = [0x40,0x40,0x40,0x40] # for each chip
-        #self.REG_ADCSPI_BASES = [64,69,74,79]
+        #self.REG_ADCSPI_BASES = [0x40,0x40,0x40,0x40] # for each chip
+        self.REG_ADCSPI_BASES = [64,69,74,79]
 
         self.REG_EXTCLK_INV = 10
         self.REG_EXTCLK_BASES = [11,20,29,38] # for each chip
@@ -483,6 +484,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
                 if self.adcSyncStatus == True :
                     print("FEMB_CONFIG--> ADC synchronized")
+                    print("FEMB_CONFIG LATCHLOC ",hex(testShift)," , PHASE " , hex(testPhase) )
                     return True
         #if program reaches here, sync has failed
         print("Error: FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(asicNumVal))
@@ -530,7 +532,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def selectAsic(self,asic):
         """
-        asic is chip number 0 to 7
+        asic is chip number 0 to 3
         """
         asicVal = int(asic)
         if (asicVal < 0 ) or (asicVal >= self.NASICS ) :

@@ -127,7 +127,7 @@ class QUADADC_TEST_FUNCGEN(object):
             #attempt sync
             self.femb_config.doAdcAsicConfig(self.asicnum)
             if (self.femb_config.adcSyncStatus == False) and (self.femb_config.scanSyncSettings == True) :
-                self.femb_config.fixUnsync(self.asicNum)
+                self.femb_config.fixUnsync(self.asicnum)
             if self.femb_config.adcSyncStatus == False :
                 print( "Error running test - Could not synchronize ASIC, ending test" )
                 return

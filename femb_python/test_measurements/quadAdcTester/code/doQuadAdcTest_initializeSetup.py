@@ -79,6 +79,8 @@ def main( isCold=False ):
             print( "Could not initialize ASIC ", asicNum )
             asicStatus[asicNum] = 0
 
+    #femb_config.printSyncRegister()
+
     #use external pulser
     femb_config.setFPGADac(0,1,0,0) # write regs 4 and 5
 

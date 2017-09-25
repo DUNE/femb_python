@@ -147,6 +147,8 @@ class TRACE_ALLCHAN_WINDOW(Tk.Frame):
     self.plot[0] = self.ax[0].plot()
 
     for a in range(4):
+        #if a != 0:
+        #    continue
         self.femb_config.selectAsic(a)
         chPlots, thistimestamp = self.getTraceAndFFT(iTrace=iTrace)    
         if chPlots == None:
