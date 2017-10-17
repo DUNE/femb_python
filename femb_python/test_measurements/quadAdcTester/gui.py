@@ -70,11 +70,12 @@ class GUI_WINDOW(Frame):
         self.asicsocket2_button.grid(sticky=W,row=5,column=columnbase+0)
         self.asicsocket3_button.grid(sticky=W,row=6,column=columnbase+0)
 
+        #debugging only
         self.ct_bool = StringVar()
-        #self.temp_radio1 = Radiobutton(self, text="Room Temperature", variable=self.ct_bool, value=0)
-        #self.temp_radio2 = Radiobutton(self, text="Cryo Temperature", variable=self.ct_bool, value=1)
-        #self.temp_radio1.grid(sticky=W,row=3,column=columnbase+1)
-        #self.temp_radio2.grid(sticky=W,row=4,column=columnbase+1)
+        self.temp_radio1 = Radiobutton(self, text="Room Temperature", variable=self.ct_bool, value=0)
+        self.temp_radio2 = Radiobutton(self, text="Cryo Temperature", variable=self.ct_bool, value=1)
+        self.temp_radio1.grid(sticky=W,row=3,column=columnbase+1)
+        self.temp_radio2.grid(sticky=W,row=4,column=columnbase+1)
 
         # Adding electronics ID and read entry box
 
@@ -157,11 +158,11 @@ class GUI_WINDOW(Frame):
 
         variables = [operator,self.ct_bool,teststandid,boardid,asicsockets_filled, asicids_filled]
 
-        #if (self.ct_bool.get() == "1"):
-        #    isCold = True
-        #else:
-        #    isCold = False
-        isCold = True
+        if (self.ct_bool.get() == "1"):
+            isCold = True
+        else:
+            isCold = False
+        #isCold = True
         #isCold = False
         
         for var in variables:

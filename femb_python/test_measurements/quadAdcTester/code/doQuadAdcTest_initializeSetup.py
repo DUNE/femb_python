@@ -51,9 +51,10 @@ def main( isCold=False ):
     #initialize board
     femb_config = CONFIG()
     femb_config.COLD = isCold
+    #femb_config.COLD = True
     femb_config.enableTest = 1
-    #femb_config.isExternalClock = False
-    #femb_config.is1MHzSAMPLERATE = False #COOL
+    femb_config.isExternalClock = True
+    femb_config.is1MHzSAMPLERATE = False #COOL
 
     print("\n")
     print("Running test setup initialization process")
@@ -69,6 +70,7 @@ def main( isCold=False ):
         return
     asicStatus = [1,1,1,1]
     for asic in [0,1,2,3]:
+    #for asic in [2]:
         asicNum = int(asic)
         if (asicNum < 0) or (asicNum > 3) :
             continue 

@@ -46,12 +46,12 @@ class Analyze {
 	//Constants
 	const int numChan = 16;
 	const float SAMP_PERIOD = 0.5; //us
-	const int numSubrun = 1;
+	const int numSubrun = 2;
 
 	//data objects
 	TCanvas* c0;
 	TGraph *gCh;
-        std::vector<unsigned short> wfAll[1][16];
+        std::vector<unsigned short> wfAll[2][16];
 
 	//histograms
 	TGraph *gAll[16];
@@ -141,7 +141,7 @@ void Analyze::doAnalysis(){
 	//	std::cout << "Analyzing subrun " << sr << std::endl;
 	//	analyzeSubrun(sr);
 	//}
-        analyzeSubrun(0);
+        analyzeSubrun(1);
 
 	//do summary analyses
 	std::cout << "Doing summary analysis" << std::endl;
@@ -165,7 +165,7 @@ void Analyze::doAnalysis(){
 
   	//output histograms, data objects
  	gOut->Cd("");
-	c0->Write("summaryPlot");
+	//c0->Write("summaryPlot");
   	gOut->Close();
 }
 

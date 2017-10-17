@@ -28,7 +28,7 @@ from femb_python.test_instrument_interface.keysight_33600A import Keysight_33600
 
 class QUADADC_TEST_FUNCGEN(object):
 
-    def __init__(self, datadir="data", outlabel="funcgenMeasurement",asicnum=0,doReconfig=True,isExternalClock=True,is1MHzSAMPLERATE=True,isCold=False):
+    def __init__(self, datadir="data", outlabel="funcgenMeasurement",asicnum=0,doReconfig=True,doLongRamp=False,isExternalClock=True,is1MHzSAMPLERATE=True,isCold=False):
         #set internal variables
         self.datadir = datadir
         self.outlabel = outlabel + str("_asic_") + str(asicnum)
@@ -56,6 +56,7 @@ class QUADADC_TEST_FUNCGEN(object):
         
         #assign input to test and config module internal variables
         self.doReconfig = doReconfig
+        self.doLongRamp = doLongRamp
         self.isExternalClock = isExternalClock
         self.is1MHzSAMPLERATE = is1MHzSAMPLERATE
         self.isCold = isCold
@@ -109,7 +110,8 @@ class QUADADC_TEST_FUNCGEN(object):
 
         #initialize readout to known working state
         #initialization may identify problem that cancels test
-        if self.doReconfig == True:
+        #if self.doReconfig == True:
+        if True:
             print("Initializing board")
             initStatus = self.femb_config.initBoard()
             if initStatus == False :
@@ -120,14 +122,15 @@ class QUADADC_TEST_FUNCGEN(object):
                 print( "Error running test - Could not initialize ASIC, ending test" )
                 return
         else :
-            #if not doing initialization, at least check that ADCs are synced
-            self.femb_config.selectAsic(self.asicnum)
             #write external clock specific registers
             self.femb_config.setExtClockRegs(self.asicnum)
+            #if not doing initialization, at least check that ADCs are synced
+            self.femb_config.selectAsic(self.asicnum)
+            self.femb_config.checkAdcErrorCount(self.asicnum)
             #attempt sync
-            self.femb_config.doAdcAsicConfig(self.asicnum)
-            if (self.femb_config.adcSyncStatus == False) and (self.femb_config.scanSyncSettings == True) :
-                self.femb_config.fixUnsync(self.asicnum)
+            #self.femb_config.doAdcAsicConfig(self.asicnum)
+            #if (self.femb_config.adcSyncStatus == False) and (self.femb_config.scanSyncSettings == True) :
+            #    self.femb_config.fixUnsync(self.asicnum)
             if self.femb_config.adcSyncStatus == False :
                 print( "Error running test - Could not synchronize ASIC, ending test" )
                 return
@@ -177,8 +180,16 @@ class QUADADC_TEST_FUNCGEN(object):
         #wait to make sure HS link is back on after check_setup function
         sleep(1.)
 
+        #speicify ASIC
+        asic = self.asicnum
+        asicCh = 0
+
         #enable external signal input
         self.femb_config.setFPGADac(0,1,0,0) # write regs 4 and 5
+
+        #redo config
+        self.femb_config.setExtClockRegs(asic)
+        self.femb_config.selectAsic(asic)
 
         #print config parameters just before data taking
         self.femb_config.printParameters()
@@ -195,10 +206,6 @@ class QUADADC_TEST_FUNCGEN(object):
         if isOpen == 0 :
             print( "Error running test - Could not open output data file for writing, ending test" )
 
-        #speicify ASIC
-        asic = self.asicnum
-        asicCh = 0
-
         #initialize function generator parameters
         xLow =-0.3
         xHigh = 1.7
@@ -210,11 +217,12 @@ class QUADADC_TEST_FUNCGEN(object):
 
         #long ramp
         subrun = 0
-        freq = 4
-        self.funcgen.startRamp(freq,xLow,xHigh)
-        sleep(settlingTime)
-        self.write_data.numpacketsrecord = 20000 #long
-        self.write_data.record_data(subrun, asic, asicCh)
+        if self.doLongRamp == True:
+            freq = 4
+            self.funcgen.startRamp(freq,xLow,xHigh)
+            sleep(settlingTime)
+            self.write_data.numpacketsrecord = 100000 #long
+            self.write_data.record_data(subrun, asic, asicCh)
         
         #short ramp
         subrun = subrun + 1
@@ -294,7 +302,7 @@ class QUADADC_TEST_FUNCGEN(object):
         call(["mv", "output_parseBinaryFile.root" , parseBinaryFile])
 
         processNtupleFile = self.outpathlabel + "-processNtupleFile.root"
-        call(["mv", "output_processNtuple_funcgenMeasurement.root" , processNtupleFile])
+        #call(["mv", "output_processNtuple_funcgenMeasurement.root" , processNtupleFile])
 
         summaryPlot = self.outpathlabel + "-summaryPlot.png"
         call(["mv", "summaryPlot_funcgenMeasurement.png" , summaryPlot])
@@ -339,8 +347,9 @@ def main():
     print("FUNCTION GENERATOR MEASUREMENT - START")
     #default parameters
     datadir = "data"
-    asicsockets = [0,1,2]
-    doReconfig=True
+    asicsockets = [0,1,2,3]
+    doReconfig=False
+    doLongRamp=False
     isExternalClock=True
     is1MHzSAMPLERATE=False
     isCold=False
@@ -354,6 +363,8 @@ def main():
             asicsockets = params['asicsockets']
         if 'doReconfig' in params:
             doReconfig = params['doReconfig']
+        if 'doLongRamp' in params:
+            doLongRamp = params['doLongRamp']
         if 'isExternalClock' in params:
             isExternalClock = params['isExternalClock']
         if 'is1MHzSAMPLERATE' in params:
@@ -368,7 +379,7 @@ def main():
       
     #actually run the test, one per FEMB slot
     for asicnum in asicsockets:
-        quadadc_test = QUADADC_TEST_FUNCGEN(datadir,"funcgenMeasurement",asicnum,doReconfig,isExternalClock,is1MHzSAMPLERATE,isCold)
+        quadadc_test = QUADADC_TEST_FUNCGEN(datadir,"funcgenMeasurement",asicnum,doReconfig,doLongRamp,isExternalClock,is1MHzSAMPLERATE,isCold)
         quadadc_test.check_setup()
         quadadc_test.record_data()
         quadadc_test.do_analysis()
