@@ -49,7 +49,7 @@ yum install -y git make cmake cmake3 gcc-c++ gcc gcc-gfortran binutils libX11-de
 For Ubuntu:
 
 ```
-sudo apt install git dpkg-dev cmake g++ gcc gfortran binutils libx11-dev libxpm-dev libxft-dev libxext-dev libpng libjpeg imagemagick
+sudo apt install git dpkg-dev cmake g++ gcc gfortran binutils libx11-dev libxpm-dev libxft-dev libxext-dev libpng-dev libjpeg-dev imagemagick
 ```
 
 Download these two files:
@@ -133,7 +133,7 @@ Running `femb_init_board` will present you with the available choices.
 This version uses the system python3 installation
 
 ```
-sudo apt install git dpkg-dev cmake g++ gcc gfortran binutils libx11-dev libxpm-dev libxft-dev libxext-dev libpng libjpeg imagemagick python3-dev python3-matplotlib python3-numpy
+sudo apt install git dpkg-dev cmake g++ gcc gfortran binutils libx11-dev libxpm-dev libxft-dev libxext-dev libpng-dev libjpeg-dev imagemagick python3-dev python3-matplotlib python3-numpy
 ```
 
 Download this file:
