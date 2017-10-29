@@ -60,9 +60,9 @@ def main(**params):
     #Test 0 - no reconfig long ramp test - configuration happens BEFORE cooldown
     params_test_0 = dict(params)
     params_test_0.update( executable = "quadadc_test_funcgen", argstr="{paramfile}", 
-                          datasubdir = "quadAdcTest_noreconfig", outlabel = "quadAdcTest_noreconfig",doReconfig=False)
+                          datasubdir = "quadAdcTest_noreconfig", outlabel = "quadAdcTest_noreconfig",doReconfig=False,doLongRamp=True)
     tests.append( Test(**params_test_0) )
-
+    
     #shut down setup before starting normal testing
     #params_test_init_shutdown = dict(params)
     #params_test_init_shutdown.update( executable = "quadadc_prod_shutdownSetup", argstr="{paramfile}", 
@@ -71,6 +71,7 @@ def main(**params):
 
     #Take test data using internal vs exteranl ADC clock signals, 1MHz vs 2MHz
     #External + 2MHz
+    #print("\n","\n","-------------","\n","\n","QUAD ADC TEST 1 IN PROGRESS - External Sampling Signals at 2MHz","\n","\n","-------------","\n","\n")
 
     params_test_funcgen_extclk_2MHz = dict(params)
     params_test_funcgen_extclk_2MHz.update( executable = "quadadc_test_funcgen", argstr="{paramfile}", 
@@ -79,6 +80,7 @@ def main(**params):
     tests.append( Test(**params_test_funcgen_extclk_2MHz) )
 
     #Internal + 2MHz
+    #print("\n","\n","-------------","\n","\n","QUAD ADC TEST 2 IN PROGRESS - Internal Sampling Signals at 2MHz","\n","\n","-------------","\n","\n")
     params_test_funcgen_intclk_2MHz = dict(params)
     params_test_funcgen_intclk_2MHz.update( executable = "quadadc_test_funcgen", argstr="{paramfile}", 
                                             datasubdir = "quadAdcTest_funcgen_intclk_2MHz", outlabel = "quadAdcTest_funcgen_intclk_2MHz",
@@ -86,6 +88,7 @@ def main(**params):
     tests.append( Test(**params_test_funcgen_intclk_2MHz) )
 
     #External + 1MHz
+    #print("\n","\n","-------------","\n","\n","QUAD ADC TEST 3 IN PROGRESS - External Sampling Signals at 1MHz","\n","\n","-------------","\n","\n")
     params_test_funcgen_extclk_1MHz = dict(params)
     params_test_funcgen_extclk_1MHz.update( executable = "quadadc_test_funcgen", argstr="{paramfile}", 
                                             datasubdir = "quadAdcTest_funcgen_extclk_1MHz", outlabel = "quadAdcTest_funcgen_extclk_1MHz",
@@ -93,6 +96,7 @@ def main(**params):
     tests.append( Test(**params_test_funcgen_extclk_1MHz) )
 
     #Internal + 1MHz
+    #print("\n","\n","-------------","\n","\n","QUAD ADC TEST 4 IN PROGRESS - Internal Sampling Signals at 1MHz","\n","\n","-------------","\n","\n")
     params_test_funcgen_intclk_1MHz = dict(params)
     params_test_funcgen_intclk_1MHz.update( executable = "quadadc_test_funcgen", argstr="{paramfile}", 
                                             datasubdir = "quadAdcTest_funcgen_intclk_1MHz", outlabel = "quadAdcTest_funcgen_intclk_1MHz",
@@ -100,6 +104,7 @@ def main(**params):
     tests.append( Test(**params_test_funcgen_intclk_1MHz) )
 
     #ADC input pin functionality test here
+    #print("\n","\n","-------------","\n","\n","QUAD ADC TEST 5 IN PROGRESS - ADC input pin test","\n","\n","-------------","\n","\n")
     params_test_funcgen_simple = dict(params)
     params_test_funcgen_simple.update( executable = "quadadc_test_simple", argstr="{paramfile}", 
                                             datasubdir = "quadAdcTest_simple", outlabel = "quadAdcTest_simple",
@@ -113,6 +118,7 @@ def main(**params):
     #tests.append( Test(**params_test_final_shutdown) )
 
     #create summary plots
+    #print("\n","\n","-------------","\n","\n","QUAD ADC SUMMARY PLOTS","\n","\n","-------------","\n","\n")
     params_test_funcgen_summary = dict(params)
     params_test_funcgen_summary.update( executable = "quadadc_test_summary", argstr="{paramfile}", 
                                             datasubdir = "quadAdcTest_summary", outlabel = "quadAdcTest_summary")

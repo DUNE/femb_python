@@ -53,19 +53,30 @@ class TEST_SUMMARY(object):
 
         asicsockets = params['asicsockets']
         asic_ids = params['asic_ids']
-
         dirstocheck = ["quadAdcTest_noreconfig",
                        "quadAdcTest_funcgen_extclk_2MHz",
                        "quadAdcTest_funcgen_extclk_1MHz",
                        "quadAdcTest_funcgen_intclk_2MHz",
                        "quadAdcTest_funcgen_intclk_1MHz"]
 
-        testlabel = ["Long Ramp Measurement - 4Hz 2Vpp Triangle Wave - No Reconfiguration After Cooldown",
-                     "Long Ramp Measurement - 4Hz 2Vpp Triangle Wave - External ADC Clocks 2MHz Sampling Rate",
-                     "Long Ramp Measurement - 4Hz 2Vpp Triangle Wave - External ADC Clocks 1MHz Sampling Rate",
-                     "Long Ramp Measurement - 4Hz 2Vpp Triangle Wave - Internal ADC Clocks 2MHz Sampling Rate",
-                     "Long Ramp Measurement - 4Hz 2Vpp Triangle Wave - Internal ADC Clocks 1MHz Sampling Rate"
+        testlabel = ["Short Ramp Measurement - 734Hz 2Vpp Triangle Wave - No Reconfiguration After Cooldown",
+                     "Short Ramp Measurement - 734Hz 2Vpp Triangle Wave - External ADC Clocks 2MHz Sampling Rate",
+                     "Short Ramp Measurement - 734Hz 2Vpp Triangle Wave - External ADC Clocks 1MHz Sampling Rate",
+                     "Short Ramp Measurement - 734Hz 2Vpp Triangle Wave - Internal ADC Clocks 2MHz Sampling Rate",
+                     "Short Ramp Measurement - 734Hz 2Vpp Triangle Wave - Internal ADC Clocks 1MHz Sampling Rate"
                     ]
+        """
+        dirstocheck = ["quadAdcTest_funcgen_extclk_2MHz",
+                       "quadAdcTest_funcgen_extclk_1MHz",
+                       "quadAdcTest_funcgen_intclk_2MHz",
+                       "quadAdcTest_funcgen_intclk_1MHz"]
+
+        testlabel = ["Short Ramp Measurement - 734Hz 2Vpp Triangle Wave - External ADC Clocks 2MHz Sampling Rate",
+                     "Short Ramp Measurement - 734Hz 2Vpp Triangle Wave - External ADC Clocks 1MHz Sampling Rate",
+                     "Short Ramp Measurement - 734Hz 2Vpp Triangle Wave - Internal ADC Clocks 2MHz Sampling Rate",
+                     "Short Ramp Measurement - 734Hz 2Vpp Triangle Wave - Internal ADC Clocks 1MHz Sampling Rate"
+                    ]
+        """
 
         pdf = FPDF(format='letter')
         pdf.set_draw_color(0, 80, 180)

@@ -209,6 +209,7 @@ void Analyze::parseFile(){
 
 	//loop through each packet, collect ASIC packets
 	unsigned int prevSubrun = 0;
+        unsigned int prevPacketNum = 0;
 	for(unsigned int headNum = 0 ; headNum < headerPos.size() ; headNum++){
 		//std::cout << "NEW HEADER " << headNum << "\t" << headerPos.at(headNum) << std::endl;
 	
@@ -255,6 +256,9 @@ void Analyze::parseFile(){
 
 		//get UDP packet number
 		unsigned short packetNum = (unsigned short) ntohs(buffer_ushort[basePos + 9]);
+                //if( prevPacketNum != 0 &&  packetNum != prevPacketNum + 1 )
+                //    std::cout << "DROPPED PACKET " << "\t" << prevPacketNum << "\t" << packetNum << std::endl;
+                //prevPacketNum = packetNum;
 		//std::cout << "PACKET NUMBER " << packetNum << std::endl;
 
 		//store actual data in vector
