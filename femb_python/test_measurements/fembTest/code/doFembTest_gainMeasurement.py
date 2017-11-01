@@ -118,6 +118,14 @@ class FEMB_TEST_GAIN(object):
             print('Error running doFembTest - Invalid firmware and/or register read error')
             return
 
+        if self.femb_config.syncStatus != 0 :
+            print('Error running doFembTest - ADC SYNC failed')
+            return
+
+        if self.femb_config.spiStatus != 0 :
+            print('Error running doFembTest - ADC SPI failed')
+            return
+
         #check if data streaming is working
         print("Checking data streaming")
         testData = self.write_data.femb.get_data_packets(1)
@@ -297,6 +305,7 @@ class FEMB_TEST_GAIN(object):
         self.jsondict['config_base'] = str(self.base)
         self.jsondict['useInternalPulser'] = str(self.useInternalPulser)
         self.jsondict['syncStatus'] = str(self.femb_config.syncStatus)
+        self.jsondict['spiStatus'] = str(self.femb_config.spiStatus)
 
         if self.status_do_analysis == 1:
           #parse the output results, kind of messy
@@ -333,8 +342,8 @@ def main():
     shape = 1
     base = 0
     useInternalPulser = True
-    useExtAdcClock = True
-    isRoomTemp = True
+    useExtAdcClock = False
+    isRoomTemp = False
     isAPA = False
     useDefaultGainFactor = False
 

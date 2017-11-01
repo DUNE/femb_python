@@ -610,7 +610,7 @@ void FitFeElecResponse_analyzePulses::getPulseHeight( int startSampleNum, const 
   }
 
   
-  if(0){
+  if(1){
    //std::cout << mean << "\t" << baseMean << "\t" << minSamp - mean << std::endl;
    cTest->Clear();
    gChTest->SetMarkerStyle(21);
@@ -618,8 +618,8 @@ void FitFeElecResponse_analyzePulses::getPulseHeight( int startSampleNum, const 
    gChTest->Draw("AP");
    cTest->Update();
    usleep(50000);
-   //char ct;
-   //std::cin >> ct;
+   char ct;
+   std::cin >> ct;
   }
   */
 }

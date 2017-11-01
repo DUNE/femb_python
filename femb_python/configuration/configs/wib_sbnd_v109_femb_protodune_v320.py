@@ -65,16 +65,17 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #internal variables
         self.fembNum = 0
-        self.useExtAdcClock = False
+        self.useExtAdcClock = True
         self.isRoomTemp = False
         self.maxSyncAttempts = 100
         self.doReSync = False
+        self.spiStatus = 0x0
         self.syncStatus = 0x0
         self.CLKSELECT_val_RT = 0xFF
         self.CLKSELECT2_val_RT = 0xFF
         self.CLKSELECT_val_CT = 0xFF
         self.CLKSELECT2_val_CT = 0xFF
-        self.REG_LATCHLOC_3_TO_0_val = 0x04050404
+        self.REG_LATCHLOC_3_TO_0_val = 0x04040404
         self.REG_LATCHLOC_7_TO_4_val = 0x04040404
 
         #initialize FEMB UDP object
@@ -117,6 +118,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("FE-ASIC config")
         for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
             regVal = self.femb.read_reg( regNum)
+            if regVal == None:
+                continue
             print( str(regNum) + "\t" + str(hex(regVal)) )
 
     def resetBoard(self):
@@ -155,7 +158,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #FEMB power enable on WIB
         self.powerOnFemb(self.fembNum)
-        time.sleep(10)
+        time.sleep(4)
 
         #Make sure register interface is for correct FEMB
         self.selectFemb(self.fembNum)
@@ -202,31 +205,43 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Set FE ASIC SPI configuration registers
         self.configFeAsic()
 
+        #check ASIC SPI
+        self.checkFembSpi()
+        print("SPI STATUS","\t",self.spiStatus)
+
+        #check ADC SYNC
+        self.checkSync()
+        print("SYNC STATUS","\t",self.syncStatus)
+
     #Test FEMB SPI working
-    def checkFembSpi(self):        
-        regVal = self.femb.read_reg(8)
-        if regVal == None :
-            regVal = 0
-        print("About to check SPI: ", hex(regVal) )
-
+    def checkFembSpi(self):
         print("Check ASIC SPI")
-        for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
-            val = self.femb.read_reg( regNum)
-            if (val == None) or (val == -1):
-                print("Error - FEMB register interface is not working.")
-                continue
-        #    print( str(hex(val)) )            
+         
+        self.spiStatus = 0
+        for regNum in range(0,72,1):
+             progVal = self.femb.read_reg( self.REG_SPI_BASE + regNum)
+             if progVal == None :
+                 print("Error - FEMB register interface is not working.")
+                 return
+             rdbckVal = self.femb.read_reg( self.REG_SPI_RDBACK_BASE + regNum)
+             if rdbckVal == None :
+                 print("Error - FEMB register interface is not working.")
+                 return
+             print(hex(progVal),"\t",hex(rdbckVal))
+             if progVal != rdbckVal :
+                 print("SPI readback failed.")
+                 self.spiStatus = 1
+                 return
 
-        print("Check ASIC SPI Readback")
-        for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
-            val = self.femb.read_reg( regNum)
-            if (val == None) or (val == -1):
-                print("Error - FEMB register interface is not working.")
-                continue
-        #    print( str(hex(val)) )
-        
-        #Compare input to output
-        
+    def checkSync(self):
+        print("Check ASIC SYNC")
+        regVal = self.femb.read_reg(6)
+        if regVal == None:
+            print("doAsicConfigcheckFembSpi: Could not check SYNC status, bad")
+            return
+        syncVal = ((regVal >> 16) & 0xFFFF)
+        self.syncStatus = syncVal
+
     #FEMB power enable on WIB
     def powerOnFemb(self,femb):
         fembVal = int(femb)
@@ -247,7 +262,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits(8 , regBase + 3, 0x1, 1 ) #1.5V
         self.femb.write_reg_bits(8 , 16 + fembVal, 0x1, 1 ) #BIAS enable
 
-        print("FEMB Power on: ", hex(self.femb.read_reg(8)))
+        regVal = self.femb.read_reg(8)
+        if regVal == None:
+            return
+        print("FEMB Power on: ", hex(regVal))
         
         #set UDP ports back to normal
         self.selectFemb(self.fembNum)
@@ -271,7 +289,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits(8 , regBase + 2, 0x1, 0 ) #2.5V
         self.femb.write_reg_bits(8 , regBase + 3, 0x1, 0 ) #1.5V
 
-        print("FEMB Power off: ", hex(self.femb.read_reg(8)))        
+        regVal = self.femb.read_reg(8)
+        if regVal == None:
+            return
+        print("FEMB Power off: ", hex(regVal))        
         
         #set UDP ports back to normal
         self.selectFemb(self.fembNum)
@@ -429,11 +450,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Write ADC ASIC SPI
         if syncAttempt == 0:
             print("ADC reconfig")
-            self.femb.write_reg( self.REG_ASIC_RESET, 1)
+            self.femb.write_reg( self.REG_RESET,0x4) #reset timestamp
             time.sleep(0.01)
-            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+            self.femb.write_reg( self.REG_ASIC_RESET, 1) #reset ASIC SPI
             time.sleep(0.01)
-            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1) #configure ASICs
+            time.sleep(0.01)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1) #configure ASICs
             time.sleep(0.01)
         #soft reset
         #self.femb.write_reg( self.REG_SOFT_ADC_RESET, 0x4)
@@ -536,6 +559,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             writeVal = val
             if mask != 0xFF:
                 curr_val = self.read_reg_SI5338(addr)
+                if curr_val == None:
+                    print( "Did not finish clock initialization")
+                    return
                 clear_curr_val = curr_val & (~mask)
                 clear_new_val = val & mask
                 writeVal = clear_curr_val | clear_new_val
@@ -544,10 +570,18 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #validate input clock status
 	#i2c_reg_rd(i2c_bus_base_addr, si5338_i2c_addr, 218);
-        clkStatus = (self.read_reg_SI5338(218) & 0x04)
+        regVal = self.read_reg_SI5338(218)
+        if regVal == None:
+            print( "Did not finish clock initialization")
+            return
+        clkStatus = (regVal & 0x04)
         count = 0
         while count < 100:
-            clkStatus = (self.read_reg_SI5338(218) & 0x04)
+            regVal = self.read_reg_SI5338(218)
+            if regVal == None:
+                print( "Did not finish clock initialization")
+                return
+            clkStatus = (regVal & 0x04)
             if clkStatus != 0x04:
                 break
             count = count + 1
@@ -569,9 +603,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #validate pll
         pllStatus = self.read_reg_SI5338(218)
+        if pllStatus == None:
+            print( "Did not finish clock initialization")
+            return
         count = 0
         while count < 100:
             pllStatus = self.read_reg_SI5338(218)
+            if pllStatus == None:
+                print( "Did not finish clock initialization")
+                return
             if pllStatus == 0 :
                 break
             count = count + 1
@@ -581,12 +621,21 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #copy FCAL values to active registers 
         fcalVal = self.read_reg_SI5338(235)
+        if fcalVal == None:
+            print( "Did not finish clock initialization")
+            return
         self.write_reg_SI5338(45,fcalVal)
  
         fcalVal = self.read_reg_SI5338(236)
+        if fcalVal == None:
+            print( "Did not finish clock initialization")
+            return
         self.write_reg_SI5338(46,fcalVal)
 
         fcalVal = self.read_reg_SI5338(237)
+        if fcalVal == None:
+            print( "Did not finish clock initialization")
+            return
         fcalVal = ( 0x14 | ( fcalVal & 0x3) )
         self.write_reg_SI5338(47,fcalVal)
 
@@ -605,7 +654,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def read_reg_SI5338(self,addr):
         addrVal = int(addr)
         if (addrVal < 0 ) or (addrVal > 255):
-            return
+            return None
         self.femb.write_reg( 11, 0)
         self.femb.write_reg( 12, addrVal)
         self.femb.write_reg( 15, 0xE0)
@@ -619,6 +668,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg( 10, 0)
 
         regVal = self.femb.read_reg(14)
+        if regVal == None:
+               return None
         return regVal
 
     def write_reg_SI5338(self,addr,val):
@@ -759,7 +810,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         for pwrSel in range(1,25):
             self.femb.write_reg(5,pwrSel)
             time.sleep(0.1)
-            val = self.femb.read_reg(6) & 0xFFFFFFFF
+            regVal = self.femb.read_reg(6)
+            if regVal == None:
+                 results.append(0)
+                 continue
+                 #return None
+            val = regVal & 0xFFFFFFFF
             results.append(val)
 
         self.selectFemb(0)
