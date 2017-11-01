@@ -55,31 +55,34 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_ADC_DISABLE = 8
 
         self.REG_HS_DATA = 9
+        self.REG_HS = 17
 
         self.INT_TP_EN = 18
         self.EXT_TP_EN = 18
 
-        self.REG_SPI_BASE = 512
-        self.REG_SPI_RDBACK_BASE = 592
+        self.REG_SPI_BASE = 0x200
+        self.REG_SPI_RDBACK_BASE = 0x250
 
         #internal variables
         self.fembNum = 0
-        self.useExtAdcClock = True
+        self.useExtAdcClock = False
         self.isRoomTemp = False
         self.maxSyncAttempts = 100
-        self.doReSync = True
+        self.doReSync = False
         self.syncStatus = 0x0
-        self.CLKSELECT_val_RT = 0xDF
-        self.CLKSELECT2_val_RT = 0x20
-        self.CLKSELECT_val_CT = 0x83
+        self.CLKSELECT_val_RT = 0xFF
+        self.CLKSELECT2_val_RT = 0xFF
+        self.CLKSELECT_val_CT = 0xFF
         self.CLKSELECT2_val_CT = 0xFF
+        self.REG_LATCHLOC_3_TO_0_val = 0x04050404
+        self.REG_LATCHLOC_7_TO_4_val = 0x04040404
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
-        self.femb.doReadBack = True #WIB register interface is unreliable
+        self.femb.doReadBack = False #WIB register interface is unreliable
 
         #ASIC config variables
         self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
@@ -186,8 +189,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print("Using cryogenic parameters")
             self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_CT ) #clock select
             self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF,  self.CLKSELECT2_val_CT ) #clock select 2            
-        self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
-        self.femb.write_reg_bits(self.REG_LATCHLOC_7_TO_4 , 0, 0xFFFFFFFF, 0x00000000 ) #datashift
+        self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, self.REG_LATCHLOC_3_TO_0_val ) #datashift
+        self.femb.write_reg_bits(self.REG_LATCHLOC_7_TO_4 , 0, 0xFFFFFFFF, self.REG_LATCHLOC_7_TO_4_val ) #datashift
 
         #enable streaming
         self.femb.write_reg_bits(self.REG_HS_DATA , 0, 0x1, 1 ) #Enable streaming
@@ -244,7 +247,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits(8 , regBase + 3, 0x1, 1 ) #1.5V
         self.femb.write_reg_bits(8 , 16 + fembVal, 0x1, 1 ) #BIAS enable
 
-        print("FEMB Power on: ", hex(self.femb.read_reg(8)))        
+        print("FEMB Power on: ", hex(self.femb.read_reg(8)))
         
         #set UDP ports back to normal
         self.selectFemb(self.fembNum)
@@ -390,6 +393,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg_bits( baseReg + 8 , 8, 0xFF, chReg ) #ch15
             self.femb.write_reg_bits( baseReg + 8 , 16, 0xFFFF, asicReg ) #ASIC gen reg
 
+        print( "adc_globalReg ","\t",adc_globalReg)
+        print( "chReg ","\t",hex(chReg))
+        print( "chWord ","\t",hex(chWord))
+        print( "asicReg ","\t",hex(asicReg))
+
         #run the SPI programming
         self.doAsicConfig()
 
@@ -428,8 +436,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
             time.sleep(0.01)
         #soft reset
-        self.femb.write_reg( self.REG_SOFT_ADC_RESET, 0x4)
-        time.sleep(0.01)
+        #self.femb.write_reg( self.REG_SOFT_ADC_RESET, 0x4)
+        #time.sleep(0.01)
 
         #for regNum in range(self.REG_SPI_RDBACK_BASE,self.REG_SPI_RDBACK_BASE+72,1):
         #    regVal = self.femb.read_reg( regNum)
@@ -760,11 +768,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def ext_clk_config_femb(self):
         #EXTERNAL CLOCK VARIABLES
-        ####################external clock timing
+        ####################external clokc timing
         clk_period = 5 #ns
         self.clk_dis = 0 #0 --> enable, 1 disable
-        self.d14_rst_oft  = 5   // clk_period   
-        self.d14_rst_wdt  = (45  // clk_period ) -1   
+        self.d14_rst_oft  = 0   // clk_period   
+        self.d14_rst_wdt  = (45  // clk_period )    
         self.d14_rst_inv  = 1  
         self.d14_read_oft = 480 // clk_period    
         self.d14_read_wdt = 20  // clk_period    
@@ -781,8 +789,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.d14_idl1_wdt = 20  // clk_period    
         self.d14_idl_inv  = 0      
 
-        self.d58_rst_oft  = 5   // clk_period 
-        self.d58_rst_wdt  = (45  // clk_period ) -1
+        self.d58_rst_oft  = 0   // clk_period 
+        self.d58_rst_wdt  = (45  // clk_period ) 
         self.d58_rst_inv  = 1  
         self.d58_read_oft = 480 // clk_period 
         self.d58_read_wdt = 20  // clk_period 
@@ -798,31 +806,31 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.d58_idl1_oft = 480 // clk_period
         self.d58_idl1_wdt = 20  // clk_period 
         self.d58_idl_inv  = 0       
-
-        ####################external clock phase
-        self.d14_read_step = 4
+        ####################external clokc phase for V320 firmware
+        self.d14_read_step = 7
         self.d14_read_ud   = 0
-        self.d14_idxm_step = 6
+        self.d14_idxm_step = 3
         self.d14_idxm_ud   = 0
-        self.d14_idxl_step = 0
-        self.d14_idxl_ud   = 0
-        self.d14_idl0_step = 6
+        self.d14_idxl_step = 1
+        self.d14_idxl_ud   = 1
+        self.d14_idl0_step = 5
         self.d14_idl0_ud   = 0
-        self.d14_idl1_step = 14
+        self.d14_idl1_step = 2
         self.d14_idl1_ud   = 0
-        self.d14_phase_en = 1
+        self.d14_phase_en  = 1
 
-        self.d58_read_step = 12
-        self.d58_read_ud   = 0
-        self.d58_idxm_step = 17
+        self.d58_read_step = 1
+        self.d58_read_ud   = 1
+        self.d58_idxm_step = 0
         self.d58_idxm_ud   = 0
-        self.d58_idxl_step = 3
-        self.d58_idxl_ud   = 0
-        self.d58_idl0_step = 18
+        self.d58_idxl_step = 5
+        self.d58_idxl_ud   = 1
+        self.d58_idl0_step = 6
         self.d58_idl0_ud   = 0
-        self.d58_idl1_step = 16
+        self.d58_idl1_step = 5
         self.d58_idl1_ud   = 0
-        self.d58_phase_en = 1
+        self.d58_phase_en  = 1
+
         #END EXTERNAL CLOCK VARIABLES
 
         #config timing

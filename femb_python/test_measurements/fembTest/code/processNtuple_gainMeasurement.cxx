@@ -530,7 +530,12 @@ void Analyze::measureGain(unsigned int chan, double baseRms){
         	}
 		if( numInRange < 3 )
    			return;
-
+		if( minRange > maxRange )
+	               	return;
+	        if( minRange < const_fitRangeLow )
+			minRange = const_fitRangeLow;
+		if( maxRange > const_fitRangeHigh )
+			maxRange = const_fitRangeHigh;
 
 		//TF1 *f1 = new TF1("f1","pol1",const_fitRangeLow,const_fitRangeHigh);
 		TF1 *f1 = new TF1("f1","pol1",minRange,maxRange);
