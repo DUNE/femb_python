@@ -132,11 +132,15 @@ class FEMB_SUMMARY(object):
                                 gaininfo.append(pulselabels[1])
                             encsum = 0
                             n = 0
-                            for r in result['results']:
-                                if ("enc" in r):
-                                    encsum+=float(r['enc'])
-                                    n+=1
-                            encavg = encsum/n
+                            if 'results' in result:
+                                for r in result['results']:
+                                    if ("enc" in r):
+                                        encsum+=float(r['enc'])
+                                        n+=1
+
+                            encavg = 0
+                            if n > 0 :
+                                encavg = encsum/n
                             gaininfo.append(encavg)
                             gainlabel = gaininfo[0]+"_"+gaininfo[1]+"_"+gaininfo[2]
                             gainsummary[gainlabel] = gaininfo

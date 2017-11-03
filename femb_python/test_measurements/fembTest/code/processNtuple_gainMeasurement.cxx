@@ -73,7 +73,7 @@ class Analyze {
         const float const_maxRms = 75.; //ADC counts
 	const float const_maxPulseHeight = 4096;
 	const float const_minPulseHeightForFit = 200;
-	const float const_maxPulseHeightForFit = 1500;
+	const float const_maxPulseHeightForFit = 1400;
 	const float const_maxPulsePeakValue = 3900;
 	const float const_maxGain = 10000;
 	const float const_maxEnc = 5000;
@@ -83,7 +83,7 @@ class Analyze {
 	const int const_preRange = 15;
 	const int const_postRange = 25;
 	const float const_minThreshold = 150;
-	const int const_minNumberPulses = 10;
+	const int const_minNumberPulses = 5;
 	const int const_cut_numBadChannels = 0;
   	const bool const_doFits = 0;
         double const_fitRangeLow = 50.E+3;
@@ -298,7 +298,7 @@ void Analyze::organizeData(){
 void Analyze::analyzeChannel(unsigned int chan){
 	if( chan % 10 == 0 )
 		std::cout << "Analyzing channel " << chan << std::endl;
-	//if( chan != 2 ) return;
+	//if( chan !=114 ) return;
 
 	//do basic noise measurement
 	ffer_analyzePulses.measureNoise( wfAll[0][chan] );
@@ -447,7 +447,7 @@ void Analyze::findPulses(const std::vector<unsigned short> &wf, double baseMean,
 		return;
 
 	//look for pulses along waveform, hardcoded number might be bad
-	double threshold = 5*baseRms;
+	double threshold = 4*baseRms;
 	if( threshold < const_minThreshold )
 		threshold = const_minThreshold;
 	int numPulse = 0;
@@ -486,10 +486,12 @@ void Analyze::getAveragePulseHeight(const std::vector<double> &pulseHeights){
 	//hPulseHeights->GetXaxis()->SetRangeUser(0.5,const_maxPulseHeight-0.5);
 	hPulseHeights->GetXaxis()->SetRangeUser(const_minPulseHeightForFit+0.5,const_maxPulseHeightForFit-0.5);
 
-	//c0->Clear();
-  	//hPulseHeights->Draw();
-  	//c0->Update();
-	//char ct; std::cin >> ct;
+        if( 0 ){
+	c0->Clear();
+  	hPulseHeights->Draw();
+  	c0->Update();
+	char ct; std::cin >> ct;
+	}
 
 	averagePulseHeight = hPulseHeights->GetMean();
 
@@ -502,7 +504,7 @@ void Analyze::measureGain(unsigned int chan, double baseRms){
 	if( baseRms <= 0 )
 		return;
         
-        measuredGain = 140.; //e-/ADC
+        measuredGain = 0.; //e-/ADC
         if( useDefaultGainFactor == 0 ){
 		if( gPulseVsSignal[chan]->GetN() < 1 ) 
 			return;
@@ -528,9 +530,14 @@ void Analyze::measureGain(unsigned int chan, double baseRms){
 			if( dataX > maxRange)
 				maxRange = dataX;
         	}
-		if( numInRange < 3 )
+		if( numInRange < 1 )
    			return;
-
+		if( minRange > maxRange )
+	               	return;
+	        if( minRange < const_fitRangeLow )
+			minRange = const_fitRangeLow;
+		if( maxRange > const_fitRangeHigh )
+			maxRange = const_fitRangeHigh;
 
 		//TF1 *f1 = new TF1("f1","pol1",const_fitRangeLow,const_fitRangeHigh);
 		TF1 *f1 = new TF1("f1","pol1",minRange,maxRange);

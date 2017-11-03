@@ -95,7 +95,15 @@ class FEMB_TEST_SIMPLE(object):
         #test firmware versions
         if self.femb_config.checkFirmwareVersion() == False:
             print('Error running doFembTest - Invalid firmware and/or register read error')
-            return   
+            return
+
+        if self.femb_config.syncStatus != 0 :
+            print('Error running doFembTest - ADC SYNC failed')
+            return
+
+        if self.femb_config.spiStatus != 0 :
+            print('Error running doFembTest - ADC SPI failed')
+            return
 
         #check if data streaming is working
         print("Checking data streaming")
@@ -226,7 +234,7 @@ def main():
     #default parameters
     datadir = "data"
     wibslots = [1]
-    isRoomTemp = True
+    isRoomTemp = False
 
     if len(sys.argv) == 2 :
         params = json.loads(open(sys.argv[1]).read())
