@@ -30,7 +30,7 @@ class FEMB_CHECK_DATA(object):
 
     print("Read arguments")
 
-    supported_what = ["adc_cold", "osc", "femb","fe_warm","femb","flash"]
+    supported_what = ["adc_cold", "osc","fe_warm","femb","flash"]
     supported_when = ["today", "yesterday", "this_week", "this_month", "all"]
 
     if what.lower() in supported_what:
@@ -83,7 +83,7 @@ class FEMB_CHECK_DATA(object):
       search_dir = self.datapath+"hoth*/dsk/*/oper/FlashTesting/quadEpcsTester*/*"
       
     elif("femb" in self.what):
-      search_dir = self.datapath+"hoth*/dsk/*/oper/femb/wib_sbnd_v109_femb_protodune_v308/*"
+      search_dir = self.datapath+"hoth*/dsk/*/oper/femb/wib_sbnd_v*_femb_protodune_v*/*"
       
     whatdirs = glob.glob(search_dir)
 
