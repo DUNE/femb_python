@@ -115,7 +115,7 @@ class FEMB_SUMMARY(object):
 
             for mydir in self.subdirs:
                 #Gain summary:
-                if ("gainenc" in mydir):
+                if ("gainenc" in mydir and "intclock" not in mydir):
                     gaininfo = []
                     info_file = self.topdir+"/"+mydir+"/params.json"
                     if os.path.isfile(info_file):
