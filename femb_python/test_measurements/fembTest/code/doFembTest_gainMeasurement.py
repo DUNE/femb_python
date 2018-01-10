@@ -333,6 +333,10 @@ class FEMB_TEST_GAIN(object):
         print("GAIN MEASUREMENT - DONE STORING RESULTS IN DATABASE" + "\n")
         self.status_archive_results = 1
 
+    def shutdown_setup(self):
+        #Make sure FEMB is off
+        self.femb_config.powerOffFemb(self.fembNum)
+
 def main():
     #default data taking parameters
     datadir = "data"
@@ -394,6 +398,7 @@ def main():
         femb_test.record_data()
         femb_test.do_analysis()
         femb_test.archive_results()
+        femb_test.shutdown_setup()
 
 if __name__ == '__main__':
     main()

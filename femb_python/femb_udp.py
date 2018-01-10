@@ -58,7 +58,7 @@ class FEMB_UDP(object):
 
         if (self.doReadBack == False) :
             return None
-        if (regVal == 0) or (regVal == 1) or (regVal == 2) : #don't try to rewrite certain registers
+        if (regVal == 0) or (regVal == 1) or (regVal == 2): #don't try to rewrite certain registers
             return None
 
         #do read back, attempts recursive rewrite if disagreement
