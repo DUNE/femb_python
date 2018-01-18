@@ -68,7 +68,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.useExtAdcClock = True
         self.isRoomTemp = False
         self.maxSyncAttempts = 100
-        self.doReSync = False
+        self.doReSync = True
         self.spiStatus = 0x0
         self.syncStatus = 0x0
         self.CLKSELECT_val_RT = 0xFF
@@ -448,7 +448,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         """
 
         #Write ADC ASIC SPI
-        if syncAttempt == 0:
+        #if syncAttempt == 0:
+        if True :
             print("ADC reconfig")
             self.femb.write_reg( self.REG_RESET,0x4) #reset timestamp
             time.sleep(0.01)
