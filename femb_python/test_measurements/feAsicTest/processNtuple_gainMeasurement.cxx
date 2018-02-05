@@ -442,7 +442,7 @@ void Analyze::measureGain(unsigned int chan, double baseRms){
 	if( baseRms <= 0 )
 		return;
 
-	TF1 *f1 = new TF1("f1","pol1",100.E+3,200.E+3);
+	TF1 *f1 = new TF1("f1","pol1",100.E+3,175.E+3);
 	gPulseVsSignal[chan]->Fit("f1","QR");
 
 	//check if fit succeeded here
