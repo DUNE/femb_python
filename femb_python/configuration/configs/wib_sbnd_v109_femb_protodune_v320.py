@@ -188,10 +188,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #phase control
         if self.isRoomTemp == True:
+            print("ADC clock phase:",self.CLKSELECT_val_RT,self.CLKSELECT2_val_RT)
             self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_RT ) #clock select
             self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, self.CLKSELECT2_val_RT ) #clock select 2
         else:
-            print("Using cryogenic parameters")
+            print("Using cryogenic parameters, ADC clock phase:",self.CLKSELECT_val_CT,self.CLKSELECT2_val_CT)
             self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_CT ) #clock select
             self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF,  self.CLKSELECT2_val_CT ) #clock select 2            
         self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, self.REG_LATCHLOC_3_TO_0_val ) #datashift
