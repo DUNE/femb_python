@@ -6,10 +6,10 @@ This document is meant as an overview of the functionality of the python scripts
 
 ## Script hierarchy
 1. run_main.py
-	a.femb_config.py
-		i.   user_settings.py
-		ii.  adc_asic_reg_mapping.py
-		iii. femb_udp_cmdline.py
+	* femb_config.py
+		+ user_settings.py
+		+ adc_asic_reg_mapping.py
+		+ femb_udp_cmdline.py
 2. sbnd_femb_meas.py
 
 
@@ -17,9 +17,12 @@ This document is meant as an overview of the functionality of the python scripts
 
 Myriads of code aspects (ie. functions, and registers) must be initialized in the early stages within the code.
 
+### Function Initialization
+
+---
+
 Reasons for why the top level (run_main.py) can call members 'init_ports()' and 'resetFEMBBoard()' are because FEMB_DAQ is defined as self.sbnd as shown in the code below.
 
-### Function Initialization
 + run_main.py
 ```python
     from scripts.sbnd_femb_meas import FEMB_DAQ
@@ -32,11 +35,9 @@ Reasons for why the top level (run_main.py) can call members 'init_ports()' and 
     def __init__(self):
             self.sbnd = FEMB_DAQ()
 ```
-
 + sbnd_femb_meas.py
 
 (I have not had a chance yet to fully explore this function) However useful this function is, it is especially important for initization for accessing class members in the top level script. 
-
 ```python
     def __init__(self):
 
@@ -48,22 +49,98 @@ Reasons for why the top level (run_main.py) can call members 'init_ports()' and 
         self.fe_reg = FE_ASIC_REG_MAPPING() 
 ```
 
-+ femb_config
+
+---
+
+
+Since most functions are scattered about in different scripts the most important script or most useful script in storing all the necessary ASIC ADC syncing functions (femb_config_sbnd.py) must be called from other scripts. The initialization is shown below.
+
+The UDP script (femb_udp_cmdline.py) comes into play at various times to aid in 'reading' registers, 'writing' register, and 'initializing' ports. All of this is necessary and included under the UDP script due to the network (IPv4 and UDP) networking responsibilities.
+
++ femb_config_sbnd.py
 
 ```python
+    from scripts.femb_udp_cmdline import FEMB_UDP
+
+    ...
+
     def __init__(self):
         self.femb = FEMB_UDP()
 
         self.adc_reg = ADC_ASIC_REG_MAPPING()
         self.fe_reg = FE_ASIC_REG_MAPPING() 
 ```
+
+
 ### Register Initialization
+
 
 ## Essential Procedures
 
 
+Now that all the initiazliations have been made we can get into the major functional procedures used in testing asics. Before we get into the details, we should take a look at the main function. 
 
 
+```python
+class main:
+    def loop(self):
+        print ("Start")
 
+        self.sbnd.femb_config.femb.init_ports(hostIP = settings.PC_IP, destIP = settings.FPGA_IP)
+        
+        self.sbnd.femb_config.resetFEMBBoard()
+        self.sbnd.femb_config.initBoard()
+            
+        time.sleep(1)
+        self.sbnd.femb_config.syncADC()
+```
+
+
+Sequentially the main function calls these functions:
++ ```python self.sbnd.femb_config.femb.init_ports() ```
++ ```python self.sbnd.femb_config.resetFEMBBoard() ```
++ ```python self.sbnd.femb_config.initBoard() ```
++ ```python self.sbnd.femb_config.syncADC() ```
+
+
+---
+An understanding of each of these functions reveals how the PC programs the FPGA and how the FPGA is able to test the ASIC.
+
+
+### init_ports()
+
+
+Sends dummy packet from PC to FPGA to initiate 'ARP' (?) request and map FPGA to port.
+
+In a nutshell this function sends data structured as a 6 bit word. Each 'H' option stores an integer of size 2 bits.
+```python
+WRITE_MESSAGE = struct.pack('HHH',socket.htons( self.KEY1  ), socket.htons( self.FOOTER  ), 0x0  )
+```
+
+
+To do this the internet protocol and communication method must be identified.
+```python
+sock_write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+```
+
+
+An esoteric line (below), is used in defining socket options. In this case SOL_SOCKET is used to define the family of options that can be used, which we chose SO__REUSEADDR. This option essentially keeps the socket open for use even after we close() it.
+
+"the SO_REUSEADDR flag tells the kernel to reuse a local socket in the time_wait state without waiting for its natural timeout to expire"
+```python
+sock_write.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+```
+
+
+Finally we send a hexadecimal 
+```python
+sock_write.sendto(WRITE_MESSAGE,(destIP, self.PORT_WREG ))
+```
+
+### resetFEMBBoard()
+
+### initBoard() 
+
+### syncADC()
 
 
