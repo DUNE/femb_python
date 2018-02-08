@@ -1,4 +1,6 @@
-# FPGA Testing - Code Architecture
+# Single Socket ASIC Testing with FPGAs
+
+fpga_mezzanine.jpg
 
 ## Objective
 
@@ -13,17 +15,12 @@ This document is meant as an overview of the functionality of the python scripts
 2. sbnd_femb_meas.py
 
 
-## Initialization Stages 
+## Function Initialization 
 
 Myriads of code aspects (ie. functions, and registers) must be initialized in the early stages within the code.
-
-### Function Initialization
-
----
-
 Reasons for why the top level (run_main.py) can call members 'init_ports()' and 'resetFEMBBoard()' are because FEMB_DAQ is defined as self.sbnd as shown in the code below.
 
-+ run_main.py
+### run_main.py
 ```python
     from scripts.sbnd_femb_meas import FEMB_DAQ
     
@@ -35,8 +32,8 @@ Reasons for why the top level (run_main.py) can call members 'init_ports()' and 
     def __init__(self):
             self.sbnd = FEMB_DAQ()
 ```
-+ sbnd_femb_meas.py
 
+### sbnd_femb_meas.py
 (I have not had a chance yet to fully explore this function) However useful this function is, it is especially important for initization for accessing class members in the top level script. 
 ```python
     def __init__(self):
@@ -49,16 +46,10 @@ Reasons for why the top level (run_main.py) can call members 'init_ports()' and 
         self.fe_reg = FE_ASIC_REG_MAPPING() 
 ```
 
-
----
-
-
+### femb_config_sbnd.py
 Since most functions are scattered about in different scripts the most important script or most useful script in storing all the necessary ASIC ADC syncing functions (femb_config_sbnd.py) must be called from other scripts. The initialization is shown below.
 
 The UDP script (femb_udp_cmdline.py) comes into play at various times to aid in 'reading' registers, 'writing' register, and 'initializing' ports. All of this is necessary and included under the UDP script due to the network (IPv4 and UDP) networking responsibilities.
-
-+ femb_config_sbnd.py
-
 ```python
     from scripts.femb_udp_cmdline import FEMB_UDP
 
@@ -71,15 +62,9 @@ The UDP script (femb_udp_cmdline.py) comes into play at various times to aid in 
         self.fe_reg = FE_ASIC_REG_MAPPING() 
 ```
 
-
-### Register Initialization
-
-
 ## Essential Procedures
 
-
 Now that all the initiazliations have been made we can get into the major functional procedures used in testing asics. Before we get into the details, we should take a look at the main function. 
-
 
 ```python
 class main:
@@ -95,20 +80,17 @@ class main:
         self.sbnd.femb_config.syncADC()
 ```
 
-
 Sequentially the main function calls these functions:
-+ ```python self.sbnd.femb_config.femb.init_ports() ```
-+ ```python self.sbnd.femb_config.resetFEMBBoard() ```
-+ ```python self.sbnd.femb_config.initBoard() ```
-+ ```python self.sbnd.femb_config.syncADC() ```
-
+1. ```python self.sbnd.femb_config.femb.init_ports() ```
+2. ```python self.sbnd.femb_config.resetFEMBBoard() ```
+3. ```python self.sbnd.femb_config.initBoard() ```
+4. ```python self.sbnd.femb_config.syncADC() ```
 
 ---
+
 An understanding of each of these functions reveals how the PC programs the FPGA and how the FPGA is able to test the ASIC.
 
-
-### init_ports()
-
+### init_ports()					[udp.py]
 
 Sends dummy packet from PC to FPGA to initiate 'ARP' (?) request and map FPGA to port.
 
@@ -137,9 +119,28 @@ Finally we send a hexadecimal
 sock_write.sendto(WRITE_MESSAGE,(destIP, self.PORT_WREG ))
 ```
 
-### resetFEMBBoard()
+### resetFEMBBoard()					[config.py]
 
-### initBoard() 
+Here's a simple function to analyze. 
+
+Recall that registers 0,1, and 2 exhibit unique behaviors in the FPGA. While every register will retain the value written to it, these 3 will only have high bits for one clock cycle. Meaning a true value (1) will have a reset effect instantly, but next clock cycle this will not carry through to the next instance. So writing a 0 to register 0 is only a pre-caution but is not necessary, since the FPGA will automatically set this to 0.
+
+```python
+    def resetFEMBBoard(self):
+        self.femb.write_reg ( self.REG_RESET, 1) # REG_RESET <= reg0(1)
+        time.sleep(5.)
+        self.femb.write_reg ( self.REG_RESET, 0) # REG_RESET <= reg0(1)
+```
+
+This step is essential for purging the system of random bits set for each register. In the next step we will dictate register values.
+
+### initBoard()						[config.py]
+
+This function is pretty complicated and has multiple parts that are easier to explain if they are broken up into individual pieces.
+
+
+
+
 
 ### syncADC()
 
