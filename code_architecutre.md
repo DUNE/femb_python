@@ -1,6 +1,6 @@
 # Single Socket ASIC Testing with PC to FPGA Using Python
 
-(https://github.com/carlos-pereyra/single_socket_dev/blob/master/msc/fpga_mezzanine.jpg "food is good")
+![](https://github.com/carlos-pereyra/single_socket_dev/blob/master/msc/fpga_mezzanine.jpg "food is good")
 
 ## I. Objective
 
@@ -8,7 +8,7 @@ This document is meant as an overview of the functionality of the python scripts
 
 An essential understanding of how this python package relates the PC to the FPGA and ultimately the ASIC.
 
-(https://github.com/carlos-pereyra/single_socket_dev/blob/master/msc/single_socket_schematic.png)
+![food](https://github.com/carlos-pereyra/single_socket_dev/blob/master/msc/single_socket_schematic.png)
 
 ## II. Script hierarchy
 1. run_main.py
@@ -157,6 +157,8 @@ This function is pretty complicated and has multiple parts that are easier to ex
 This is where we define the buffer size of incoming data from the ASIC. Data must be a multiple of 13 (16 bit words) in our case, because the first 'word' in the data stream from the ASIC is 0xFACE, while the 12 remaining 'words' contain data from each of the 16 channels. 
 
 It should be noted that each 'word' shares data with two channels. For instance each 'word' contains the full 12 bits of data from a single channel, while the remaining 4 bits pertain to another channel. 
+
+Essentially, the whole recieving data process (seen by the PC) is due to VHDL code which has instructed the FPGA to behave in a certain way. The behavior of the FPGA is to output data to the PC, which then the PC interprets the 13 (16 bit words) knowing that the header must be 0xFACE, then the proceeding data is actual numerical readings from the ADC ASIC.
 
 The exact organization of how data maps to channels will be explained later.
 
