@@ -1,6 +1,6 @@
-# Single Socket ASIC Testing with FPGAs
+# Single Socket ASIC Testing with PC to FPGA Using Python
 
-fpga_mezzanine.jpg
+https://github.com/carlos-pereyra/single_socket_dev/msc/fpga_mezzanine.jpg
 
 ## Objective
 
