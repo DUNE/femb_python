@@ -2,6 +2,8 @@
 
 https://github.com/carlos-pereyra/single_socket_dev/msc/fpga_mezzanine.jpg
 
+https://github.com/carlos-pereyra/single_socket_dev/blob/master/msc/fpga_mezzanine.jpg
+
 ## Objective
 
 This document is meant as an overview of the functionality of the python scripts needed to initialize and test ASIC using FPGA mezzanine boards. Descriptions of individual functions and relationships will be outlined for providing readers with proof of concept.
