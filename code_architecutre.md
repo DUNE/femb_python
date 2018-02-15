@@ -109,7 +109,7 @@ This step is essential for purging the system of random bits set for each regist
 
 #### III.b.4 initBoard()
 This function is the first phase in syncing the ADC ASIC with the PC. This is where the essential registers for the ADC ASIC are being written to, as a first pass at syncing.
-#### III.b.4.1 Frame Size
+##### III.b.4.1 Frame Size
 When WIB mode is on, the frame size is essentially the number of packets that should be received, so that data from all 16 channels have been received.
 ```python
     def initBoard(self):
@@ -126,7 +126,7 @@ Since WIB mode is on (at least for ASIC testing), we define the buffer size of i
 The first packet from the FPGA in our case, is 0xFACE. The 12 remaining packets contain data from each of the 16 channels. The way in which data in each packet is formed is non-trivial. Each packet shares data with two channels. For instance each 'word' contains the full 12 bits of data from a single channel, while the remaining 4 bits pertain to another channel. 
 Essentially, the whole recieving data process (seen by the PC) is due to VHDL code which has instructed the FPGA to behave in a certain way. The behavior of the FPGA is to output data to the PC, which then the PC interprets the 13 (16 bit words) knowing that the header must be 0xFACE, then the proceeding data is actual numerical readings from the ADC ASIC.
 The exact organization of how data maps to channels will be explained later.
-#### III.b.4.2 WIB mode
+##### III.b.4.2 WIB mode
 When writing to any register, that register value should be verified in the vhdl code. In this case it can be seen that WIB mode is indeed register 8 at the top level, where the register map is defined. It will also become apparent, that register 8 is a vector of length 8 total bits. 
 ```python
         self.femb.write_reg(8, 0x80000001)                  # WIB_MODE   <= reg8_p(0)
@@ -163,7 +163,7 @@ process(clk_sys)
 				end if;
 			end if;
 ```
-#### c. Latchloc
+##### III.b.4.3 Latchloc
 In most cases the data output from the FPGA to the PC will not be received in the order we expect it. We expect to see the header 0xFACE, however due the packet arriving offset by some bits, it must be shifted. Latch loc tells the PC to shift the contents of the packet by n number of bits, so that 0xFACE is the first of the 13 packets received.
 ```python
         self.femb.write_reg(settings.LATCHLOC_reg, settings.LATCHLOC_data) # LATCH_LOC_0 <= reg4_p(7 downto 0)
@@ -203,9 +203,8 @@ So what happens then? The FPGA then tries to sync the ADC ASIC with the PC only 
 			if(BIT_CNT = LATCH_LOC) then
 				sys_sync 	<= '1';
 ```
-#### d. Clock Tuning
-The clocks that determine the performance of the ADC are the (a.) RESET, (b.) READ, (c.) IDXM, (d.) IDXL, (e.) IDL1, and (f.) IDL2 clocks. It has been found via empirical observation that the ADC ASIC performance is optimized by aligning the falling edge of all the clocks - with the fall edge of the RESET clock. {insert image of clocks}
-As mentioned earlier it is important to always check that _.
+##### III.b.4.4 Clock Tuning
+The clocks that determine the performance of the ADC are the (a.) RESET, (b.) READ, (c.) IDXM, (d.) IDXL, (e.) IDL1, and (f.) IDL2 clocks. It has been found via empirical observation that the ADC ASIC performance is optimized by aligning the falling edge of all the clocks - with the fall edge of the RESET clock. As mentioned earlier it is important to always check that the registers you are writing to on the FPGA correspond to the registers defined in the python code.
 ```python
         self.femb.write_reg(22, settings.reg22_value[0])    # OFST_RST <= reg22_p      
         self.femb.write_reg(23, settings.reg23_value[0])    # WDTH_RST <= reg23_p;
@@ -230,8 +229,10 @@ As mentioned earlier it is important to always check that _.
         self.femb.write_reg(35, settings.reg35_value[0])    # pll_STEP1_L <= reg35_p [C2 & C3 fine clock settings]
         self.femb.write_reg(36, settings.reg36_value[0])    # pll_STEP2_L <= reg36_p [C2 & C3 fine clock settings]
 ```
-
-#### e. Global Register Settings
+{insert image of clocks}
+The low logic level of a clock cycle is defined as the offset (OFST), while the high logic level of a clock cycle is defined as the width (WDTH). This is of course opposite case when these clocks have been defined as inverted. In the settings python script is where the clocks can be defined. The clock settings are always in hex, as any other register is.
+##### III.b.4.5 Global Register Settings
+In the fifth order of procedures needed to sync the ADC ASIC with the PC, is configuring the global and individual channel registers. After configuring the register settings here for the first time, you can change individual registers one at a time. The registers that are set here will remain the same, until you change them by calling "set adc board" again.
 ```python
         #clk = 2 is external
         #clk = 0 is internal
@@ -239,16 +240,76 @@ As mentioned earlier it is important to always check that _.
                  clk = 0, frqc = 1, en_gr = 0, f0 = 0, f1 = 0, 
                  f2 = 0, f3 = 0, f4 = 0, f5 = 1, slsb = 0)
 ```
+###### Inside set_adc_board()
+Inside the function "set_adc_board" there is nested functions that ultimately separate the inputs to be handled by the "set_adc_chp" and "set_adc_global" functions.
+```python
+    def set_adc_board():
+        asic = 1
+        for chip in range(asic):
+            self.set_adc_chip( chip, d, pcsr, pdsr, slp, tstin,
+                 clk, frqc, en_gr, f0, f1, f2, f3, f4, f5, slsb)
+    def set_adc_chip(self, chip=0,
+                 d=0, pcsr=1, pdsr=1, slp=0, tstin=0,
+                 clk = 0, frqc = 0, en_gr = 0, f0 = 0, f1 = 0, 
+                 f2 = 0, f3 = 0, f4 = 0, f5 = 1, slsb = 0): #set f5 = 1 1/30/18 cp
+        for chn in range(16):
+            self.set_adc_chn(chip, chn, d, pcsr, pdsr, slp, tstin )
+        self.set_adc_global (chip, clk, frqc, en_gr, f0, f1, f2, f3, f4, f5, slsb)
+```
+Inside the "set_adc_chn" function is a great example of bit wise masking. It is necessary to use bitwise masking for writing binary values that correspond to specific channels, hence we are trying to write register values for each channel.
+```python
+def set_adc_chn(self, chip=0, chn=0, d=-1, pcsr=-1, pdsr=-1, slp=-1, tstin=-1):
+        tuple_num = 5 * chip + ((15 - chn) // 4)
+        ...
+        chn_reg = d_bit + pcsr_bit + pdsr_bit + slp_bit  + tstin_bit
+	...
+        or_mask = (chn_reg << bitshift) #holds the 8 bits we care about - tuple 3 => ch12,13,14,15
+        ...
+        self.REGS[tuple_num] = self.REGS[tuple_num] & (and_mask)                
+        self.REGS[tuple_num] = self.REGS[tuple_num] | (or_mask)
+```
+Ultimately this long list of logic redefines the _.
+An attempt to outline all the logic _. 
+How this "tuple_num" maps to each channel will be shown. {include table} {show and explain example logic}
+##### III.b.4.6 SPI Write
+At the vhdl top level.
+```vhdl
+begin
+----- register map -------
+	...
+	WRITE_ADC_ASIC_SPI 	<= reg2_p(0);
+	...
+ProtoDUNE_ASIC_CNTRL_inst :	entity work.ProtoDUNE_ASIC_CNTRL
+	PORT MAP
+	(
+		...
+		WRITE_SPI	=> WRITE_ADC_ASIC_SPI
+	)
+```
+If we dive into the "protoDUNE ASIC CTRL" entity we then see that the "WRITE SPI" register merely configures other signals "CHIP", "SPI_CTRL". We will trace what exactly these other signals are used for in the following steps.
+```vhdl
+     elsif (clk_sys'event AND clk_sys = '1') then
+			CASE state IS
+			when S_IDLE =>
+				if (ADC_ASIC_RESET = '1')  then		
+					SPI_CNTL		<= '1';			
+					state 		<= S_ADC_ASIC_RESET;	
+				elsif (SOFT_ADC_RESET = '1')  then		
+					SPI_CNTL		<= '1';			
+					state 		<= S_SOFT_ADC_RESET;						
+				elsif (FE_ASIC_RESET = '1')  then
+					state 		<= S_FE_ASIC_RESET;	
+				elsif (WRITE_SPI = '1')  then
+					CHIP			<= x"0";
+					SPI_CNTL		<= '1';				
+					DPM_ADDR_S 	<= ASIC_WR_ADDR(7 DOWNTO 0);	    	
+					DPM_RB_ADDR	<= ASIC_RD_ADDR(7 DOWNTO 0);   			  	
+					state 		<= S_WRITE_ADC_SPI_START;
+```
+Essentially the state is being changed to "S WRITE ADC SPI START".
+##### III.b.4.7 Configure ADC ASIC
 
 
-#### f. SPI Write
-
-
-
-#### g. Configure ADC ASIC
-
-
-
-### syncADC()
+#### III.b.5 syncADC()
 
 
