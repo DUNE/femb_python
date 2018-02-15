@@ -31,7 +31,8 @@ Functions and registers must be initialized in the early stages within the code.
     self.sbnd.femb_config.resetFEMBBoard()	
     ...
     def __init__(self):
-            self.sbnd = FEMB_DAQ()```
+            self.sbnd = FEMB_DAQ()
+```
 #### III.a.2 sbnd_femb_meas.py 
 ```python
     def __init__(self):
@@ -39,7 +40,8 @@ Functions and registers must be initialized in the early stages within the code.
         self.femb_config = FEMB_CONFIG()
 	...
         self.adc_reg = ADC_ASIC_REG_MAPPING()
-        self.fe_reg = FE_ASIC_REG_MAPPING()```
+        self.fe_reg = FE_ASIC_REG_MAPPING()
+```
 #### III.a.3 femb_config_sbnd.py
 Since most functions are scattered about in different scripts the most important script or most useful script in storing all the necessary ASIC ADC syncing functions (femb_config_sbnd.py) must be called from other scripts. The initialization is shown below.
 The UDP script (femb_udp_cmdline.py) comes into play at various times to aid in 'reading' registers, 'writing' register, and 'initializing' ports. All of this is necessary and included under the UDP script due to the network (IPv4 and UDP) networking responsibilities.
@@ -50,8 +52,8 @@ The UDP script (femb_udp_cmdline.py) comes into play at various times to aid in 
         self.femb = FEMB_UDP()
 	...
         self.adc_reg = ADC_ASIC_REG_MAPPING()
-        self.fe_reg = FE_ASIC_REG_MAPPING()```
-
+        self.fe_reg = FE_ASIC_REG_MAPPING()
+```
 ### III.b ADC Sync Procedures
 Now that all the initiazliations have been made we can get into the major procedures necessary for syncing the ADC ASIC. A look at the main function tells us the top level procedures.
 
@@ -67,7 +69,8 @@ class main:
         self.sbnd.femb_config.initBoard()
             
         time.sleep(1)
-        self.sbnd.femb_config.syncADC()```
+        self.sbnd.femb_config.syncADC()
+```
 An understanding of the (1) first ```python self.sbnd.femb_config.femb.init_ports()```, (2) second ```python self.sbnd.femb_config.resetFEMBBoard() ```, (3) third ```python self.sbnd.fembconfig.initBoard```, and (4) finally the```python self.sbnd.fembconfig.syncADC() ``` will be provided.
 
 #### III.b.2 init_ports()
@@ -75,7 +78,8 @@ Sends dummy packet from PC to FPGA to initiate 'ARP' (?) request and map FPGA to
 ##### III.b.2.1 Packets
 In a nutshell this function sends data structured as a 6 bit bus. Each 'H' option stores an integer of size 2 bits. Where KEY1, KEY2, and FOOTER are _.
 ```python
-WRITE_MESSAGE = struct.pack('HHH',socket.htons( self.KEY1  ), socket.htons( self.FOOTER  ), 0x0  )```
+WRITE_MESSAGE = struct.pack('HHH',socket.htons( self.KEY1  ), socket.htons( self.FOOTER  ), 0x0  )
+```
 ##### III.b.2.2 Protocols
 Specifying internet protocol and communication method must be identified. The option AFINET calls for IPv4, while SOCKDGRAM specfies UDP.
 ```python
@@ -85,11 +89,13 @@ sock_write = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 The PC must keep listening to the ports for any packets being sent and received. After sending a packet out, it may take time for the packet to be sent back to the PC. So "SOL_SOCKET" is used to define the family of options that can be used, which enables "SO__REUSEADDR" as an option, which is used to keep the socket open for use even after we close() it. Thereby enabling the PC to keep listening for UDP packets. 
 According to a webpage on the microsoft website, "the SO_REUSEADDR flag tells the kernel to reuse a local socket in the time_wait state without waiting for its natural timeout to expire".
 ```python
-sock_write.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)```
+sock_write.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+```
 ##### III.b.2.4 Sending a Message to the FPGA
 Finally we send a hexadecimal 
 ```python
-sock_write.sendto(WRITE_MESSAGE,(destIP, self.PORT_WREG ))```
+sock_write.sendto(WRITE_MESSAGE,(destIP, self.PORT_WREG ))
+```
 
 #### III.b.3 resetFEMBBoard()
 Here's a simple function to analyze. Recall that registers 0,1, and 2 exhibit unique behaviors in the FPGA. While every register will retain the value written to it, these 3 will only have high bits for one clock cycle. Meaning a true value (1) will have a reset effect instantly, but next clock cycle this will not carry through to the next instance. So writing a 0 to register 0 is only a pre-caution but is not necessary, since the FPGA will automatically set this to 0.
@@ -114,7 +120,8 @@ When WIB mode is on, the frame size is essentially the number of packets that sh
         self.femb.write_reg(10, frame_size)
         time.sleep(0.1)
 
-        if (self.femb.read_reg(10) != frame_size):```
+        if (self.femb.read_reg(10) != frame_size):
+```
 Since WIB mode is on (at least for ASIC testing), we define the buffer size of incoming data from the ASIC. The frame size must be a multiple of 13, so the FPGA interprets this through to vhdl to send an appropriate number of packets.
 The first packet from the FPGA in our case, is 0xFACE. The 12 remaining packets contain data from each of the 16 channels. The way in which data in each packet is formed is non-trivial. Each packet shares data with two channels. For instance each 'word' contains the full 12 bits of data from a single channel, while the remaining 4 bits pertain to another channel. 
 Essentially, the whole recieving data process (seen by the PC) is due to VHDL code which has instructed the FPGA to behave in a certain way. The behavior of the FPGA is to output data to the PC, which then the PC interprets the 13 (16 bit words) knowing that the header must be 0xFACE, then the proceeding data is actual numerical readings from the ADC ASIC.
@@ -154,15 +161,51 @@ process(clk_sys)
 					UDP_DATA_LATCH <= '0';
 					Data_Latch_dly <= '0';
 				end if;
-			end if;```
+			end if;
+```
 #### c. Latchloc
 In most cases the data output from the FPGA to the PC will not be received in the order we expect it. We expect to see the header 0xFACE, however due the packet arriving offset by some bits, it must be shifted. Latch loc tells the PC to shift the contents of the packet by n number of bits, so that 0xFACE is the first of the 13 packets received.
 ```python
-        self.femb.write_reg(settings.LATCHLOC_reg, settings.LATCHLOC_data) # LATCH_LOC_0 <= reg4_p(7 downto 0) # Latch lock setting for ASIC
-        self.femb.write_reg(settings.CLKPHASE_reg, settings.CLKPHASE_data) # CLK_selectx <= reg6_p(7 downto 0) # Phase settings for ASIC```
-Inside the vhdl _.
-
+        self.femb.write_reg(settings.LATCHLOC_reg, settings.LATCHLOC_data) # LATCH_LOC_0 <= reg4_p(7 downto 0)
+        self.femb.write_reg(settings.CLKPHASE_reg, settings.CLKPHASE_data) # CLK_selectx <= reg6_p(7 downto 0)
+```
+Inside the vhdl top level register 4 is mapped to a signal called "latch loc 0" which is then mapped to the entity "ADC S SKT RDOUT". Where inside the "ADC S SKT RDOUT" entity the sublevel entity "ADC PLL" is then used to map "latch loc 0" to the first element of the signal "LATCH LOC".
+```vhdl
+ARCHITECTURE behavior OF ADC_s_SKT_RDOUT IS
+	SIGNAL	LATCH_LOC		: SL_ARRAY_7_TO_0(0 to 7);
+...
+ADC_PLL_inst1 : entity work.ADC_PLL
+			 LATCH_LOC(0)	<= LATCH_LOC_0;
+```
+Then even further inside "ADC S SKT RDOUT" there is a sublevel entity called "SBND ASIC RDOUT" where "LATCH LOC(i)" where i is zero, then this is then mapped to an input "LATCH_LOC" for "SBND ASIC RDOUT".
+```
+SBND_ASIC_RDOUT_V2 : entity work.SBND_ASIC_RDOUT_V2
+	PORT MAP
+	(
+			...
+			LATCH_LOC		=> LATCH_LOC(i)
+```
+So what happens then? The FPGA then tries to sync the ADC ASIC with the PC only when a counter "BIT CNT" matches the first two bits of "LATCH LOC", which thereby shifts the data output by this delay due to the counter.
+```vhdl
+	elsif (clk_200Mhz'event AND clk_200Mhz = '1') then
+		CASE state IS
+		when S_IDLE =>	
+			BIT_CNT			<= x"00";
+			sys_sync		<= '0';
+			asic_empty_rst		<= '1';
+			if (ADC_CONV_DLY1 = '1' and ADC_CONV_DLY2 = '0') then
+				asic_empty_rst	<= '0';
+				state 		<= S_READ_SDATA;				
+				end if;		  
+		when S_READ_SDATA =>	
+			BIT_CNT		<= BIT_CNT + 1;
+			sys_sync	<= '0';
+			if(BIT_CNT = LATCH_LOC) then
+				sys_sync 	<= '1';
+```
 #### d. Clock Tuning
+The clocks that determine the performance of the ADC are the (a.) RESET, (b.) READ, (c.) IDXM, (d.) IDXL, (e.) IDL1, and (f.) IDL2 clocks. It has been found via empirical observation that the ADC ASIC performance is optimized by aligning the falling edge of all the clocks - with the fall edge of the RESET clock. {insert image of clocks}
+As mentioned earlier it is important to always check that _.
 ```python
         self.femb.write_reg(22, settings.reg22_value[0])    # OFST_RST <= reg22_p      
         self.femb.write_reg(23, settings.reg23_value[0])    # WDTH_RST <= reg23_p;
@@ -176,7 +219,7 @@ Inside the vhdl _.
         self.femb.write_reg(28, settings.reg28_value[0])    # OFST_IDXL <= reg28_p
         self.femb.write_reg(29, settings.reg29_value[0])    # WDTH_IDXL <= reg29_p
         
-        self.femb.write_reg(30, settings.reg30_value[0])    # WDTH_IDXL <= reg29_p
+        self.femb.write_reg(30, settings.reg30_value[0])    # OFST_IDL_f1 <= reg30_p
         self.femb.write_reg(31, settings.reg31_value[0])    # WDTH_IDL_f1 <= reg31_p
                                                             
         self.femb.write_reg(32, settings.reg32_value[0])    # OFST_IDL_f2 <= reg32_p
