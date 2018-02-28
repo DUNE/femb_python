@@ -27,7 +27,7 @@ class user_editable_settings:
             #self.LATCHLOC_data = 0x6060606
             #self.CLKPHASE_data = 0x4
         else:
-            self.LATCHLOC_data = 0x6050606
+            self.LATCHLOC_data = 0x6050604      #Only first 2 bits determine shift?
             self.CLKPHASE_data = 0x15
         
 #        self.chips_to_use = [2,3]
@@ -46,13 +46,10 @@ class user_editable_settings:
 
         self.frame_size = 0x0efb #?
     
-        #In Hertz
-        self.frequency = .1
-        #In Volts
-        self.amplitude = 1.8
-        #In Volts
-        self.offset = 0.7
-        self.phase_start = 180
+        self.frequency = .1    #In Hertz
+        self.amplitude = 1.8   #In Volts
+        self.offset = 0.7      #In Volts
+        self.phase_start = 180 #In Degrees
         
         self.reg10_value = [] # frame size
         self.reg10_value.append(self.frame_size)
@@ -77,14 +74,14 @@ class user_editable_settings:
         #Regular Quad Board Socket 1
         
         #Course clock settings - definitions
-        self.reg22_value.append(0x5)        # RESET Offset 
-        self.reg23_value.append(0x90000)    # RESET Width
+        self.reg22_value.append(0x00000000) # RESET Offset 
+        self.reg23_value.append(0x00000032) # RESET Width
         
-        self.reg24_value.append(0x3005E)    # READ Offset
-        self.reg25_value.append(0x35002C)   # READ Width
+        self.reg24_value.append(0x000001d6) # READ Offset
+        self.reg25_value.append(0x0000000f) # READ Width
         
-        self.reg26_value.append(0x3005E)    # IDXM Offset
-        self.reg27_value.append(0x250008)   # IDXM Width
+        self.reg26_value.append(0x000000dc) # IDXM Offset
+        self.reg27_value.append(0x00000109) # IDXM Width
         
         self.reg28_value.append(0x3005D)    # IDXL Offset
         self.reg29_value.append(0x140011)   # IDXL Width
