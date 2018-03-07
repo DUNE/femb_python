@@ -1,16 +1,36 @@
 import pickle
-from scripts.femb_config_sbnd import FEMB_CONFIG
+#from scripts.femb_config_sbnd import FEMB_CONFIG
+from femb_python.configuration.configs.quadFeTestCold import FEMB_CONFIG
 import numpy as np
-from scripts.detect_peaks import detect_peaks
+from femb_python.test_measurements.quadFeTestCold.scripts.detect_peaks import detect_peaks
 import os
 import sys
 import matplotlib.pyplot as plt
 import time
 
-from scripts.plotting import plot_functions
-from user_settings import user_editable_settings
+from femb_python.test_measurements.quadFeTestCold.scripts.plotting import plot_functions
+from femb_python.test_measurements.quadFeTestCold.user_settings import user_editable_settings
 settings = user_editable_settings()
 class FEMB_DAQ:
+
+    def __init__(self):
+        np.set_printoptions(threshold=np.inf)
+        self.testpattern = ""
+        self.freq = 500
+        self.dly = 40 
+        self.ampl = 0 #% 32
+        self.int_dac = 0 # or 0xA1
+        self.dac_meas = self.int_dac  # or 60
+        self.reg_17_value = None
+
+        self.femb_config = FEMB_CONFIG()
+
+        self.path = ""
+        
+        self.analyze = plot_functions()
+        
+        self.current_st = None
+        self.current_sg = None
 
     def save_rms_noise(self, folder_path, chip_index, chip_name):
         print("Test--> Collecting Baseline data for Chip {}...".format(chip_name))
@@ -181,10 +201,10 @@ class FEMB_DAQ:
         print("Test--> Collecting DAC step data for Chip {}...".format(chip_name))
         sys.stdout.flush()
 		
-        test_directory = folder_path + settings.DAC_folder
+        test_directory = folder_path + str(settings.DAC_folder)
         os.makedirs(test_directory)
 		
-        data_directory = test_directory + settings.data
+        data_directory = str(test_directory) + str(settings.data)
         os.makedirs(data_directory)
 		
         #Select the monitor readout
@@ -400,21 +420,3 @@ class FEMB_DAQ:
         with open(folder + 'asic_state.cfg', 'wb') as f:
             pickle.dump(to_save, f, pickle.HIGHEST_PROTOCOL)
 
-    def __init__(self):
-        np.set_printoptions(threshold=np.inf)
-        self.testpattern = ""
-        self.freq = 500
-        self.dly = 40 
-        self.ampl = 0 #% 32
-        self.int_dac = 0 # or 0xA1
-        self.dac_meas = self.int_dac  # or 60
-        self.reg_17_value = None
-
-        self.femb_config = FEMB_CONFIG()
-
-        self.path = ""
-        
-        self.analyze = plot_functions()
-        
-        self.current_st = None
-        self.current_sg = None

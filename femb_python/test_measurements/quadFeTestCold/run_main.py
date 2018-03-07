@@ -1,6 +1,4 @@
-from femb_python.test_measurements.quadFeTestCold.scripts.sbnd_femb_meas import FEMB_DAQ
-from femb_python.test_measurements.quadFeTestCold.scripts.femb_udp_cmdline import FEMB_UDP
-from femb_python import runpolicy  #updated
+from scripts.sbnd_femb_meas import FEMB_DAQ
 import os
 import sys
 #import gc
@@ -10,54 +8,61 @@ import sys
 import pickle
 import time
 import shutil
-import time                       #updated
 from datetime import datetime
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Border, Alignment, Font, Side, PatternFill
-from femb_python.test_measurements.quadFeTestCold.user_settings import user_editable_settings
-from femb_python.test_measurements.quadFeTestCold.scripts.Data_Analysis import Data_Analysis
-from femb_python.test_measurements.quadFeTestCold.scripts.Data_Analysis2 import Data_Analysis2
-from femb_python.test_measurements.quadFeTestCold.scripts.Data_Analysis3 import Data_Analysis3
+from user_settings import user_editable_settings
+from scripts.Data_Analysis import Data_Analysis
+from scripts.Data_Analysis2 import Data_Analysis2
+from scripts.Data_Analysis3 import Data_Analysis3
+from femb_python import runpolicy			# updated
 
 settings = user_editable_settings()
+#from IPython import get_ipython
+#get_ipython().run_line_magic('matplotlib', 'inline')
 
-class Test(object):
+class main():
+
     def __init__(self, **params):
-        self._params = params;
-        pass
-
-    def runparams(self):
-        '''
-        Return parameters that should be passed to a runner's run.
-        ''' 
-        return self._params
-
-    def __call__(self, runner):
-        '''
-        Perform the test.
-        '''
-        params = runner.resolve(**self._params)
-        runner(**params)
-
-class Sequencer(object):
-    def __init__(self, tests, runner):
-        self.tests = tests      # the tests to perform
-        self.runner = runner      # a runpolicy object
-
-    def run(self):
-        for test in self.tests:
-            test(self.runner)
-
-class main_class(object):
-
-    def __init__(self):
         self.sbnd = FEMB_DAQ()
         self.FunctionGenerator = None
         self.analyze = Data_Analysis()
         self.analyze2 = Data_Analysis2()
         self.analyze3 = Data_Analysis3()
+
+    def loop(self, **params):
+
+        self.sbnd.femb_config.femb.init_ports(hostIP = settings.PC_IP, destIP = settings.FPGA_IP)
+        time.sleep(0.1)
+        print ("Chip tester version {}".format(hex(self.sbnd.femb_config.femb.read_reg(0x64))))
+        self.sbnd.femb_config.resetFEMBBoard()
+        self.sbnd.femb_config.initBoard()
+        print ("\n\n-----------------------------------------------------------------------------")
+        print ("BNL Quad FE ASIC Tester Data Collection")
+
+        #Chosen by the settings
+        print ("The directory that data is saved to will be")
+        print (settings.path)
         
-    def quad_test(self,**params):
+        if (not os.path.exists(settings.path)):
+            os.makedirs(settings.path)
+            
+        while(1):
+            self.help_info()
+            raw_in = input("Enter your input\n")
+            if (raw_in == "end"):
+                print("Program ending")
+                break
+                
+            elif (raw_in == "test"):
+                print ("Quad Test...")
+                self.quad_test()
+                break
+
+            else:
+                print ("That's not a function")
+        
+    def quad_test(self):
 
 #Create main directory for each chip.  Also creates an easily accessible tuple that maps which chips are in which socket.  There are 4 sockets, so something like
 # [[0, 'first], [1, 'second'], [2, 'third'], [3, 'fourth']], where the first part is which socket it is and the second is what the user named that chip
@@ -65,40 +70,36 @@ class main_class(object):
 #settings file, and it wont ask for the chip, and it'll be taken into account.  That's what all the gymnastics with the for loop and tuples are for. Use prints if you wanna see what's going on.
 
         folder_path = [[],[],[],[]]
-        chip_name = []
-        chip_name.append(params["box_id_1"])
-        chip_name.append(params["box_id_2"])
-        chip_name.append(params["box_id_3"])
-        chip_name.append(params["box_id_4"])
-
-        i = 0
-        for i in range(0,4):
-            folder_path[i] = (settings.path+chip_name[i] + "/")
-            print("%%%% folder_path: ",folder_path[i])
-            try: 
-               os.makedirs(folder_path[i])
-            except OSError:
-               if os.path.exists(folder_path[i]):
-                   if (input("Folder already exists.  Overwrite? (y/n)\n") == "y"):
-                       for the_file in os.listdir(folder_path[i]):
-                           file_path = os.path.join(folder_path[i], the_file)
-                           if os.path.isfile(file_path):
-                               os.unlink(file_path)
-                           else:
-                               shutil.rmtree(file_path)
+        chip_names = [[],[],[],[]]
+        for i in settings.chips_to_use:
+            while(1):
+                chip_name = input("Enter the identifier for the chip in socket {}\n".format(i))
+                chip_names[i] = chip_name
+		
+		#params
+                folder_path[i] = (settings.path + chip_name + "/")
+                    
+                try: 
+                    os.makedirs(folder_path[i])
+                    break
+                except OSError:
+                    if os.path.exists(folder_path[i]):
+                        if (input("Folder already exists.  Overwrite? (y/n)\n") == "y"):
+                            for the_file in os.listdir(folder_path[i]):
+                                file_path = os.path.join(folder_path[i], the_file)
+                                if os.path.isfile(file_path):
+                                    os.unlink(file_path)
+                                else:
+                                    shutil.rmtree(file_path)
+                            break
 
             self.map_directory(folder_path[i])
-        print("f1: ", folder_path[0])
-        print("f2: ", folder_path[1])
-        print("f3: ", folder_path[2])
-        print("f4: ", folder_path[3])        
 
-        i = 0
         chip_list = [[],[],[],[]]
         for i in range(settings.chip_num):
             chip_list[i].append(i)
-            chip_list[i].append(chip_name[i])
-   
+            chip_list[i].append(chip_names[i])
+            
         i = 0
         for loops in range(settings.chip_num):
             if (i == (settings.chip_num)):
@@ -111,7 +112,7 @@ class main_class(object):
 
         print("Test--> Socket map is {}".format(chip_list))
         
-        #Get overall results spreadsheet and start filling it in
+#Get overall results spreadsheet and start filling it in
         wb = self.get_results_sheet()
         ws = wb.get_sheet_by_name("Results")
         next_space = ws.max_row
@@ -122,7 +123,8 @@ class main_class(object):
             ws.cell(row = 1 + next_space + num, column = 2).alignment = Alignment(horizontal='center')
             ws.cell(row = 1 + next_space + num, column = 3).alignment = Alignment(horizontal='center')
             
-        #Create sync directory for chip and sync
+
+#Create sync directory for chip and sync
         print("Test--> Synchronizing ADCS...")
         chip_indices = []
         for i in range(len(chip_list)):
@@ -148,12 +150,10 @@ class main_class(object):
         
         #Print all channels in the chips, so we see what those pulses looked like, so we could go back and see if there was already a problem here
         for num,i in enumerate(chip_list):
-            stringy = str(folder_path[num])
-            sync_directory = stringy + str("Synchronization/")
+            sync_directory = folder_path[num] + "Synchronization/"
             try:
                 os.makedirs(sync_directory)
-            #except WindowsError:
-            except OSError:
+            except WindowsError:
                 pass
             data = self.sbnd.femb_config.get_data_chipX(chip = i[0], packets = 5)
             print("Test--> Printing synchronization plot for Chip {}".format(i[1]))
@@ -167,10 +167,10 @@ class main_class(object):
         #A collection of pass/fail messages that will get added to during the process and printed out at the end
         analysis_messages = []
 
-        #Get data for the DAC step tests
+#Get data for the DAC step tests
         for num,i in enumerate(chip_list):
             self.sbnd.save_DAC_data(folder_path[num], chip_index = i[0], chip_name = i[1])
-        #Analyze the DAC step tests
+#Analyze the DAC step tests
         analysis_messages.append("DAC step Analysis:")
         for num,i in enumerate(chip_list):
             result = self.analyze2.DAC_directory(folder_path[num], i[1])
@@ -186,7 +186,7 @@ class main_class(object):
                 cell.font = Font(color = settings.white)
                 cell.fill = PatternFill(start_color = settings.red, end_color = settings.red, fill_type = 'solid')
                 
-        #Get data for the baseline and RMS tests
+#Get data for the baseline and RMS tests
         for num,i in enumerate(chip_list):
             self.sbnd.save_rms_noise(folder_path[num], chip_index = i[0], chip_name = i[1])
 #Analyze the baseline and RMS tests         
@@ -316,69 +316,32 @@ class main_class(object):
         print ("Type in the function you want to call.")
         print ("Type 'test' to begin the Quad Board test for {} chips".format(settings.chip_num))
         print ("Type 'end' to exit.")
-
-def main(self, **params):
-
-        print( "Cold Quad FE PRODUCTION TEST - START")
-        use_sumatra = True
-        test_category = "quadFeTestCold"      # pick something/anything
-        now = time.time()
-        """params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))"""
-    
-        """%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"""
-        """
-        #HOW TO SUPPLY INPUT PARAMETERS TO TEST MODULE
-        #parameters specific for a general test, more are defined by runpolicy runner
-        #this example uses replacement fields to make it easier to define each individual test
-        #main_params = dict(params)
-        #main_params.update(
-        #    executable = "femb_example_test",      # the program or script actually running the test
-        #    #argstr = "{datadir} {outlabel}",      #command line arguments to exectuable
-        #    argstr="{paramfile}",        	    #provide parameter file as argument
-        #    datadir = "exampleTest_test_{test}",   # use easy to guess sub directory for each test, recommend defining it here
-        #    outlabel = "exampleTest_test_{test}",  # likewise, easy to guess files, recommend defining it here
-        #)                                          # note: "test" is filled in the loop below
-
-        #can define the tests to perform in a loop, updating the params for each test
-        #tests = [Test(test=n, **main_params) for n in range(1,4)]
-
-        #Explicitly define list of production tests to perform
-        tests = []
-    
-        #Test 1
-        params_test_1 = dict(params)
-        params_test_1.update( executable = "quadfe_prod_test", argstr="{paramfile}", datasubdir = "quadFeTest", outlabel = "quadFeTestData",)
-        tests.append( Test(**params_test_1) )
-
-        ##add more test as needed
-
-        #actually run tests here
-        r = runpolicy.make_runner(test_category, use_sumatra, **params)
-        if r == None:
-          print("EXAMPLE PRODUCTION TEST - ERROR: runpolicy runner could not be defined, production test not started.")
-          return
-        s = Sequencer(tests, r)
-        s.run() 
-        """
-        """%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"""
-
-        FEMB_UDP.init_ports(self.femb, hostIP = settings.PC_IP, destIP = settings.FPGA_IP)
-        time.sleep(0.1)
-        print ("Chip tester version {}".format(self.femb.read_reg(0x64)))
-        self.resetFEMBBoard()
-        self.initBoard()
-        print ("\n\n-----------------------------------------------------------------------------")
-        print ("BNL Quad FE ASIC Tester Data Collection")
-
-        #Chosen by the settings
-        print ("The directory that data is saved to will be")
-        print (settings.path)
-        
-        if (not os.path.exists(settings.path)):
-            os.makedirs(settings.path)
-
-        food = main_class()
-        food.quad_test(**params)
+            
+#Debugging purposes, lets me analyze without taking data
+    def test(self):
+        folder_path = [[],[],[],[]]
+        chip_names = ["1","2","3","4"]
+#        chip_names = ["A0362", "A0364", "A0365", "A0367"]
+        path = settings.path
+        path = "D:\\Eric\\Quad_Data_FE\\Quad_Data_2018_02_18\\"
+        for i in range(len(chip_names)):
+            folder_path[i] = (path + str(chip_names[i]) + "\\")
+            
+#        for i in range(len(chip_names)):
+#            self.analyze3.gain_match_directory(folder_path[i], chip_names[i])
+#        for i in range(len(chip_names)):
+#            self.analyze.baseline_directory(folder_path[i], chip_names[i])
+#        for i in range(len(chip_names)):
+#            self.analyze.alive_directory(folder_path[i], chip_names[i])
+#        for i in range(len(chip_names)):
+#            self.analyze2.pulse_directory(folder_path[i], chip_names[i])
+#        for i in range(len(chip_names)):
+#            self.analyze2.DAC_directory(folder_path[i], chip_names[i])
+        for i in range(len(chip_names)):
+            self.analyze2.monitor_directory(folder_path[i], chip_names[i])
+            
+        sys.exit("ok")
             
 if __name__ == "__main__":
-    main()
+#    main().test()
+    main().loop()

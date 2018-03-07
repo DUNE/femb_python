@@ -6,11 +6,11 @@ import time
 #from visa import VisaIOError
 import matplotlib.pyplot as plt
 import numpy as np
-from scripts.femb_udp_cmdline import FEMB_UDP
-from scripts.detect_peaks import detect_peaks
-from scripts.fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
-from user_settings import user_editable_settings
-from scripts.plotting import plot_functions
+from femb_python.test_measurements.quadFeTestCold.scripts.femb_udp_cmdline import FEMB_UDP
+from femb_python.test_measurements.quadFeTestCold.scripts.detect_peaks import detect_peaks
+from femb_python.test_measurements.quadFeTestCold.scripts.fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
+from femb_python.test_measurements.quadFeTestCold.user_settings import user_editable_settings
+from femb_python.test_measurements.quadFeTestCold.scripts.plotting import plot_functions
 settings = user_editable_settings()
 
 class FEMB_CONFIG:

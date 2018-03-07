@@ -5,7 +5,7 @@ import socket
 import binascii
 import time
 import pickle
-from user_settings import user_editable_settings
+from femb_python.test_measurements.quadFeTestCold.user_settings import user_editable_settings
 settings = user_editable_settings()
 
 class FEMB_UDP:

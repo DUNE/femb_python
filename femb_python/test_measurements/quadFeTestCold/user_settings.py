@@ -1,7 +1,9 @@
 from datetime import datetime
+import time
+
 class user_editable_settings:
     def __init__(self):
-
+        now = time.time()
         #GENERAL SETTINGS#################################################################################
         #The temp you're saying the run was at.  This affects how the analysis looks at the test pulses
         #Since both DACs give slightly different values at different temperatures
@@ -11,9 +13,10 @@ class user_editable_settings:
         #Path everything will be saved at
         self.root_path = "/dsk/1/tmp/Quad_Data_FE/"
         self.spreadsheet = "FE_Quad_Data.xlsx"
-        self.path = "/dsk/1/tmp/Quad_Data_FE/Quad_Data_" + (datetime.now().strftime('%Y_%m_%d'))  +"/" 
+        self.path = "/dsk/1/tmp/Quad_Data_FE/Quad_Data_"+str(time.strftime("%Y_%m_%d_T%H%M%S", time.localtime(now)))+"/" 
         #Which IP addresses you gave those 4 sockets
         self.PC_IP = '192.168.121.50'
+	#self.PC_IP = '192.168.121.50'
         self.FPGA_IP = "192.168.121.1"
         self.FEMB_VER = "Quad FE Chip Tester with v0x201 Firmware"
         self.frame_size = 0x02cb
@@ -136,11 +139,11 @@ class user_editable_settings:
         
         #FOLDER SETTINGS###################################################################################
         self.synchronization_folder = "Synchronization/"
-        self.baseline_folder = "Baseline and RMS/"
-        self.alive_folder = "Input Alive/"
-        self.pulse_folder = "Pulse Calibration/"
-        self.DAC_folder = "ASIC DAC Measurement/"
-        self.monitor_folder = "Monitor Functionality/"
+        self.baseline_folder = "Baseline_and_RMS/"
+        self.alive_folder = "Input_Alive/"
+        self.pulse_folder = "Pulse_Calibration/"
+        self.DAC_folder = "ASIC_DAC_Measurement/"
+        self.monitor_folder = "Monitor_Functionality/"
         self.data = "Data/"
         self.asic_settings = {"4.7mV" : 0,
                               "7.8mV" : 2,

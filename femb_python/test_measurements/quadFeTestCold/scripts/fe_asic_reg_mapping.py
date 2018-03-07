@@ -1,6 +1,6 @@
-from user_settings import user_editable_settings
+from femb_python.test_measurements.quadFeTestCold.user_settings import user_editable_settings
 settings = user_editable_settings()
-from scripts.fe_info import FE_INFO
+from femb_python.test_measurements.quadFeTestCold.scripts.fe_info import FE_INFO
 class FE_ASIC_REG_MAPPING:
     
     def set_fe_chn(self, chip, chn, sts=-1, snc=-1, sg=-1, st=-1, smn=-1, sbf=-1):

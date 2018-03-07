@@ -12,15 +12,15 @@ import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 import pickle
 import numpy as np
-from user_settings import user_editable_settings
+from femb_python.test_measurements.quadFeTestCold.user_settings import user_editable_settings
 from openpyxl import Workbook, load_workbook
 import warnings
-from scripts.int_dac_fit import int_dac_fit
-from scripts.linear_fit_m import linear_fit
+from femb_python.test_measurements.quadFeTestCold.scripts.int_dac_fit import int_dac_fit
+from femb_python.test_measurements.quadFeTestCold.scripts.linear_fit_m import linear_fit
 import matplotlib.patches as mpatches
 from openpyxl.styles import Border, Alignment, Font, Side, PatternFill
-from scripts.detect_peaks import detect_peaks
-from scripts.plotting import plot_functions
+from femb_python.test_measurements.quadFeTestCold.scripts.detect_peaks import detect_peaks
+from femb_python.test_measurements.quadFeTestCold.scripts.plotting import plot_functions
 from scipy import stats
 import math
 settings = user_editable_settings()
