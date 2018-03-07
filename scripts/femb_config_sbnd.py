@@ -317,7 +317,7 @@ class FEMB_CONFIG:
         for a in settings.chips_to_use:
             print (" FEMB_CONFIG --> syncADC() -> Test ADC " + str(a))
             print (" FEMB_CONFIG --> syncADC() -> self.select_chip() \n")
-#            self.select_chip(a) # for single socket: not really relevent
+#            self.select_chip(a) # for single socket: not really relevent #actually sort of is... 3/06/18
             print (" FEMB_CONFIG --> syncADC() -> self.adc_reg.set_adc_global() \n")
             self.adc_reg.set_adc_global(chip = a, f5 = 1)   #preserves previous register settings.
             self.configAdcAsic(False)
@@ -469,9 +469,9 @@ class FEMB_CONFIG:
                 #print ("Loop {}".format(j))
            
         for ch in range(0,16,1):
-            for test in range(0,100,1):
+            for test in range(0,200,1):
                 data = self.get_data_chipXchnX(chip = adcNum, chn = ch, packets = 1)#issue here?
-                print("unsyncNew data -> {}".format(data))
+                #print("unsyncNew data -> {}".format(data))
                 if (len(data) == 0):
                     print (" FEMB_CONFIG--> testUnsyncNew() -> Sync response didn't come in")
                     return False
@@ -615,6 +615,14 @@ class FEMB_CONFIG:
         #       used in sending instructions to fpga to select chip; however there is not 
         #       an option to select a chip for single socket boards. relevent for using on
         #       quad board.
+        #       mainly used to output the desired clock settings correlated to the 'selected
+        #       chip'
+        #      
+        #       quad board:
+        #           clock reg values [10-43]   
+        # 
+        #       single board:
+        #           clock reg values [21-33]
     
         print("\t FEMB_CONFIG --> select_chip() --")
         if (chip < 0 ) or (chip > settings.chip_num ):
@@ -705,11 +713,12 @@ class FEMB_CONFIG:
 #                                                    # WIB_Mode <= reg_3p(31)
                 # single board settings:
                     self.femb.write_reg(7, chn)      # CHN_select <= reg7_p(7-0)       
-                            
+                    time.sleep(0.001)
+
                     if (k > 8):
                         print ("FEMB CONFIG --> Error in get_data_chipXchnX: Packet format error")
-                        print (hex(data[0]))
-                        print (data)
+                        #print (hex(data[0]))
+                        #print (data)
                         return None
                     else:
                         print ("FEMB CONFIG --> Error in get_data_chipXchnX: Packet format error, trying again...")

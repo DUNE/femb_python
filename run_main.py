@@ -15,19 +15,6 @@ class main:
     def loop(self):
         print ("Start")
         self.sbnd.femb_config.femb.init_ports(hostIP = settings.PC_IP, destIP = settings.FPGA_IP)
-        
-#        board_choice = int(input("What version of the board are you using?  (0 is regular, 1 is extended)"))
-#        
-#        if (board_choice == 0):
-#            settings.extended = False
-#        else:
-#            settings.extended = True
-#            
-#        if (settings.extended == True):
-#            print ("Uses Version 7 of the ADC chips and Extended Quad Board")
-#            
-#        else:
-#            print ("Uses Version 7 of the ADC chips and Regular Quad Board")
             
         self.sbnd.femb_config.resetFEMBBoard()
         self.sbnd.femb_config.initBoard()
