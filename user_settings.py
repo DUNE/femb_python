@@ -13,8 +13,9 @@ class user_editable_settings:
         #Quick sequence that doesn't split the channels and plot.  Much quicker.
         self.Quick = False
         #Path everything will be saved at
-#        self.path = "D:\\Eric\\Quad_Data\\Quad_Data_" + (datetime.now().strftime('%Y_%m_%d'))  +"\\" 
-        self.path = "D:\\Carlos\\Single ADC Python Code\\data\\Quad_Data_" + (datetime.now().strftime('%Y_%m_%d'))  +"\\" 
+#       self.path = "D:\\Eric\\Quad_Data\\Quad_Data_" + (datetime.now().strftime('%Y_%m_%d'))  +"\\" 			  #PC
+#       self.path = "D:\\Carlos\\Single ADC Python Code\\data\\Quad_Data_" + (datetime.now().strftime('%Y_%m_%d'))  +"\\" #PC
+        self.path = "/home/foodisgood/Developer/Python/single_socket"
         #Default synchronization settings.  If startup shows that it has to constantly re-synch, change these to what it says
         self.LATCHLOC_reg = 4
         self.CLKPHASE_reg = 6
@@ -39,7 +40,8 @@ class user_editable_settings:
         self.chip_num = 0  #maximum number of chips
         self.chn_num = 16  #maximum number of channels 
         #Which IP addresses you gave those 4 sockets
-        self.PC_IP = '192.168.121.20'
+#       self.PC_IP = '192.168.121.20' #WINDOWS PC
+        self.PC_IP = '10.2.248.66' #MAC LINUX
         self.FPGA_IP = "192.168.121.1"
 #        self.FEMB_VER = "Quad Chip Tester with v0x108 Firmware"
         self.FEMB_VER = "Single Socket Chip Tester with v0x108 Firmware"

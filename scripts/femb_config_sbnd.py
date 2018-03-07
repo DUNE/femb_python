@@ -40,7 +40,7 @@ class FEMB_CONFIG:
         #       setting clock settings.
         #
         
-        print (" FEMB_CONFIG--> initBoard() -> Initialize FEMB --")
+        print ("FEMB_CONFIG--> initBoard() -> Initialize FEMB --")
         
         #Sets the frame size, makes sure it's a multiple of 13 so 0xFACE is consistently the first 2 bytes.
         frame_size = settings.frame_size
@@ -51,9 +51,9 @@ class FEMB_CONFIG:
         time.sleep(0.1)
     
         if (self.femb.read_reg(10) != frame_size):
-            sys.exit(" FEMB_CONFIG--> initBoard() -> Frame Size not set correctly, something wrong with FPGA communication")
+            sys.exit("FEMB_CONFIG--> initBoard() -> Frame Size not set correctly, something wrong with FPGA communication")
         
-        print (" FEMB_CONFIG--> initBoard() -> Chip tester version {}".format(hex(self.femb.read_reg(0x101))))
+        print ("FEMB_CONFIG--> initBoard() -> Chip tester version {}".format(hex(self.femb.read_reg(0x101))))
 
         #Set to WIB Mode and start by reading out chip 1
         #Channel Setting is irrelevant in WIB mode
