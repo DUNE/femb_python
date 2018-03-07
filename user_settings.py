@@ -41,7 +41,8 @@ class user_editable_settings:
         self.chn_num = 16  #maximum number of channels 
         #Which IP addresses you gave those 4 sockets
 #       self.PC_IP = '192.168.121.20' #WINDOWS PC
-        self.PC_IP = '10.2.248.66' #MAC LINUX
+        self.PC_IP = '192.168.121.50' #WINDOWS PC
+#       self.PC_IP = '10.2.248.66' #MAC LINUX
         self.FPGA_IP = "192.168.121.1"
 #        self.FEMB_VER = "Quad Chip Tester with v0x108 Firmware"
         self.FEMB_VER = "Single Socket Chip Tester with v0x108 Firmware"
