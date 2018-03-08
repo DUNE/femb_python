@@ -610,35 +610,34 @@ class FEMB_CONFIG:
         time.sleep(0.01)
     
     def select_chip(self, chip): 
-        #
-        # select_chip()
-        #       used in sending instructions to fpga to select chip; however there is not 
-        #       an option to select a chip for single socket boards. relevent for using on
-        #       quad board.
-        #       mainly used to output the desired clock settings correlated to the 'selected
-        #       chip'
+        """
+        % select_chip()
+        %       This function is used in sending instructions to fpga to select chip.
+        %       There is not an option to select a chip for single socket boards. 
+        %       This function is mostly relevent for using on quad board.
+        %       This function is used to output the desired clock settings correlated to the    
+        %       'selected chip'
         #      
-        #       quad board:
+        #       [quad board:]
         #           clock reg values [10-43]   
         # 
-        #       single board:
+        #       [single board:]
         #           clock reg values [21-33]
-    
+        """
         print("\t FEMB_CONFIG --> select_chip() --")
         if (chip < 0 ) or (chip > settings.chip_num ):
-            print ("\t FEMB CONFIG --> select_chip() -> Error: Chip must be between 0 and {}".format(self.chip_num))
+            print ("\t FEMB_CONFIG --> select_chip() -> Error: Chip must be between 0 and {}".format(self.chip_num))
             return
           
-        self.femb.write_reg(9, 1)
+        self.femb.write_reg(9, 1)		  # STOP_ADC <= reg9_p (quad board)
         time.sleep(0.01)
-        
-        self.femb.write_reg(3, 0x80000001 + chip) #error
+        self.femb.write_reg(3, 0x80000001 + chip) # CHP_SELECT <= reg3_p(7 downto 0) (quad board) 
         time.sleep(0.01)
-        
-        self.femb.write_reg(9, 0)
-        self.femb.write_reg(47, 1)
+        self.femb.write_reg(9, 0)		  # STOP_ADC <= reg9_p (quad board)
         time.sleep(0.01)
-        self.femb.write_reg(47, 0)
+        self.femb.write_reg(47, 1)                # ERROR_RESET <= reg47_p (quad board)
+        time.sleep(0.01)
+        self.femb.write_reg(47, 0)                # ERROR_RESET <= reg47_p (quad board)
         
         self.selected_chip = chip
         
@@ -653,7 +652,11 @@ class FEMB_CONFIG:
 
         print("\t FEMB_CONFIG --> select_chip() -> chip = {}, to _add = {}\n".format(chip,to_add))        
         
-        self.femb.write_reg(10, settings.reg10_value[chip + to_add]) #INV_RST_ADC1 <= reg10_p(0), INV_READ_ADC1 <= reg10_p(1)...
+
+        self.femb.write_reg(10, settings.reg10_value[chip + to_add]) #INV_RST_ADC1 <= reg10_p(0)
+							             #INV_READ_ADC1<= reg10_p(1)..
+
+#        #Course Control Quad Board
 #        self.femb.write_reg(11, settings.reg11_value[chip + to_add])
 #        self.femb.write_reg(12, settings.reg12_value[chip + to_add])
 #        self.femb.write_reg(13, settings.reg13_value[chip + to_add])
@@ -661,7 +664,7 @@ class FEMB_CONFIG:
 #        self.femb.write_reg(15, settings.reg15_value[chip + to_add])
 #        self.femb.write_reg(16, settings.reg16_value[chip + to_add])
 #        
-#        #Fine Control
+#        #Fine Control Quad Board
 #        self.femb.write_reg(17, settings.reg17_value[chip + to_add])
 #        self.femb.write_reg(18, settings.reg18_value[chip + to_add])
 #        self.femb.write_reg(19, settings.reg19_value[chip + to_add])
