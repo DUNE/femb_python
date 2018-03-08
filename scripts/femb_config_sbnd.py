@@ -12,6 +12,35 @@ settings = user_editable_settings()
 
 class FEMB_CONFIG:
 
+    def __init__(self):
+        #declare board specific registers
+        self.REG_RESET = 0
+        self.REG_ASIC_RESET = 1
+        self.REG_ASIC_SPIPROG = 2
+        self.REG_ADCSPI_BASE = 0x200        #512 Dec
+        self.REG_ADCSPI_RDBACK_BASE = 0x250 #592 Dec
+        self.REG_HS = 17
+#        self.REG_TEST_PULSE = 5
+#        self.REG_TEST_PULSE_FREQ = 500
+#        self.REG_TEST_PULSE_DLY = 80
+#        self.REG_TEST_PULSE_AMPL = 0 % 32
+        self.REG_EN_CALI = 16
+        self.ADC_TESTPATTERN=[0x12,0x345,0x678,0xf1f,0xad,0xc01,0x234,0x567,0x89d,0xeca,0xff0,0x123,0x456,0x789,0xabc,0xdef]
+
+        #initialize FEMB UDP object
+        self.femb = FEMB_UDP()
+        self.adc_reg = ADC_ASIC_REG_MAPPING()
+        self.fe_reg = FE_ASIC_REG_MAPPING() 
+        
+        self.REG_LATCHLOC1_4_data = settings.LATCHLOC_data
+        self.REG_CLKPHASE_data = settings.CLKPHASE_data
+        
+        self.WIB_RESET = 1
+        
+        self.BPS = 13 #Bytes per sample
+        self.selected_chip = 0
+        self.selected_chn = None
+
     def resetFEMBBoard(self): #cp 1/17/18
         #
         #   resetFEMBBoard()
@@ -34,15 +63,15 @@ class FEMB_CONFIG:
         
 
     def initBoard(self):
-        #
-        # initBoard()
-        #       set up default registers. first wave in 
-        #       setting clock settings.
-        #
+        """
+        % initBoard()
+        % 	set up default registers. 
+        % 	first wave in setting clock settings.
+        """
         
         print ("FEMB_CONFIG--> initBoard() -> Initialize FEMB --")
         
-        #Sets the frame size, makes sure it's a multiple of 13 so 0xFACE is consistently the first 2 bytes.
+        # Frame size is multiple of 13, so 0xFACE is consistently the first 2 bytes.
         frame_size = settings.frame_size
         if (frame_size%13 != 0):
             frame_size = 13 * (frame_size//13)
@@ -55,31 +84,29 @@ class FEMB_CONFIG:
         
         print ("FEMB_CONFIG--> initBoard() -> Chip tester version {}".format(hex(self.femb.read_reg(0x101))))
 
-        #Set to WIB Mode and start by reading out chip 1
-        #Channel Setting is irrelevant in WIB mode
+        # Set to WIB Mode and start by reading out chip 1
+        # Channel Setting is irrelevant in WIB mode
         self.femb.write_reg(8, 0x80000001)                  # WIB_MODE   <= reg8_p(0)
         self.femb.write_reg(7, 0x80000000)                  # CHN_select <= reg7_p(7 downto 0)
-        
-        #Select External Test Pulse
-#        self.femb.write_reg(4, 0x00010000)
 
-        #Latch lock settings for each chip
-        self.femb.write_reg(settings.LATCHLOC_reg, settings.LATCHLOC_data) # LATCH_LOC_0 <= reg4_p(7 downto 0)
+        """ SHIFT DATA BUS """
+        # LATCH_LOC_0 <= reg4_p(7 downto 0)
+        self.femb.write_reg(settings.LATCHLOC_reg, settings.LATCHLOC_data)
         
-        #Phase settings for each chip
-        self.femb.write_reg(settings.CLKPHASE_reg, settings.CLKPHASE_data) # CLK_selectx <= reg6_p(7 downto 0)
+        """ SHIFT DATA BUS """
+        # CLK_selectx <= reg6_p(7 downto 0)
+        self.femb.write_reg(settings.CLKPHASE_reg, settings.CLKPHASE_data)
         
 #        self.femb.write_reg( 9, 0)
 
-        #Write* Coarse Clock Control
-#        self.femb.write_reg(21, settings.reg21_value[0])
-#        self.femb.write_reg(11, settings.reg11_value[0])
-#        self.femb.write_reg(12, settings.reg12_value[0])
-#        self.femb.write_reg(13, settings.reg13_value[0])
-#        self.femb.write_reg(14, settings.reg14_value[0])
-#        self.femb.write_reg(15, settings.reg15_value[0])
-#        self.femb.write_reg(16, settings.reg16_value[0])
-        
+        # Write Coarse Clock Control
+        self.femb.write_reg(21, settings.reg21_value[0])
+        self.femb.write_reg(21, settings.reg21_value[1])
+        self.femb.write_reg(21, settings.reg21_value[2])
+        self.femb.write_reg(21, settings.reg21_value[3])
+        self.femb.write_reg(21, settings.reg21_value[4])
+        self.femb.write_reg(21, settings.reg21_value[5])
+
         self.femb.write_reg(22, settings.reg22_value[0])    # RESET Offset      
         self.femb.write_reg(23, settings.reg23_value[0])    # RESET Width
         
@@ -103,12 +130,7 @@ class FEMB_CONFIG:
         self.femb.write_reg(35, settings.reg35_value[0])    # C2 & C3 fine clock settings
         self.femb.write_reg(36, settings.reg36_value[0])    # C2 & C3 fine clock settings
 
-#        self.femb.write_reg(17, settings.reg17_value[0])
-#        self.femb.write_reg(18, settings.reg18_value[0])
-#        self.femb.write_reg(19, settings.reg19_value[0])
-#        self.femb.write_reg(19, 0x80000000 + settings.reg19_value[0])
-
-        #set default value to FEMB ADCs and FEs
+        #set default value to FEMB ADCs
         #clk = 2 is external
         #clk = 0 is internal
         self.adc_reg.set_adc_board( d=0, pcsr=0, pdsr=0, slp=0, tstin=1,
@@ -122,6 +144,49 @@ class FEMB_CONFIG:
         
         print (" FEMB_CONFIG--> initBOARD() -> Initialize FEMB is DONE\n")
         
+    def syncADC(self):
+        #
+        #   syncADC()
+        #
+        #       procedures:
+        #           1.  set channel/global registers ensure F5=1, so
+        #               test data is selected and pipelined. Just as 
+        #               in labview. 
+        #           2.  configure ADC ASIC 
+        #           3.
+        #
+        
+        print ("\n FEMB_CONFIG--> Start sync ADC--")
+
+        for a in settings.chips_to_use: #change this loop 3/08/18
+            self.select_chn(1) # channel 0 & write clocks
+            self.adc_reg.set_adc_global(chip = a, f5 = 1) # Test DATA
+            self.configAdcAsic(False)
+            
+            print (" FEMB_CONFIG --> syncADC() -> Test ADC " + str(a))
+            print (" FEMB_CONFIG --> syncADC() -> self.adc_reg.set_adc_global() \n")
+#            for i in range(10,20,1):
+#                print ("Register {} {}".format(i, hex(self.femb.read_reg(i))))
+            
+            unsync = self.testUnsyncNew(a)
+            if unsync != True:
+                print (" FEMB_CONFIG --> ADC {} not synced, try to fix".format(a))
+                response = self.fixUnsyncNew(a)
+                if (response != True):
+                    sys.exit (" FEMB_CONFIG --> ADC {} could not sync".format(a))
+            elif (unsync == True):
+                print ("FEMB_CONFIG--> ADC {} synced!".format(a))
+                
+            self.adc_reg.set_adc_global(chip = a, f5 = 1)
+            self.configAdcAsic(True)
+            
+        self.REG_LATCHLOC1_4_data = self.femb.read_reg( settings.LATCHLOC_reg) 
+        self.REG_CLKPHASE_data    = self.femb.read_reg( settings.CLKPHASE_reg)
+        print ("FEMB_CONFIG--> Final Latch latency " + str(hex(self.REG_LATCHLOC1_4_data)))
+        print ("FEMB_CONFIG--> Final Phase Shift " + str(hex(self.REG_CLKPHASE_data)))
+        self.FinalSyncCheck()
+        print ("FEMB_CONFIG--> ADC passed Sync Test!")
+
     def initFunctionGenerator(self):
         rm = visa.ResourceManager()
 
@@ -298,51 +363,6 @@ class FEMB_CONFIG:
                 if (to_print == True):
                     print ("FEMB_CONFIG--> Fe ASIC SPI is OK")
                 break
-
-    def syncADC(self):
-        #
-        #   syncADC()
-        #
-        #       procedures:
-        #           1.  set channel/global registers ensure F5=1, so
-        #               test data is selected and pipelined. Just as 
-        #               in labview. 
-        #           2.  configure ADC ASIC 
-        #           3.
-        #
-        
-        #turn on ADC test mode (?)
-        print ("\n FEMB_CONFIG--> Start sync ADC--")
-
-        for a in settings.chips_to_use:
-            print (" FEMB_CONFIG --> syncADC() -> Test ADC " + str(a))
-            print (" FEMB_CONFIG --> syncADC() -> self.select_chip() \n")
-#            self.select_chip(a) # for single socket: not really relevent #actually sort of is... 3/06/18
-            print (" FEMB_CONFIG --> syncADC() -> self.adc_reg.set_adc_global() \n")
-            self.adc_reg.set_adc_global(chip = a, f5 = 1)   #preserves previous register settings.
-            self.configAdcAsic(False)
-            
-#            for i in range(10,20,1):
-#                print ("Register {} {}".format(i, hex(self.femb.read_reg(i))))
-            
-            unsync = self.testUnsyncNew(a)
-            if unsync != True:
-                print (" FEMB_CONFIG --> ADC {} not synced, try to fix".format(a))
-                response = self.fixUnsyncNew(a)
-                if (response != True):
-                    sys.exit (" FEMB_CONFIG --> ADC {} could not sync".format(a))
-            elif (unsync == True):
-                print ("FEMB_CONFIG--> ADC {} synced!".format(a))
-                
-            self.adc_reg.set_adc_global(chip = a, f5 = 1)
-            self.configAdcAsic(True)
-            
-        self.REG_LATCHLOC1_4_data = self.femb.read_reg( settings.LATCHLOC_reg) 
-        self.REG_CLKPHASE_data    = self.femb.read_reg( settings.CLKPHASE_reg)
-        print ("FEMB_CONFIG--> Final Latch latency " + str(hex(self.REG_LATCHLOC1_4_data)))
-        print ("FEMB_CONFIG--> Final Phase Shift " + str(hex(self.REG_CLKPHASE_data)))
-        self.FinalSyncCheck()
-        print ("FEMB_CONFIG--> ADC passed Sync Test!")
         
     def FinalSyncCheck(self):
         #
@@ -545,132 +565,76 @@ class FEMB_CONFIG:
         #if program reaches here, sync has failed
         print ("FEMB_CONFIG--> ADC SYNC process failed for ADC # " + str(adc))
         return False
-        
-    def select_chn(self, chn):
-        #
-        # select_chn()
-        #       used in sending instructions to FPGA to select channel based on given input.
-        #       relevent in using for single socket boards.
-        
-        
-        print("\t FEMB_CONFIG --> select_chn() --")
-        if (chn < 0 ) or (chn > settings.chn_num ):
-            print ("\t FEMB CONFIG --> select_chn() -> Error: Chn must be between 0 and {}".format(self.chn_num))
-            return
-
-        self.femb.write_reg(9, 1) #ADC_RD_DISABLE <= reg9_p(0)
-        time.sleep(0.01)
-                
-        # bin(0x80000001) = 0b10000000000000000000000000000001
-        # CHP_Select = 1
-        # CHN_Select = 0
-        # WIB_Mode = 1 (last bit)
-
-#        self.femb.write_reg(3, 0x80000001 + chip)  # CHP_Select <= reg_3p(7-0)
-                                                    # CHN_Select <= reg_3p(15-0)
-                                                    # WIB_Mode <= reg_3p(31)
-
-        self.femb.write_reg(8, 1)           # WIB_mode <= reg8_p(0) --> Turning on WIB Mode
-        time.sleep(0.01)
-        self.femb.write_reg(7, bin(chn))    # CHN_select <= reg7_p(7-0)
-        time.sleep(0.01)
-        
-        
-#        self.femb.write_reg(47, 1)  # 2/1/2018 
-#        time.sleep(0.01)            # ERROR_RESET <= reg47_p(0)        //quad board 
-#        self.femb.write_reg(47, 0)  # reg47_p(0) <= does not exist     // single board
-
-        self.femb.write_reg(11,1) # ERROR_RESET <= reg11_p(0)
-        time.sleep(0.01)
-        self.femb.write_reg(11,0) # ERROR_RESET <= reg11_p(0)
-        time.sleep(0.01)          
-        self.selected_chn = chn
-        
-        if (self.femb.read_reg(7) != 0x00 + chn):
-            print ("\t FEMB CONFIG --> select_chip() -> Error - chip not chosen correctly!")
-            print ("\t Should be ".format(hex(0x00 + chn)))
-            print ("\t It is {}".format(hex(self.femb.read_reg(7))))
-            
-        to_add = 0
-        if (settings.extended == True):
-            to_add = 4
-
-        print("\t FEMB_CONFIG --> select_chip() -> chip = {}, to _add = {}\n".format(chn,to_add))        
-        
-#        self.femb.write_reg(10, settings.reg10_value[chip + to_add]) #quad: INV_RST_ADC1 <= reg10_p(0), INV_READ_ADC1 <= reg10_p(1)...
-                                                                      #single: UDP_frame_size <= reg10_p()(why write to reg10?)
-        
-#        self.femb.write_reg( settings.CLKPHASE_reg, 0xFF) ?? 2/1/2018
-#        time.sleep(0.01)
-#                
-#        self.femb.write_reg( settings.CLKPHASE_reg, self.REG_CLKPHASE_data)
-#        time.sleep(0.01)
-
-        self.femb.write_reg(9, 0) #ADC_RD_DISABLE <= reg9_p(0) (last event which happens in labview)
-        time.sleep(0.01)
     
-    def select_chip(self, chip): 
+    def select_chn(self, chn): 
         """
-        % select_chip()
+        % select_chn()
         %       This function is used in sending instructions to fpga to select chip.
         %       There is not an option to select a chip for single socket boards. 
         %       This function is mostly relevent for using on quad board.
         %       This function is used to output the desired clock settings correlated to the    
         %       'selected chip'
-        #      
-        #       [quad board:]
-        #           clock reg values [10-43]   
-        # 
-        #       [single board:]
-        #           clock reg values [21-33]
+        %       Assume 16 channels
+        %
+        %       [quad board:]
+        %           clock reg values [10-43]   
+        % 
+        %       [single board:]
+        %           clock reg values [21-33]
         """
-        print("\t FEMB_CONFIG --> select_chip() --")
-        if (chip < 0 ) or (chip > settings.chip_num ):
-            print ("\t FEMB_CONFIG --> select_chip() -> Error: Chip must be between 0 and {}".format(self.chip_num))
+        print("\t FEMB_CONFIG//select_chn()")
+        if (chn < 0 ) or (chn > settings.chn_num):
+            print ("\t FEMB_CONFIG//select_chn()//Error: Chn must be between 0 and {}".format(self.chn_num))
             return
-          
+        """ quad board remains...
         self.femb.write_reg(9, 1)		  # STOP_ADC <= reg9_p (quad board)
-        time.sleep(0.01)
+        time.sleep(0.01)                          # WAIT
         self.femb.write_reg(3, 0x80000001 + chip) # CHP_SELECT <= reg3_p(7 downto 0) (quad board) 
-        time.sleep(0.01)
+        time.sleep(0.01)                          # WAIT
         self.femb.write_reg(9, 0)		  # STOP_ADC <= reg9_p (quad board)
-        time.sleep(0.01)
+        time.sleep(0.01)                          # WAIT
         self.femb.write_reg(47, 1)                # ERROR_RESET <= reg47_p (quad board)
-        time.sleep(0.01)
+        time.sleep(0.01)                          # WAIT
         self.femb.write_reg(47, 0)                # ERROR_RESET <= reg47_p (quad board)
-        
-        self.selected_chip = chip
-        
-        if (self.femb.read_reg(3) != 0x80000001 + chip): #error
-            print ("\t FEMB CONFIG --> select_chip() -> Error - chip not chosen correctly!")
-            print ("\t Should be ".format(hex(0x80000001 + chip)))
-            print ("\t It is {}".format(hex(self.femb.read_reg(3))))
+        """
+        # STOP ADC: TRUE ???
+        time.sleep(0.01)                         # WAIT
+        self.femb.write_reg(7, 0x00000001 + chn) # CHN_SELECT <= reg7(7 downto 0)
+        time.sleep(0.01)                         # WAIT
+	# STOP ADC: FALSE ???
+	# WAIT
+        self.femb.write_reg(11, 1)               # CHN_SELECT <= reg11(0)
+        time.sleep(0.01)                         # WAIT
+        self.femb.write_reg(11, 0)               # CHN_SELECT <= reg11(0)
+
+        self.selected_chn = chn # originally self.selected_chip?? what is it used for?
+        if (self.femb.read_reg(7) != 0x00000001 + chn):
+            print ("\t FEMB CONFIG --> select_chn() -> Error - chip not chosen correctly!")
+            print ("\t Should be ".format(hex(0x00000001 + chn)))
+            print ("\t It is {}".format(hex(self.femb.read_reg(7))))
             
         to_add = 0
+        """ quad board remains...
         if (settings.extended == True):
             to_add = 4
 
-        print("\t FEMB_CONFIG --> select_chip() -> chip = {}, to _add = {}\n".format(chip,to_add))        
-        
-
         self.femb.write_reg(10, settings.reg10_value[chip + to_add]) #INV_RST_ADC1 <= reg10_p(0)
-							             #INV_READ_ADC1<= reg10_p(1)..
-
-#        #Course Control Quad Board
-#        self.femb.write_reg(11, settings.reg11_value[chip + to_add])
-#        self.femb.write_reg(12, settings.reg12_value[chip + to_add])
-#        self.femb.write_reg(13, settings.reg13_value[chip + to_add])
-#        self.femb.write_reg(14, settings.reg14_value[chip + to_add])
-#        self.femb.write_reg(15, settings.reg15_value[chip + to_add])
-#        self.femb.write_reg(16, settings.reg16_value[chip + to_add])
-#        
-#        #Fine Control Quad Board
-#        self.femb.write_reg(17, settings.reg17_value[chip + to_add])
-#        self.femb.write_reg(18, settings.reg18_value[chip + to_add])
-#        self.femb.write_reg(19, settings.reg19_value[chip + to_add])
-#        self.femb.write_reg(19, settings.reg19_value[chip + to_add])
-#        self.femb.write_reg(19, 0x80000000 + settings.reg19_value[chip + to_add])
+							             #INV_READ_ADC1<= reg10_p(1)
+        #Course Control Quad Board
+        self.femb.write_reg(11, settings.reg11_value[chip + to_add])
+        self.femb.write_reg(12, settings.reg12_value[chip + to_add])
+        self.femb.write_reg(13, settings.reg13_value[chip + to_add])
+        self.femb.write_reg(14, settings.reg14_value[chip + to_add])
+        self.femb.write_reg(15, settings.reg15_value[chip + to_add])
+        self.femb.write_reg(16, settings.reg16_value[chip + to_add])
         
+        #Fine Control Quad Board
+        self.femb.write_reg(17, settings.reg17_value[chip + to_add])
+        self.femb.write_reg(18, settings.reg18_value[chip + to_add])
+        self.femb.write_reg(19, settings.reg19_value[chip + to_add])
+        self.femb.write_reg(19, settings.reg19_value[chip + to_add])
+        self.femb.write_reg(19, 0x80000000 + settings.reg19_value[chip + to_add])
+        """
         self.femb.write_reg( settings.CLKPHASE_reg, 0xFF)
         self.femb.write_reg( settings.CLKPHASE_reg, self.REG_CLKPHASE_data)
         
@@ -679,17 +643,13 @@ class FEMB_CONFIG:
 
     def get_data_chipXchnX(self, chip, chn, packets = 1):
         
-        if (chn < -1 ) or (chn > 15 ):
+        if (chn < -1 ) or (chn > settings.chn_num ):
             print ("FEMB CONFIG --> get_data_chipXchnX() -> Error: Channel must be between 0 and 15, or -1 for all channels")
             return
         
         if (chip < 0 ) or (chip > settings.chip_num ):
             print ("FEMB CONFIG --> get_data_chipXchnX() -> Error: Chip must be between 0 and {}".format(self.chip_num))
             return
-            
-        if (self.selected_chip != chip): # selected_chip defined in select_chip()... default = 0
-            print ("FEMB CONFIG --> get_data_chipXchnX() -> Error: wrong chip")
-            self.select_chip(chip = chip)
 
         k = 0
         for i in range(10):
@@ -703,7 +663,7 @@ class FEMB_CONFIG:
                     print (data[0] == 0xFACE)
                     print (data[0] != 0xFACE)
                 if (data[0] != 0xFACE):
-                #If FACE isn't the first 2 bytes, do the equivalent of turning WIB mode off and then on and try again
+                #If FACE isn't the first 2 bytes, turn WIB mode off and then on and try again
                     self.femb.write_reg(8,0) # Turn WIB Mode Off
                     time.sleep(0.01)
                     self.femb.write_reg(8,1) # Turn WIB Mode On
@@ -786,34 +746,4 @@ class FEMB_CONFIG:
         return chn_data
     
     
-        
 
-    #__INIT__#
-    def __init__(self):
-        #declare board specific registers
-        self.REG_RESET = 0
-        self.REG_ASIC_RESET = 1
-        self.REG_ASIC_SPIPROG = 2
-        self.REG_ADCSPI_BASE = 0x200        #512 Dec
-        self.REG_ADCSPI_RDBACK_BASE = 0x250 #592 Dec
-        self.REG_HS = 17
-#        self.REG_TEST_PULSE = 5
-#        self.REG_TEST_PULSE_FREQ = 500
-#        self.REG_TEST_PULSE_DLY = 80
-#        self.REG_TEST_PULSE_AMPL = 0 % 32
-        self.REG_EN_CALI = 16
-        self.ADC_TESTPATTERN = [0x12, 0x345, 0x678, 0xf1f, 0xad, 0xc01, 0x234, 0x567, 0x89d, 0xeca, 0xff0, 0x123, 0x456, 0x789, 0xabc, 0xdef]
-
-        #initialize FEMB UDP object
-        self.femb = FEMB_UDP()
-        self.adc_reg = ADC_ASIC_REG_MAPPING()
-        self.fe_reg = FE_ASIC_REG_MAPPING() 
-        
-        self.REG_LATCHLOC1_4_data = settings.LATCHLOC_data
-        self.REG_CLKPHASE_data = settings.CLKPHASE_data
-        
-        self.WIB_RESET = 1
-        
-        self.BPS = 13 #Bytes per sample
-        self.selected_chip = 0
-        self.selected_chn = None

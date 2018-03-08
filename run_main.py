@@ -21,7 +21,7 @@ class main:
             
         time.sleep(1)
         self.sbnd.femb_config.syncADC()
- #       self.FunctionGenerator = self.sbnd.femb_config.initFunctionGenerator()
+#        self.FunctionGenerator = self.sbnd.femb_config.initFunctionGenerator()
 #            
 #        print ("\n\n-----------------------------------------------------------------------------")
 #        print ("BNL Quad Chip Tester Data Collection")
