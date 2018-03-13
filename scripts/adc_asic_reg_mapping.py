@@ -2,7 +2,7 @@ class ADC_ASIC_REG_MAPPING:
 
 ####sec_chn_reg only sets a channel register, the other registers remains as before
     def set_adc_chn(self, chip=0, chn=0, d=-1, pcsr=-1, pdsr=-1, slp=-1, tstin=-1):
-        print ("\t ADC_ASIC_REG --> set_adc_chn() --")
+        print ("\t ADC_ASIC_REG --> set_adc_chn() -- {}".format(chn))
 
         tuple_num = 5 * chip + ((15 - chn) // 4)
         #print ("----------------------------------------------------------------")
@@ -93,7 +93,7 @@ class ADC_ASIC_REG_MAPPING:
             print( "\t\t MAPPING --> REGS[{}]      = [previous REG | (or_mask)]    /* {} */".format(tuple_num,format(flup12,'#034b')))
             print( "\n")
 
-        print ("ASIC_REG_MAPPING --> set_adc_chn {} -> New Tuple {} is /* {} */".format(chn,tuple_num,format(self.REGS[tuple_num],'#034b')))
+        #print ("ASIC_REG_MAPPING --> set_adc_chn {} -> New Tuple {} is /* {} */".format(chn,tuple_num,format(self.REGS[tuple_num],'#034b')))
 
 ####sec_chip_global only sets a chip global register, the other registers remains as before
     def set_adc_global(self, chip = 0,  clk = -1, frqc = -1, en_gr = -1, f0 = -1, f1 = -1, f2 = -1, f3 = -1,
@@ -163,7 +163,7 @@ class ADC_ASIC_REG_MAPPING:
         
         self.REGS[tuple_num] = glo_reg
 
-        print ("\t ASIC_REG_MAPPING --> set_adc_global() -> New Tuple {} is {}\n".format(tuple_num,format(self.REGS[tuple_num],'#034b')))
+        #print ("\t ASIC_REG_MAPPING --> set_adc_global() -> New Tuple {} is {}\n".format(tuple_num,format(self.REGS[tuple_num],'#034b')))
 
 ####sec_chip sets registers of a whole chip, registers of the other chips remains as before
     def set_adc_chip(self, chip=0,

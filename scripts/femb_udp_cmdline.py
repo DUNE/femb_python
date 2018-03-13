@@ -5,7 +5,7 @@ import socket
 import binascii
 import time
 import pickle
-from user_settings import user_editable_settings
+from femb_python.test_measurements.adc_clock_test.user_settings import user_editable_settings
 settings = user_editable_settings()
 
 class FEMB_UDP:
@@ -232,7 +232,7 @@ class FEMB_UDP:
                 
         #print (sock_data.getsockname())
         sock_data.close()
-        print "FEMB_UDP--> {} missing packets".format(missing_packets)
+        print("FEMB_UDP--> {} missing packets".format(missing_packets)) #missing parenthesis
         packet_size = len(data)
         
         try:

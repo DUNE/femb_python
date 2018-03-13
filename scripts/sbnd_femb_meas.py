@@ -1,6 +1,6 @@
 import struct
 import time
-from scripts.femb_config_sbnd import FEMB_CONFIG
+from femb_python.configuration import CONFIG
 from scripts.adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
 from scripts.fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
 import numpy as np
