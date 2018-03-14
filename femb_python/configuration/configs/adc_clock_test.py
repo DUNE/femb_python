@@ -4,7 +4,8 @@ import sys
 import time
 import visa
 from visa import VisaIOError
-from femb_python.test_measurements.adc_clock_test.scripts.femb_udp_cmdline import FEMB_UDP
+#from femb_python.test_measurements.adc_clock_test.scripts.femb_udp_cmdline import FEMB_UDP
+from femb_python.femb_udp import FEMB_UDP
 from femb_python.test_measurements.adc_clock_test.scripts.adc_asic_reg_mapping import ADC_ASIC_REG_MAPPING
 from femb_python.test_measurements.adc_clock_test.scripts.fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
 from femb_python.test_measurements.adc_clock_test.user_settings import user_editable_settings
@@ -17,6 +18,7 @@ class FEMB_CONFIG:
         self.REG_RESET = 0
         self.REG_ASIC_RESET = 1
         self.REG_ASIC_SPIPROG = 2
+        self.REG_SEL_CH = 7 		    #added 3/14/18
         self.REG_ADCSPI_BASE = 0x200        #512 Dec
         self.REG_ADCSPI_RDBACK_BASE = 0x250 #592 Dec
         self.REG_HS = 17
@@ -40,6 +42,8 @@ class FEMB_CONFIG:
         self.BPS = 13 #Bytes per sample
         self.selected_chip = 0
         self.selected_chn = None
+
+        self.NASICS = 1
 
     def resetFEMBBoard(self): #cp 1/17/18
         #
@@ -142,9 +146,8 @@ class FEMB_CONFIG:
         self.configAdcAsic()
         
         print (" FEMB_CONFIG--> initBOARD() -> Initialize FEMB is DONE\n")
-        
+    """    
     def syncADC(self):
-        #
         #   syncADC()
         #
         #       procedures:
@@ -153,13 +156,14 @@ class FEMB_CONFIG:
         #               in labview. 
         #           2.  configure ADC ASIC 
         #           3.
-        #
+
         
         print ("\n FEMB_CONFIG--> Start sync ADC--")
 
 
         self.select_chn(1) # channel 0 & write clocks
         self.select_chn(3) # channel 0 & write clocks
+        self.select_chn(1) # channel 0 & write clocks
         self.adc_reg.set_adc_global(chip = settings.chip_num, f5 = 1) # Test DATA
         self.configAdcAsic()
             
@@ -186,6 +190,212 @@ class FEMB_CONFIG:
         print ("FEMB_CONFIG--> Final Phase Shift " + str(hex(self.REG_CLKPHASE_data)))
         self.FinalSyncCheck()
         print ("FEMB_CONFIG--> ADC passed Sync Test!")
+    """
+    def syncADC(self,iASIC=None):
+        #turn on ADC test mode
+        print("FEMB_CONFIG--> Start sync ADC")
+        reg3 = self.femb.read_reg (3)
+        newReg3 = ( reg3 | 0x80000000 )
+
+        self.femb.write_reg ( 3, newReg3 ) #31 - enable ADC test pattern
+        time.sleep(0.1)                
+
+        alreadySynced = True
+        for a in range(0,self.NASICS,1):
+            print("FEMB_CONFIG--> Test ADC " + str(a))
+            unsync, syncDicts = self.testUnsync(a)
+            if unsync != 0:
+                alreadySynced = False
+                print("FEMB_CONFIG--> ADC not synced, try to fix")
+                self.fixUnsync(a)
+        latchloc1_4 = self.femb.read_reg ( self.REG_LATCHLOC1_4 ) 
+        latchloc5_8 = self.femb.read_reg ( self.REG_LATCHLOC5_8 )
+        clkphase    = self.femb.read_reg ( self.REG_CLKPHASE )
+        if self.SAMPLERATE == 1e6:
+            if self.COLD:
+                self.REG_LATCHLOC1_4_data_1MHz_cold = latchloc1_4
+                self.REG_LATCHLOC5_8_data_1MHz_cold = latchloc5_8
+                self.REG_CLKPHASE_data_1MHz_cold    = clkphase
+            else:
+                self.REG_LATCHLOC1_4_data_1MHz = latchloc1_4
+                self.REG_LATCHLOC5_8_data_1MHz = latchloc5_8
+                self.REG_CLKPHASE_data_1MHz    = clkphase
+        else: # 2 MHz
+            if self.COLD:
+                self.REG_LATCHLOC1_4_data_cold = latchloc1_4
+                self.REG_LATCHLOC5_8_data_cold = latchloc5_8
+                self.REG_CLKPHASE_data_cold    = clkphase
+            else:
+                self.REG_LATCHLOC1_4_data = latchloc1_4
+                self.REG_LATCHLOC5_8_data = latchloc5_8
+                self.REG_CLKPHASE_data    = clkphase
+        print("FEMB_CONFIG--> Latch latency {:#010x} {:#010x} Phase: {:#010x}".format(latchloc1_4,
+                        latchloc5_8, clkphase))
+        self.femb.write_reg ( 3, (reg3&0x7fffffff) )
+        self.femb.write_reg ( 3, (reg3&0x7fffffff) )
+        print("FEMB_CONFIG--> End sync ADC")
+        return not alreadySynced,latchloc1_4,latchloc5_8 ,clkphase
+
+    def testUnsync(self, adc, npackets=10):
+        print("Starting testUnsync adc: ",adc)
+        adcNum = int(adc)
+        if (adcNum < 0 ) or (adcNum > 7 ):
+                print("FEMB_CONFIG--> femb_config_femb : testLink - invalid asic number")
+                return
+
+        #loop through channels, check test pattern against data
+        syncDataCounts = [{} for i in range(16)] #dict for each channel
+        for ch in range(0,16,1):
+                self.selectChannel(adcNum,ch, 1)
+                time.sleep(0.05)                
+                data = self.femb.get_data(npackets)
+                if data == None:
+                    continue
+                for samp in data:
+                        if samp == None:
+                                continue
+                        #chNum = ((samp >> 12 ) & 0xF)
+                        sampVal = (samp & 0xFFF)
+                        if sampVal in syncDataCounts[ch]:
+                            syncDataCounts[ch][sampVal] += 1
+                        else:
+                            syncDataCounts[ch][sampVal] = 1
+        # check jitter
+        badSync = 0
+        maxCodes = [None]*16
+        syncDicts = [{}]*16
+        for ch in range(0,16,1):
+            sampSum = 0
+            maxCode = None
+            nMaxCode = 0
+            for code in syncDataCounts[ch]:
+                nThisCode = syncDataCounts[ch][code]
+                sampSum += nThisCode
+                if nThisCode > nMaxCode:
+                    nMaxCode = nThisCode
+                    maxCode = code
+            maxCodes[ch] = maxCode
+            syncDicts[ch]["maxCode"] = maxCode
+            syncDicts[ch]["nSamplesMaxCode"] = nMaxCode
+            syncDicts[ch]["nSamples"] = sampSum
+            syncDicts[ch]["zeroJitter"] = True
+            if len(syncDataCounts[ch]) > 1:
+                syncDicts[ch]["zeroJitter"] = False
+                badSync = 1
+                diff = sampSum-nMaxCode
+                frac = diff / float(sampSum)
+                print("Sync Error: Jitter for Ch {:2}: {:8.4%} ({:5}/{:5})".format(ch,frac,diff,sampSum))
+        for ch in range(0,16,1):
+            maxCode = maxCodes[ch]
+            correctCode = self.ADC_TESTPATTERN[ch]
+            syncDicts[ch]["data"] = True
+            syncDicts[ch]["maxCodeMatchesExpected"] = True
+            if maxCode is None:
+                syncDicts[ch]["data"] = False
+                badSync = 1
+                print("Sync Error: no data for ch {:2}".format(ch))
+            elif maxCode != correctCode:
+                syncDicts[ch]["maxCodeMatchesExpected"] = True
+                badSync = 1
+                print("Sync Error: mismatch for ch {:2}: expected {:#03x} observed {:#03x}".format(ch,correctCode,maxCode))
+        return badSync, syncDicts
+
+    def selectChannel(self,asic,chan,hsmode=1,singlechannelmode=None):
+        """
+        asic is chip number 0 to 7
+        chan is channel within asic from 0 to 15
+        hsmode: if 0 then streams all channels of a chip, if 1 only te selected channel. defaults to 1
+        singlechannelmode: not implemented
+        """
+        hsmodeVal = int(hsmode) & 1;
+        asicVal = int(asic)
+        if (asicVal < 0 ) or (asicVal >= self.NASICS ) :
+                print( "femb_config_femb : selectChan - invalid ASIC number, only 0 to {} allowed".format(self.NASICS-1))
+                return
+        chVal = int(chan)
+        if (chVal < 0 ) or (chVal > 15 ) :
+                print("femb_config_femb : selectChan - invalid channel number, only 0 to 15 allowed")
+                return
+
+        #print( "Selecting ASIC " + str(asicVal) + ", channel " + str(chVal))
+
+        self.femb.write_reg ( self.REG_HS, hsmodeVal)
+        regVal = (chVal << 8 ) + asicVal
+        self.femb.write_reg( self.REG_SEL_CH, regVal)
+
+    """
+    def testUnsyncNew(self, chip):
+
+        print("\n FEMB_CONFIG --> testUnsyncNew() -> chip = {} --".format(chip))        
+        
+        adcNum = int(chip)
+        if (adcNum < 0 ) or (adcNum > 3 ):
+            print (" FEMB_CONFIG --> testUnsyncNew() -> Invalid asic number, must be between 0 and 3")
+            return
+            
+        for j in range(100):    #reset sync error
+            self.femb.write_reg(11, 1) # ERROR_RESET <= reg11_p(0)
+            time.sleep(0.01)
+            self.femb.write_reg(11, 0) # ERROR_RESET <= reg11_p(0)
+            time.sleep(0.01)
+            
+            if (chip == 0):
+                conv_error = self.femb.read_reg(12)     # reg12_i => x"" & CONV_ERROR 
+                header_error = self.femb.read_reg(13)   # reg13_i => HDR2_ERROR & HDR1_ERROR 
+                
+#            elif (chip == 1):
+#                conv_error = self.femb.read_reg(50)    # reg50_i => x"0000" & CONV_ERROR_1
+#                header_error = self.femb.read_reg(51)  # reg51_i => HDR2_ERROR_2 & HDR1_ERROR_2
+#            elif (chip == 2):
+#                conv_error = self.femb.read_reg(52)
+#                header_error = self.femb.read_reg(53)
+#            elif (chip == 3):
+#                conv_error = self.femb.read_reg(54)
+#                header_error = self.femb.read_reg(55)
+            
+            error = False
+            
+            if (conv_error != 0): # CONV_ERROR exists
+                print (" FEMB_CONFIG --> testUnsyncNew() -> Convert error({})!  Trial {}".format(hex(conv_error),j))
+                error = True
+            else:
+                print (" FEMB_CONFIG --> testUnsyncNew() -> No Convert Error ({})  Trial {}!".format(hex(conv_error),j)) #convert = 0
+                
+            if (header_error != 0): # HEADER_ERROR exists
+                print (" FEMB_CONFIG --> testUnsyncNew() -> Header error ({})!".format(hex(header_error)))
+                error = True
+            else:
+                print (" FEMB_CONFIG --> testUnsyncNew() -> No Header Error({})!  Trial {}".format(hex(header_error),j)) #not finding header
+                
+            if (error == False): #break loop if no error found
+                print (" FEMB_CONFIG --> testUnsyncNew() -> Correct on Loop {}  Trial {}".format(j,j))
+                break
+                #return True
+            elif (j > 30):
+                print (" FEMB_CONFIG --> testUnsyncNew() -> Convert error({})!  Trial {}".format(hex(conv_error),j))
+                print (" FEMB_CONFIG --> testUnsyncNew() -> Header error ({})!  Trial {}".format(hex(header_error),j))
+                #sync_status = self.femb.read_reg(self.REG_ASIC_SPIPROG) >> 24
+                #print ("FEMB_CONFIG--> Register 2 Sync status is {}".format(hex(sync_status)))
+                return False
+            else:
+                self.configAdcAsic(False)
+                #print ("Loop {}".format(j))
+           
+        for ch in range(0,16,1):
+            for test in range(0,200,1):
+                data = self.get_data_chipXchnX(chip = adcNum, chn = ch, packets = 1)#issue here?
+                #print("unsyncNew data -> {}".format(data))
+                if (len(data) == 0):
+                    print (" FEMB_CONFIG--> testUnsyncNew() -> Sync response didn't come in")
+                    return False
+                for samp in data[0:len(data)]:
+                    if samp != self.ADC_TESTPATTERN[ch]:
+                        print (" FEMB_CONFIG --> testUnsyncNew() -> Chip {} chn {} looking for {} but found {}".format(
+                                adcNum, ch, hex(self.ADC_TESTPATTERN[ch]), hex(samp)))
+                        return False
+                        
+        return True
+    """
 
     def initFunctionGenerator(self):
         rm = visa.ResourceManager()
@@ -230,6 +440,10 @@ class FEMB_CONFIG:
         self.femb.write_reg ( self.REG_ASIC_SPIPROG, 0x40)
         self.femb.write_reg ( self.REG_ASIC_SPIPROG, 0)
         time.sleep(0.01)
+
+        self.select_chn(1) # channel 0 & write clocks
+        self.select_chn(3) # channel 0 & write clocks
+        self.select_chn(1) # channel 0 & write clocks
 
         for k in range(10):            
             i = 0
@@ -307,7 +521,9 @@ class FEMB_CONFIG:
             
             self.adc_reg.set_adc_global(chip = a, f5 = 1)
             self.configAdcAsic()
-            
+            self.select_chn(1) # channel 0 & write clocks
+            self.select_chn(3) # channel 0 & write clocks
+            self.select_chn(1) # channel 0 & write clocks
             # quad board settings:
             #self.select_chip(chip = a)
             
@@ -359,78 +575,6 @@ class FEMB_CONFIG:
 #            else:
 #                print ("FEMB_CONFIG--> No Sync error through Register 2 check: ({})!".format(hex(sync_status)))
 #                break
-            
-    def testUnsyncNew(self, chip):
-
-        print("\n FEMB_CONFIG --> testUnsyncNew() -> chip = {} --".format(chip))        
-        
-        adcNum = int(chip)
-        if (adcNum < 0 ) or (adcNum > 3 ):
-            print (" FEMB_CONFIG --> testUnsyncNew() -> Invalid asic number, must be between 0 and 3")
-            return
-            
-        for j in range(100):    #reset sync error
-            self.femb.write_reg(11, 1) # ERROR_RESET <= reg11_p(0)
-            time.sleep(0.01)
-            self.femb.write_reg(11, 0) # ERROR_RESET <= reg11_p(0)
-            time.sleep(0.01)
-            
-            if (chip == 0):
-                conv_error = self.femb.read_reg(12)     # reg12_i => x"" & CONV_ERROR 
-                header_error = self.femb.read_reg(13)   # reg13_i => HDR2_ERROR & HDR1_ERROR 
-                
-#            elif (chip == 1):
-#                conv_error = self.femb.read_reg(50)    # reg50_i => x"0000" & CONV_ERROR_1
-#                header_error = self.femb.read_reg(51)  # reg51_i => HDR2_ERROR_2 & HDR1_ERROR_2
-#            elif (chip == 2):
-#                conv_error = self.femb.read_reg(52)
-#                header_error = self.femb.read_reg(53)
-#            elif (chip == 3):
-#                conv_error = self.femb.read_reg(54)
-#                header_error = self.femb.read_reg(55)
-            
-            error = False
-            
-            if (conv_error != 0): # CONV_ERROR exists
-                print (" FEMB_CONFIG --> testUnsyncNew() -> Convert error({})!  Trial {}".format(hex(conv_error),j))
-                error = True
-            else:
-                print (" FEMB_CONFIG --> testUnsyncNew() -> No Convert Error ({})  Trial {}!".format(hex(conv_error),j)) #convert = 0
-                
-            if (header_error != 0): # HEADER_ERROR exists
-                print (" FEMB_CONFIG --> testUnsyncNew() -> Header error ({})!".format(hex(header_error)))
-                error = True
-            else:
-                print (" FEMB_CONFIG --> testUnsyncNew() -> No Header Error({})!  Trial {}".format(hex(header_error),j)) #not finding header
-                
-            if (error == False): #break loop if no error found
-                print (" FEMB_CONFIG --> testUnsyncNew() -> Correct on Loop {}  Trial {}".format(j,j))
-                break
-                #return True
-            elif (j > 30):
-                print (" FEMB_CONFIG --> testUnsyncNew() -> Convert error({})!  Trial {}".format(hex(conv_error),j))
-                print (" FEMB_CONFIG --> testUnsyncNew() -> Header error ({})!  Trial {}".format(hex(header_error),j))
-                #sync_status = self.femb.read_reg(self.REG_ASIC_SPIPROG) >> 24
-                #print ("FEMB_CONFIG--> Register 2 Sync status is {}".format(hex(sync_status)))
-                return False
-            else:
-                self.configAdcAsic(False)
-                #print ("Loop {}".format(j))
-           
-        for ch in range(0,16,1):
-            for test in range(0,200,1):
-                data = self.get_data_chipXchnX(chip = adcNum, chn = ch, packets = 1)#issue here?
-                #print("unsyncNew data -> {}".format(data))
-                if (len(data) == 0):
-                    print (" FEMB_CONFIG--> testUnsyncNew() -> Sync response didn't come in")
-                    return False
-                for samp in data[0:len(data)]:
-                    if samp != self.ADC_TESTPATTERN[ch]:
-                        print (" FEMB_CONFIG --> testUnsyncNew() -> Chip {} chn {} looking for {} but found {}".format(
-                                adcNum, ch, hex(self.ADC_TESTPATTERN[ch]), hex(samp)))
-                        return False
-                        
-        return True
 
             
     def fixUnsyncNew(self, adc):
