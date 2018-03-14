@@ -205,7 +205,7 @@ setup(
             'quadadc_test_summary=femb_python.test_measurements.quadAdcTester.code.quadadc_test_summary:main',
 
             #single socket ADC ASIC clock testing
-            'adc_optimize_cp=femb_python.test.test_measurements.adc_clock_test.run_main.py',
+            'adc_optimize_cp=femb_python.test.test_measurements.adc_clk_tst.run_main.py',
 
             #what the shifters run:
             'femb_osctest=femb_python.test_measurements.OscillatorTesting.otmain:main',
