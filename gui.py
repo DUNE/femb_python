@@ -135,7 +135,7 @@ class GUI_WINDOW(Frame):
         #print("Board/Chip ID: " + str( boardid ) )
         #print("Traveller #  : " + str( traveller ) )
       
-        self.config.femb.init_ports(hostIP = settings.PC_IP, destIP = settings.FPGA_IP)
+        #self.config.femb.init_ports(hostIP = settings.PC_IP, destIP = settings.FPGA_IP)
         self.config.resetFEMBBoard()
         self.config.initBoard()   
         self.config.syncADC()
