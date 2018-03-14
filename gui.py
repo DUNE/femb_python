@@ -139,7 +139,7 @@ class GUI_WINDOW(Frame):
         self.config.resetFEMBBoard()
         self.config.initBoard()   
         self.config.syncADC()
-        self.config.initFunctionGenerator()
+        #self.config.initFunctionGenerator()
         """
         if self.femb_test.status_check_setup == 0:
             self.check_setup_result["text"] = "TERRIBLE FAILURE"
