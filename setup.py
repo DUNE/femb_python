@@ -204,11 +204,14 @@ setup(
             'quadadc_trace_window=femb_python.test_measurements.quadAdcTester.code.doQuadAdcTest_allchan_window:main',
             'quadadc_test_summary=femb_python.test_measurements.quadAdcTester.code.quadadc_test_summary:main',
 
-            # what the shifters run:
+            #single socket ADC ASIC clock testing
+            'adc_optimize_cp=femb_python.test.test_measurements.adc_clk_tst.run_main.py',
+
+            #what the shifters run:
             'femb_osctest=femb_python.test_measurements.OscillatorTesting.otmain:main',
-            # the main tester
+            #the main tester
             'femb_test_osc=femb_python.test_measurements.OscillatorTesting.code.testOscillator:main',
-            # generate summary of the N tests run by the above
+            #generate summary of the N tests run by the above
             'femb_test_osc_summary=femb_python.test_measurements.OscillatorTesting.code.testOscillatorSummary:main',
 
             #For flash testing
