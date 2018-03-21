@@ -422,6 +422,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print( "chWord ","\t",hex(chWord))
         print( "asicReg ","\t",hex(asicReg))
 
+        # find a good phase, if necessary
+        self.findADCPhase()
+        
         #run the SPI programming
         self.doAsicConfig()
 
@@ -430,6 +433,83 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(2)
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
 
+
+    def findADCPhase(self, trial=0):
+
+        #Write ADC ASIC SPI
+        if True :
+            print("ADC reconfig")
+            self.femb.write_reg( self.REG_RESET,0x4) #reset timestamp
+            time.sleep(0.01)
+            self.femb.write_reg( self.REG_ASIC_RESET, 1) #reset ASIC SPI
+            time.sleep(0.01)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1) #configure ASICs
+            time.sleep(0.01)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1) #configure ASICs
+            time.sleep(0.01)
+            
+        print("Find ADC phases that sync all ADCs")
+
+        syncSuccess = False
+        
+        while (syncSuccess == False) :
+            
+            # start with the default values for the configuration
+            def_clksel_rt = self.CLKSELECT_val_RT
+            def_clksel2_rt = self.CLKSELECT2_val_RT
+            
+            def_clksel_ct = self.CLKSELECT_val_CT
+            def_clksel2_ct = self.CLKSELECT2_val_CT
+            
+            #phase control
+            if self.isRoomTemp == True:
+                print("ADC clock phase:",self.CLKSELECT_val_RT,self.CLKSELECT2_val_RT)
+                self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_RT ) #clock select
+                self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, self.CLKSELECT2_val_RT ) #clock select 2
+            else:
+                print("Using cryogenic parameters, ADC clock phase:",self.CLKSELECT_val_CT,self.CLKSELECT2_val_CT)
+                self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_CT ) #clock select
+                self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF,  self.CLKSELECT2_val_CT ) #clock select 2
+
+            # check sync
+            regVal = self.femb.read_reg(6)
+            if regVal == None:
+                print("doAsicConfig: Could not check SYNC status, bad")
+                return
+            
+            syncVal = ((regVal >> 16) & 0xFFFF)
+            self.syncStatus = syncVal
+            print("SYNC ATTEMPT\t",trial,"\tSYNC VAL " , hex(syncVal) )
+
+            #try again if sync not achieved
+            if syncVal != 0x0 :
+                if self.isRoomTemp == True:
+                    if self.CLKSELECT_val_RT < 0xFF :
+                        self.CLKSELECT_val_RT = self.CLKSELECT_val_RT + 1
+                        
+                    if self.CLKSELECT2_val_RT < 0xFF :
+                        self.CLKSELECT2_val_RT = self.CLKSELECT2_val_RT + 1
+
+                else:        
+                    if self.CLKSELECT_val_CT < 0xFF :
+                        self.CLKSELECT_val_CT = self.CLKSELECT_val_CT + 1
+
+                    if self.CLKSELECT2_val_CT < 0xFF :
+                        self.CLKSELECT2_val_CT = self.CLKSELECT2_val_CT + 1
+
+                syncSuccess = False
+
+            else :
+                syncSuccess = True
+
+            trial = trial + 1
+
+        if self.isRoomTemp == True:
+            print("Found good RT clock phase:",hex(self.CLKSELECT_val_RT),hex(self.CLKSELECT2_val_RT))
+        else:
+            print("Found good CT clock phase:",hex(self.CLKSELECT_val_CT),hex(self.CLKSELECT2_val_CT))
+
+        
     def doAsicConfig(self, syncAttempt=0):
         if syncAttempt == 0:
             print("Program ASIC SPI")
@@ -485,7 +565,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #try again if sync not achieved, note recursion
         if syncVal != 0x0 :
             if syncAttempt >= self.maxSyncAttempts :
-                print("doAsicConfig: Could not sync ADC ASIC, giving up, sync val\t",hex(syncVal))
+                print("doAsicConfig: Could not sync ADC ASIC, sync val\t",hex(syncVal))
                 return
             else:
                 self.doAsicConfig(syncAttempt+1)
