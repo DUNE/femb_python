@@ -451,9 +451,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("Find ADC phases that sync all ADCs")
 
         syncSuccess = False
+        oldSyncVal = 0xFFFF
         
         while (syncSuccess == False) :
-            
+             
             # start with the default values for the configuration
             def_clksel_rt = self.CLKSELECT_val_RT
             def_clksel2_rt = self.CLKSELECT2_val_RT
@@ -470,7 +471,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 print("Using cryogenic parameters, ADC clock phase:",self.CLKSELECT_val_CT,self.CLKSELECT2_val_CT)
                 self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_CT ) #clock select
                 self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF,  self.CLKSELECT2_val_CT ) #clock select 2
-
+               
             # check sync
             regVal = self.femb.read_reg(6)
             if regVal == None:
@@ -480,25 +481,48 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             syncVal = ((regVal >> 16) & 0xFFFF)
             self.syncStatus = syncVal
             print("SYNC ATTEMPT\t",trial,"\tSYNC VAL " , hex(syncVal) )
-
+            
+           
             #try again if sync not achieved
             if syncVal != 0x0 :
-                if self.isRoomTemp == True:
-                    if self.CLKSELECT_val_RT < 0xFF :
-                        self.CLKSELECT_val_RT = self.CLKSELECT_val_RT + 1
+
+                if syncVal < oldSyncVal:
+                    
+                    if self.isRoomTemp == True:
+                        if self.CLKSELECT_val_RT < 0xFF :
+                            self.CLKSELECT_val_RT = self.CLKSELECT_val_RT + 1
                         
-                    if self.CLKSELECT2_val_RT < 0xFF :
-                        self.CLKSELECT2_val_RT = self.CLKSELECT2_val_RT + 1
+                        if self.CLKSELECT2_val_RT < 0xFF :
+                            self.CLKSELECT2_val_RT = self.CLKSELECT2_val_RT + 1
 
-                else:        
-                    if self.CLKSELECT_val_CT < 0xFF :
-                        self.CLKSELECT_val_CT = self.CLKSELECT_val_CT + 1
+                    else:        
+                        if self.CLKSELECT_val_CT < 0xFF :
+                            self.CLKSELECT_val_CT = self.CLKSELECT_val_CT + 1
+                       
+                        if self.CLKSELECT2_val_CT < 0xFF :
+                            self.CLKSELECT2_val_CT = self.CLKSELECT2_val_CT + 1
+                            
+                else:
 
-                    if self.CLKSELECT2_val_CT < 0xFF :
-                        self.CLKSELECT2_val_CT = self.CLKSELECT2_val_CT + 1
+                    if self.isRoomTemp == True:
+                        if self.CLKSELECT_val_RT < 0xFF :
+                            self.CLKSELECT_val_RT = self.CLKSELECT_val_RT - 1
+                        
+                        if self.CLKSELECT2_val_RT < 0xFF :
+                            self.CLKSELECT2_val_RT = self.CLKSELECT2_val_RT - 1
 
+                    else:        
+                        if self.CLKSELECT_val_CT < 0xFF :
+                            self.CLKSELECT_val_CT = self.CLKSELECT_val_CT - 1
+                       
+                        if self.CLKSELECT2_val_CT < 0xFF :
+                            self.CLKSELECT2_val_CT = self.CLKSELECT2_val_CT - 1
+
+
+                    
                 syncSuccess = False
-
+                oldSyncVal = syncVal
+                
             else :
                 syncSuccess = True
 
