@@ -454,7 +454,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         oldSyncVal = 0xFFFF
         
         while (syncSuccess == False) :
-             
+
+            # give up after 50 trials
+            if trial == 50:
+                print("Could not find good clock phase, SYNC STATUS:",hex(syncVal))
+                return
+            
             # start with the default values for the configuration
             def_clksel_rt = self.CLKSELECT_val_RT
             def_clksel2_rt = self.CLKSELECT2_val_RT
@@ -526,13 +531,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             else :
                 syncSuccess = True
 
+                if self.isRoomTemp == True:
+                    print("Found good RT clock phase:",hex(self.CLKSELECT_val_RT),hex(self.CLKSELECT2_val_RT))
+                else:
+                    print("Found good CT clock phase:",hex(self.CLKSELECT_val_CT),hex(self.CLKSELECT2_val_CT))
+
             trial = trial + 1
-
-        if self.isRoomTemp == True:
-            print("Found good RT clock phase:",hex(self.CLKSELECT_val_RT),hex(self.CLKSELECT2_val_RT))
-        else:
-            print("Found good CT clock phase:",hex(self.CLKSELECT_val_CT),hex(self.CLKSELECT2_val_CT))
-
+                
         
     def doAsicConfig(self, syncAttempt=0):
         if syncAttempt == 0:
