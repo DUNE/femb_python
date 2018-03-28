@@ -14,6 +14,6 @@ class FEMB_CONFIG(wib_sbnd_v109_femb_protodune_v323.FEMB_CONFIG):
         self.CLKSELECT_val_RT = 0xFF
         self.CLKSELECT2_val_RT = 0xFF
         print("CLKSELECT at RT:",self.CLKSELECT_val_RT,self.CLKSELECT2_val_RT)
-        self.CLKSELECT_val_CT = 0xF7
-        self.CLKSELECT2_val_CT = 0xF7
+        self.CLKSELECT_val_CT = 0xF8
+        self.CLKSELECT2_val_CT = 0xF8
         print("CLKSELECT at CT:",self.CLKSELECT_val_CT,self.CLKSELECT2_val_CT)
