@@ -424,7 +424,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         # find a good phase, if necessary
         self.findADCPhase()
-        
+
         #run the SPI programming
         self.doAsicConfig()
 
@@ -433,8 +433,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(2)
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
 
+        
+
 
     def findADCPhase(self, trial=0):
+
+        print("Find ADC phases that sync all ADCs")
 
         #Write ADC ASIC SPI
         if True :
@@ -448,10 +452,20 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg( self.REG_ASIC_SPIPROG, 1) #configure ASICs
             time.sleep(0.01)
             
-        print("Find ADC phases that sync all ADCs")
-
         syncSuccess = False
         oldSyncVal = 0xFFFF
+
+        # start with the default values for the configuration
+        def_clksel_rt = self.CLKSELECT_val_RT
+        def_clksel2_rt = self.CLKSELECT2_val_RT
+            
+        def_clksel_ct = self.CLKSELECT_val_CT
+        def_clksel2_ct = self.CLKSELECT2_val_CT
+
+        #first step will always go +1
+        lastStep = 1
+
+        didJump = False
         
         while (syncSuccess == False) :
 
@@ -459,13 +473,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             if trial == 50:
                 print("Could not find good clock phase, SYNC STATUS:",hex(syncVal))
                 return
-            
-            # start with the default values for the configuration
-            def_clksel_rt = self.CLKSELECT_val_RT
-            def_clksel2_rt = self.CLKSELECT2_val_RT
-            
-            def_clksel_ct = self.CLKSELECT_val_CT
-            def_clksel2_ct = self.CLKSELECT2_val_CT
             
             #phase control
             if self.isRoomTemp == True:
@@ -486,47 +493,78 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             syncVal = ((regVal >> 16) & 0xFFFF)
             self.syncStatus = syncVal
             print("SYNC ATTEMPT\t",trial,"\tSYNC VAL " , hex(syncVal) )
-            
-           
+
             #try again if sync not achieved
             if syncVal != 0x0 :
 
                 if syncVal < oldSyncVal:
-                    
-                    if self.isRoomTemp == True:
-                        if self.CLKSELECT_val_RT < 0xFF :
-                            self.CLKSELECT_val_RT = self.CLKSELECT_val_RT + 1
-                        
-                        if self.CLKSELECT2_val_RT < 0xFF :
-                            self.CLKSELECT2_val_RT = self.CLKSELECT2_val_RT + 1
 
-                    else:        
-                        if self.CLKSELECT_val_CT < 0xFF :
-                            self.CLKSELECT_val_CT = self.CLKSELECT_val_CT + 1
+                    # keep going this direction
+                    if lastStep == 1:
+                        
+                        if self.isRoomTemp == True:
+                            if self.CLKSELECT_val_RT < 0xFF :
+                                self.CLKSELECT_val_RT = self.CLKSELECT_val_RT + 1
+                        
+                            if self.CLKSELECT2_val_RT < 0xFF :
+                                self.CLKSELECT2_val_RT = self.CLKSELECT2_val_RT + 1
+
+                        else:        
+                            if self.CLKSELECT_val_CT < 0xFF :
+                                self.CLKSELECT_val_CT = self.CLKSELECT_val_CT + 1
                        
-                        if self.CLKSELECT2_val_CT < 0xFF :
-                            self.CLKSELECT2_val_CT = self.CLKSELECT2_val_CT + 1
-                            
+                            if self.CLKSELECT2_val_CT < 0xFF :
+                                self.CLKSELECT2_val_CT = self.CLKSELECT2_val_CT + 1
+
+                        lastStep = 1
+                        
+                    else:
+
+                        if self.isRoomTemp == True:
+                            if self.CLKSELECT_val_RT < 0xFF :
+                                self.CLKSELECT_val_RT = self.CLKSELECT_val_RT - 1
+                        
+                            if self.CLKSELECT2_val_RT < 0xFF :
+                                self.CLKSELECT2_val_RT = self.CLKSELECT2_val_RT - 1
+
+                        else:        
+                            if self.CLKSELECT_val_CT < 0xFF :
+                                self.CLKSELECT_val_CT = self.CLKSELECT_val_CT - 1
+                       
+                            if self.CLKSELECT2_val_CT < 0xFF :
+                                self.CLKSELECT2_val_CT = self.CLKSELECT2_val_CT - 1
+
+                        lastStep = -1
+
+                    oldSyncVal = syncVal
+                        
                 else:
 
+                    # already jumped once
+                    if didJump == True:
+                        print("Could not find good clock phase, SYNC STATUS:",hex(syncVal))
+                        return
+                    
+                    # jump back to start and switch directions
                     if self.isRoomTemp == True:
                         if self.CLKSELECT_val_RT < 0xFF :
-                            self.CLKSELECT_val_RT = self.CLKSELECT_val_RT - 1
+                            self.CLKSELECT_val_RT = def_clksel_rt - 1
                         
                         if self.CLKSELECT2_val_RT < 0xFF :
-                            self.CLKSELECT2_val_RT = self.CLKSELECT2_val_RT - 1
+                            self.CLKSELECT2_val_RT = def_clksel2_rt - 1
 
                     else:        
                         if self.CLKSELECT_val_CT < 0xFF :
-                            self.CLKSELECT_val_CT = self.CLKSELECT_val_CT - 1
-                       
+                            self.CLKSELECT_val_CT = def_clksel_ct - 1
+                            
                         if self.CLKSELECT2_val_CT < 0xFF :
-                            self.CLKSELECT2_val_CT = self.CLKSELECT2_val_CT - 1
+                            self.CLKSELECT2_val_CT = def_clksel2_ct - 1
 
+                    lastStep = -1
+                    didJump = True
+                    oldSyncVal = 0xFFFF
 
-                    
                 syncSuccess = False
-                oldSyncVal = syncVal
                 
             else :
                 syncSuccess = True
