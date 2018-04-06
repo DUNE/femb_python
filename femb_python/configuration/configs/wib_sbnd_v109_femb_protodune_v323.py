@@ -497,7 +497,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             #try again if sync not achieved
             if syncVal != 0x0 :
 
-                if syncVal < oldSyncVal:
+                if syncVal <= oldSyncVal:
 
                     # keep going this direction
                     if lastStep == 1:
