@@ -93,7 +93,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.fembNum = 0
         self.useExtAdcClock = True
         self.isRoomTemp = False
-        self.maxSyncAttempts = 100
         self.doReSync = True
         self.spiStatus = 0x0
         self.syncStatus = 0x0
@@ -111,7 +110,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
-        self.femb.doReadBack = True #WIB register interface is unreliable
+        self.femb.doReadBack = False #WIB register interface is unreliable
 
         #ASIC config variables
         self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
@@ -126,16 +125,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def printParameters(self):
         print("FEMB #             \t",self.fembNum)
-        print("External ADC Clocks\t",self.useExtAdcClock)
         print("Room temperature   \t",self.isRoomTemp)
-        print("MAX SYNC ATTEMPTS  \t",self.maxSyncAttempts)
         print("Do resync          \t",self.doReSync)
-        print("CLKSELECT RT       \t",str(hex(self.CLKSELECT_val_RT)))
-        print("CLKSELECT2 RT      \t",str(hex(self.CLKSELECT2_val_RT)))
-        print("CLKSELECT CT       \t",str(hex(self.CLKSELECT_val_CT)))
-        print("CLKSELECT2 CT      \t",str(hex(self.CLKSELECT2_val_CT)))
-        print("LATCHLOC_3_TO_0    \t",str(hex(self.REG_LATCHLOC_3_TO_0_val)))
-        print("LATCHLOC_7_TO_4    \t",str(hex(self.REG_LATCHLOC_7_TO_4_val)))
         print("FE-ASIC leakage    \t",self.feasicLeakage)
         print("FE-ASIC leakage x10\t",self.feasicLeakagex10)
         print("FE-ASIC AD/DC      \t",self.feasicAcdc)
@@ -239,6 +230,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #Turn off readback checking for ASIC config
         self.femb.doReadBack = False
+
+        #ADC Setup
         self.set_cots_shift()
         
         #Set ASIC SPI configuration registers
@@ -248,9 +241,19 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.checkFembSpi()
         print("SPI STATUS","\t",self.spiStatus)
 
-        #check ADC SYNC
-        self.checkSync()
-        print("SYNC STATUS","\t",self.syncStatus)
+        #Enable Streaming
+        self.femb.write_reg(9,9)
+        self.femb.write_reg(9,9)
+        time.sleep(0.1)
+
+        self.wib_reg_enable()
+        self.femb.write_reg(20,3)
+        self.femb.write_reg(20,3)
+        time.sleep(0.001)
+        self.femb.write_reg(20,0)
+        self.femb.write_reg(20,0)
+        time.sleep(0.001)
+        self.selectFemb(self.fembNum)
 
     #Test FEMB SPI working
     def checkFembSpi(self):
@@ -285,12 +288,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                         time.sleep(0.001)
 
                     for i in range(len(self.fe_REGS)):
-                        print(hex(self.fe_REGS[i]),"\t",hex(readvals[i]))
                         if self.fe_REGS[i] != readvals[i] :
+                            print(hex(self.fe_REGS[i]),"\t",hex(readvals[i]))
                             print("SPI readback failed.")
                             self.spiStatus = 1
                 if self.spiStatus == 1:            
                     return
+        self.femb.write_reg(9, 9)
+        self.femb.write_reg(9, 9)
+        time.sleep(0.1)
+        
 
     def checkSync(self):
         print("Check ASIC SYNC")
@@ -542,188 +549,25 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(2)
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
         
+    def doAsicConfig(self):
+        print("Program ASIC SPI")
 
-
-    def findADCPhase(self, trial=0):
-
-        print("Find ADC phases that sync all ADCs")
-
-        #Write ADC ASIC SPI
-        if True :
-            print("ADC reconfig")
-            self.femb.write_reg( self.REG_RESET,0x4) #reset timestamp
-            time.sleep(0.01)
-            self.femb.write_reg( self.REG_ASIC_RESET, 1) #reset ASIC SPI
-            time.sleep(0.01)
-            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1) #configure ASICs
-            time.sleep(0.01)
-            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1) #configure ASICs
-            time.sleep(0.01)
-            
-        syncSuccess = False
-        oldSyncVal = 0xFFFF
-
-        # start with the default values for the configuration
-        def_clksel_rt = self.CLKSELECT_val_RT
-        def_clksel2_rt = self.CLKSELECT2_val_RT
-            
-        def_clksel_ct = self.CLKSELECT_val_CT
-        def_clksel2_ct = self.CLKSELECT2_val_CT
-
-        #first step will always go +1
-        lastStep = 1
-
-        didJump = False
-        
-        while (syncSuccess == False) :
-
-            # give up after 50 trials
-            if trial == 50:
-                print("Could not find good clock phase, SYNC STATUS:",hex(syncVal))
-                return
-            
-            #phase control
-            if self.isRoomTemp == True:
-                print("ADC clock phase:",self.CLKSELECT_val_RT,self.CLKSELECT2_val_RT)
-                self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_RT ) #clock select
-                self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, self.CLKSELECT2_val_RT ) #clock select 2
-            else:
-                print("Using cryogenic parameters, ADC clock phase:",self.CLKSELECT_val_CT,self.CLKSELECT2_val_CT)
-                self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_CT ) #clock select
-                self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF,  self.CLKSELECT2_val_CT ) #clock select 2
-               
-            # check sync
-            regVal = self.femb.read_reg(6)
-            if regVal == None:
-                print("doAsicConfig: Could not check SYNC status, bad")
-                return
-            
-            syncVal = ((regVal >> 16) & 0xFFFF)
-            self.syncStatus = syncVal
-            print("SYNC ATTEMPT\t",trial,"\tSYNC VAL " , hex(syncVal) )
-
-            #try again if sync not achieved
-            if syncVal != 0x0 :
-
-                if syncVal <= oldSyncVal:
-
-                    # keep going this direction
-                    if lastStep == 1:
-                        
-                        if self.isRoomTemp == True:
-                            if self.CLKSELECT_val_RT < 0xFF :
-                                self.CLKSELECT_val_RT = self.CLKSELECT_val_RT + 1
-                        
-                            if self.CLKSELECT2_val_RT < 0xFF :
-                                self.CLKSELECT2_val_RT = self.CLKSELECT2_val_RT + 1
-
-                        else:        
-                            if self.CLKSELECT_val_CT < 0xFF :
-                                self.CLKSELECT_val_CT = self.CLKSELECT_val_CT + 1
-                       
-                            if self.CLKSELECT2_val_CT < 0xFF :
-                                self.CLKSELECT2_val_CT = self.CLKSELECT2_val_CT + 1
-
-                        lastStep = 1
-                        
-                    else:
-
-                        if self.isRoomTemp == True:
-                            if self.CLKSELECT_val_RT < 0xFF :
-                                self.CLKSELECT_val_RT = self.CLKSELECT_val_RT - 1
-                        
-                            if self.CLKSELECT2_val_RT < 0xFF :
-                                self.CLKSELECT2_val_RT = self.CLKSELECT2_val_RT - 1
-
-                        else:        
-                            if self.CLKSELECT_val_CT < 0xFF :
-                                self.CLKSELECT_val_CT = self.CLKSELECT_val_CT - 1
-                       
-                            if self.CLKSELECT2_val_CT < 0xFF :
-                                self.CLKSELECT2_val_CT = self.CLKSELECT2_val_CT - 1
-
-                        lastStep = -1
-
-                    oldSyncVal = syncVal
-                        
-                else:
-
-                    # already jumped once
-                    if didJump == True:
-                        print("Could not find good clock phase, SYNC STATUS:",hex(syncVal))
-                        return
-                    
-                    # jump back to start and switch directions
-                    if self.isRoomTemp == True:
-                        if self.CLKSELECT_val_RT < 0xFF :
-                            self.CLKSELECT_val_RT = def_clksel_rt - 1
-                        
-                        if self.CLKSELECT2_val_RT < 0xFF :
-                            self.CLKSELECT2_val_RT = def_clksel2_rt - 1
-
-                    else:        
-                        if self.CLKSELECT_val_CT < 0xFF :
-                            self.CLKSELECT_val_CT = def_clksel_ct - 1
-                            
-                        if self.CLKSELECT2_val_CT < 0xFF :
-                            self.CLKSELECT2_val_CT = def_clksel2_ct - 1
-
-                    lastStep = -1
-                    didJump = True
-                    oldSyncVal = 0xFFFF
-
-                syncSuccess = False
-                
-            else :
-                syncSuccess = True
-
-                if self.isRoomTemp == True:
-                    print("Found good RT clock phase:",hex(self.CLKSELECT_val_RT),hex(self.CLKSELECT2_val_RT))
-                else:
-                    print("Found good CT clock phase:",hex(self.CLKSELECT_val_CT),hex(self.CLKSELECT2_val_CT))
-
-            trial = trial + 1
-                
-        
-    def doAsicConfig(self, syncAttempt=0):
-        if syncAttempt == 0:
-            print("Program ASIC SPI")
-
-        #Write ADC ASIC SPI
-        #if syncAttempt == 0:
-        if True :
-            print("ADC reconfig")
-            self.femb.write_reg( self.REG_RESET,0x4) #reset timestamp
-            time.sleep(0.01)
-            self.femb.write_reg( self.REG_ASIC_RESET, 1) #reset ASIC SPI
-            time.sleep(0.01)
-            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1) #configure ASICs
-            time.sleep(0.01)
-            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1) #configure ASICs
+        for k in range(2):
+            #Disable streaming
+            self.femb.write_reg(9, 0x0)
             time.sleep(0.01)
 
-        #check the sync
-        if self.doReSync == False:
-            return
+            i = 0
+            for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+len(self.fe_REGS),1):
+                self.femb.write_reg( regNum, self.fe_REGS[i])
+                i += 1
+            time.sleep(0.01)
+            self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
 
-        regVal = self.femb.read_reg(6)
-        if regVal == None:
-            print("doAsicConfig: Could not check SYNC status, bad")
-            return
-        syncVal = ((regVal >> 16) & 0xFFFF)
-        self.syncStatus = syncVal
-        #print("SYNC ATTEMPT\t",syncAttempt,"\tSYNC VAL " , hex(syncVal) )
-
-        #try again if sync not achieved, note recursion
-        if syncVal != 0x0 :
-            if syncAttempt >= self.maxSyncAttempts :
-                print("doAsicConfig: Could not sync ADC ASIC, sync val\t",hex(syncVal))
-                return
-            else:
-                self.doAsicConfig(syncAttempt+1)
-
-    def syncADC(self):
-        print("Sync")
+        #Enable streaming
+        self.femb.write_reg(9, 9)
+        self.femb.write_reg(9, 9)
+        time.sleep(0.1)
 
     def selectFemb(self, fembIn):
         fembVal = int( fembIn)
@@ -732,12 +576,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             return
         self.fembNum = fembVal
 
-        #set data streaming for requested FEMB
         #set UDP ports to WIB
         self.wib_reg_enable()
-        wib7val = self.femb.read_reg(7)        
-        wib7val = wib7val | 0x80000000
-        self.femb.write_reg(7, wib7val)
+        self.femb.write_reg(7, 0x80000000)
+        self.femb.write_reg(7, 0x80000000)
+        femb_asic = 0 & 0x0F
+        wib_asic = (((fembVal << 16)&0x000F0000) + ((femb_asic << 8) &0xFF00))
+        self.femb.write_reg(7, wib_asic | 0x80000000)
+        self.femb.write_reg(7, wib_asic | 0x80000000)
+        self.femb.write_reg(7, wib_asic)
+        self.femb.write_reg(7, wib_asic)
         
         #set read/write ports
         if fembVal == 0:
@@ -759,6 +607,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.UDP_PORT_WREG = 32064
             self.femb.UDP_PORT_RREG = 32065
             self.femb.UDP_PORT_RREGRESP = 32066
+
+        self.femb.write_reg(0, femb_asic)
+        self.femb.write_reg(self.REG_HS,1)
+        
 
         #slow down register interface for FEMBs
         self.femb.REG_SLEEP = 0.05
@@ -897,159 +749,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         self.selectFemb(0)
         return results
-    
-"""
-    def ext_clk_config_femb(self):
-        #EXTERNAL CLOCK VARIABLES
-        ####################external clokc timing
-        clk_period = 5 #ns
-        self.clk_dis = 0 #0 --> enable, 1 disable
-        self.d14_rst_oft  = 0   // clk_period   
-        self.d14_rst_wdt  = (45  // clk_period )    
-        self.d14_rst_inv  = 1  
-        self.d14_read_oft = 480 // clk_period    
-        self.d14_read_wdt = 20  // clk_period    
-        self.d14_read_inv = 1 
-        self.d14_idxm_oft = 230 // clk_period    
-        self.d14_idxm_wdt = 270 // clk_period    
-        self.d14_idxm_inv = 0 
-        self.d14_idxl_oft = 480 // clk_period    
-        self.d14_idxl_wdt = 20  // clk_period    
-        self.d14_idxl_inv = 0 
-        self.d14_idl0_oft = 50  // clk_period    
-        self.d14_idl0_wdt = (190 // clk_period ) -1   
-        self.d14_idl1_oft = 480 // clk_period
-        self.d14_idl1_wdt = 20  // clk_period    
-        self.d14_idl_inv  = 0      
 
-        self.d58_rst_oft  = 0   // clk_period 
-        self.d58_rst_wdt  = (45  // clk_period ) 
-        self.d58_rst_inv  = 1  
-        self.d58_read_oft = 480 // clk_period 
-        self.d58_read_wdt = 20  // clk_period 
-        self.d58_read_inv = 1 
-        self.d58_idxm_oft = 230 // clk_period 
-        self.d58_idxm_wdt = 270 // clk_period 
-        self.d58_idxm_inv = 0 
-        self.d58_idxl_oft = 480 // clk_period 
-        self.d58_idxl_wdt = 20  // clk_period 
-        self.d58_idxl_inv = 0 
-        self.d58_idl0_oft = 50  // clk_period 
-        self.d58_idl0_wdt = (190 // clk_period ) -1
-        self.d58_idl1_oft = 480 // clk_period
-        self.d58_idl1_wdt = 20  // clk_period 
-        self.d58_idl_inv  = 0       
-        ####################external clock phase for V323 firmware
-        self.d14_read_step = 11
-        self.d14_read_ud   = 0
-        self.d14_idxm_step = 9
-        self.d14_idxm_ud   = 0
-        self.d14_idxl_step = 7
-        self.d14_idxl_ud   = 0
-        self.d14_idl0_step = 12
-        self.d14_idl0_ud   = 0
-        self.d14_idl1_step = 10
-        self.d14_idl1_ud   = 0
-        self.d14_phase_en  = 1
-
-        self.d58_read_step = 0
-        self.d58_read_ud   = 0
-        self.d58_idxm_step = 5
-        self.d58_idxm_ud   = 0
-        self.d58_idxl_step = 4
-        self.d58_idxl_ud   = 1
-        self.d58_idl0_step = 3
-        self.d58_idl0_ud   = 0
-        self.d58_idl1_step = 4
-        self.d58_idl1_ud   = 0
-        self.d58_phase_en  = 1
-
-        #END EXTERNAL CLOCK VARIABLES
-
-        #config timing
-        d14_inv = (self.d14_rst_inv<<0) + (self.d14_read_inv<<1)+ (self.d14_idxm_inv<<2)+ (self.d14_idxl_inv<<3)+ (self.d14_idl_inv<<4)
-        d58_inv = (self.d58_rst_inv<<0) + (self.d58_read_inv<<1)+ (self.d58_idxm_inv<<2)+ (self.d58_idxl_inv<<3)+ (self.d58_idl_inv<<4)
-        d_inv = d58_inv + ( d14_inv<<5)
-
-        addr_data = self.clk_dis + (d_inv << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 21, addr_data)
-        self.femb.write_reg( 21, addr_data)
-
-        addr_data = self.d58_rst_oft + (self.d14_rst_oft << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 22, addr_data)
-        self.femb.write_reg( 22, addr_data)
-
-        addr_data = self.d58_rst_wdt + (self.d14_rst_wdt << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 23, addr_data)
-        self.femb.write_reg( 23, addr_data)
-
-        addr_data = self.d58_read_oft + (self.d14_read_oft << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 24, addr_data)
-        self.femb.write_reg( 24, addr_data)
-
-        addr_data = self.d58_read_wdt + (self.d14_read_wdt << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 25, addr_data)
-        self.femb.write_reg( 25, addr_data)
-
-        addr_data = self.d58_idxm_oft + (self.d14_idxm_oft << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 26, addr_data)
-        self.femb.write_reg( 26, addr_data)
-
-        addr_data = self.d58_idxm_wdt + (self.d14_idxm_wdt << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 27, addr_data)
-        self.femb.write_reg( 27, addr_data)
-
-        addr_data = self.d58_idxl_oft + (self.d14_idxl_oft << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 28, addr_data)
-        self.femb.write_reg( 28, addr_data)
-
-        addr_data = self.d58_idxl_wdt + (self.d14_idxl_wdt << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 29, addr_data)
-        self.femb.write_reg( 29, addr_data)
-
-        addr_data = self.d58_idl0_oft + (self.d14_idl0_oft << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 30, addr_data)
-        self.femb.write_reg( 30, addr_data)
-
-        addr_data = self.d58_idl0_wdt + (self.d14_idl0_wdt << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 31, addr_data)
-        self.femb.write_reg( 31, addr_data)
-
-        addr_data = self.d58_idl1_oft + (self.d14_idl1_oft << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 32, addr_data)
-        self.femb.write_reg( 32, addr_data)
-
-        addr_data = self.d58_idl1_wdt + (self.d14_idl1_wdt << 16)
-        #self.ext_clk_reg_wr_femb( femb_addr, 33, addr_data)
-        self.femb.write_reg( 33, addr_data)
-
-        #config phase 
-        for i in range(4):
-            addr_data = self.d14_read_step + (self.d14_idxm_step <<16)
-            #self.ext_clk_reg_wr_femb( femb_addr, 35, addr_data)
-            self.femb.write_reg( 35, addr_data)
-
-            addr_data = self.d14_idxl_step + (self.d14_idl0_step <<16)
-            #self.ext_clk_reg_wr_femb( femb_addr, 36, addr_data)
-            self.femb.write_reg( 36, addr_data)
-             
-            self.d14_phase_en = self.d14_phase_en ^ 1
-            d14_ud = self.d14_read_ud + (self.d14_idxm_ud<<1) + (self.d14_idxl_ud<<2)+ (self.d14_idl0_ud<<3)+ (self.d14_idl1_ud<<4) + (self.d14_phase_en <<15)
-            addr_data = self.d14_idl1_step + (d14_ud<<16)
-            #self.ext_clk_reg_wr_femb( femb_addr, 37, addr_data)
-            self.femb.write_reg( 37, addr_data)
-
-            addr_data = self.d58_read_step + (self.d58_idxm_step <<16)
-            #self.ext_clk_reg_wr_femb( femb_addr, 38, addr_data)
-            self.femb.write_reg( 38, addr_data)
-
-            addr_data = self.d58_idxl_step + (self.d58_idl0_step <<16)
-            #self.ext_clk_reg_wr_femb( femb_addr, 39, addr_data)
-            self.femb.write_reg( 39, addr_data)
-            
-            self.d58_phase_en = self.d58_phase_en ^ 1
-            d58_ud = self.d58_read_ud + (self.d58_idxm_ud<<1) + (self.d58_idxl_ud<<2)+ (self.d58_idl0_ud<<3)+ (self.d58_idl1_ud<<4) + (self.d58_phase_en <<15)
-            addr_data = self.d58_idl1_step + (d58_ud <<16)
-            #self.ext_clk_reg_wr_femb( femb_addr, 40, addr_data)
-            self.femb.write_reg( 40, addr_data)
-"""
+        
+        
+        
