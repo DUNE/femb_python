@@ -118,7 +118,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicAcdc = 0 #AC = 0, DC = 1
         
         self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
-        self.feasicBaseline = 0 #0 = 200mV, 1 = 900mV
+        self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV
         self.feasicGain = 2 #4.7,7.8,14,25
         self.feasicShape = 1 #0.5,1,2,3
         self.feasicBuf = 0 #0 = OFF, 1 = ON
@@ -188,6 +188,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if (self.fembNum < 0) or (self.fembNum >= self.NFEMBS ):
             return
 
+        fembVal = self.fembNum
+        print("Initialize FEMB",fembVal)
+
         #FEMB power enable on WIB
         self.powerOnFemb(self.fembNum)
         time.sleep(4)
@@ -241,19 +244,33 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.checkFembSpi()
         print("SPI STATUS","\t",self.spiStatus)
 
+        # write to WIB
+        self.wib_reg_enable()
+
+        self.femb.write_reg(20,3)
+        self.femb.write_reg(20,3)
+        time.sleep(0.001)
+        self.femb.write_reg(20,0)
+        self.femb.write_reg(20,0)
+        time.sleep(0.001)
+
+        # start streaming data from ASIC 0 in initialization
+        self.femb.write_reg(7, 0x80000000)
+        self.femb.write_reg(7, 0x80000000)
+        femb_asic = 0 & 0x0F
+        wib_asic = (((fembVal << 16)&0x000F0000) + ((femb_asic << 8) &0xFF00))
+        self.femb.write_reg(7, wib_asic | 0x80000000)
+        self.femb.write_reg(7, wib_asic | 0x80000000)
+        self.femb.write_reg(7, wib_asic)
+        self.femb.write_reg(7, wib_asic)
+
+        # return to FEMB control
+        self.selectFemb(self.fembNum)
+
         #Enable Streaming
         self.femb.write_reg(9,9)
         self.femb.write_reg(9,9)
         time.sleep(0.1)
-
-        self.wib_reg_enable()
-        self.femb.write_reg(20,3)
-        self.femb.write_reg(20,3)
-        time.sleep(0.001)
-        self.femb.write_reg(20,0)
-        self.femb.write_reg(20,0)
-        time.sleep(0.001)
-        self.selectFemb(self.fembNum)
 
     #Test FEMB SPI working
     def checkFembSpi(self):
@@ -314,11 +331,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
         self.femb.REG_SLEEP = 0.001
-        wib7val = self.femb.read_reg(7)
-        time.sleep(0.001)
-        wib7val = self.femb.read_reg(7)        
-        wib7val = wib7val & 0x00000000
-        self.femb.write_reg(7, wib7val)
+
+        #wib7val = self.femb.read_reg(7)
+        #time.sleep(0.001)
+        #wib7val = self.femb.read_reg(7)        
+        #wib7val = wib7val & 0x00000000
+        #self.femb.write_reg(7, wib7val)
 
     #COTS Shift and Phase Settings
     def set_cots_shift(self):
@@ -423,12 +441,25 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if (asicVal < 0 ) or (asicVal > self.NASICS):
             return
 
+        #print("asicVal",asicVal)
+        fembVal = self.fembNum
+        #print("fembVal",fembVal)
+        
         #set UDP ports to WIB
         self.wib_reg_enable()
 
+        self.femb.write_reg(7, 0x80000000)
+        self.femb.write_reg(7, 0x80000000)
+        femb_asic = asicVal & 0x0F
+        wib_asic = (((fembVal << 16)&0x000F0000) + ((femb_asic << 8) &0xFF00))
+        self.femb.write_reg(7, wib_asic | 0x80000000)
+        self.femb.write_reg(7, wib_asic | 0x80000000)
+        self.femb.write_reg(7, wib_asic)
+        self.femb.write_reg(7, wib_asic)
+        
         #select ASIC
         #print("Selecting ASIC " + str(asicVal) )
-        self.femb.write_reg_bits(self.REG_SEL_ASIC , self.REG_SEL_ASIC_LSB, 0xF, asicVal )
+        #self.femb.write_reg_bits(self.REG_SEL_ASIC , self.REG_SEL_ASIC_LSB, 0xF, asicVal )
 
         #Note: WIB data format streams all 16 channels, don't need to select specific channel
 
@@ -575,18 +606,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print("Invalid FEMB # requested")
             return
         self.fembNum = fembVal
+        #print("selecting FEMB",fembVal)
 
-        #set UDP ports to WIB
-        self.wib_reg_enable()
-        self.femb.write_reg(7, 0x80000000)
-        self.femb.write_reg(7, 0x80000000)
-        femb_asic = 0 & 0x0F
-        wib_asic = (((fembVal << 16)&0x000F0000) + ((femb_asic << 8) &0xFF00))
-        self.femb.write_reg(7, wib_asic | 0x80000000)
-        self.femb.write_reg(7, wib_asic | 0x80000000)
-        self.femb.write_reg(7, wib_asic)
-        self.femb.write_reg(7, wib_asic)
-        
         #set read/write ports
         if fembVal == 0:
             self.femb.UDP_PORT_WREG = 32016
@@ -608,7 +629,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.UDP_PORT_RREG = 32065
             self.femb.UDP_PORT_RREGRESP = 32066
 
-        self.femb.write_reg(0, femb_asic)
+        #self.femb.write_reg(0, femb_asic)
         self.femb.write_reg(self.REG_HS,1)
         
 
