@@ -292,6 +292,7 @@ void Analyze::parseAsicRawData(unsigned int subrun, unsigned int asic){
 
 	//find 0xface words
 	std::vector<unsigned int> facePos;
+	//cout << "size: " << asicPackets[subrun][asic].size() << endl;
 	for( unsigned int line = 0 ; line < asicPackets[subrun][asic].size() ; line++){
 		//std::cout << asicPackets[subrun][asic].at(line) << std::endl;
 		if( asicPackets[subrun][asic].at(line) == 0xface )
@@ -309,16 +310,21 @@ void Analyze::parseAsicRawData(unsigned int subrun, unsigned int asic){
 
 	//loop through ASIC packets, ignore clipped packets
 	unsigned int line = basePos;
+	//std::cout << "size = " << asicPackets[subrun][asic].size() << std::endl;
 	while(line < asicPackets[subrun][asic].size() ){
-
+	  //cout << "Line " << line << endl;
+	  
 		//don't use clipped packets
-		if( line + 13 >= asicPackets[subrun][asic].size() )
-			break;
+	  if( line + 13 >= asicPackets[subrun][asic].size() ) {
+	    //std::cout << "Ignoring clipped packet" << std::endl;
+		  break;
+	  }
 
 		unsigned short dataWord = asicPackets[subrun][asic].at(line);
 		//std::cout << std::hex << dataWord << std::endl;
-		if( dataWord != 0xface ){
-			//std::cout << "Invalid ASIC packet header, breaking" << std::endl;
+		if( dataWord != 0xface  && dataWord != 0xfeed ){
+		  std::cout << "dataWord = " << std::hex << dataWord << std::endl;
+		  std::cout << "Invalid ASIC packet header, breaking" << std::endl;
 			break; //should always find ASIC packet headers
 		}
 		//get data words in ASIC packets
@@ -355,11 +361,13 @@ void Analyze::parseAsicRawData(unsigned int subrun, unsigned int asic){
 
 		//std::cout << "PARSED SAMPLES " << std::endl;
 		for(int ch = 0 ; ch < 16 ; ch++){
-			//std::cout << asic << "\t" << ch << "\t" << std::hex << chSamp[ch] << "\t" << std::dec << chSamp[ch] << std::endl;
+		  //std::cout << asic << "\t" << ch << "\t" << std::hex << chSamp[ch] << "\t" << std::dec << chSamp[ch] << std::endl;
 			int chNum = 16*asic + ch;
 			if( chNum < 0 || chNum > 127 )
 				continue;
 			wfIn[subrun][chNum].push_back(chSamp[ch]);
+			//std:cout << "size of wfin = " << wfIn[subrun][chNum].size() << std::endl;
+			
 		}
 		//char ct;
 		//std::cin >> ct;
