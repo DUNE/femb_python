@@ -43,22 +43,22 @@ class CONFIG_FEMB_SBND(object):
         self.xmlgainval = float(Gain.text)
         if self.xmlgainval == 4.7:
           self.configgainval = 0
-        elif self.xmlgainval = 7.8:
+        elif self.xmlgainval == 7.8:
           self.configgainval = 1
-        elif self.xmlgainval = 14:
+        elif self.xmlgainval == 14:
           self.configgainval = 2
         else:
           self.configgainval = 3
-        if self.inputgainval not in (4.7, 7.8, 14, 25):
+        if self.xmlgainval not in (4.7, 7.8, 14, 25):
             raise ValueError("Invalid gain value in XML file.")
             return
     for ShapingTime in root.iter('ShapingTime'):
         self.xmlshapingtimeval = float(ShapingTime.text)
-        if xmlshapingtimeval = 0.5:
+        if self.xmlshapingtimeval == 0.5:
           configshapingtimeval = 0
-        elif xmlshapingval = 1:
+        elif self.xmlshapingtimeval == 1:
           configshapingtimeval = 1
-        elif xmlshapingtimeval = 2:
+        elif self.xmlshapingtimeval == 2:
           configshapingtimeval = 2
         else:
           configshapingtimeval = 3
@@ -86,12 +86,12 @@ class CONFIG_FEMB_SBND(object):
     
     gain = ET.SubElement(root, "Gain").text = str(self.xmlgainval)
     shaping_time = ET.SubElement(root, "Shaping Time").text = str(self.xmlshapingtimeval)
-    FEasicleakage = ET.SubElement(root, "FE-ASIC Leakage").text = #str(self.feasicLeakage)
-    FEasicleakagex10 = ET.SubElement(root, "FE-ASIC Leakagex10").text = #str(self.feasicLeakagex10)
-    FEasicacdc = ET.SubElement(root, "FE-ASIC AC/DC").text = #str(self.feasicAcdc)
-    FEsaictestinput = ET.SubElement(root, "FE-ASIC test input").text = #str(self.feasicEnableTestInput)
-    FEasicbaseline = ET.SubElement(root, "FE-ASIC Baseline").text = #str(self.feasicBaseline)
-    FEasicbuffer = ET.SubElement(root, "FE_ASIC buffer").text = #str(self.feasicBuf)
+    FEasicleakage = ET.SubElement(root, "FE-ASIC Leakage").text = str(self.feasicLeakage)
+    FEasicleakagex10 = ET.SubElement(root, "FE-ASIC Leakagex10").text = str(self.feasicLeakagex10)
+    FEasicacdc = ET.SubElement(root, "FE-ASIC AC/DC").text = str(self.feasicAcdc)
+    FEsaictestinput = ET.SubElement(root, "FE-ASIC test input").text = str(self.feasicEnableTestInput)
+    FEasicbaseline = ET.SubElement(root, "FE-ASIC Baseline").text = str(self.feasicBaseline)
+    FEasicbuffer = ET.SubElement(root, "FE_ASIC buffer").text = str(self.feasicBuf)
     timestamp = ET.SubElement(root, "Timestamp").text = tsnow
 
     tree = ET.ElementTree(root)
