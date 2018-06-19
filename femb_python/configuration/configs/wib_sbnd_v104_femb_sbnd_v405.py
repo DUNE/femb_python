@@ -1,8 +1,8 @@
 #!/usr/bin/env python33
 
 """
-Configuration for SBND FEMB + protoDUNE WIB Setup
-WIB firmware v116
+Configuration for SBND FEMB + WIB Setup
+WIB firmware v104
 FEMB firmware v405
 """
 
