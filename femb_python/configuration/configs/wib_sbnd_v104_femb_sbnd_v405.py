@@ -107,6 +107,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
+        self.femb.UDP_IP = "131.225.150.203"
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
