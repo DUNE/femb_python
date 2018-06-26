@@ -13,7 +13,6 @@ plt.switch_backend('agg')
 import pickle
 import numpy as np
 import warnings
-from femb_python.test_measurements.sbnd_femb_test.int_dac_fit import int_dac_fit
 from femb_python.test_measurements.sbnd_femb_test.linear_fit_m import linear_fit
 import matplotlib.patches as mpatches
 from femb_python.test_measurements.sbnd_femb_test.detect_peaks import detect_peaks
@@ -36,192 +35,192 @@ class Data_Analysis2:
             for j in range(16):
                 ws.cell(row = j + (rows * i) + start + 1, column = 1).value = "{}".format(j)
 
-    def pulse_directory(self, directory, chip):
-        
-        print("Test--> Analyzing Pulse data for Chip {}...".format(chip))
-        sys.stdout.flush()
-        temp = "LN"
-        dac_amps = 64
-        if (temp == "RT"):
-            self.vlt_slope = int_dac_fit(1)
-        elif (temp == "LN"):
-            self.vlt_slope = int_dac_fit(0)
-        full_rows = 21
-        with open(directory + 'directory_map.cfg', 'rb') as f:
-            dir_map = pickle.load(f)
-        self.test_folder = directory + dir_map['pulse']
-        self.data_folder = self.test_folder + dir_map['data']
-        
-        with open(self.data_folder + 'Configuration.cfg', 'rb') as f:
-            a = pickle.load(f)
-            
-        directory_file_scheme = a['Pulse_Naming2']
-        data_file_scheme = a['Pulse_Naming']
-        
-        wb = Workbook()
-        wb.remove_sheet(wb.active)
-        ws_summary = wb.create_sheet()
-        ws_summary.title = "Gain Summary"
-        ws_summary.sheet_view.zoomScale = 70
-        self.setup_spreadsheet(ws_summary, len(a["gains"]), full_rows, start = 4)
-        for i, gain in enumerate(a["gains"]):
-            self.gain = gain
-            title = ("Gain = {}".format("{}".format(gain)))
-
-            row = (full_rows * i) + 1
-            ws_summary.merge_cells(start_row = row, start_column = 2, end_row = row, end_column = 33)
-            ws_summary.cell(row = row, column = 2).value = title
-            ws_summary.cell(row = row, column = 2).alignment = self.center
-            ws_summary.cell(row = row, column = 2).font = self.ft
-                                
-            ws = wb.create_sheet()
-            ws.title = title
-            ws.sheet_view.zoomScale = 70
-            self.setup_spreadsheet(ws, dac_amps, full_rows, start = 4)
-            print ("Test--> Analyzed Gain {}".format(gain))
-            
-            for k, peak in enumerate(a["peaks"]):
-                self.peak = peak
-                title = ("Peaking Time = {}".format(peak))
-                total_sections = len(a["peaks"])
-                section_size = 32 // total_sections
-                for dac in range(dac_amps):
-                    row = (full_rows * dac) + 2
-                    ws.merge_cells(start_row = row, start_column = 2 + (k * section_size), end_row = row, end_column = 1 + (k * section_size) + section_size)
-                    ws.cell(row = row, column = 2 + (k * section_size)).value = title
-                    ws.cell(row = row, column = 2 + (k * section_size)).alignment = self.center
-                    ws.cell(row = row, column = 2 + (k * section_size)).font = self.ft
-                    
-                row = 2 + (i * full_rows)
-                ws_summary.merge_cells(start_row = row, start_column = 2 + (k * section_size), end_row = row, end_column = 1 + (k * section_size) + section_size)  
-                ws_summary.cell(row = row, column = 2 + (k * section_size)).value = title
-                ws_summary.cell(row = row, column = 2 + (k * section_size)).alignment = self.center
-                ws_summary.cell(row = row, column = 2 + (k * section_size)).font = self.ft
-                
-                for m, leak in enumerate(a["leaks"]):
-                    self.leak = leak
-                    title = ("Current = {}".format((leak)))
-                    total_sections = len(a["leaks"])
-                    section_size2 = section_size // total_sections
-                    for dac in range(dac_amps):
-                        row = (full_rows * dac) + 3
-                        ws.merge_cells(start_row = row, start_column = 2 + (k * section_size) + (m * section_size2), 
-                                       end_row = row, end_column = 1 + (k * section_size) + (m * section_size2) + section_size2)
-                        ws.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).value = title
-                        ws.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).alignment = self.center
-                        ws.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).font = self.ft
-                      
-                    row = 3 + (i * full_rows)
-                    ws_summary.merge_cells(start_row = row, start_column = 2 + (k * section_size) + (m * section_size2), 
-                                       end_row = row, end_column = 1 + (k * section_size) + (m * section_size2) + section_size2)
-                    ws_summary.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).value = title
-                    ws_summary.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).alignment = self.center
-                    ws_summary.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).font = self.ft
-                    
-                    for n, base in enumerate(a["bases"]):
-                        self.base = base
-                        title = ("{}".format(base))
-                        for dac in range(dac_amps):
-                            row = (full_rows * dac) + 4
-                            ws.cell(row = row, column = (k*8) + (m*2) + n + 2).value = title
-                            ws.cell(row = row, column = (k*8) + (m*2) + n + 2).alignment = self.center
-                            ws.cell(row = row, column = (k*8) + (m*2) + n + 2).font = self.ft
-                            self.specific_directory = directory_file_scheme.format(self.gain,self.peak,self.leak,self.base)
-                            
-                        row = 4 + (i * full_rows)
-                        ws_summary.cell(row = row, column = (k*8) + (m*2) + n + 2).value = title
-                        ws_summary.cell(row = row, column = (k*8) + (m*2) + n + 2).alignment = self.center
-                        ws_summary.cell(row = row, column = (k*8) + (m*2) + n + 2).font = self.ft    
-                            
-                        fig = plt.figure(figsize=(16, 12), dpi=80)
-                        ax = fig.add_subplot(1,1,1)
-                        ax.set_xlabel("Test Charge Injection (fC)")
-                        ax.set_ylabel("Pulse Height (mV)")
-#                        ax.ticklabel_format(axis='x', style='sci', scilimits=(-2,2))
-                        ax.set_title("Chip {} ADC Output for various injected charges".format(chip))
-                        plot_path = self.data_folder + directory_file_scheme.format(self.gain,self.peak,self.leak,self.base) + "Gain_plot_Chip{}".format(chip)
-                        for item in ([ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-                            item.set_fontsize(20)
-                        ax.title.set_fontsize(30)
-                        slopes = []
-                        for chn in range(settings.channels):
-                            full_data = []
-                            for j in range(dac_amps):
-                                self.dac_amp = j
-                                title = ("DAC Amplitude = {}".format("{}".format(j)))
-                                
-                                row = (full_rows * j) + 1
-                                ws.merge_cells(start_row = row, start_column = 2, end_row = row, end_column = 33)
-                                ws.cell(row = row, column = 2).value = title
-                                ws.cell(row = row, column = 2).alignment = self.center
-                                ws.cell(row = row, column = 2).font = self.ft
-            
-                                self.filename = data_file_scheme.format(chn,self.gain,self.peak,self.leak,self.base, self.dac_amp)
-                                row = chn + (full_rows * j) + 5
-                                column = (k*8) + (m*2) + n + 2
-                                cell = ws.cell(row = row , column = column)
-                                pulse_height = self.pulse_file(self.data_folder + self.specific_directory + self.filename)
-                                cell.value = pulse_height
-                                full_data.append(pulse_height)
-                                
-                            slope, econstant, mV, fC = linear_fit(chip, chn, full_data, self.vlt_slope)
-                            slopes.append(slope)
-    
-                            ax.scatter(fC, mV, marker='.')
-                            ax.plot(fC, mV)
-                            
-                            row = (chn + 5) + (full_rows * i)
-                            column = (k*8) + (m*2) + n + 2
-                            cell = ws_summary.cell(row = row , column = column)
-                            cell.value = slope
-                            if (gain == "4.7mV"):
-                                if ((slope >= settings.pulse_47_max) or (slope <= settings.pulse_47_min)):
-                                    cell.font = Font(color = settings.white)
-                                    cell.fill = PatternFill(start_color = settings.red, end_color = settings.red, fill_type = 'solid')
-                                else:
-                                    cell.font = Font(color = settings.white)
-                                    cell.fill = PatternFill(start_color = settings.green, end_color = settings.green, fill_type = 'solid')
-                                    
-                            if (gain == "7.8mV"):
-                                if ((slope >= settings.pulse_78_max) or (slope <= settings.pulse_78_min)):
-                                    cell.font = Font(color = settings.white)
-                                    cell.fill = PatternFill(start_color = settings.red, end_color = settings.red, fill_type = 'solid')
-                                else:
-                                    cell.font = Font(color = settings.white)
-                                    cell.fill = PatternFill(start_color = settings.green, end_color = settings.green, fill_type = 'solid')
-                                    
-                            if (gain == "14mV"):
-                                if ((slope >= settings.pulse_14_max) or (slope <= settings.pulse_14_min)):
-                                    cell.font = Font(color = settings.white)
-                                    cell.fill = PatternFill(start_color = settings.red, end_color = settings.red, fill_type = 'solid')
-                                else:
-                                    cell.font = Font(color = settings.white)
-                                    cell.fill = PatternFill(start_color = settings.green, end_color = settings.green, fill_type = 'solid')
-                                    
-                            if (gain == "25mV"):
-                                if ((slope >= settings.pulse_25_max) or (slope <= settings.pulse_25_min)):
-                                    cell.font = Font(color = settings.white)
-                                    cell.fill = PatternFill(start_color = settings.red, end_color = settings.red, fill_type = 'solid')
-                                else:
-                                    cell.font = Font(color = settings.white)
-                                    cell.fill = PatternFill(start_color = settings.green, end_color = settings.green, fill_type = 'solid')
-                            
-                        self.plot_stats(ax,slopes,directory_file_scheme.format(self.gain,self.peak,self.leak,self.base))
-            
-                        
-            
-                        xticks = ax.xaxis.get_major_ticks()
-                        xticks[0].label1.set_visible(False)
-                
-                        plt.savefig (plot_path+".png")
-                        plt.clf()
-
-            wb.save(filename = self.test_folder + "{}_Pulse_Data.xlsx".format(chip))
-
-        wb.save(filename = self.test_folder + "{}_Pulse_Data.xlsx".format(chip))
-        
-        print ("Test--> Baseline data analyzed for Chip {}".format(chip))
-        return True
+#    def pulse_directory(self, directory, chip):
+#        
+#        print("Test--> Analyzing Pulse data for Chip {}...".format(chip))
+#        sys.stdout.flush()
+#        temp = "LN"
+#        dac_amps = 64
+#        if (temp == "RT"):
+#            self.vlt_slope = int_dac_fit(1)
+#        elif (temp == "LN"):
+#            self.vlt_slope = int_dac_fit(0)
+#        full_rows = 21
+#        with open(directory + 'directory_map.cfg', 'rb') as f:
+#            dir_map = pickle.load(f)
+#        self.test_folder = directory + dir_map['pulse']
+#        self.data_folder = self.test_folder + dir_map['data']
+#        
+#        with open(self.data_folder + 'Configuration.cfg', 'rb') as f:
+#            a = pickle.load(f)
+#            
+#        directory_file_scheme = a['Pulse_Naming2']
+#        data_file_scheme = a['Pulse_Naming']
+#        
+#        wb = Workbook()
+#        wb.remove_sheet(wb.active)
+#        ws_summary = wb.create_sheet()
+#        ws_summary.title = "Gain Summary"
+#        ws_summary.sheet_view.zoomScale = 70
+#        self.setup_spreadsheet(ws_summary, len(a["gains"]), full_rows, start = 4)
+#        for i, gain in enumerate(a["gains"]):
+#            self.gain = gain
+#            title = ("Gain = {}".format("{}".format(gain)))
+#
+#            row = (full_rows * i) + 1
+#            ws_summary.merge_cells(start_row = row, start_column = 2, end_row = row, end_column = 33)
+#            ws_summary.cell(row = row, column = 2).value = title
+#            ws_summary.cell(row = row, column = 2).alignment = self.center
+#            ws_summary.cell(row = row, column = 2).font = self.ft
+#                                
+#            ws = wb.create_sheet()
+#            ws.title = title
+#            ws.sheet_view.zoomScale = 70
+#            self.setup_spreadsheet(ws, dac_amps, full_rows, start = 4)
+#            print ("Test--> Analyzed Gain {}".format(gain))
+#            
+#            for k, peak in enumerate(a["peaks"]):
+#                self.peak = peak
+#                title = ("Peaking Time = {}".format(peak))
+#                total_sections = len(a["peaks"])
+#                section_size = 32 // total_sections
+#                for dac in range(dac_amps):
+#                    row = (full_rows * dac) + 2
+#                    ws.merge_cells(start_row = row, start_column = 2 + (k * section_size), end_row = row, end_column = 1 + (k * section_size) + section_size)
+#                    ws.cell(row = row, column = 2 + (k * section_size)).value = title
+#                    ws.cell(row = row, column = 2 + (k * section_size)).alignment = self.center
+#                    ws.cell(row = row, column = 2 + (k * section_size)).font = self.ft
+#                    
+#                row = 2 + (i * full_rows)
+#                ws_summary.merge_cells(start_row = row, start_column = 2 + (k * section_size), end_row = row, end_column = 1 + (k * section_size) + section_size)  
+#                ws_summary.cell(row = row, column = 2 + (k * section_size)).value = title
+#                ws_summary.cell(row = row, column = 2 + (k * section_size)).alignment = self.center
+#                ws_summary.cell(row = row, column = 2 + (k * section_size)).font = self.ft
+#                
+#                for m, leak in enumerate(a["leaks"]):
+#                    self.leak = leak
+#                    title = ("Current = {}".format((leak)))
+#                    total_sections = len(a["leaks"])
+#                    section_size2 = section_size // total_sections
+#                    for dac in range(dac_amps):
+#                        row = (full_rows * dac) + 3
+#                        ws.merge_cells(start_row = row, start_column = 2 + (k * section_size) + (m * section_size2), 
+#                                       end_row = row, end_column = 1 + (k * section_size) + (m * section_size2) + section_size2)
+#                        ws.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).value = title
+#                        ws.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).alignment = self.center
+#                        ws.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).font = self.ft
+#                      
+#                    row = 3 + (i * full_rows)
+#                    ws_summary.merge_cells(start_row = row, start_column = 2 + (k * section_size) + (m * section_size2), 
+#                                       end_row = row, end_column = 1 + (k * section_size) + (m * section_size2) + section_size2)
+#                    ws_summary.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).value = title
+#                    ws_summary.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).alignment = self.center
+#                    ws_summary.cell(row = row, column = 2 + (k * section_size) + (m * section_size2)).font = self.ft
+#                    
+#                    for n, base in enumerate(a["bases"]):
+#                        self.base = base
+#                        title = ("{}".format(base))
+#                        for dac in range(dac_amps):
+#                            row = (full_rows * dac) + 4
+#                            ws.cell(row = row, column = (k*8) + (m*2) + n + 2).value = title
+#                            ws.cell(row = row, column = (k*8) + (m*2) + n + 2).alignment = self.center
+#                            ws.cell(row = row, column = (k*8) + (m*2) + n + 2).font = self.ft
+#                            self.specific_directory = directory_file_scheme.format(self.gain,self.peak,self.leak,self.base)
+#                            
+#                        row = 4 + (i * full_rows)
+#                        ws_summary.cell(row = row, column = (k*8) + (m*2) + n + 2).value = title
+#                        ws_summary.cell(row = row, column = (k*8) + (m*2) + n + 2).alignment = self.center
+#                        ws_summary.cell(row = row, column = (k*8) + (m*2) + n + 2).font = self.ft    
+#                            
+#                        fig = plt.figure(figsize=(16, 12), dpi=80)
+#                        ax = fig.add_subplot(1,1,1)
+#                        ax.set_xlabel("Test Charge Injection (fC)")
+#                        ax.set_ylabel("Pulse Height (mV)")
+##                        ax.ticklabel_format(axis='x', style='sci', scilimits=(-2,2))
+#                        ax.set_title("Chip {} ADC Output for various injected charges".format(chip))
+#                        plot_path = self.data_folder + directory_file_scheme.format(self.gain,self.peak,self.leak,self.base) + "Gain_plot_Chip{}".format(chip)
+#                        for item in ([ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+#                            item.set_fontsize(20)
+#                        ax.title.set_fontsize(30)
+#                        slopes = []
+#                        for chn in range(settings.channels):
+#                            full_data = []
+#                            for j in range(dac_amps):
+#                                self.dac_amp = j
+#                                title = ("DAC Amplitude = {}".format("{}".format(j)))
+#                                
+#                                row = (full_rows * j) + 1
+#                                ws.merge_cells(start_row = row, start_column = 2, end_row = row, end_column = 33)
+#                                ws.cell(row = row, column = 2).value = title
+#                                ws.cell(row = row, column = 2).alignment = self.center
+#                                ws.cell(row = row, column = 2).font = self.ft
+#            
+#                                self.filename = data_file_scheme.format(chn,self.gain,self.peak,self.leak,self.base, self.dac_amp)
+#                                row = chn + (full_rows * j) + 5
+#                                column = (k*8) + (m*2) + n + 2
+#                                cell = ws.cell(row = row , column = column)
+#                                pulse_height = self.pulse_file(self.data_folder + self.specific_directory + self.filename)
+#                                cell.value = pulse_height
+#                                full_data.append(pulse_height)
+#                                
+#                            slope, econstant, mV, fC = linear_fit(chip, chn, full_data, self.vlt_slope)
+#                            slopes.append(slope)
+#    
+#                            ax.scatter(fC, mV, marker='.')
+#                            ax.plot(fC, mV)
+#                            
+#                            row = (chn + 5) + (full_rows * i)
+#                            column = (k*8) + (m*2) + n + 2
+#                            cell = ws_summary.cell(row = row , column = column)
+#                            cell.value = slope
+#                            if (gain == "4.7mV"):
+#                                if ((slope >= settings.pulse_47_max) or (slope <= settings.pulse_47_min)):
+#                                    cell.font = Font(color = settings.white)
+#                                    cell.fill = PatternFill(start_color = settings.red, end_color = settings.red, fill_type = 'solid')
+#                                else:
+#                                    cell.font = Font(color = settings.white)
+#                                    cell.fill = PatternFill(start_color = settings.green, end_color = settings.green, fill_type = 'solid')
+#                                    
+#                            if (gain == "7.8mV"):
+#                                if ((slope >= settings.pulse_78_max) or (slope <= settings.pulse_78_min)):
+#                                    cell.font = Font(color = settings.white)
+#                                    cell.fill = PatternFill(start_color = settings.red, end_color = settings.red, fill_type = 'solid')
+#                                else:
+#                                    cell.font = Font(color = settings.white)
+#                                    cell.fill = PatternFill(start_color = settings.green, end_color = settings.green, fill_type = 'solid')
+#                                    
+#                            if (gain == "14mV"):
+#                                if ((slope >= settings.pulse_14_max) or (slope <= settings.pulse_14_min)):
+#                                    cell.font = Font(color = settings.white)
+#                                    cell.fill = PatternFill(start_color = settings.red, end_color = settings.red, fill_type = 'solid')
+#                                else:
+#                                    cell.font = Font(color = settings.white)
+#                                    cell.fill = PatternFill(start_color = settings.green, end_color = settings.green, fill_type = 'solid')
+#                                    
+#                            if (gain == "25mV"):
+#                                if ((slope >= settings.pulse_25_max) or (slope <= settings.pulse_25_min)):
+#                                    cell.font = Font(color = settings.white)
+#                                    cell.fill = PatternFill(start_color = settings.red, end_color = settings.red, fill_type = 'solid')
+#                                else:
+#                                    cell.font = Font(color = settings.white)
+#                                    cell.fill = PatternFill(start_color = settings.green, end_color = settings.green, fill_type = 'solid')
+#                            
+#                        self.plot_stats(ax,slopes,directory_file_scheme.format(self.gain,self.peak,self.leak,self.base))
+#            
+#                        
+#            
+#                        xticks = ax.xaxis.get_major_ticks()
+#                        xticks[0].label1.set_visible(False)
+#                
+#                        plt.savefig (plot_path+".png")
+#                        plt.clf()
+#
+#            wb.save(filename = self.test_folder + "{}_Pulse_Data.xlsx".format(chip))
+#
+#        wb.save(filename = self.test_folder + "{}_Pulse_Data.xlsx".format(chip))
+#        
+#        print ("Test--> Baseline data analyzed for Chip {}".format(chip))
+#        return True
 #        os.startfile(test_folder + "Baseline_Data.xlsx".format(base))
     def pulse_file(self, filepath):
         fileinfo  = os.stat(filepath)
