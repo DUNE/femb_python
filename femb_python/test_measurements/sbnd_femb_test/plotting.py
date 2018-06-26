@@ -13,8 +13,6 @@ import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 import pickle
 import numpy as np
-from openpyxl import Workbook
-from openpyxl.styles import Border, Alignment, Font, Side, PatternFill
 import matplotlib.patches as mpatches
 from femb_python.test_measurements.sbnd_femb_test.detect_peaks import detect_peaks
 
