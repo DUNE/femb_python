@@ -55,8 +55,9 @@ class ALIVE_TESTER(object):
     def get_data(self):
         self.femb_config.make_filepaths(self.datadir,self.chip_list, os.path.join(self.datasubdir,"Data"))
         for num,i in enumerate(self.chip_list):
-            folder_path = os.path.join(self.datadir,i[1])
-            self.save_alive_data(folder_path, chip_index=i[0], chip_name=i[1])
+            if self.asic_pass[i[0]] == [1,1,-1]:
+                folder_path = os.path.join(self.datadir,i[1])
+                self.save_alive_data(folder_path, chip_index=i[0], chip_name=i[1])
 
         #Tells the FPGA to turn off the ASICs
         self.femb_config.femb.write_reg(12, 0xF)
@@ -219,6 +220,7 @@ def main():
     alive_test.buff = params['buffer_ind']
     alive_test.base = params['base_ind']
     alive_test.datasubdir = params['datasubdir']
+    alive_test.asic_pass = params['asic_pass']
     
     alive_test.get_data()
     alive_test.analyze_data()
