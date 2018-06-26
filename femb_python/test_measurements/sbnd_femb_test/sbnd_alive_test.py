@@ -174,9 +174,10 @@ class ALIVE_TESTER(object):
 
     def analyze_data(self):
         for num,i in enumerate(self.chip_list):
+            if self.asic_pass[i[0]] == [1,1,-1]:
             folder_path = os.path.join(self.datadir, i[1])
-            self.result = self.analyze.alive_directory(folder_path, i[1], self.datasubdir, self.tests, self.leaks)
-            self.archive_results(chip_name = i[1], chip_index = i[0])
+                self.result = self.analyze.alive_directory(folder_path, i[1], self.datasubdir, self.tests, self.leaks)
+                self.archive_results(chip_name = i[1], chip_index = i[0])
             
     def archive_results(self, chip_name, chip_index):
         print("INPUT ALIVE POWER CYCLE RESULTS - ARCHIVE")
