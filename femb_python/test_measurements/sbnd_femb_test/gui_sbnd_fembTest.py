@@ -779,29 +779,29 @@ ASIC 3 ID: {asic3id}
         if ((self.methodMap['baseline_test_sequence_complete']) and (self.methodMap['monitor_data_test_sequence_complete']) and (self.methodMap['input_alive_power_cycle_sequence_complete'])):
             #final result
             if (self.params['asic_pass'][0] == [1,1,1]):
-                self.asic0_final_reslut["text"] = "Pass"
-                self.asic0_final_reslut["fg"] = "green" 
+                self.asic0_final_result["text"] = "Pass"
+                self.asic0_final_result["fg"] = "green" 
             else:
-                self.asic0_final_reslut["text"] = "Fail"
-                self.asic0_final_reslut["fg"] = "red"
+                self.asic0_final_result["text"] = "Fail"
+                self.asic0_final_result["fg"] = "red"
             if (self.params['asic_pass'][1] == [1,1,1]):
-                self.asic1_final_reslut["text"] = "Pass"
-                self.asic1_final_reslut["fg"] = "green" 
+                self.asic1_final_result["text"] = "Pass"
+                self.asic1_final_result["fg"] = "green" 
             else:
-                self.asic1_final_reslut["text"] = "Fail"
-                self.asic1_final_reslut["fg"] = "red"
+                self.asic1_final_result["text"] = "Fail"
+                self.asic1_final_result["fg"] = "red"
             if (self.params['asic_pass'][2] == [1,1,1]):
-                self.asic2_final_reslut["text"] = "Pass"
-                self.asic2_final_reslut["fg"] = "green" 
+                self.asic2_final_result["text"] = "Pass"
+                self.asic2_final_result["fg"] = "green" 
             else:
-                self.asic2_final_reslut["text"] = "Fail"
-                self.asic2_final_reslut["fg"] = "red"
+                self.asic2_final_result["text"] = "Fail"
+                self.asic2_final_result["fg"] = "red"
             if (self.params['asic_pass'][3] == [1,1,1]):
-                self.asic3_final_reslut["text"] = "Pass"
-                self.asic3_final_reslut["fg"] = "green" 
+                self.asic3_final_result["text"] = "Pass"
+                self.asic3_final_result["fg"] = "green" 
             else:
-                self.asic3_final_reslut["text"] = "Fail"
-                self.asic3_final_reslut["fg"] = "red"
+                self.asic3_final_result["text"] = "Fail"
+                self.asic3_final_result["fg"] = "red"
     # Can add additional testing sequences like as above with a method name
     # like "do_<semantic_label>".
     def GetTimeString(self, t):
