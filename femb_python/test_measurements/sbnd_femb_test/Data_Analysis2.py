@@ -13,7 +13,6 @@ plt.switch_backend('agg')
 import pickle
 import numpy as np
 import warnings
-from femb_python.test_measurements.sbnd_femb_test.linear_fit_m import linear_fit
 import matplotlib.patches as mpatches
 from femb_python.test_measurements.sbnd_femb_test.detect_peaks import detect_peaks
 from femb_python.test_measurements.sbnd_femb_test.plotting import plot_functions
