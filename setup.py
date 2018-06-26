@@ -178,7 +178,14 @@ setup(
             'femb_feasic_gain_fpgadac=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement_fpgaDac:main',
             'femb_feasic_gain_externaldac=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement_externalDac:main',
             'femb_control_power=femb_python.test_measurements.feAsicTest.doFemb_controlPower:main',
-
+            
+            #sbnd cold electronics testing
+            'femb_feasic_sbnd_testgui=femb_python.test_measurements.sbnd_femb_test.gui_sbnd_fembTest:main',
+            'femb_sync_adcs=femb_python.test_measurements.sbnd_femb_test.sync_adcs:main',
+            'femb_feasic_sbnd_baseline_test=femb_python.test_measurements.sbnd_femb_test.sbnd_baseline_test:main',
+            'femb_feasic_sbnd_monitor_test=femb_python.test_measurements.sbnd_femb_test.sbnd_monitor_test:main',
+            'femb_feasic_sbnd_alive_test=femb_python.test_measurements.sbnd_femb_test.sbnd_alive_test:main',
+           
             # example production test
             'femb_example_production_test=femb_python.test_measurements.exampleTest.exampleProductionTest:main',
             'femb_example_test=femb_python.test_measurements.exampleTest.code.femb_example_test:main',
