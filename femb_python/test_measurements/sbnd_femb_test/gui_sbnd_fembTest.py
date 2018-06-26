@@ -32,7 +32,7 @@ from femb_python import runpolicy
 class GUI_WINDOW(Frame):
 
     # defaults
-    use_sumatra = False
+    use_sumatra = True
     datadisks = ["/dsk/1", "/dsk/2"]
     femb_config = "sbnd_quadFeAsic_cold"               # aka FEMB_CONFIG env var
 
