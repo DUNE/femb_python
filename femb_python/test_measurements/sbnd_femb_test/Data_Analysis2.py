@@ -16,7 +16,6 @@ import warnings
 import matplotlib.patches as mpatches
 from femb_python.test_measurements.sbnd_femb_test.detect_peaks import detect_peaks
 from femb_python.test_measurements.sbnd_femb_test.plotting import plot_functions
-from scipy import stats
 import math
 import json
 import warnings
