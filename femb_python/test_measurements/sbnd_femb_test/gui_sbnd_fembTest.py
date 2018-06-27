@@ -368,12 +368,7 @@ ASIC 3 ID: {asic3id}
         self.load_button_result["text"] = "Testing - do not remove"
         self.update_idletasks()
 
-#        for method in ["check_setup",
-#                       "sync_adcs_sequence",
-#                       "baseline_test_sequence",
-#                       "monitor_data_test_sequence",
-#                       "input_alive_power_cycle_sequence"]:
-        for method in ["sync_adcs_sequence", 
+        for method in ["sync_adcs_sequence",
                        "baseline_test_sequence",
                        "monitor_data_test_sequence",
                        "input_alive_power_cycle_sequence"]:
@@ -398,34 +393,11 @@ ASIC 3 ID: {asic3id}
 
         self.start_button_result["text"] = "DONE "+self.params["session_start_time"]
 
-        self.postResults()
-#        if (self.params['asic_pass'][0] == [1,1,1]):
-#            self.asic0_result["text"] = "ASIC 0 Result: Pass"
-#            self.asic0_result["fg"] = "green"
-#        else:
-#            self.asic0_result["text"] = "ASIC 0 Result: Fail"
-#            self.asic0_result["fg"] = "red"
-#        if (self.params['asic_pass'][1] == [1,1,1]):
-#            self.asic1_result["text"] = "ASIC 1 Result: Pass"
-#            self.asic1_result["fg"] = "green"
-#        else:
-#            self.asic1_result["text"] = "ASIC 1 Result: Fail"
-#            self.asic1_result["fg"] = "red"
-#        if (self.params['asic_pass'][2] == [1,1,1]):
-#            self.asic2_result["text"] = "ASIC 2 Result: Pass"
-#            self.asic2_result["fg"] = "green"            
-#        else:
-#            self.asic2_result["text"] = "ASIC 2 Result: Fail"
-#            self.asic2_result["fg"] = "red"            
-#        if (self.params['asic_pass'][3] == [1,1,1]):
-#            self.asic3_result["text"] = "ASIC 3 Result: Pass"
-#            self.asic3_result["fg"] = "green"            
-#        else:
-#            self.asic3_result["text"] = "ASIC 3 Result: Fail"
-#            self.asic3_result["fg"] = "red"            
+        self.postResults()          
 
         self.update_idletasks()      
         
+        self.runner(datasubdir="power",executable="femb_control_power", argstr="OFF")
         
         end_time = time.time()
         run_time = end_time-start_time
@@ -447,9 +419,9 @@ ASIC 3 ID: {asic3id}
         self.params['power_ready'] = 0
 
         #Reset GUI:
-        self.operator_entry.delete(0,1000)
-        self.test_stand_entry.delete(0,1000)
-        self.boardid_entry.delete(0,1000)
+#        self.operator_entry.delete(0,1000)
+#        self.test_stand_entry.delete(0,1000)
+#        self.boardid_entry.delete(0,1000)
         self.asic0_entry.delete(0,1000)
         self.asic1_entry.delete(0,1000)
         self.asic2_entry.delete(0,1000)
@@ -495,6 +467,9 @@ ASIC 3 ID: {asic3id}
         self.asic3_monitor_result["fg"] = "black"
         self.asic3_alive_result["fg"] = "black"
         self.asic3_final_result["fg"] = "black"
+        self.methodMap = {'baseline_test_sequence_complete' : False,
+                          'monitor_data_test_sequence_complete' : False,
+                          'input_alive_power_cycle_sequence_complete' : False}
         
         now = time.time()
         self.params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
@@ -502,9 +477,7 @@ ASIC 3 ID: {asic3id}
 
         self.update_idletasks()
 
-        print("FINISHED TEST - GUI RESET")
-
-    
+        print("FINISHED TEST - GUI RESET")    
 
     def do_sync_adcs_sequence(self):
         '''
