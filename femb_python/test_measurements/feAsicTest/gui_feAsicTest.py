@@ -108,7 +108,7 @@ class GUI_WINDOW(Frame):
             # The data dir is where the output of each job should go.  This
             # should be made unique every job.
             datadir = "{datadisk}/{user}/{test_category}/{femb_config}/{session_start_time}/{datasubdir}",
-
+            
             # This is the file where all these parameters get written
             # after variables are resovled.  This file is made
             # available to the measurement script.  It's a JSON file.
