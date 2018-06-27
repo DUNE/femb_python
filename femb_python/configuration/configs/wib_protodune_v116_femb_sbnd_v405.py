@@ -20,8 +20,10 @@ from builtins import object
 import sys 
 import string
 import time
+import pickle
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
+from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
@@ -104,6 +106,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC_7_TO_4_val = 0x04040404
         self.fe_regs = [0x00000000]*(16+2)*8*8
         self.fe_REGS = [0x00000000]*(8+1)*4
+        self.useLArIATmap = True
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
@@ -116,13 +119,66 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
         self.feasicLeakagex10 = 0 #0 = pA, 1 = pA*10
         self.feasicAcdc = 0 #AC = 0, DC = 1
-        
+        self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV        
         self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
-        self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV
         self.feasicGain = 2 #4.7,7.8,14,25
         self.feasicShape = 1 #0.5,1,2,3
         self.feasicBuf = 0 #0 = OFF, 1 = ON
 
+        #Read in LArIAT mapping if desired
+        self.cppfr = CPP_FILE_RUNNER()
+        if self.useLArIATmap:
+            with open(self.cppfr.filename('configuration/configs/LArIAT_pin_mapping.map'), "rb") as fp:
+                self.lariatMap = pickle.load(fp)
+                
+        #APA Mapping
+        if self.useLArIATmap:
+            va = self.lariatMap
+            va_femb = []
+            for vb in va:
+                if int(vb[9]) in (0,1,2,3,4) :
+                    va_femb.append(vb)
+            apa_femb_loc = []
+            for chn in range(128):
+                for vb in va_femb:
+                    if int(vb[8]) == chn:
+                        if (vb[1].find("Co")) >= 0 :#collection wire
+                            chninfo = [ "X" + vb[0], vb[8], int(vb[6]), int(vb[7]), int(vb[9]), int(vb[10])]
+                        elif (vb[1].find("In")) >= 0 : #induction wire
+                            chninfo = [ "U" + vb[0], vb[8], int(vb[6]), int(vb[7]), int(vb[9]), int(vb[10])]
+                        apa_femb_loc.append(chninfo)
+            for chn in range(128):
+                fl_w = True
+                fl_i = 0
+                for tmp in apa_femb_loc:
+                    if int(tmp[1]) == chn:
+                        fl_w = False
+                        break
+                if (fl_w):
+                    chninfo = [ "V" + format(fl_i, "03d"), format(chn, "03d"), chn//16 , format(chn%15, "02d"), apa_femb_loc[0][4], apa_femb_loc[0][5]]
+                    apa_femb_loc.append(chninfo)
+                    fl_i = fl_i + 1
+
+        self.All_sort = []
+        self.X_sort = []
+        self.V_sort = []
+        self.U_sort = []
+        for i in range(128):
+            for chn in apa_femb_loc:
+                if int(chn[1][0:3]) == i :
+                    self.All_sort.append(chn)
+    
+            for chn in apa_femb_loc:
+                if chn[0][0] == "X" and int(chn[0][1:3]) == i :
+                    self.X_sort.append(chn)
+            for chn in apa_femb_loc:
+                if chn[0][0] == "V" and int(chn[0][1:3]) == i :
+                    self.V_sort.append(chn)
+            for chn in apa_femb_loc:
+                if chn[0][0] == "U" and int(chn[0][1:3]) == i :
+                    self.U_sort.append(chn)
+
+                
     def printParameters(self):
         print("FEMB #             \t",self.fembNum)
         print("Room temperature   \t",self.isRoomTemp)
@@ -532,6 +588,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
         for chip in range(8):
             for chn in range(16):
+                for onewire in self.All_sort:
+                    if onewire[0][0] == "X":
+                        snc = 0 #set baseline for collection
+                    elif onewire[0][0] == "U":
+                        snc = 1 #set baseline for induction
+                chn_reg = ((sts&0x01)<<7) + ((snc&0x01)<<6) + ((sg&0x03)<<4) + ((st&0x03)<<2)  + ((smn&0x01)<<1) + ((sdf&0x01)<<0)
                 chn_reg_bool = []
                 for j in range(8):
                     chn_reg_bool.append ( bool( (chn_reg>>j)%2 ))
