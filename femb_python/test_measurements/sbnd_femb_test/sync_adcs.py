@@ -62,6 +62,8 @@ class SYNC_ADCS(object):
         self.femb_config.resetFEMBBoard()
         self.femb_config.initBoard()
         
+        self.femb_config.syncADC()
+        
 #        self.femb_config.syncADC()
         #Tells the FPGA to turn on each DAC
         self.femb_config.femb.write_reg(61, 0x0)
