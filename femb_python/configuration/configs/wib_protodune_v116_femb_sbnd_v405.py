@@ -399,7 +399,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #iplist = ["131.225.150.203","131.225.150.206"]
         #For BNL testing
         iplist = ["192.168.121.50"]
-        self.UDP_IP = iplist[self.wibNum]
+        self.femb.UDP_IP = iplist[self.wibNum]
     
     def wib_reg_enable(self):
         
