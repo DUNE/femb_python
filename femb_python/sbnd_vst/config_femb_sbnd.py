@@ -19,14 +19,6 @@ from dateutil.relativedelta import relativedelta, MO
 
 from femb_python.configuration import CONFIG
 
-# Copied from summary_scripts
-# Will be totally overhauled to write configuration scripts
-# Steps for configuration
-# 1. Read in desired gain/shaping time from xml script
-# 2. Configure all WIBs/Boards/Chips with desired settings (globally set everything the same right now)
-# 3. Write out xml file with timestamp and all settings
-# Once this is done, also set up an executable to configure only single channels at a time
-
 class CONFIG_FEMB_SBND(object):
 
   def __init__(self):
@@ -43,6 +35,7 @@ class CONFIG_FEMB_SBND(object):
     self.feasicGain = self.femb_config.feasicGain
     self.feasicShape = self.femb_config.feasicShape
     self.feasicBuf = self.femb_config.feasicBuf
+    self.femb_config.useLArIATmap = True
     
   def readin(self,xmlin):
     #reading in from xml file
@@ -80,10 +73,23 @@ class CONFIG_FEMB_SBND(object):
   def doconfig(self):
     self.femb_config.feasicShape = self.configshapingtimeval
     self.femb_config.feasicGain = self.configgainval
-    self.femb_config.fembNum = 1
-    self.femb_config.initWib()
-    self.femb_config.initFemb()
-    
+
+
+    for wib in range(0,2):
+      self.wibNum = wib
+      self.femb_config.initWib()      
+      if wib==0:
+        for femb in range(0,1):
+          self.femb_config.fembNum = femb
+
+          #Dummy for testing at BNL
+          self.femb_config.fembNum = 1
+
+          self.femb_config.initFemb()
+      elif wib==1:
+        self.femb_config.fembNum = 4 #Only one femb on WIB#1
+        self.femb_config.initFemb()
+        
     print("Finished configuring CE")
     return
 
@@ -107,23 +113,51 @@ class CONFIG_FEMB_SBND(object):
     tsnow = str(time.strftime("%Y%m%dT%H%M%S", time.localtime(now)))
     
     #tree structure for xml file
-    root = ET.Element("CurrentSettings")
+    root = ET.Element("ASICSettings")
     
     gain = ET.SubElement(root, "Gain").text = str(self.xmlgainval)
     shaping_time = ET.SubElement(root, "Shaping_Time").text = str(self.xmlshapingtimeval)
-    FEasicleakage = ET.SubElement(root, "FE-ASIC_Leakage").text = str(self.feasicLeakage)
-    FEasicleakagex10 = ET.SubElement(root, "FE-ASIC_Leakagex10").text = str(self.feasicLeakagex10)
-    FEasicacdc = ET.SubElement(root, "FE-ASIC_ACDC").text = str(self.feasicAcdc)
-    FEsaictestinput = ET.SubElement(root, "FE-ASIC_testinput").text = str(self.feasicEnableTestInput)
-    FEasicbaseline = ET.SubElement(root, "FE-ASIC_Baseline").text = str(self.feasicBaseline)
-    FEasicbuffer = ET.SubElement(root, "FE_ASIC_buffer").text = str(self.feasicBuf)
+
+    #Convert remaining indices to real settings:
+    if self.feasicLeakage == 0:
+      feLeakage = 0.5
+    else:
+      feLeakage = 0.1
+    if self.feasicLeakagex10 == 1:
+      feLeakage = feleakage*10
+    FEasicleakage = ET.SubElement(root, "FE-ASIC_Leakage").text = str(feLeakage)+"nA"
+
+    if self.feasicAcdc == 0:
+      acdc = "AC"
+    else:
+      acdc = "DC"
+    FEasicacdc = ET.SubElement(root, "FE-ASIC_ACDC").text = acdc
+
+    if self.feasicEnableTestInput == 0:
+      testin = "Disabled"
+    else:
+      testin = "Enabled"
+    FEsaictestinput = ET.SubElement(root, "FE-ASIC_testinput").text = testin
+
+    if self.feasicBuf == 0:
+      buffer = "Off"
+    else:
+      buffer = "On"
+    FEasicbuffer = ET.SubElement(root, "FE_ASIC_buffer").text = buffer
     timestamp = ET.SubElement(root, "Timestamp").text = tsnow
 
     #formatting tree
     self.indent(root)
     tree = ET.ElementTree(root)
-    tree.write(tsnow + 'TestSettings.xml', encoding='unicode')
-    print("Finished writing xml file: ", tsnow+"TestSettings.xml") 
+    sbndpath = "/sbnd/data/ce_config/"
+    fileout = "ASICSettings_"+tsnow+".xml"
+    try:
+      tree.write(sbndpath+fileout, encoding='unicode')
+      print("Finished writing xml file: ", sbndpath+fileout)
+    except:
+      tree.write(fileout, encoding='unicode')
+      print("Finished writing xml file: ", fileout)
+
       
 def main():
 
