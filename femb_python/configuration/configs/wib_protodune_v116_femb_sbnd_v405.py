@@ -93,6 +93,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 
         #internal variables
         self.fembNum = 0
+        self.wibNum = 0
         self.useExtAdcClock = True
         self.isRoomTemp = False
         self.doReSync = True
@@ -126,13 +127,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicBuf = 0 #0 = OFF, 1 = ON
 
         #Read in LArIAT mapping if desired
-        self.cppfr = CPP_FILE_RUNNER()
+
         if self.useLArIATmap:
+            self.cppfr = CPP_FILE_RUNNER()            
             with open(self.cppfr.filename('configuration/configs/LArIAT_pin_mapping.map'), "rb") as fp:
                 self.lariatMap = pickle.load(fp)
                 
-        #APA Mapping
-        if self.useLArIATmap:
+            #APA Mapping
             va = self.lariatMap
             va_femb = []
             for vb in va:
@@ -159,25 +160,29 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                     apa_femb_loc.append(chninfo)
                     fl_i = fl_i + 1
 
-        self.All_sort = []
-        self.X_sort = []
-        self.V_sort = []
-        self.U_sort = []
-        for i in range(128):
-            for chn in apa_femb_loc:
-                if int(chn[1][0:3]) == i :
-                    self.All_sort.append(chn)
+            self.All_sort = []
+            self.X_sort = []
+            self.V_sort = []
+            self.U_sort = []
+            for i in range(128):
+                for chn in apa_femb_loc:
+                    if int(chn[1][0:3]) == i :
+                        self.All_sort.append(chn)
     
-            for chn in apa_femb_loc:
-                if chn[0][0] == "X" and int(chn[0][1:3]) == i :
-                    self.X_sort.append(chn)
-            for chn in apa_femb_loc:
-                if chn[0][0] == "V" and int(chn[0][1:3]) == i :
-                    self.V_sort.append(chn)
-            for chn in apa_femb_loc:
-                if chn[0][0] == "U" and int(chn[0][1:3]) == i :
-                    self.U_sort.append(chn)
+                    for chn in apa_femb_loc:
+                        if chn[0][0] == "X" and int(chn[0][1:3]) == i :
+                            self.X_sort.append(chn)
+                    for chn in apa_femb_loc:
+                        if chn[0][0] == "V" and int(chn[0][1:3]) == i :
+                            self.V_sort.append(chn)
+                    for chn in apa_femb_loc:
+                        if chn[0][0] == "U" and int(chn[0][1:3]) == i :
+                            self.U_sort.append(chn)
 
+            self.WireDict = {}
+            for line in self.All_sort:
+                key = "wib{:d}_femb{:d}_chip{:d}_chan{:02d}".format(line[5],line[4],line[2],line[3])
+                self.WireDict[key] = line[0]
                 
     def printParameters(self):
         print("FEMB #             \t",self.fembNum)
@@ -204,13 +209,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def initBoard(self):
         self.initWib()
-        for femb in range(1,2,1):
+        for femb in range(1,4,1):
             self.selectFemb(femb)
             self.initFemb()
         
     def initWib(self):
         #WIB initialization
 
+        self.wib_switch()
+        
         #set UDP ports to WIB registers
         self.wib_reg_enable()
 
@@ -241,18 +248,19 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.selectFemb(self.fembNum)
 
     def initFemb(self):
-        if (self.fembNum < 0) or (self.fembNum >= self.NFEMBS ):
+        fembVal = self.fembNum - 4*(self.wibNum)
+            
+        if (fembVal < 0) or (fembVal >= self.NFEMBS ):
             return
 
-        fembVal = self.fembNum
         print("Initialize FEMB",fembVal)
 
         #FEMB power enable on WIB
-        self.powerOnFemb(self.fembNum)
+        self.powerOnFemb(fembVal)
         time.sleep(4)
 
         #Make sure register interface is for correct FEMB
-        self.selectFemb(self.fembNum)
+        self.selectFemb(fembVal)
 
         #check if FEMB register interface is working
         print("Checking register interface")
@@ -321,12 +329,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(7, wib_asic)
 
         # return to FEMB control
-        self.selectFemb(self.fembNum)
+        self.selectFemb(fembVal)
 
         #Enable Streaming
         self.femb.write_reg(9,9)
         self.femb.write_reg(9,9)
         time.sleep(0.1)
+
+        #Print some happy messages for shifters
+        print("Finished initializing ASICs for WIB{:d} FEMB{:d}".format(self.wibNum,fembVal)) 
 
     #Test FEMB SPI working
     def checkFembSpi(self):
@@ -382,7 +393,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.syncStatus = syncVal
 
     #Setup talking to WIB
+    def wib_switch(self):
+                #Set IP addresses based in wib number:
+        #For SBND-LArIAT
+        #iplist = ["131.225.150.203","131.225.150.206"]
+        #For BNL testing
+        iplist = ["192.168.121.50"]
+        self.UDP_IP = iplist[self.wibNum]
+    
     def wib_reg_enable(self):
+        
         self.femb.UDP_PORT_WREG = 32000
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
@@ -586,13 +606,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                   (((dac&0x10)//0x10)<<3)+(((dac&0x20)//0x20)<<2)+\
                   (((swdac&0x03))<<0)
         
-        for chip in range(8):
-            for chn in range(16):
-                for onewire in self.All_sort:
-                    if onewire[0][0] == "X":
+        for chip in range(self.NASICS):
+            for chn in range(self.NASICCH):
+                if self.useLArIATmap:
+                    key = "wib{:d}_femb{:d}_chip{:d}_chan{:02d}".format(self.wibNum,self.fembNum,chip+1,chn) #Note map has chips 1-8, not 0-7
+                    if self.WireDict[key][0] == "X":
                         snc = 0 #set baseline for collection
-                    elif onewire[0][0] == "U":
+                    elif self.WireDict[key][0] == "U":
                         snc = 1 #set baseline for induction
+
                 chn_reg = ((sts&0x01)<<7) + ((snc&0x01)<<6) + ((sg&0x03)<<4) + ((st&0x03)<<2)  + ((smn&0x01)<<1) + ((sdf&0x01)<<0)
                 chn_reg_bool = []
                 for j in range(8):

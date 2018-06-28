@@ -1,7 +1,7 @@
 #!/usr/bin/env python33
 
 """
-Configuration for SBND FEMB + WIB Setup
+Configuration for SBND FEMB + SBND WIB Setup - for LArIAT VST running
 WIB firmware v104
 FEMB firmware v405
 """
@@ -20,8 +20,10 @@ from builtins import object
 import sys 
 import string
 import time
+import pickle
 from femb_python.femb_udp import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
+from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
@@ -91,6 +93,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 
         #internal variables
         self.fembNum = 0
+        self.wibNum = 0
         self.useExtAdcClock = True
         self.isRoomTemp = False
         self.doReSync = True
@@ -104,10 +107,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC_7_TO_4_val = 0x04040404
         self.fe_regs = [0x00000000]*(16+2)*8*8
         self.fe_REGS = [0x00000000]*(8+1)*4
+        self.useLArIATmap = True
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
-        self.femb.UDP_IP = "131.225.150.203"
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
@@ -117,13 +120,70 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
         self.feasicLeakagex10 = 0 #0 = pA, 1 = pA*10
         self.feasicAcdc = 0 #AC = 0, DC = 1
-        
+        self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV        
         self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
-        self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV
         self.feasicGain = 2 #4.7,7.8,14,25
         self.feasicShape = 1 #0.5,1,2,3
         self.feasicBuf = 0 #0 = OFF, 1 = ON
 
+        #Read in LArIAT mapping if desired
+
+        if self.useLArIATmap:
+            self.cppfr = CPP_FILE_RUNNER()            
+            with open(self.cppfr.filename('configuration/configs/LArIAT_pin_mapping.map'), "rb") as fp:
+                self.lariatMap = pickle.load(fp)
+                
+            #APA Mapping
+            va = self.lariatMap
+            va_femb = []
+            for vb in va:
+                if int(vb[9]) in (0,1,2,3,4) :
+                    va_femb.append(vb)
+            apa_femb_loc = []
+            for chn in range(128):
+                for vb in va_femb:
+                    if int(vb[8]) == chn:
+                        if (vb[1].find("Co")) >= 0 :#collection wire
+                            chninfo = [ "X" + vb[0], vb[8], int(vb[6]), int(vb[7]), int(vb[9]), int(vb[10])]
+                        elif (vb[1].find("In")) >= 0 : #induction wire
+                            chninfo = [ "U" + vb[0], vb[8], int(vb[6]), int(vb[7]), int(vb[9]), int(vb[10])]
+                        apa_femb_loc.append(chninfo)
+            for chn in range(128):
+                fl_w = True
+                fl_i = 0
+                for tmp in apa_femb_loc:
+                    if int(tmp[1]) == chn:
+                        fl_w = False
+                        break
+                if (fl_w):
+                    chninfo = [ "V" + format(fl_i, "03d"), format(chn, "03d"), chn//16 , format(chn%15, "02d"), apa_femb_loc[0][4], apa_femb_loc[0][5]]
+                    apa_femb_loc.append(chninfo)
+                    fl_i = fl_i + 1
+
+            self.All_sort = []
+            self.X_sort = []
+            self.V_sort = []
+            self.U_sort = []
+            for i in range(128):
+                for chn in apa_femb_loc:
+                    if int(chn[1][0:3]) == i :
+                        self.All_sort.append(chn)
+    
+                    for chn in apa_femb_loc:
+                        if chn[0][0] == "X" and int(chn[0][1:3]) == i :
+                            self.X_sort.append(chn)
+                    for chn in apa_femb_loc:
+                        if chn[0][0] == "V" and int(chn[0][1:3]) == i :
+                            self.V_sort.append(chn)
+                    for chn in apa_femb_loc:
+                        if chn[0][0] == "U" and int(chn[0][1:3]) == i :
+                            self.U_sort.append(chn)
+
+            self.WireDict = {}
+            for line in self.All_sort:
+                key = "wib{:d}_femb{:d}_chip{:d}_chan{:02d}".format(line[5],line[4],line[2],line[3])
+                self.WireDict[key] = line[0]
+                
     def printParameters(self):
         print("FEMB #             \t",self.fembNum)
         print("Room temperature   \t",self.isRoomTemp)
@@ -149,13 +209,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def initBoard(self):
         self.initWib()
-        for femb in range(1,2,1):
+        for femb in range(1,4,1):
             self.selectFemb(femb)
             self.initFemb()
         
     def initWib(self):
         #WIB initialization
 
+        self.wib_switch()
+        
         #set UDP ports to WIB registers
         self.wib_reg_enable()
 
@@ -186,18 +248,19 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.selectFemb(self.fembNum)
 
     def initFemb(self):
-        if (self.fembNum < 0) or (self.fembNum >= self.NFEMBS ):
+        fembVal = self.fembNum - 4*(self.wibNum)
+            
+        if (fembVal < 0) or (fembVal >= self.NFEMBS ):
             return
 
-        fembVal = self.fembNum
         print("Initialize FEMB",fembVal)
 
         #FEMB power enable on WIB
-        self.powerOnFemb(self.fembNum)
+        self.powerOnFemb(fembVal)
         time.sleep(4)
 
         #Make sure register interface is for correct FEMB
-        self.selectFemb(self.fembNum)
+        self.selectFemb(fembVal)
 
         #check if FEMB register interface is working
         print("Checking register interface")
@@ -266,12 +329,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(7, wib_asic)
 
         # return to FEMB control
-        self.selectFemb(self.fembNum)
+        self.selectFemb(fembVal)
 
         #Enable Streaming
         self.femb.write_reg(9,9)
         self.femb.write_reg(9,9)
         time.sleep(0.1)
+
+        #Print some happy messages for shifters
+        print("Finished initializing ASICs for WIB{:d} FEMB{:d}".format(self.wibNum,fembVal)) 
 
     #Test FEMB SPI working
     def checkFembSpi(self):
@@ -327,7 +393,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.syncStatus = syncVal
 
     #Setup talking to WIB
+    def wib_switch(self):
+        #Set IP addresses based in wib number:
+        For SBND-LArIAT
+        iplist = ["131.225.150.203","131.225.150.206"]
+        #For BNL testing
+        #iplist = ["192.168.121.50"]
+        #self.UDP_IP = iplist[self.wibNum]
+    
     def wib_reg_enable(self):
+        
         self.femb.UDP_PORT_WREG = 32000
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
@@ -531,8 +606,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                   (((dac&0x10)//0x10)<<3)+(((dac&0x20)//0x20)<<2)+\
                   (((swdac&0x03))<<0)
         
-        for chip in range(8):
-            for chn in range(16):
+        for chip in range(self.NASICS):
+            for chn in range(self.NASICCH):
+                if self.useLArIATmap:
+                    key = "wib{:d}_femb{:d}_chip{:d}_chan{:02d}".format(self.wibNum,self.fembNum,chip+1,chn) #Note map has chips 1-8, not 0-7
+                    if self.WireDict[key][0] == "X":
+                        snc = 0 #set baseline for collection
+                    elif self.WireDict[key][0] == "U":
+                        snc = 1 #set baseline for induction
+
+                chn_reg = ((sts&0x01)<<7) + ((snc&0x01)<<6) + ((sg&0x03)<<4) + ((st&0x03)<<2)  + ((smn&0x01)<<1) + ((sdf&0x01)<<0)
                 chn_reg_bool = []
                 for j in range(8):
                     chn_reg_bool.append ( bool( (chn_reg>>j)%2 ))
