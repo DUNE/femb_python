@@ -110,6 +110,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.useLArIATmap = True
 
         #initialize FEMB UDP object
+        self.UDP_IP = "131.225.150.203"
         self.femb = FEMB_UDP()
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
@@ -399,7 +400,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         iplist = ["131.225.150.203","131.225.150.206"]
         #For BNL testing
         #iplist = ["192.168.121.50"]
-        #self.UDP_IP = iplist[self.wibNum]
+        self.UDP_IP = iplist[self.wibNum]
     
     def wib_reg_enable(self):
         
