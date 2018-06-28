@@ -467,9 +467,9 @@ ASIC 3 ID: {asic3id}
         self.asic3_monitor_result["fg"] = "black"
         self.asic3_alive_result["fg"] = "black"
         self.asic3_final_result["fg"] = "black"
-        self.methodMap = {'baseline_test_sequence_complete' : False,
-                          'monitor_data_test_sequence_complete' : False,
-                          'input_alive_power_cycle_sequence_complete' : False}
+        self.methodMap['baseline_test_sequence_complete'] = False
+        self.methodMap['monitor_data_test_sequence_complete'] = False
+        self.methodMap['input_alive_power_cycle_sequence_complete'] = False
         
         now = time.time()
         self.params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
