@@ -396,7 +396,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     #Setup talking to WIB
     def wib_switch(self):
         #Set IP addresses based in wib number:
-        For SBND-LArIAT
+        #For SBND-LArIAT
         iplist = ["131.225.150.203","131.225.150.206"]
         #For BNL testing
         #iplist = ["192.168.121.50"]
