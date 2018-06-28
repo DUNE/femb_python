@@ -85,8 +85,33 @@ class FEMB_TEST_SIMPLE(object):
             print("Error running doFembTest - Invalid FEMB # specified.")
             return    
 
-        #assign FEMB # to test but DO NOT CONFIGURE!
-        self.femb_config.selectFemb(self.fembNum)  
+        #DO NOT CONFIGURE, except to enable streaming
+        self.femb_config.wib_reg_enable()
+
+        self.femb_config.femb.write_reg(20,3)
+        self.femb_config.femb.write_reg(20,3)
+        time.sleep(0.001)
+        self.femb_config.femb.write_reg(20,0)
+        self.femb_config.femb.write_reg(20,0)
+        time.sleep(0.001)
+
+        # start streaming data from ASIC 0 in initialization
+        self.femb_config.femb.write_reg(7, 0x80000000)
+        self.femb_config.femb.write_reg(7, 0x80000000)
+        femb_asic = 0 & 0x0F
+        wib_asic = (((fembVal << 16)&0x000F0000) + ((femb_asic << 8) &0xFF00))
+        self.femb_config.femb.write_reg(7, wib_asic | 0x80000000)
+        self.femb_config.femb.write_reg(7, wib_asic | 0x80000000)
+        self.femb_config.femb.write_reg(7, wib_asic)
+        self.femb_config.femb.write_reg(7, wib_asic)
+        
+        self.femb_config.selectFemb(self.fembNum)
+
+        #Enable Streaming
+        self.femb_config.femb.write_reg(9,9)
+        self.femb.config.femb.write_reg(9,9)
+        time.sleep(0.1)
+
 
         #test firmware versions
         if self.femb_config.checkFirmwareVersion() == False:
