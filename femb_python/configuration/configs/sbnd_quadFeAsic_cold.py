@@ -12,8 +12,8 @@ import pickle
 from femb_python.test_measurements.sbnd_femb_test.femb_udp_cmdline import FEMB_UDP
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.test_measurements.sbnd_femb_test.fe_asic_reg_mapping import FE_ASIC_REG_MAPPING
-#from scripts.detect_peaks import detect_peaks
-#from scripts.plotting import plot_functions
+from femb_python.test_measurements.sbnd_femb_test.detect_peaks import detect_peaks
+from femb_python.test_measurements.sbnd_femb_test.plotting import plot_functions
 
 class FEMB_CONFIG(FEMB_CONFIG_BASE):
     #__INIT__#
@@ -42,6 +42,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
         self.fe_reg = FE_ASIC_REG_MAPPING()
+        self.plot = plot_functions()
         
         self.WIB_RESET = 1
         
@@ -72,16 +73,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.sync_baseline_max = 3000
         
         #for fe_reg mapping
-	#declare board specific registers
-        self.REGS =[0x08080808, 0x08080808, 0x08080808, 0x08080808,
-                    0x000000C0,
-                    0x08080808, 0x08080808, 0x08080808, 0x08080808,
-                    0x000000C0,
-                    0x08080808, 0x08080808, 0x08080808, 0x08080808,
-                    0x000000C0,
-                    0x08080808, 0x08080808, 0x08080808, 0x08080808,
-                    0x000000C0,
-                    ]
         self.fe_regs_sw = None
         self.fe_regs_sent = None
         
@@ -471,6 +462,214 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             
         print ("FEMB_CONFIG--> ADC passed Sync Test!")
 
+
+
+    def testUnsync(self, chip, chn):
+        #Get some packets of data
+        self.select_chip_chn(chip = chip, chn = chn)
+        packets = 25
+        data = self.get_data_chipXchnX(chip = chip, chn = chn, packets = packets, data_format = "counts")
+        
+        #Find some peaks
+        peaks_index = detect_peaks(x=data, mph=self.sync_peak_min, mpd=100) 
+        #Make sure you have more than 0 peaks (so it's not flat) and less than the maximum 
+        #(if there's no peak, the baseline will give hundreds of peaks)
+        #If it's bad, print it, so we see (must enable inline printing for iPython)
+#        figure_data = self.plot.quickPlot(data)
+#        ax = figure_data[0]
+#        for j in peaks_index:
+#            y_value = data[j]
+#            ax.scatter(j/2, y_value, marker='x')
+#            
+#        ax.set_ylabel('mV')
+#        ax.set_title("Error")
+#        ax.title.set_fontsize(30)
+#        for item in ([ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
+#            item.set_fontsize(20)
+#        plt.show()
+#        plt.close()
+        if (len(peaks_index) == 0) or (len(peaks_index) > packets):
+            print ("Chip {}, Channel {} has {} peaks!".format(chip, chn, len(peaks_index)))            
+#            print (peaks_index)
+            return False
+            
+        #So that function before only gives you the X locations of where the peaks are.  Let's get the Y values from that
+        peaks_value = []
+        for i in peaks_index :
+            peaks_value.append(data[i])
+#        print ("Chip {}, Channel {} has peak values {}".format(chip, chn, peaks_value))
+        #Check if the peak is at the wrong height (happens when it's not synced, the peak will be havled or doubled)
+        for peak in peaks_value:
+            if ((peak < self.sync_peak_min) or (peak > self.sync_peak_max)):
+                print ("FEMB CONFIG--> Chip {}, Chn {} has a peak that's {}".format(chip, chn, peak))
+                figure_data = self.plot.quickPlot(data)
+                ax = figure_data[0]
+                for j in peaks_index:
+                    y_value = data[j]
+                    ax.scatter(j/2, y_value, marker='x')
+                    
+                ax.set_ylabel('mV')
+                ax.set_title("Error")
+                ax.title.set_fontsize(30)
+                for item in ([ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
+                    item.set_fontsize(20)
+                plt.show()
+                plt.close()
+                return False 
+        #Check if the baseline is right (this also gets halved and doubled with unsynced ADCs) (avoid the peak to grab a middle section)
+        try:
+            baseline_area_start = peaks_index[0] + 200
+            baseline_area_end = peaks_index[1] - 200
+        except IndexError:
+            baseline_area_start = 100
+            baseline_area_end = 500
+        baseline_data = data[baseline_area_start : baseline_area_end]
+        baseline = np.mean(baseline_data)
+        if ((baseline < self.sync_baseline_min) or (baseline > self.sync_baseline_max)):
+            print ("FEMB CONFIG--> Chip {}, Chn {} has a baseline that's {}".format(chip, chn, baseline))
+            figure_data = self.plot.quickPlot(data)
+            ax = figure_data[0]
+            for j in peaks_index:
+                y_value = data[j]
+                ax.scatter(j/2, y_value, marker='x')
+                
+            ax.set_ylabel('mV')
+            ax.set_title("Error")
+            ax.title.set_fontsize(30)
+            for item in ([ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
+                item.set_fontsize(20)
+            plt.show()
+            plt.close()
+            return False 
+        return True
+            
+    #Shifts through all possible delay and phase options, checking to see if each one fixed the issue
+
+    def fixUnsync_outputADC(self, chip, chn):
+        self.select_chip_chn(chip = chip, chn = chn)
+        
+        shift_reg = chip + 65
+        phase_reg = chip + 69
+        sample_reg = 75 + (chip//2)
+        
+        #Get the initial setting you don't disturb the other channels
+        init_shift = self.femb.read_reg(shift_reg)
+        init_phase = self.femb.read_reg(phase_reg)
+        init_sample= self.femb.read_reg(sample_reg)
+
+        #Because Python can't have a friggin NAND or XOR function that works right at the bitwise level, this is how we get the bitmask
+        #This will find the 2 bits in the register that correspond to the channel you want to change.  Say it's channel 2
+        #In binary, it makes 0b00000000000000000000000000110000
+        #Then inverts it to  0b11111111111111111111111111001111
+        #Now you AND that with the initial result to get the initial values WITHOUT the channel you want to change
+        #Now you can bitshift your desired setting to that empty space with zeroes, like say you wanted to write a 0b10,
+        #It would be 0b100000.  Then add that to whatever the result of the initial values AND mask was.  Boom, you've done it.
+        init_mask = (0x3 << (2 * chn))
+        neg_mask = 0
+        for i in range(32):
+            FF_bit = (0xFFFFFFFF >> i) & 0x1
+            test_bit = (init_mask >> i) & 0x1
+            if (FF_bit != test_bit):
+                result_bit = 1
+            else:
+                result_bit = 0
+            neg_mask = neg_mask + (result_bit << i)
+        
+        #There are 16 possible sync permutations for every ADC
+#        for sample_clock in range(2):
+#            value = (sample_clock << chn) << (16 * (chip%2))
+#            print ("Clock setting for chip {}, channel {} is {}".format(chip, chn, hex(value)))
+#            self.femb.write_reg(sample_reg, value)
+        for shift in range(4):
+            for phase in range(4):
+                
+                shift_setting = shift << (2 * chn)
+                init_shift_with_mask = init_shift & neg_mask
+                final_shift = shift_setting + init_shift_with_mask
+                
+#                print ("Shift is {}".format(shift))
+#                print ("phase is {}".format(phase))
+#                print ("Negative mask is {}".format(bin(neg_mask)))                
+#                print ("Initial reading is {}".format(bin(init_shift)))
+#                print ("The new setting is {}".format(bin(shift_setting)))
+#                print ("Making space for the new setting is {}".format(bin(init_shift_with_mask)))
+#                print ("Adding together is {}".format(bin(final_shift)))
+                
+                self.femb.write_reg(shift_reg, final_shift)
+                
+                phase_setting = phase << (2 * chn)
+                init_phase_with_mask = init_phase & neg_mask
+                final_phase = phase_setting + init_phase_with_mask
+                
+                self.femb.write_reg(phase_reg, final_phase)
+                
+                #See if this new setting fixed it
+                unsync = self.testUnsync(chip = chip, chn = chn)
+                if unsync == True:
+                    print ("FEMB_CONFIG--> Chip {}, Chn {} fixed!".format(chip, chn))
+                    return True
+
+        print ("FEMB_CONFIG--> ADC SYNC process failed for Chip {}, Channel {}".format(chip, chn))
+        self.femb.write_reg(shift_reg, init_shift)
+        self.femb.write_reg(phase_reg, init_phase)
+        return False
+        
+    #Same thing as above, except the timing register is different, so the bitmath has to be changed.
+
+    def fixUnsync_testADC(self, chip):
+        self.select_chip_chn(chip = chip, chn = 2)
+        init_mask = (0xF << (2 * chip))
+        
+        neg_mask = 0
+        for i in range(32):
+            FF_bit = (0xFFFFFFFF >> i) & 0x1
+            test_bit = (init_mask >> i) & 0x1
+            if (FF_bit != test_bit):
+                result_bit = 1
+            else:
+                result_bit = 0
+            neg_mask = neg_mask + (result_bit << i)
+            
+        init_shift = self.femb.read_reg(73)          
+        print ("Init shift is {}".format(hex(init_shift)))
+        print ("Init mask is {}".format(bin(init_mask)))    
+        print ("Negative mask is {}".format(bin(neg_mask)))    
+        for shift in range(4):
+            for phase in range(4):
+                setting = (phase << 2) + shift
+                print ("Setting is {}".format(bin(setting)))
+                
+                final_setting = setting << (chip * 4)
+                print ("Final Setting is {}".format(bin(setting)))
+                
+                init_shift_with_mask = init_shift & neg_mask
+                print ("Initshift with mask is {}".format(hex(init_shift_with_mask)))
+                
+                really_final = init_shift_with_mask + final_setting
+                print ("Final setting to write is {}".format(bin(really_final)))
+                
+#                init_shift_with_mask = init_shift & neg_mask
+#                final_shift = shift_setting + init_shift_with_mask
+                
+#                print ("Shift is {}".format(shift))
+#                print ("phase is {}".format(phase))
+#                print ("Negative mask is {}".format(bin(neg_mask)))                
+#                print ("Initial reading is {}".format(bin(init_shift)))
+#                print ("The new setting is {}".format(bin(shift_setting)))
+#                print ("Making space for the new setting is {}".format(bin(init_shift_with_mask)))
+#                print ("Adding together is {}".format(bin(final_shift)))
+                
+                self.femb.write_reg(73, really_final)
+                unsync = self.testUnsync(chip = chip, chn = 1)
+                if unsync == True:
+                    print ("FEMB_CONFIG--> Chip {} test ADC fixed!".format(chip))
+                    return True
+
+        print ("FEMB_CONFIG--> ADC SYNC process failed for Chip {} ADC".format(chip))
+        self.femb.write_reg(73, init_shift)
+        return False
+        
+    #Select the chip and channel and read it out.  And check that it was actually set.  It's weirdly a problem
  
     #Select the chip and channel and read it out.  And check that it was actually set.  It's weirdly a problem
     def select_chip_chn(self, chip, chn):
