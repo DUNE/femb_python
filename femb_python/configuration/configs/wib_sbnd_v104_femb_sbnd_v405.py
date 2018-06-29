@@ -96,7 +96,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.wibNum = 0
         self.useExtAdcClock = True
         self.isRoomTemp = False
-        self.doReSync = True
+        self.doReSync = False
         self.spiStatus = 0x0
         self.syncStatus = 0x0
         self.CLKSELECT_val_RT = 0xFF
@@ -118,8 +118,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.doReadBack = False #WIB register interface is unreliable
 
         #ASIC config variables
-        self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
-        self.feasicLeakagex10 = 0 #0 = pA, 1 = pA*10
+        self.feasicLeakage = 1 #0 = 500pA, 1 = 100pA
+        self.feasicLeakagex10 = 1 #0 = pA, 1 = pA*10
         self.feasicAcdc = 0 #AC = 0, DC = 1
         self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV        
         self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
@@ -193,17 +193,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("FE-ASIC leakage x10\t",self.feasicLeakagex10)
         print("FE-ASIC AD/DC      \t",self.feasicAcdc)
         print("FE-ASIC test input \t",self.feasicEnableTestInput)
-        print("FE-ASIC baseline   \t",self.feasicBaseline)
         print("FE-ASIC gain       \t",self.feasicGain)
         print("FE-ASIC shape      \t",self.feasicShape)
         print("FE-ASIC buffer     \t",self.feasicBuf)
 
         print("FE-ASIC config")
-        for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+72,1):
-            regVal = self.femb.read_reg( regNum)
-            if regVal == None:
-                continue
-            print( str(regNum) + "\t" + str(hex(regVal)) )
 
     def resetBoard(self):
         print("Reset")
@@ -401,6 +395,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #For BNL testing
         #iplist = ["192.168.121.50"]
         self.femb.UDP_IP = iplist[self.wibNum]
+        print("IP address is now ",self.femb.UDP_IP)
     
     def wib_reg_enable(self):
         
@@ -408,12 +403,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
         self.femb.REG_SLEEP = 0.001
-
-        #wib7val = self.femb.read_reg(7)
-        #time.sleep(0.001)
-        #wib7val = self.femb.read_reg(7)        
-        #wib7val = wib7val & 0x00000000
-        #self.femb.write_reg(7, wib7val)
 
     #COTS Shift and Phase Settings
     def set_cots_shift(self):
@@ -611,10 +600,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             for chn in range(self.NASICCH):
                 if self.useLArIATmap:
                     key = "wib{:d}_femb{:d}_chip{:d}_chan{:02d}".format(self.wibNum,self.fembNum,chip+1,chn) #Note map has chips 1-8, not 0-7
-                    if self.WireDict[key][0] == "X":
-                        snc = 0 #set baseline for collection
-                    elif self.WireDict[key][0] == "U":
-                        snc = 1 #set baseline for induction
+                    if key in self.WireDict:
+                        if self.WireDict[key][0] == "X":
+                            snc = 0 #set baseline for collection
+                        elif self.WireDict[key][0] == "U":
+                            snc = 1 #set baseline for induction
+                    else:
+                        snc = 0
 
                 chn_reg = ((sts&0x01)<<7) + ((snc&0x01)<<6) + ((sg&0x03)<<4) + ((st&0x03)<<2)  + ((smn&0x01)<<1) + ((sdf&0x01)<<0)
                 chn_reg_bool = []

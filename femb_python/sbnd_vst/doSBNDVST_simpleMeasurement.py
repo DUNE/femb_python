@@ -99,7 +99,7 @@ class FEMB_TEST_SIMPLE(object):
         self.femb_config.femb.write_reg(7, 0x80000000)
         self.femb_config.femb.write_reg(7, 0x80000000)
         femb_asic = 0 & 0x0F
-        wib_asic = (((fembVal << 16)&0x000F0000) + ((femb_asic << 8) &0xFF00))
+        wib_asic = (((self.fembNum << 16)&0x000F0000) + ((femb_asic << 8) &0xFF00))
         self.femb_config.femb.write_reg(7, wib_asic | 0x80000000)
         self.femb_config.femb.write_reg(7, wib_asic | 0x80000000)
         self.femb_config.femb.write_reg(7, wib_asic)
@@ -109,7 +109,7 @@ class FEMB_TEST_SIMPLE(object):
 
         #Enable Streaming
         self.femb_config.femb.write_reg(9,9)
-        self.femb.config.femb.write_reg(9,9)
+        self.femb_config.femb.write_reg(9,9)
         time.sleep(0.1)
 
 
@@ -251,24 +251,12 @@ def main():
     Run a simple FEMB measurement.
     '''
     #default parameters
-    datadir = "data"
-    #wiblist = [0,1]
-    #wibslots = [[0,1,2,3],[0]]
-    wiblist = [0]
-    wibslots=[[1]]
+    datadir = "/sbnd/data/users/sbnd/vst_ce_tests/"
+    wiblist = [0,1]
+    wibslots = [[0,1,2,3],[0]]
+    #wiblist = [0]
+    #wibslots=[[1]]
 
-    if len(sys.argv) == 2 :
-        params = json.loads(open(sys.argv[1]).read())
-        if 'datadir' in params:
-            datadir = params['datadir']
-        if 'wibslots' in params:
-            wibslots = params['wibslots']
-
-    #do some sanity checks
-    if len(wibslots) > 4 :
-        print("doFembTest - Invalid # of FEMBs specified")
-        return
-      
     #actually run the test, one per FEMB slot
     now = time.time()
     tsnow = str(time.strftime("%Y%m%dT%H%M%S", time.localtime(now)))

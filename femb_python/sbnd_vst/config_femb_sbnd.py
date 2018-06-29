@@ -76,18 +76,14 @@ class CONFIG_FEMB_SBND(object):
 
 
     for wib in range(0,2):
-      self.wibNum = wib
+      self.femb_config.wibNum = wib
       self.femb_config.initWib()      
       if wib==0:
-        for femb in range(0,1):
+        for femb in range(0,4):
           self.femb_config.fembNum = femb
-
-          #Dummy for testing at BNL
-          self.femb_config.fembNum = 1
-
           self.femb_config.initFemb()
       elif wib==1:
-        self.femb_config.fembNum = 4 #Only one femb on WIB#1
+        self.femb_config.fembNum = 4 #Only one femb on WIB#1 is in slot #0
         self.femb_config.initFemb()
         
     print("Finished configuring CE")
@@ -124,7 +120,7 @@ class CONFIG_FEMB_SBND(object):
     else:
       feLeakage = 0.1
     if self.feasicLeakagex10 == 1:
-      feLeakage = feleakage*10
+      feLeakage = feLeakage*10
     FEasicleakage = ET.SubElement(root, "FE-ASIC_Leakage").text = str(feLeakage)+"nA"
 
     if self.feasicAcdc == 0:
