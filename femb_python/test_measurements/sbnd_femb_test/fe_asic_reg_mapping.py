@@ -134,13 +134,14 @@ class FE_ASIC_REG_MAPPING:
 
 ####sec_sbnd_board sets registers of a whole board 
     def set_fe_board(self, sts=0, snc=0, sg=0, st=0, smn=0, sbf=0, 
-                       slk = 0, stb = 0, s16=0, slkh=0, sdc=0, sdacsw2=0, sdacsw1=0, sdac=0):
-        gainArray = [0,2,1,3]
-        shapeArray = [2,0,3,1]
-        baseArray = [1,0]
-        sg = int(gainArray[sg])
-        st = int(shapeArray[st])
-        snc = int(baseArray[snc])
+                       slk = 0, stb = 0, s16=0, slkh=0, sdc=0, sdacsw2=0, sdacsw1=0, sdac=0, remapping=False):
+        if remapping:
+            gainArray = [0,2,1,3]
+            shapeArray = [2,0,3,1]
+            baseArray = [1,0]
+            sg = int(gainArray[sg])
+            st = int(shapeArray[st])
+            snc = int(baseArray[snc])
         for chip in range (4):
             self.set_fe_chip(chip, sts, snc, sg, st, smn, sbf, slk, stb, s16, slkh, sdc, sdacsw2, sdacsw1, sdac)
 

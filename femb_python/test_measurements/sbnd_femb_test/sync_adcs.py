@@ -51,18 +51,21 @@ class SYNC_ADCS(object):
         time.sleep(1)
 #        for num,i in enumerate(chip_list):
 #            self.femb_config.map_directory(os.path.join(datadir,i[1]))
+        
         #stablish IP addresses for board and machine running this program
         #make sure IP address for the ethernet port is set correctly
         self.femb_config.femb.init_ports(hostIP = self.femb_config.PC_IP, destIP = self.femb_config.FPGA_IP)
-        time.sleep(0.1)
-        print("Chip tester verion {}".format(hex(self.femb_config.femb.read_reg(0x64))))
+
+
+        time.sleep(0.1)        
+        print("Chip tester version {}".format(hex(self.femb_config.femb.read_reg(0x64))))
         #make filepaths to store the synchronization plots
         self.femb_config.make_filepaths(self.datadir,self.chip_list,self.datasubdir)
 
         self.femb_config.resetFEMBBoard()
         self.femb_config.initBoard()
-        
-        self.femb_config.syncADC()
+
+        self.femb_config.syncADC(self.datadir, self.chip_list, self.datasubdir, saveresults=self.save_results)
         
 #        self.femb_config.syncADC()
         #Tells the FPGA to turn on each DAC
@@ -133,8 +136,9 @@ def main():
     params = json.loads(open(sys.argv[1]).read())            
     sync_adcs.datadir = params['datadir']
     sync_adcs.outlabel = params['outlabel']    
-    sync_adcs.chip_list = params['chiplist']
+    sync_adcs.chip_list = params['chip_list']
     sync_adcs.datasubdir = params['datasubdir']
+    sync_adcs.save_results = params['save_results']
     
     sync_adcs.sync()
 

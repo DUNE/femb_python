@@ -94,7 +94,8 @@ class BASELINE_TESTER(object):
 #        print("Old registers are {}".format(originals))
         self.femb_config.fe_reg.set_fe_board(sts=0, snc=self.base, sg=self.gain, st=self.shape,
                                       smn=0, sbf=self.buff, slk = self.leak, stb = 0, s16=0, slkh=self.leak,
-                                      sdc=0, sdacsw2=0, sdacsw1=0, sdac=0)
+                                      sdc=0, sdacsw2=0, sdacsw1=0, sdac=0, remapping=True)
+                                      #remapping is to make gain/shaping times/base settings (0-3) consecutive in output and GUI
                    
         self.femb_config.configFeAsic(to_print = False)
 #                            raw_input("Baseline Data --> Collecting Data for {}, {}, {}, {}, {}".format(gain, peak, leak, buff, base))
@@ -133,6 +134,7 @@ class BASELINE_TESTER(object):
         self.jsondict['config_buff'] = str ( self.femb_config.buffArray[self.buff] )
         self.jsondict['average_baseline'] = str( self.average_baseline )
         self.jsondict['chip_name'] = str( chip_name )
+        self.jsondict['chip_index'] = str ( chip_index )
         if self.result:
             self.jsondict['result'] = "Pass"
         else:
@@ -156,7 +158,7 @@ def main():
     sync the ADCs
     '''
     base_test = BASELINE_TESTER()      
-
+    print(sys.argv[1])
     params = json.loads(open(sys.argv[1]).read())    
     
     start_test_time = time.strftime("%H:%M:%S", time.localtime(time.time()))

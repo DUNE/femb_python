@@ -88,7 +88,7 @@ class MONITOR_TESTER(object):
         
             self.femb_config.fe_reg.set_fe_board(sts=0, snc=0, sg=2, st=2, 
 					smn=0, sbf=1, slk = 0, stb = 0, s16=0, slkh=0, sdc=0, 
-					sdacsw2=1, sdacsw1=0, sdac=self.femb_config.monitor_amplitude)
+					sdacsw2=1, sdacsw1=0, sdac=self.femb_config.monitor_amplitude, remapping=True) #remapping is to make gain/shaping times/base settings (0-3) consecutive in output and GUI
                                            
             self.femb_config.fe_reg.set_fe_chn(chip=chip_index, chn=chn, sts=1, snc=-1, sg=-1, st=-1, smn=1, sbf=-1)
             self.femb_config.configFeAsic(to_print = False)
@@ -133,6 +133,7 @@ class MONITOR_TESTER(object):
         self.jsondict['config_buff'] = str ( self.femb_config.buffArray[self.buff] )
         self.jsondict['average_peak'] = str( self.average_peak )
         self.jsondict['chip_name'] = str( chip_name )
+        self.jsondict['chip_index'] = str ( chip_index )
         if self.result:
             self.jsondict['result'] = "Pass"
         else:

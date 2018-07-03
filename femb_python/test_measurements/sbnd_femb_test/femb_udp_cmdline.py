@@ -41,7 +41,7 @@ class FEMB_UDP:
         #print ("Sent FEMB data from")
         #print (sock_write.getsockname())
         sock_write.close()
-        #print ("FEMB_UDP--> Write: reg=%x,value=%x"%(reg,data))
+#        print ("FEMB_UDP--> Write: reg=%x,value=%x"%(reg,data))
         
     #Read a full register from the FEMB FPGA.  Returns the 32 bits in an integer form
     def read_reg(self, reg):

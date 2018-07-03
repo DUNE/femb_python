@@ -74,7 +74,7 @@ class GUI_WINDOW(Frame):
             asic_pass = [[-1,-1,-1],[-1,-1,-1],[-1,-1,-1],[-1,-1,-1]], #results for each test
             power_ready = 0
         )
-
+        self.save_sync_results = False
         # Check out the data disk situation and find the most available disk
         freedisks = list()
         for dd in self.datadisks:
@@ -233,6 +233,9 @@ class GUI_WINDOW(Frame):
 
         self.start_button_result = Label(self, text="NOT STARTED",width=25)
         self.start_button_result.grid(sticky=W,row=2,column=columnbase+25,columnspan=25)
+        
+        save_results_button = Button(self, text="Save Sync Results", command=self.save_sync_results_function ,width=25)
+        save_results_button.grid(row=5,column=columnbase+9,columnspan=25)
 
         #Adding the record data button
         #record_data_button = Button(self, text="Record Data", command=self.record_data,width=25)
@@ -372,6 +375,8 @@ ASIC 3 ID: {asic3id}
                        "baseline_test_sequence",
                        "monitor_data_test_sequence",
                        "input_alive_power_cycle_sequence"]:
+#        for method in ["sync_adcs_sequence",
+#                       "baseline_test_sequence"]:
             LOUD = method.replace("_"," ").upper()
             methname = "do_" + method
             meth = getattr(self, methname)
@@ -392,13 +397,18 @@ ASIC 3 ID: {asic3id}
             continue
 
         self.start_button_result["text"] = "DONE "+self.params["session_start_time"]
-
+        
+        #this powers off the ASICs and writes final results to the params file
+        self.generic_sequence("", "femb_control_power",
+                              #range(4), range(4), range(2), 0 , 1 , 1 , 0 , #warm test
+                              [2] , [2] , [0] , 0 , 0 , 1 , 0 , #expedited cold test
+                              #[2] , [2] , [0] , 0 , 0 , 1 , 0 , #test
+                              argstr="OFF", handler=None)
+                              
         self.postResults()          
 
         self.update_idletasks()      
-        
-        self.runner(datasubdir="power",executable="femb_control_power", argstr="OFF")
-        
+                
         end_time = time.time()
         run_time = end_time-start_time
         print("Total run time: {}".format(int(run_time)))
@@ -411,11 +421,14 @@ ASIC 3 ID: {asic3id}
         self.update_idletasks()
         self.params['power_ready'] = 1
         
+    def save_sync_results_function(self):
+        self.save_sync_results = True        
 
 
     def reset_gui(self):
         #Power down all 4 chips:
-        self.runner(datasubdir="power",executable="femb_control_power", argstr="OFF")
+#        self.runner(datasubdir="power",executable="femb_control_power", argstr="OFF")
+                              
         self.params['power_ready'] = 0
 
         #Reset GUI:
@@ -470,6 +483,7 @@ ASIC 3 ID: {asic3id}
         self.methodMap['baseline_test_sequence_complete'] = False
         self.methodMap['monitor_data_test_sequence_complete'] = False
         self.methodMap['input_alive_power_cycle_sequence_complete'] = False
+        self.save_sync_results = False
         
         now = time.time()
         self.params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
@@ -496,8 +510,9 @@ ASIC 3 ID: {asic3id}
                     executable="femb_sync_adcs",
                     test_start_time = self.now,
                     outlabel = "{datasubdir}-{test_start_time}",
-                    chiplist = self.chiplist,
-                    argstr="{paramfile}")     
+                    chip_list = self.chiplist,
+                    argstr="{paramfile}",
+                    save_results = self.save_sync_results)     
                     
         end_time = time.time()
         run_time = end_time-start_time
@@ -510,7 +525,7 @@ ASIC 3 ID: {asic3id}
         button["text"] = title + " - DONE"
         self.update_idletasks()
 
-    def generic_sequence(self, method, executable, gains, shapes, bases,leakage,leakagex10,buff,acdc, handler=None):
+    def generic_sequence(self, method, executable, gains, shapes, bases,leakage,leakagex10,buff,acdc, argstr="{paramfile}", handler=None):
 
         '''
         Generically, run an executable through a sequence of gains/shape/bases
@@ -524,8 +539,9 @@ ASIC 3 ID: {asic3id}
 
         title = method.upper().replace("_", " ")
         print (title)
-        button = getattr(self, method+"_result")
-        button["text"] = title + " - IN PROGRESS"
+        if argstr == "{paramfile}": #do this for the tests, not the final power off
+            button = getattr(self, method+"_result")
+            button["text"] = title + " - IN PROGRESS"
         self.update_idletasks()        
         for gain in gains:
             for shape in shapes:
@@ -538,7 +554,7 @@ ASIC 3 ID: {asic3id}
                                            execute_start_time = exec_now,
                                            executable=executable,
                                            method=method,
-                                           argstr="{paramfile}",
+                                           argstr="{paramfile}",  #change back to {paramfile} 
                                            gain_ind = gain, 
                                            shape_ind = shape, 
                                            base_ind = base,

@@ -84,7 +84,8 @@ class ALIVE_TESTER(object):
 #                        sdacsw2=0, sdacsw1=a[test][0], sdac=0)
 
             self.femb_config.fe_reg.set_fe_board(sts=self.femb_config.testArray(test)[0], snc=0, sg=2, st=2, smn=0, sbf=0,
-                                                 slk=self.femb_config.leakArray(leak)[1], stb=0, s16=0, slkh=self.femb_config.leakArray(leak)[0], sdacsw2=0, sdacsw1=self.femb_config.testArray(test)[0], sdac=0)
+                                                 slk=self.femb_config.leakArray(leak)[1], stb=0, s16=0, slkh=self.femb_config.leakArray(leak)[0], sdacsw2=0, sdacsw1=self.femb_config.testArray(test)[0], sdac=0, remapping=True)
+                                                 #remapping is to make gain/shaping times/base settings (0-3) consecutive in output and GUI
              
             self.femb_config.configFeAsic(to_print = False)
 #                print ("Input Alive --> Collecting Data for {}, {}".format(test, leak))
@@ -141,7 +142,8 @@ class ALIVE_TESTER(object):
 #                            sdacsw2=0, sdacsw1=0, sdac=0)
             self.femb_config.fe_reg.set_fe_board(sts=0, snc=0, sg=2, st=2,
                                           smn=0, sbf=0, slk = 0, stb = 0, s16=0, slkh=0, sdc=0,
-                                          sdacsw2=0, sdacsw1=0, sdac=0)                               
+                                          sdacsw2=0, sdacsw1=0, sdac=0, remapping=True)
+                                          #remapping is to make gain/shaping times/base settings (0-3) consecutive in output and GUI
                            
             self.femb_config.configFeAsic(to_print = False)
             
@@ -190,6 +192,7 @@ class ALIVE_TESTER(object):
         self.jsondict['config_base'] = str( self.femb_config.baseArray[self.base] )
         self.jsondict['config_buff'] = str ( self.femb_config.buffArray[self.buff] )
         self.jsondict['chip_name'] = str( chip_name )
+        self.jsondict['chip_index'] = str ( chip_index )
         if self.result:
             self.jsondict['result'] = "Pass"
         else:
