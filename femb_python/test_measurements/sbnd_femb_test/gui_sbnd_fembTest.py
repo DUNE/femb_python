@@ -222,20 +222,20 @@ class GUI_WINDOW(Frame):
         label = Label(self, text="FE ASIC TESTS")
         label.grid(row=0,column=columnbase, columnspan=50)
 
-        load_button = Button(self, text="Load ASICs", command=self.load_asics,width=25)
-        load_button.grid(row=1,column=columnbase,columnspan=25)
+        self.load_button = Button(self, text="Load ASICs", bg="red", command=self.load_asics,width=25)
+        self.load_button.grid(row=1,column=columnbase,columnspan=25)
 
         self.load_button_result = Label(self, text="Press Load ASICs before loading",width=25)
         self.load_button_result.grid(sticky=W,row=1,column=columnbase+25,columnspan=25)
         
-        start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        start_button.grid(row=2,column=columnbase,columnspan=25)
+        self.start_button = Button(self, text="Start Tests", command=self.start_measurements,width=25)
+        self.start_button.grid(row=2,column=columnbase,columnspan=25)
 
         self.start_button_result = Label(self, text="NOT STARTED",width=25)
         self.start_button_result.grid(sticky=W,row=2,column=columnbase+25,columnspan=25)
         
-        save_results_button = Button(self, text="Save Sync Results", command=self.save_sync_results_function ,width=25)
-        save_results_button.grid(row=5,column=columnbase+9,columnspan=25)
+        self.save_results_button = Button(self, text="Save Sync Results", bg="yellow", command=self.save_sync_results_function ,width=25)
+        self.save_results_button.grid(row=5,column=columnbase+9,columnspan=25)
 
         #Adding the record data button
         #record_data_button = Button(self, text="Record Data", command=self.record_data,width=25)
@@ -420,10 +420,11 @@ ASIC 3 ID: {asic3id}
         self.load_button_result["text"] = "Ok to load new ASICs"
         self.update_idletasks()
         self.params['power_ready'] = 1
+        self.load_button["bg"]="green"
         
     def save_sync_results_function(self):
-        self.save_sync_results = True        
-
+        self.save_sync_results = True       
+        self.save_results_button["bg"]="green"
 
     def reset_gui(self):
         #Power down all 4 chips:
@@ -480,6 +481,9 @@ ASIC 3 ID: {asic3id}
         self.asic3_monitor_result["fg"] = "black"
         self.asic3_alive_result["fg"] = "black"
         self.asic3_final_result["fg"] = "black"
+        self.save_results_button["bg"] = "yellow"
+        self.load_button["bg"]="red"
+        
         self.methodMap['baseline_test_sequence_complete'] = False
         self.methodMap['monitor_data_test_sequence_complete'] = False
         self.methodMap['input_alive_power_cycle_sequence_complete'] = False

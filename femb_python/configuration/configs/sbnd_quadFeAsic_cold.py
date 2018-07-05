@@ -408,7 +408,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 #Get the ASIC to send out pulses.  Bit 6 needs to be high for ASIC DAC
                 self.reg_17_value = (self.default_TP_Period << 16) + (self.default_TP_Shift << 8) + (0b01000000)
                 self.femb.write_reg(17, self.reg_17_value)
-                
+                self.configFeAsic()
                 
                 print ("FEMB_CONFIG--> Test ADC {}".format(chip))
                 if saveresults:
