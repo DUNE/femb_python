@@ -74,7 +74,7 @@ class GUI_WINDOW(Frame):
             asic_pass = [[-1,-1,-1],[-1,-1,-1],[-1,-1,-1],[-1,-1,-1]], #results for each test
             power_ready = 0
         )
-        self.save_sync_results = False
+        self.save_sync_results = True
         # Check out the data disk situation and find the most available disk
         freedisks = list()
         for dd in self.datadisks:
@@ -234,7 +234,7 @@ class GUI_WINDOW(Frame):
         self.start_button_result = Label(self, text="NOT STARTED",width=25)
         self.start_button_result.grid(sticky=W,row=2,column=columnbase+25,columnspan=25)
         
-        self.save_results_button = Button(self, text="Save Sync Results", bg="yellow", command=self.save_sync_results_function ,width=25)
+        self.save_results_button = Button(self, text="Save Sync Results", bg="green", command=self.save_sync_results_function ,width=25)
         self.save_results_button.grid(row=5,column=columnbase+9,columnspan=25)
 
         #Adding the record data button
@@ -423,8 +423,12 @@ ASIC 3 ID: {asic3id}
         self.load_button["bg"]="green"
         
     def save_sync_results_function(self):
-        self.save_sync_results = True       
-        self.save_results_button["bg"]="green"
+        if not self.save_sync_results:
+            self.save_sync_results = True       
+            self.save_results_button["bg"]="green"
+        else:
+            self.save_sync_results = False
+            self.save_results_button["bg"]="red"
 
     def reset_gui(self):
         #Power down all 4 chips:

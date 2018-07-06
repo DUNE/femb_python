@@ -102,8 +102,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.sync_peak_min = 3500
         self.sync_peak_max = 7500
         self.sync_peak_height = 11
-        self.sync_peaks_max = 90
-        self.sync_baseline_min = 0
+        self.sync_peaks_max = 10
+        self.sync_baseline_min = 1000
         self.sync_baseline_max = 3500
         
         #TEST SETTINGS#####################################################################################
