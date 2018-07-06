@@ -52,25 +52,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
         #from Eric's user_settings function
         self.channels = 16
-        self.chip_num=4
-        self.PC_IP= '192.168.121.50'
-        self.frame_size=0x02cb
-        self.default_DAC = 0x270
-        self.default_TP_Period = 800
-        self.default_TP_Shift = 0
-        self.pre_buffer = 200
-        
-        self.Latch_Settings = [0x00000000, 0x00000000, 0x00000000, 0x00000000]
-        self.Phase_Settings = [0x00000000, 0x00000000, 0x00000000, 0x00000000]
-        self.test_ADC_Settings = 0x000000C8
-        self.Sample_Clock_Settings = [0x00000000, 0x00000000]
-        
-        self.sync_peak_min = 3500
-        self.sync_peak_max = 7500
-        self.sync_peak_height = 11
-        self.sync_peaks_max = 90
-        self.sync_baseline_min = 0
-        self.sync_baseline_max = 3000
         
         #for fe_reg mapping
         self.fe_regs_sw = None
@@ -213,9 +194,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
         self.bits_to_mv = (2048.0 / 16384)
         self.bits_to_V = (2.048 / 16384)
-        
-        self.channels = 16
-        
+                
         #mapping of settings
         self.baseArray = ["200mV", "900mV"]
         self.gainArray = ["4.7mV", "7.8mV", "14mV", "25mV"]
