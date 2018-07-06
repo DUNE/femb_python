@@ -485,13 +485,13 @@ ASIC 3 ID: {asic3id}
         self.asic3_monitor_result["fg"] = "black"
         self.asic3_alive_result["fg"] = "black"
         self.asic3_final_result["fg"] = "black"
-        self.save_results_button["bg"] = "yellow"
+        self.save_results_button["bg"] = "green"
         self.load_button["bg"]="red"
         
         self.methodMap['baseline_test_sequence_complete'] = False
         self.methodMap['monitor_data_test_sequence_complete'] = False
         self.methodMap['input_alive_power_cycle_sequence_complete'] = False
-        self.save_sync_results = False
+        self.save_sync_results = True
         
         now = time.time()
         self.params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
