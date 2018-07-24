@@ -49,13 +49,13 @@ class ALIVE_TESTER(object):
         self.jsondict = {'type':'alive_test'}
         self.jsondict['version'] = '1.0'
         self.jsondict['timestamp']  = str(self.write_data.date) 
-        self.tests = ["test_off", "test_ext"]            
+        self.tests = ["test_ext", "test_off"]            
         self.leaks = "500pA"
         
     def get_data(self):
         self.femb_config.make_filepaths(self.datadir,self.chip_list, os.path.join(self.datasubdir,"Data"))
         for num,i in enumerate(self.chip_list):
-            if self.asic_pass[i[0]] == [1,1,-1]:
+            if self.asic_pass[i[0]] == [1,1,-1] and self.config_list[i[0]]:
                 folder_path = os.path.join(self.datadir,i[1])
                 self.save_alive_data(folder_path, chip_index=i[0], chip_name=i[1])
 
@@ -87,7 +87,7 @@ class ALIVE_TESTER(object):
                                                  slk=self.femb_config.leakArray(leak)[1], stb=0, s16=0, slkh=self.femb_config.leakArray(leak)[0], sdacsw2=0, sdacsw1=self.femb_config.testArray(test)[0], sdac=0, remapping=True)
                                                  #remapping is to make gain/shaping times/base settings (0-3) consecutive in output and GUI
              
-            self.femb_config.configFeAsic(to_print = False)
+            self.config_list = self.femb_config.configFeAsic(to_print = False)
 #                print ("Input Alive --> Collecting Data for {}, {}".format(test, leak))
             for chn in range(self.femb_config.channels):
                 time.sleep(.1)
@@ -121,7 +121,7 @@ class ALIVE_TESTER(object):
                     f.write(rawdata) 
                     f.close()
                         
-        self.femb_config.femb.write_reg(9, 8)
+#        self.femb_config.femb.write_reg(9, 8)
         print("Test--> Testing {} power cycles (1 minute in between)".format(self.femb_config.power_cycles))
         sys.stdout.flush()
         for cycle in range(self.femb_config.power_cycles):
@@ -143,9 +143,9 @@ class ALIVE_TESTER(object):
             self.femb_config.fe_reg.set_fe_board(sts=0, snc=0, sg=2, st=2,
                                           smn=0, sbf=0, slk = 0, stb = 0, s16=0, slkh=0, sdc=0,
                                           sdacsw2=0, sdacsw1=0, sdac=0, remapping=True)
-                                          #remapping is to make gain/shaping times/base settings (0-3) consecutive in output and GUI
+                                          #remapping is to make gain/shaping setting values consecutive (0-3)
                            
-            self.femb_config.configFeAsic(to_print = False)
+            self.config_list = self.femb_config.configFeAsic(to_print = False)
             
             time.sleep(1)
             self.femb_config.femb.write_reg(1, self.femb_config.test_DAC_in)
@@ -166,17 +166,16 @@ class ALIVE_TESTER(object):
                 rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = True)
                 for pack in range (self.femb_config.alive_length):
                     rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = False)
-        
+                
                 with open(full_filename,"wb") as f:
                     f.write(rawdata) 
                     f.close()
-                        
         print ("Test--> Input Alive data completed")
         
 
     def analyze_data(self):
         for num,i in enumerate(self.chip_list):
-            if self.asic_pass[i[0]] == [1,1,-1]:
+            if self.asic_pass[i[0]] == [1,1,-1] and self.config_list[i[0]]:
                 folder_path = os.path.join(self.datadir, i[1])
                 self.result = self.analyze.alive_directory(folder_path, i[1], self.datasubdir, self.tests, self.leaks)
                 self.archive_results(chip_name = i[1], chip_index = i[0])
@@ -193,6 +192,7 @@ class ALIVE_TESTER(object):
         self.jsondict['config_buff'] = str ( self.femb_config.buffArray[self.buff] )
         self.jsondict['chip_name'] = str( chip_name )
         self.jsondict['chip_index'] = str ( chip_index )
+        self.jsondict['config_list'] = self.config_list
         if self.result:
             self.jsondict['result'] = "Pass"
         else:
@@ -210,11 +210,7 @@ def main():
     '''
     alive_test = ALIVE_TESTER()      
 
-    params = json.loads(open(sys.argv[1]).read())        
-    
-#    start_test_time = time.strftime("%H:%M:%S", time.localtime(time.time()))
-#    print("starting sbnd_alive_test:main at {}".format(start_test_time))
-    
+    params = json.loads(open(sys.argv[1]).read())           
     
     alive_test.datadir = params['datadir']
     alive_test.chip_list = params['chip_list']
@@ -225,11 +221,10 @@ def main():
     alive_test.base = params['base_ind']
     alive_test.datasubdir = params['datasubdir']
     alive_test.asic_pass = params['asic_pass']
+    alive_test.config_list = params['config_list']
     
     alive_test.get_data()
     alive_test.analyze_data()
-    
-#    print("ending sbnd_alive_test:main at {}".format(time.strftime("%H:%M:%S", time.localtime(time.time()))))
- 
+     
 if __name__ == '__main__':
     main()
