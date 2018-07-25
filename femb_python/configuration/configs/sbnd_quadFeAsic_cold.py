@@ -380,12 +380,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 #                sys.exit("FEMB_CONFIG--> femb_config_femb : Wrong readback. FE SPI failed")
                 return config_list
                 
-            if (wrong == False): 
+            elif (wrong == False): 
                 self.fe_reg.info.fe_regs_sent = Feasic_regs
                 if (to_print == True):
                     print ("FEMB_CONFIG--> FE ASIC SPI is OK")
                 return config_list
                 break        
+            else:
+                return config_list
             
             
         

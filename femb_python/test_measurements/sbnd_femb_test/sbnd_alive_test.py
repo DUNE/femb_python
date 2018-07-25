@@ -49,7 +49,7 @@ class ALIVE_TESTER(object):
         self.jsondict = {'type':'alive_test'}
         self.jsondict['version'] = '1.0'
         self.jsondict['timestamp']  = str(self.write_data.date) 
-        self.tests = ["test_ext", "test_off"]            
+        self.tests = ["test_off", "test_ext"]            
         self.leaks = "500pA"
         
     def get_data(self):
