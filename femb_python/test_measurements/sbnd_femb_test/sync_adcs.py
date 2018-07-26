@@ -63,9 +63,9 @@ class SYNC_ADCS(object):
         self.femb_config.make_filepaths(self.datadir,self.chip_list,self.datasubdir)
 
         self.femb_config.resetFEMBBoard()
-        self.femb_config.initBoard()
+        self.config_list = self.femb_config.initBoard(self.boardID)
 
-        self.femb_config.syncADC(self.datadir, self.chip_list, self.datasubdir, saveresults=self.save_results)
+        self.femb_config.syncADC(self.datadir, self.chip_list, self.datasubdir, config_list = self.config_list, saveresults=self.save_results)
         
 #        self.femb_config.syncADC()
         #Tells the FPGA to turn on each DAC
@@ -99,7 +99,7 @@ class SYNC_ADCS(object):
             call(["mv", "Sync_Plot.png", os.path.join(chip_outpathlabel,plotname)])
             
             self.femb_config.fe_reg.set_fe_chn(chip = i[0], chn = 0, smn = 1)
-            self.femb_config.configFeAsic()
+            self.config_list = self.femb_config.configFeAsic()
             
             #Read from TEST output ADCs
             self.femb_config.femb.write_reg(60, 1)
@@ -116,7 +116,7 @@ class SYNC_ADCS(object):
             print("Plot--> Data Saved as " + plot_name + "_{}".format(i[0]))
             
             self.femb_config.fe_reg.set_fe_chn(chip = i[0], chn = 0, smn = 0)
-            self.femb_config.configFeAsic()
+            self.config_list = self.femb_config.configFeAsic()
             
             #Read from TEST output ADCs
             self.femb_config.femb.write_reg(60, 0)
@@ -125,7 +125,20 @@ class SYNC_ADCS(object):
             self.femb_config.femb.write_reg(9, 3)
             
         self.femb_config.femb.write_reg(17,0)
+        
+        self.archiveResults()        
+        
+    def archiveResults(self):
+        print("SYNCHRONIZATION RESULTS - ARCHIVE")
+        
+        self.jsondict['filedir'] = str( self.write_data.filedir )
+        self.jsondict['boardID'] = str( self.boardID )
+        self.jsondict['config_list'] = self.config_list
 
+        for chip in self.chip_list:
+            jsonFile = os.path.join(self.datadir,chip[1],self.datasubdir,"results.json")
+            with open(jsonFile,'w') as outfile:
+                json.dump(self.jsondict, outfile, indent=4)
 
 def main():
     '''
@@ -139,6 +152,8 @@ def main():
     sync_adcs.chip_list = params['chip_list']
     sync_adcs.datasubdir = params['datasubdir']
     sync_adcs.save_results = params['save_results']
+    sync_adcs.boardID = params['boardid']
+    sync_adcs.config_list = params['config_list']
     
     sync_adcs.sync()
 

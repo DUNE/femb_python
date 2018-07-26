@@ -75,8 +75,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.default_TP_Shift = 0
         self.pre_buffer = 200
         
-        self.Latch_Settings = [0x00000000, 0x00000000, 0x00000000, 0x00000000]
-        self.Phase_Settings = [0x00000000, 0x00000000, 0x00000000, 0x00000000]
+        self.Latch_Settings_default = [0x00000000, 0x00000000, 0x00000000, 0x00000000]
+        self.Phase_Settings_default = [0x00000000, 0x00000000, 0x00000000, 0x00000000]
+        self.Latch_Settings = {'1v0': [0x00000000, 0x00000000, 0x00000000, 0x00000000],'2v0': [0x00000000, 0x00000000, 0x00000000, 0x00000000],'3v0': [0x00000000, 0x00000000, 0x00000000, 0x00000000]}
+        self.Phase_Settings = {'1v0': [0x55555555, 0x51401550, 0x55555555, 0x01555004], '2v0': [0x00000000, 0x00000000, 0x00000000, 0x00000000], '3v0': [0x01000005, 0x00000000, 0x55555555, 0x00000000]}
         self.test_ADC_Settings = 0x000000C8
         self.Sample_Clock_Settings = [0x00000000, 0x00000000]
         
@@ -86,6 +88,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.sync_peaks_max = 10
         self.sync_baseline_min = 1000
         self.sync_baseline_max = 3500
+        self.sync_baseline_r = 15
+        self.sync_high_freq_noise_max = 100000
         
         #TEST SETTINGS#####################################################################################
         #Amount of data to collect per packet
@@ -146,7 +150,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.noise_reject_min = 150
         
         #CHANNEL ALIVE ANALYSIS SETTINGS###################################################################
-        self.test_peak_min = 450
+        self.test_peak_min = 430
         self.under_max = 200
         self.test_peaks_min = 2
         self.test_peaks_max = 25
@@ -231,7 +235,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(4)
         print ("FEMB_CONFIG--> Reset FEMB is DONE")
 
-    def initBoard(self):
+    def initBoard(self, boardID):
         print ("FEMB_CONFIG--> Initialize FEMB")
         #set up default registers
         
@@ -262,12 +266,20 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Write the default ADC settings
         i = 0
         for reg in range(65, 69, 1):
-            self.femb.write_reg(reg, self.Latch_Settings[i])
+            try:
+                self.femb.write_reg(reg, self.Latch_Settings[boardID][i])
+                print(boardID)
+            except KeyError:
+                self.femb.write_reg(reg, self.Latch_Settings_default[i])
+                print(boardID)
             i = i + 1
             
         i = 0
         for reg in range(69, 73, 1):
-            self.femb.write_reg(reg, self.Phase_Settings[i])
+            try:
+                self.femb.write_reg(reg, self.Phase_Settings[boardID][i])
+            except KeyError:
+                self.femb.write_reg(reg, self.Phase_Settings_default[i])
             i = i + 1
             
         self.femb.write_reg(73, self.test_ADC_Settings)
@@ -288,7 +300,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.fe_reg.set_fe_board(sts=1, snc=1, sg=1, st=1, smn=0, sbf=1, 
                        slk = 0, stb = 0, s16=0, slkh=0, sdc=0, sdacsw2=1, sdacsw1=0, sdac=self.sync_peak_height)
 
-        self.configFeAsic()
+        return self.configFeAsic()
         
         print ("FEMB_CONFIG--> Initialize FEMB is DONE")
         
@@ -296,7 +308,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def configFeAsic(self, to_print = False):
         #Grab ASIC settings from linked class
         Feasic_regs = self.fe_reg.REGS
-        #print(Feasic_regs)
+        #note which sockets fail        
+        config_list = [0,0,0,0]
         #Choose to output status updates or not
         if (to_print == True):
             print ("FEMB_CONFIG--> Config FE ASIC SPI")
@@ -330,119 +343,139 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             val = self.femb.read_reg(self.REG_FEASIC_SPI) 
             wrong = False
 
+            #check to see if everything went well, and omit 'bad' chips from further testing
             if (((val & 0x10000) >> 16) != 1 and (0 in self.chips_to_use)):
                 print ("FEMB_CONFIG--> Something went wrong when programming FE 1")
+                config_list[0] = 0
                 wrong = True
+            else:
+                config_list[0] = 1
                 
             if (((val & 0x20000) >> 17) != 1 and (1 in self.chips_to_use)):
                 print ("FEMB_CONFIG--> Something went wrong when programming FE 2")
+                config_list[1] = 0
                 wrong = True
+            else:
+                config_list[1] = 1
                 
             if (((val & 0x40000) >> 18) != 1 and (2 in self.chips_to_use)):
                 print ("FEMB_CONFIG--> Something went wrong when programming FE 3")
+                config_list[2] = 0
                 wrong = True
+            else:
+                config_list[2] = 1
                 
             if (((val & 0x80000) >> 19) != 1 and (3 in self.chips_to_use)):
                 print ("FEMB_CONFIG--> Something went wrong when programming FE 4")
+                config_list[3] = 0
                 wrong = True
+            else:
+                config_list[3] = 1
 
             if (wrong == True and k == 9):
-                print ("FEMB_CONFIG--> SPI_Status is {}").format(hex(val))
-                sys.exit("FEMB_CONFIG--> femb_config_femb : Wrong readback. FE SPI failed")
-                return
+                try:
+                    print ("FEMB_CONFIG--> SPI_Status is {}").format(hex(val))
+                except AttributeError:
+                    print ("FEMB_CONFIG--> SPI_STatus is NOT ok for all chips")
+#                sys.exit("FEMB_CONFIG--> femb_config_femb : Wrong readback. FE SPI failed")
+                return config_list
                 
             elif (wrong == False): 
                 self.fe_reg.info.fe_regs_sent = Feasic_regs
                 if (to_print == True):
                     print ("FEMB_CONFIG--> FE ASIC SPI is OK")
+                return config_list
                 break        
+            else:
+                return config_list
             
             
         
         
     #ASSUMES ASICS HAVE BEEN SET FOR THE INTERNAL PULSER
-    def syncADC(self, datadir, chiplist, datasubdir, saveresults=False): 
+    def syncADC(self, datadir, chiplist, datasubdir, config_list = [1,1,1,1], saveresults=False): 
         print ("FEMB_CONFIG--> Start sync ADC")
         chips = self.chips_to_use
         #Don't ask me why, but you need to set the channel at this point for it to output the right data
         self.select_chip_chn(chip = 0, chn = 1)
             
-        for chip in chips:            
-            outputfile = os.path.join(datadir,chiplist[chip][1],datasubdir,"syncOutput.txt")            
-            savefigpath = os.path.join(datadir,chiplist[chip][1],datasubdir,"syncplots")
-            os.makedirs(savefigpath)
-            with open(outputfile, 'w') as f:
-                #Tells the FPGA to turn on each DAC
-                self.femb.write_reg(61, 0x0)
-                
-                #Read from DATA output ADCs
-                self.femb.write_reg(60, 0)
-    
-                #Set to Regular Mode (not sampling scope mode)
-                self.femb.write_reg(10, 0)
-                
-                #Select the internal DAC readout
-                self.femb.write_reg(9, 3)
-    
-                #Get the ASIC to send out pulses.  Bit 6 needs to be high for ASIC DAC
-                self.reg_17_value = (self.default_TP_Period << 16) + (self.default_TP_Shift << 8) + (0b01000000)
-                self.femb.write_reg(17, self.reg_17_value)
-                self.configFeAsic()
-                
-                print ("FEMB_CONFIG--> Test ADC {}".format(chip))
-                if saveresults:
-                    f.write("FEMB_CONFIG--> Test ADC {}\n".format(chip))
-                for chn in range(self.channels):
-                    #Tests if it's synchronized, returns True if it is
+        for chip in chips:        
+            if config_list[chip]:
+                outputfile = os.path.join(datadir,chiplist[chip][1],datasubdir,"syncOutput.txt")            
+                savefigpath = os.path.join(datadir,chiplist[chip][1],datasubdir,"syncplots")
+                os.makedirs(savefigpath)
+                with open(outputfile, 'w') as f:
+                    #Tells the FPGA to turn on each DAC
+                    self.femb.write_reg(61, 0x0)
+                    
+                    #Read from DATA output ADCs
+                    self.femb.write_reg(60, 0)
+        
+                    #Set to Regular Mode (not sampling scope mode)
+                    self.femb.write_reg(10, 0)
+                    
+                    #Select the internal DAC readout
+                    self.femb.write_reg(9, 3)
+        
+                    #Get the ASIC to send out pulses.  Bit 6 needs to be high for ASIC DAC
+                    self.reg_17_value = (self.default_TP_Period << 16) + (self.default_TP_Shift << 8) + (0b01000000)
+                    self.femb.write_reg(17, self.reg_17_value)
+                    self.configFeAsic()
+                    
+                    print ("FEMB_CONFIG--> Test ADC {}".format(chip))
+                    if saveresults:
+                        f.write("FEMB_CONFIG--> Test ADC {}\n".format(chip))
+                    for chn in range(self.channels):
+                        #Tests if it's synchronized, returns True if it is
+                        unsync = self.testUnsync(f, savefigpath, saveresults, chip = chip, chn = chn)
+                        if unsync != True:
+                            #print ("FEMB_CONFIG--> Chip {}, Chn {} not synced, try to fix".format(chip, chn))
+                            if saveresults:
+                                f.write("FEMB_CONFIG--> Chip {}, Chn {} not synced, try to fix\n".format(chip, chn))
+                            response = self.fixUnsync_outputADC(f, savefigpath, saveresults, chip = chip, chn = chn)
+                            if (response != True):
+                                #print ("FEMB_CONFIG--> Something is wrong with Chip {}, Chn {}".format(chip, chn))
+                                if saveresults:
+                                    f.write("FEMB_CONFIG--> Something is wrong with Chip {}, Chn {}\n".format(chip, chn))
+        #                        sys.exit ("FEMB_CONFIG--> ADC {} could not sync".format(chip))
+        
+                    #print ("FEMB_CONFIG--> ADC {} synced!".format(chip))
+                    if saveresults:
+                        f.write("FEMB_CONFIG--> ADC {} synced!\n".format(chip))
+                    
+                    #print ("FEMB_CONFIG--> Trying to sync test ADC".format(chip))
+                    if saveresults:
+                        f.write("FEMB_CONFIG--> Trying to sync test ADC\n".format(chip))
+                    
+                    #Have one of the channels output its pulse to the test monitor pin
+                    self.fe_reg.set_fe_chn(chip = chip, chn = 0, smn = 1)
+                    self.configFeAsic()
+                    
+                    #Read from TEST output ADCs
+                    self.femb.write_reg(60, 1)
+                    
+                    #Select the monitor readout
+                    self.femb.write_reg(9, 3)
+                    
                     unsync = self.testUnsync(f, savefigpath, saveresults, chip = chip, chn = chn)
                     if unsync != True:
-                        #print ("FEMB_CONFIG--> Chip {}, Chn {} not synced, try to fix".format(chip, chn))
+                        #print ("FEMB_CONFIG--> Chip {} (test ADC) not synced, try to fix".format(chip))
                         if saveresults:
-                            f.write("FEMB_CONFIG--> Chip {}, Chn {} not synced, try to fix\n".format(chip, chn))
-                        response = self.fixUnsync_outputADC(f, savefigpath, saveresults, chip = chip, chn = chn)
+                            f.write("FEMB_CONFIG--> Chip {} (test ADC) not synced, try to fix\n".format(chip))
+                        response = self.fixUnsync_testADC(f, savefigpath, saveresults, chip = chip)
                         if (response != True):
-                            #print ("FEMB_CONFIG--> Something is wrong with Chip {}, Chn {}".format(chip, chn))
+                            #print ("FEMB_CONFIG--> Something is wrong with Chip {} (test ADC)".format(chip))
                             if saveresults:
-                                f.write("FEMB_CONFIG--> Something is wrong with Chip {}, Chn {}\n".format(chip, chn))
-    #                        sys.exit ("FEMB_CONFIG--> ADC {} could not sync".format(chip))
-    
-                #print ("FEMB_CONFIG--> ADC {} synced!".format(chip))
-                if saveresults:
-                    f.write("FEMB_CONFIG--> ADC {} synced!\n".format(chip))
-                
-                #print ("FEMB_CONFIG--> Trying to sync test ADC".format(chip))
-                if saveresults:
-                    f.write("FEMB_CONFIG--> Trying to sync test ADC\n".format(chip))
-                
-                #Have one of the channels output its pulse to the test monitor pin
-                self.fe_reg.set_fe_chn(chip = chip, chn = 0, smn = 1)
-                self.configFeAsic()
-                
-                #Read from TEST output ADCs
-                self.femb.write_reg(60, 1)
-                
-                #Select the monitor readout
-                self.femb.write_reg(9, 3)
-                
-                unsync = self.testUnsync(f, savefigpath, saveresults, chip = chip, chn = chn)
-                if unsync != True:
-                    #print ("FEMB_CONFIG--> Chip {} (test ADC) not synced, try to fix".format(chip))
-                    if saveresults:
-                        f.write("FEMB_CONFIG--> Chip {} (test ADC) not synced, try to fix\n".format(chip))
-                    response = self.fixUnsync_testADC(f, savefigpath, saveresults, chip = chip)
-                    if (response != True):
-                        #print ("FEMB_CONFIG--> Something is wrong with Chip {} (test ADC)".format(chip))
+                                f.write("FEMB_CONFIG--> Something is wrong with Chip {} (test ADC)\n".format(chip))
+                    else:
+                        print ("FEMB_CONFIG--> Chip {} (test ADC) synced!".format(chip))
                         if saveresults:
-                            f.write("FEMB_CONFIG--> Something is wrong with Chip {} (test ADC)\n".format(chip))
-                else:
-                    print ("FEMB_CONFIG--> Chip {} (test ADC) synced!".format(chip))
-                    if saveresults:
-                        f.write("FEMB_CONFIG--> Chip {} (test ADC) synced!\n".format(chip))
-            
-            #clean up if not debugging sync output
-            if not saveresults:
-                os.remove(outputfile)
-                os.rmdir(savefigpath)
+                            f.write("FEMB_CONFIG--> Chip {} (test ADC) synced!\n".format(chip))
+                
+                #clean up if not debugging sync output
+                if not saveresults:
+                    os.remove(outputfile)
+                    os.rmdir(savefigpath)
                 
         outputfile = os.path.join(datadir,"syncresults.txt")
         with open(outputfile, 'w') as f:
@@ -490,6 +523,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         packets = 25
         data = self.get_data_chipXchnX(chip = chip, chn = chn, packets = packets, data_format = "counts")
         
+        #self.plot.ryans_quickplot(data)
+        
         #Find some peaks
         peaks_index = detect_peaks(x=data, mph=self.sync_peak_min, mpd=100) 
         #Make sure you have more than 0 peaks (so it's not flat) and less than the maximum 
@@ -533,7 +568,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                         ax.scatter(j/2, y_value, marker='x')
                         
                     ax.set_ylabel('mV')
-                    ax.set_title("Error")
+                    ax.set_title("ERROR: Chip {}, Chn {} has a peak that's {}".format(chip, chn, peak))
                     ax.title.set_fontsize(30)
                     for item in ([ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
                         item.set_fontsize(20)
@@ -560,13 +595,55 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                     ax.scatter(j/2, y_value, marker='x')
                     
                 ax.set_ylabel('mV')
-                ax.set_title("Error")
+                ax.set_title("Chip {}, Chn {} has a baseline that's {}".format(chip, chn, baseline))
                 ax.title.set_fontsize(30)
                 for item in ([ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
                     item.set_fontsize(20)
                 plt.savefig(os.path.join(savefigpath,"chip{}chn{}baseline{}.jpg".format(chip,chn,baseline)))
                 plt.close()
-                return False 
+                return False
+                
+        #check if the pulse has high frequency noise
+        total_high_freq_noise = 0
+        for peak in peaks_index:
+            dt = 0
+            t_high = 0
+            t_low = 0
+            while True:
+                dt = dt + 1
+                #check to see if we have reached the neighborhood of the baseline
+                if abs(data[peak+dt] - baseline) < self.sync_baseline_r and not t_high:
+                    t_high = peak+dt
+                if abs(data[peak-dt] - baseline) < self.sync_baseline_r and not t_low:
+                    t_low = peak-dt
+                if t_high and t_low:
+                    break
+                if dt == 100:
+                    if not t_high:
+                        t_high = peak + 100
+                    if not t_low:
+                        t_low = peak - 100
+                    break
+            pulse_data = data[t_low:t_high]
+            pulse_data_fft = np.fft.fft(pulse_data)[:int(len(pulse_data)/2)]
+            total_high_freq_noise = total_high_freq_noise + np.sum(abs(pulse_data_fft[5:].real))
+        avg_high_freq_noise = total_high_freq_noise / len(peaks_index)
+        
+        if avg_high_freq_noise > self.sync_high_freq_noise_max:
+            if saveresults:
+                f.write("FEMB CONFIG--> Chip {}, Chn {} has lots of high frequency noise".format(chip, chn))
+                figure_data = self.plot.quickPlot(pulse_data)
+                ax = figure_data[0]
+                    
+                ax.set_ylabel('mV')
+                ax.set_title("Chip {}, Chn {} has lots of high frequency noise".format(chip, chn))
+                ax.title.set_fontsize(30)
+                for item in ([ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
+                    item.set_fontsize(20)
+                plt.savefig(os.path.join(savefigpath,"chip{}chn{}high_freq.jpg"))
+                plt.close()
+                return False
+            
         return True
             
     #Shifts through all possible delay and phase options, checking to see if each one fixed the issue

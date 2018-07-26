@@ -55,8 +55,9 @@ class MONITOR_TESTER(object):
         
     def get_data(self):
         for num,i in enumerate(self.chip_list):
-            folder_path = os.path.join(self.datadir,i[1])
-            self.save_monitor_data(folder_path, chip_index=i[0], chip_name=i[1])
+            if self.config_list[i[0]]:
+                folder_path = os.path.join(self.datadir,i[1])
+                self.save_monitor_data(folder_path, chip_index=i[0], chip_name=i[1])
 
     def save_monitor_data(self, folder_path, chip_index, chip_name):
         sys.stdout.flush()
@@ -91,7 +92,7 @@ class MONITOR_TESTER(object):
 					sdacsw2=1, sdacsw1=0, sdac=self.femb_config.monitor_amplitude, remapping=True) #remapping is to make gain/shaping times/base settings (0-3) consecutive in output and GUI
                                            
             self.femb_config.fe_reg.set_fe_chn(chip=chip_index, chn=chn, sts=1, snc=-1, sg=-1, st=-1, smn=1, sbf=-1)
-            self.femb_config.configFeAsic(to_print = False)
+            self.config_list = self.femb_config.configFeAsic(to_print = False)
     			
             self.femb_config.select_chip_chn(chip = chip_index, chn = chn)
             filename = self.femb_config.Monitor_Naming.format(chn)
@@ -113,13 +114,14 @@ class MONITOR_TESTER(object):
 
     def analyze_data(self):
         for num,i in enumerate(self.chip_list):
-            folder_path = os.path.join(self.datadir,i[1])
-            self.result, self.peaks, self.differences, self.average_peak = self.analyze2.monitor_directory(folder_path, i[1], self.datasubdir, self.datadir, self.gain, self.shape, self.leak, self.buff, self.base)
-            self.archive_results(i[1],i[0])
-            if (self.result == True):
-                print("Chip {} (Socket {}) PASSED!".format(i[1], i[0]))
-            if (self.result == False):
-                print("Chip {} (Socket {}) FAILED!".format(i[1], i[0]))
+            if self.config_list[i[0]]:
+                folder_path = os.path.join(self.datadir,i[1])
+                self.result, self.peaks, self.differences, self.average_peak = self.analyze2.monitor_directory(folder_path, i[1], self.datasubdir, self.datadir, self.gain, self.shape, self.leak, self.buff, self.base)
+                self.archive_results(i[1],i[0])
+                if (self.result == True):
+                    print("Chip {} (Socket {}) PASSED!".format(i[1], i[0]))
+                if (self.result == False):
+                    print("Chip {} (Socket {}) FAILED!".format(i[1], i[0]))
         
     def archive_results(self, chip_name, chip_index):
         print("MONITOR DATA RESULTS - ARCHIVE")
@@ -134,6 +136,7 @@ class MONITOR_TESTER(object):
         self.jsondict['average_peak'] = str( self.average_peak )
         self.jsondict['chip_name'] = str( chip_name )
         self.jsondict['chip_index'] = str ( chip_index )
+        self.jsondict['config_list'] = self.config_list
         if self.result:
             self.jsondict['result'] = "Pass"
         else:
@@ -161,11 +164,7 @@ def main():
     '''
     monitor_test = MONITOR_TESTER()      
 
-    params = json.loads(open(sys.argv[1]).read())        
-    
-    start_test_time = time.strftime("%H:%M:%S", time.localtime(time.time()))
-#    print("starting sbnd_monitor_test:main at {}".format(start_test_time))
-    
+    params = json.loads(open(sys.argv[1]).read())            
     
     monitor_test.datadir = params['datadir']
     monitor_test.chip_list = params['chip_list']
@@ -175,15 +174,13 @@ def main():
     monitor_test.buff = params['buffer_ind']
     monitor_test.base = params['base_ind']
     monitor_test.datasubdir = params['datasubdir']
+    monitor_test.config_list = params['config_list']
     
     monitor_test.get_data()
     monitor_test.analyze_data()
 #    
 #    #end of test so tell FPGA to turn off ASICs
 #    monitor_test.femb_config.femb.write_reg(12, 0xF)
-    
-    
-#    print("ending sbnd_monitor_test:main at {}".format(time.strftime("%H:%M:%S", time.localtime(time.time()))))
- 
+     
 if __name__ == '__main__':
     main()

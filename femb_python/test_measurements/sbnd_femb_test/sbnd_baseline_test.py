@@ -53,9 +53,10 @@ class BASELINE_TESTER(object):
 
         
     def get_data(self):
-        self.femb_config.make_filepaths(self.datadir,self.chip_list,self.datasubdir+"/Data")       
+        self.femb_config.make_filepaths(self.datadir,self.chip_list,self.datasubdir+"/Data")   
         for num,i in enumerate(self.chip_list):
-            self.save_rms_noise(chip_index=i[0], chip_name=i[1])
+            if self.config_list[i[0]]:
+                self.save_rms_noise(chip_index=i[0], chip_name=i[1])
         
 #    def do_analysis(self):
 #        continue
@@ -97,7 +98,7 @@ class BASELINE_TESTER(object):
                                       sdc=0, sdacsw2=0, sdacsw1=0, sdac=0, remapping=True)
                                       #remapping is to make gain/shaping times/base settings (0-3) consecutive in output and GUI
                    
-        self.femb_config.configFeAsic(to_print = False)
+        self.config_list = self.femb_config.configFeAsic(to_print = False)
 #                            raw_input("Baseline Data --> Collecting Data for {}, {}, {}, {}, {}".format(gain, peak, leak, buff, base))
 #                            print ("Baseline Data --> Collecting Data for {}, {}, {}, {}, {}".format(gain, peak, leak, buff, base))
         sys.stdout.flush()
@@ -120,8 +121,9 @@ class BASELINE_TESTER(object):
 
     def analyze_data(self):
         for num,i in enumerate(self.chip_list):
-            self.result, self.average_baseline, self.baselines = self.analyze.baseline_directory(os.path.join(self.datadir,i[1]), i[1], self.datasubdir, self.outlabel, self.femb_config.gainArray[self.gain],self.femb_config.shapeArray[self.shape],self.leak,self.femb_config.buffArray[self.buff],self.femb_config.baseArray[self.base])
-            self.archive_results(i[1],i[0])
+            if self.config_list[i[0]]:
+                self.result, self.average_baseline, self.baselines = self.analyze.baseline_directory(os.path.join(self.datadir,i[1]), i[1], self.datasubdir, self.outlabel, self.femb_config.gainArray[self.gain],self.femb_config.shapeArray[self.shape],self.leak,self.femb_config.buffArray[self.buff],self.femb_config.baseArray[self.base])
+                self.archive_results(i[1],i[0])
             
     def archive_results(self, chip_name, chip_index):
         print("BASELINE AND RMS RESULTS - ARCHIVE")
@@ -135,6 +137,7 @@ class BASELINE_TESTER(object):
         self.jsondict['average_baseline'] = str( self.average_baseline )
         self.jsondict['chip_name'] = str( chip_name )
         self.jsondict['chip_index'] = str ( chip_index )
+        self.jsondict['config_list'] = self.config_list
         if self.result:
             self.jsondict['result'] = "Pass"
         else:
@@ -159,11 +162,7 @@ def main():
     '''
     base_test = BASELINE_TESTER()      
     print(sys.argv[1])
-    params = json.loads(open(sys.argv[1]).read())    
-    
-    start_test_time = time.strftime("%H:%M:%S", time.localtime(time.time()))
-#    print("starting sbnd_baseline_test:main at {}".format(start_test_time))
-    
+    params = json.loads(open(sys.argv[1]).read())        
     
     base_test.datadir = params['datadir']
     base_test.outlabel = params['outlabel']    
@@ -174,11 +173,10 @@ def main():
     base_test.buff = params['buffer_ind']
     base_test.base = params['base_ind']
     base_test.datasubdir = params['datasubdir']
+    base_test.config_list = params['config_list']
         
     base_test.get_data()
     base_test.analyze_data()
-    
-#    print("ending sbnd_baseline_test:main at {}".format(time.strftime("%H:%M:%S", time.localtime(time.time()))))
- 
+     
 if __name__ == '__main__':
     main()

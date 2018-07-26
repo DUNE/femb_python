@@ -49,13 +49,15 @@ class GUI_WINDOW(Frame):
 
         #Define general commands column
         self.define_general_commands_column()
-
+        #list of board IDs with known phase settings in config file
+        self.knownBoardIDs = ['1v0','2v0','3v0']
+        #update after completing each test
         self.methodMap = {'baseline_test_sequence' : 0,
                           'monitor_data_test_sequence' : 1,
                           'input_alive_power_cycle_sequence' : 2,
                           'baseline_test_sequence_complete' : False,
                           'monitor_data_test_sequence_complete' : False,
-                          'input_alive_power_cycle_sequence_complete' : False}        
+                          'input_alive_power_cycle_sequence_complete' : False}
         # fixme: a huge chunk of the following code is now generically
         # available as runpolicy.make_runner().
 
@@ -72,6 +74,7 @@ class GUI_WINDOW(Frame):
             test_version = "1",
             femb_config = femb_config,
             asic_pass = [[-1,-1,-1],[-1,-1,-1],[-1,-1,-1],[-1,-1,-1]], #results for each test
+            config_list = [0,1,0,0], #update if any sockets fail configuration stage
             power_ready = 0
         )
         self.save_sync_results = True
@@ -334,7 +337,7 @@ class GUI_WINDOW(Frame):
     def start_measurements(self):
         self.params['operator_name'] = self.operator_entry.get()
         self.params['test_stand'] = self.test_stand_entry.get()
-        self.params['boardid'] = self.boardid_entry.get()
+        self.params['boardid'] = self.boardid_entry.get().lower()
         self.params['asic0id'] = self.asic0_entry.get()
         self.params['asic1id'] = self.asic1_entry.get()
         self.params['asic2id'] = self.asic2_entry.get()
@@ -408,7 +411,7 @@ ASIC 3 ID: {asic3id}
         self.postResults()          
 
         self.update_idletasks()      
-                
+        
         end_time = time.time()
         run_time = end_time-start_time
         print("Total run time: {}".format(int(run_time)))
@@ -513,7 +516,7 @@ ASIC 3 ID: {asic3id}
         now = time.strftime("%Y%m%dT%H%M%S", time.localtime(time.time()))
         start_time = time.time()
         
-        self.runner(**self.params, 
+        resolved = self.runner(**self.params, 
                     datasubdir="sync_adcs",
                     executable="femb_sync_adcs",
                     test_start_time = self.now,
@@ -522,9 +525,14 @@ ASIC 3 ID: {asic3id}
                     argstr="{paramfile}",
                     save_results = self.save_sync_results)     
                     
-        end_time = time.time()
-        run_time = end_time-start_time
-        print("Total run time for sync sequence: {}".format(int(run_time)))
+        #look to see if any chips failed the configuration and skip over them for the future tests
+        for chip_name in self.chiplist:
+            file_name = os.path.join(resolved['datadir'],chip_name[1],"sync_adcs","results.json")
+            print("file_name for sync results check: {}".format(file_name))
+            if os.path.isfile(file_name):
+                with open(file_name, 'r') as f:
+                    jsondata = json.load(f)
+                    self.params['config_list'] = jsondata['config_list']
 
     def generic_sequence_handler(self, **params):
         '''Generically handle results after an executable runs.  The params
@@ -570,8 +578,7 @@ ASIC 3 ID: {asic3id}
                                            leakagex10_ind = leakagex10,
                                            buffer_ind = buff,
                                            acdc_ind = acdc,
-                                           chip_list = self.chiplist,
-                    )
+                                           chip_list = self.chiplist)
                     if handler:
                         self.methodMap[method+'_complete'] = True
                         handler(**resolved)
@@ -598,6 +605,7 @@ ASIC 3 ID: {asic3id}
                         self.params['asic_pass'][num][self.methodMap[params['method']]] = 1
                     else:
                         self.params['asic_pass'][num][self.methodMap[params['method']]] = 0
+                    self.params['config_list'] = jsondata['config_list']
         return
     
     def do_baseline_test_sequence(self):
@@ -633,9 +641,6 @@ ASIC 3 ID: {asic3id}
                               #[2] , [2] , [0] , 0 , 0 , 1 , 0 , #test
                               handler=self.handle_result)
                              
-        end_time = time.time()
-        run_time = end_time-start_time
-        print("Total run time for monitor test sequence: {}\n\n".format(int(run_time)))
         self.postResults()
         return 
 
@@ -650,9 +655,6 @@ ASIC 3 ID: {asic3id}
                               #[2] , [2] , [0] , 0 , 0 , 1 , 0 , #test
                               handler=self.handle_result)
                             
-        end_time = time.time()
-        run_time = end_time-start_time
-        print("Total run time for alive test sequence: {}\n\n".format(int(run_time)))
         self.postResults()
         return
 
