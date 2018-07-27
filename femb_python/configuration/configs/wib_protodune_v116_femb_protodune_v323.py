@@ -82,6 +82,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
+        self.femb.UDP_IP = "192.168.121.1"
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
         self.femb.UDP_PORT_RREG = 32001
         self.femb.UDP_PORT_RREGRESP = 32002
@@ -154,9 +155,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #self.femb.write_reg_bits(4 , 2, 0x3, 2 )
 
         #initialize clock
-        self.initSI5338()
+        #self.initSI5338()
 
-        """
         #set external clock
         self.femb.write_reg(0x4, 8)
         self.femb.write_reg(16,0x7F00)
@@ -173,7 +173,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Reset error /WIB
         self.femb.write_reg(18, 0x8000)
         self.femb.write_reg(18, 0x8000)
-        """
+
         
         #return register interface to FEMB
         self.selectFemb(self.fembNum)
