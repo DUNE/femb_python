@@ -122,6 +122,7 @@ class BASELINE_TESTER(object):
     def analyze_data(self):
         for num,i in enumerate(self.chip_list):
             if self.config_list[i[0]]:
+                print ("Baseline analysis for chip {}".format(i[1]))
                 self.result, self.average_baseline, self.baselines = self.analyze.baseline_directory(os.path.join(self.datadir,i[1]), i[1], self.datasubdir, self.outlabel, self.femb_config.gainArray[self.gain],self.femb_config.shapeArray[self.shape],self.leak,self.femb_config.buffArray[self.buff],self.femb_config.baseArray[self.base])
                 self.archive_results(i[1],i[0])
             
@@ -171,11 +172,15 @@ def main():
     base_test.shape = params['shape_ind']
     base_test.leak = params['leakage_ind']
     base_test.buff = params['buffer_ind']
-    base_test.base = params['base_ind']
+#    base_test.base = params['base_ind']
     base_test.datasubdir = params['datasubdir']
     base_test.config_list = params['config_list']
         
+    base_test.base = 0
     base_test.get_data()
+    base_test.base = 1
+    base_test.get_data()
+    print ("Ready to analyze baseline")
     base_test.analyze_data()
      
 if __name__ == '__main__':

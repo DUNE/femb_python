@@ -1307,6 +1307,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
     def make_filepaths(self, datadir, chip_list, datasubdir):
         for num,i in enumerate(chip_list):
-            os.makedirs(os.path.join(datadir,i[1],datasubdir))
+            try:
+                os.makedirs(os.path.join(datadir,i[1],datasubdir))
+            except FileExistsError:
+                pass
             
         

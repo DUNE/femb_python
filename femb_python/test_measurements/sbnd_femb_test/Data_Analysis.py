@@ -32,7 +32,7 @@ class Data_Analysis:
                 ws.cell(row = j + (rows * i) + start + 1, column = 1).value = "{}".format(j)
             
     def baseline_directory(self, directory, chip, datasubdir, outlabel, gain, peak, leak, buff, base):
-        self.base = base        
+          
         print("Test--> Analyzing Baseline data for Chip {}...".format(chip))
         sys.stdout.flush()    
         self.test_folder = os.path.join(directory,datasubdir)
@@ -50,95 +50,97 @@ class Data_Analysis:
         for item in ([ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
             item.set_fontsize(20)
         
-        for chn in range(self.femb_config.channels):
-            self.filename = data_file_scheme.format(chn,gain,peak,leak,buff,base)
-                
-            val, result = self.baseline_file(os.path.join(data_folder,self.filename))
-            overall_result = overall_result and result
-            
-            if (val != None):
-                baselines.append([chn,val])
-            
-            ax.scatter(chn, val)
+        for base in ["200mV", "900mV"]:
+            self.base = base
+            for chn in range(self.femb_config.channels):
+                self.filename = data_file_scheme.format(chn,gain,peak,leak,buff,base)
                     
-        average = np.mean(baselines)
-        if (self.ws_name == "_mean"):
-            ax.set_ylabel('mV')
-            ax.set_title("Baseline Summary for Chip {}".format(chip))
-            if (base == "200mV"):
-                y_pos = 0.4
-                comment = "Average 200 mV baseline is {:.2f} mV".format(average)
-            elif (base == "900mV"):
-                y_pos = 0.6
-                comment = "Average 900 mV baseline is {:.2f} mV".format(average)
+                val, result = self.baseline_file(os.path.join(data_folder,self.filename))
+                overall_result = overall_result and result
                 
-            ax.text(0.01,y_pos,comment,transform=ax.transAxes, fontsize = 20)
-        elif (self.ws_name == "_std"):
-            if (base == "200mV"):
-                comment = "Average noise is {:.2f} electrons".format(np.mean(average))
-            elif (base == "900mV"):
-                comment = "Average noise is {:.2f} electrons".format(np.mean(average))
+                if (val != None):
+                    baselines.append([chn,val])
                 
-            ax.set_ylabel('electrons')
-            ax.set_title("Noise Summary for Chip {}, baseline {}".format(chip, base))
-            y_pos = 0.01
-            ax.text(0.01,y_pos,comment,transform=ax.transAxes, fontsize = 20)
+                ax.scatter(chn, val)
+                        
+            average = np.mean(baselines)
+            if (self.ws_name == "_mean"):
+                ax.set_ylabel('mV')
+                ax.set_title("Baseline Summary for Chip {}".format(chip))
+                if (base == "200mV"):
+                    y_pos = 0.8
+                    comment = "Average 200 mV baseline is {:.2f} mV".format(average)
+                elif (base == "900mV"):
+                    y_pos = 0.9
+                    comment = "Average 900 mV baseline is {:.2f} mV".format(average)
+                    
+                ax.text(0.01,y_pos,comment,transform=ax.transAxes, fontsize = 20)
+            elif (self.ws_name == "_std"):
+                if (base == "200mV"):
+                    comment = "Average noise is {:.2f} electrons".format(np.mean(average))
+                elif (base == "900mV"):
+                    comment = "Average noise is {:.2f} electrons".format(np.mean(average))
+                    
+                ax.set_ylabel('electrons')
+                ax.set_title("Noise Summary for Chip {}, baseline {}".format(chip, base))
+                y_pos = 0.01
+                ax.text(0.01,y_pos,comment,transform=ax.transAxes, fontsize = 20)
+                    
+                chan = range(-1, 17)
+                ax.set_xticks(chan)
+                y_lim = ax.get_ylim()
+                ax.set_ylim(1, y_lim[1])
+                xticks = ax.xaxis.get_major_ticks()
+                xticks[0].set_visible(False)
+                xticks[17].set_visible(False)
+                ax.title.set_fontsize(30)
+    
+                ax.axhspan(0, self.femb_config.noise_reject_min, color='red', alpha=self.femb_config.alpha, lw=0)
+                ax.axhspan(self.femb_config.noise_reject_min, self.femb_config.noise_good_min, color='yellow', alpha=self.femb_config.alpha)
+                ax.axhspan(self.femb_config.noise_good_min, self.femb_config.noise_good_max, color='green', alpha=self.femb_config.alpha, lw = 0)
+                ax.axhspan(self.femb_config.noise_good_max, self.femb_config.noise_reject_max, color='yellow', alpha=self.femb_config.alpha)
+                ax.axhspan(self.femb_config.noise_reject_max, y_lim[1], color='red', alpha=self.femb_config.alpha)
+    
+                save_file = (os.path.join(self.test_folder,"{}_Noise Summary Plot_{}.png".format(chip, base)))
+                fig_summary.savefig (save_file)
+                plt.close(fig_summary)
+                fig_summary = plt.figure(figsize=(16, 12), dpi=80)
+                ax = fig_summary.add_subplot(1,1,1)
+                ax.set_xlabel('Channel')
+                for item in ([ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+                    item.set_fontsize(20)
                 
-            chan = range(-1, 17)
-            ax.set_xticks(chan)
-            y_lim = ax.get_ylim()
-            ax.set_ylim(1, y_lim[1])
-            xticks = ax.xaxis.get_major_ticks()
-            xticks[0].set_visible(False)
-            xticks[17].set_visible(False)
-            ax.title.set_fontsize(30)
-
-            ax.axhspan(0, self.femb_config.noise_reject_min, color='red', alpha=self.femb_config.alpha, lw=0)
-            ax.axhspan(self.femb_config.noise_reject_min, self.femb_config.noise_good_min, color='yellow', alpha=self.femb_config.alpha)
-            ax.axhspan(self.femb_config.noise_good_min, self.femb_config.noise_good_max, color='green', alpha=self.femb_config.alpha, lw = 0)
-            ax.axhspan(self.femb_config.noise_good_max, self.femb_config.noise_reject_max, color='yellow', alpha=self.femb_config.alpha)
-            ax.axhspan(self.femb_config.noise_reject_max, y_lim[1], color='red', alpha=self.femb_config.alpha)
-
-            save_file = (os.path.join(self.test_folder,"{}_Noise Summary Plot_{}.png".format(chip, base)))
-            fig_summary.savefig (save_file)
-            plt.close(fig_summary)
-            fig_summary = plt.figure(figsize=(16, 12), dpi=80)
-            ax = fig_summary.add_subplot(1,1,1)
-            ax.set_xlabel('Channel')
-            for item in ([ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-                item.set_fontsize(20)
+                
+                
+            if (self.ws_name == "_mean"):
+                chan = range(-1, 17)
+                ax.set_xticks(chan)
+                y_lim = ax.get_ylim()
+                ax.set_ylim(0, 1800)
+                xticks = ax.xaxis.get_major_ticks()
+                xticks[0].set_visible(False)
+                xticks[17].set_visible(False)
+                ax.title.set_fontsize(30)
             
+                ax.axhspan(0, self.femb_config.baseline_200_reject_min, color='red', alpha=self.femb_config.alpha, lw=0)
+                ax.axhspan(self.femb_config.baseline_200_reject_min, self.femb_config.baseline_200_good_min, color='yellow', alpha=self.femb_config.alpha)
+                ax.axhspan(self.femb_config.baseline_200_good_min, self.femb_config.baseline_200_good_max, color='green', alpha=self.femb_config.alpha, lw = 0)
+                
+                ax.axhspan(self.femb_config.baseline_200_good_max, self.femb_config.baseline_200_reject_max, color='yellow', alpha=self.femb_config.alpha)
+                ax.axhspan(self.femb_config.baseline_200_reject_max, self.femb_config.baseline_900_reject_min, color='red', alpha=self.femb_config.alpha)
+                ax.axhspan(self.femb_config.baseline_900_reject_min, self.femb_config.baseline_900_good_min, color='yellow', alpha=self.femb_config.alpha)
+                
+                ax.axhspan(self.femb_config.baseline_900_good_min, self.femb_config.baseline_900_good_max, color='green', alpha=self.femb_config.alpha)
+                ax.axhspan(self.femb_config.baseline_900_good_max, self.femb_config.baseline_900_reject_max, color='yellow', alpha=self.femb_config.alpha)
+                ax.axhspan(self.femb_config.baseline_900_reject_max, 1800, color='red', alpha=self.femb_config.alpha)
+                save_file = (os.path.join(self.test_folder,"{}_Baseline Summary Plot.png".format(chip)))
+                
+                comment = "Gain = {}, Peaking Time = {}, Leakage = {}, Buffer= {}".format(gain,peak,leak,buff)
+                ax.text(0.01,0.85,comment,transform=ax.transAxes, fontsize = 20)
+    #                black_patch = mpatches.Patch(color='black', label='Buffer Off')
+    #                blue_patch = mpatches.Patch(color='red', label='Buffer On')
+    #                plt.legend(handles=[black_patch, blue_patch])
             
-            
-        if (self.ws_name == "_mean"):
-            chan = range(-1, 17)
-            ax.set_xticks(chan)
-            y_lim = ax.get_ylim()
-            ax.set_ylim(1, y_lim[1])
-            xticks = ax.xaxis.get_major_ticks()
-            xticks[0].set_visible(False)
-            xticks[17].set_visible(False)
-            ax.title.set_fontsize(30)
-        
-            ax.axhspan(0, self.femb_config.baseline_200_reject_min, color='red', alpha=self.femb_config.alpha, lw=0)
-            ax.axhspan(self.femb_config.baseline_200_reject_min, self.femb_config.baseline_200_good_min, color='yellow', alpha=self.femb_config.alpha)
-            ax.axhspan(self.femb_config.baseline_200_good_min, self.femb_config.baseline_200_good_max, color='green', alpha=self.femb_config.alpha, lw = 0)
-            
-            ax.axhspan(self.femb_config.baseline_200_good_max, self.femb_config.baseline_200_reject_max, color='yellow', alpha=self.femb_config.alpha)
-            ax.axhspan(self.femb_config.baseline_200_reject_max, self.femb_config.baseline_900_reject_min, color='red', alpha=self.femb_config.alpha)
-            ax.axhspan(self.femb_config.baseline_900_reject_min, self.femb_config.baseline_900_good_min, color='yellow', alpha=self.femb_config.alpha)
-            
-            ax.axhspan(self.femb_config.baseline_900_good_min, self.femb_config.baseline_900_good_max, color='green', alpha=self.femb_config.alpha)
-            ax.axhspan(self.femb_config.baseline_900_good_max, self.femb_config.baseline_900_reject_max, color='yellow', alpha=self.femb_config.alpha)
-            ax.axhspan(self.femb_config.baseline_900_reject_max, y_lim[1], color='red', alpha=self.femb_config.alpha)
-            save_file = (os.path.join(self.test_folder,"{}_Baseline Summary Plot.png".format(chip)))
-            
-            comment = "Gain = {}, Peaking Time = {}, Leakage = {}, Buffer= {}".format(gain,peak,leak,buff)
-            ax.text(0.01,0.5,comment,transform=ax.transAxes, fontsize = 20)
-#                black_patch = mpatches.Patch(color='black', label='Buffer Off')
-#                blue_patch = mpatches.Patch(color='red', label='Buffer On')
-#                plt.legend(handles=[black_patch, blue_patch])
-        
             fig_summary.savefig (save_file)
             plt.close(fig_summary)
         
@@ -260,7 +262,7 @@ class Data_Analysis:
                     ax.plot(sample_pulse, color = plot_color)
         data_file_scheme = self.femb_config.Alive_Naming2
         for cycle in range(self.femb_config.power_cycles):
-            self.filename = data_file_scheme.format(chn,leak,test,cycle)
+            self.filename = data_file_scheme.format(1,leak,test,cycle)
             sample_pulse, result = self.alive_file(os.path.join(data_folder,self.filename))
             overall_result = overall_result and result
             plot_color = "blue"

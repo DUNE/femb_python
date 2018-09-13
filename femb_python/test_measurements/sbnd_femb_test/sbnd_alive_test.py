@@ -58,6 +58,7 @@ class ALIVE_TESTER(object):
             if self.asic_pass[i[0]] == [1,1,-1] and self.config_list[i[0]]:
                 folder_path = os.path.join(self.datadir,i[1])
                 self.save_alive_data(folder_path, chip_index=i[0], chip_name=i[1])
+        self.save_alive_data_cycle()
 
         #Tells the FPGA to turn off the ASICs
         self.femb_config.femb.write_reg(12, 0xF)
@@ -112,7 +113,8 @@ class ALIVE_TESTER(object):
                     
                 rawdata = bytearray()
                 full_filename = os.path.join(data_directory,filename)
-        
+                #Wait for the new amplitude to take effect
+                time.sleep(.1)
                 rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = True)
                 for pack in range (self.femb_config.alive_length):
                     rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = False)
@@ -121,15 +123,17 @@ class ALIVE_TESTER(object):
                     f.write(rawdata) 
                     f.close()
                         
-#        self.femb_config.femb.write_reg(9, 8)
+    def save_alive_data_cycle(self):
+        
         print("Test--> Testing {} power cycles (1 minute in between)".format(self.femb_config.power_cycles))
         sys.stdout.flush()
         for cycle in range(self.femb_config.power_cycles):
             print("Test--> Cycle {}".format(cycle))
             sys.stdout.flush()
-            filename = self.femb_config.Alive_Naming2.format(chn,leak,test,cycle)
+            filename = self.femb_config.Alive_Naming2.format(1,self.leaks,"test_ext",cycle)
             sys.stdout.flush()
-            self.femb_config.select_chip_chn(chip = 0, chn = 2)
+            self.femb_config.select_chip_chn(chip = 3, chn = 2)
+            self.femb_config.select_chip_chn(chip = 1, chn = 2)
             #Tells the FPGA to turn off the ASICs
             self.femb_config.femb.write_reg(12, 0xF)
             time.sleep(60)
@@ -147,21 +151,34 @@ class ALIVE_TESTER(object):
                            
             self.config_list = self.femb_config.configFeAsic(to_print = False)
             
+            #Do not question the magical startup sequence that works.  Or just ask Jack Fried why you need all this
+            time.sleep(1)
+            self.femb_config.femb.write_reg(1, 0x505)
+            self.femb_config.femb.write_reg(2, 1)
+            self.femb_config.femb.write_reg(2, 0)
+            self.femb_config.femb.write_reg(61, 0x0)
+            self.femb_config.femb.write_reg(7, 0x100)
+            self.femb_config.select_chip_chn(chip = 2, chn = 0)
+            self.femb_config.femb.write_reg(9, 8)
             time.sleep(1)
             self.femb_config.femb.write_reg(1, self.femb_config.test_DAC_in)
             self.femb_config.femb.write_reg(2, 1)
             self.femb_config.femb.write_reg(2, 0)
-            self.femb_config.femb.write_reg(61, 0x0)
             self.femb_config.femb.write_reg(7, (self.femb_config.test_TP_Shift << 16) + self.femb_config.test_TP_Period)
-            self.femb_config.select_chip_chn(chip = 0, chn = 1)
-            self.femb_config.femb.write_reg(9, 8)
             time.sleep(1)
-
             for num,i in enumerate(self.chip_list):
                 self.femb_config.select_chip_chn(chip = i[0], chn = 1)
+                time.sleep(1)
                 print ("Test--> Input Alive power cycle data collecting for Chip {}".format(i[1]))
                 sys.stdout.flush()
+                folder_path = os.path.join(self.datadir,i[1])
+                print(folder_path)
+                test_directory = os.path.join(folder_path,self.datasubdir)
+                print(test_directory)
+                data_directory = os.path.join(test_directory,"Data")
+                print(data_directory)
                 full_filename = os.path.join(data_directory,filename)
+                print(full_filename)
                 rawdata = bytearray()
                 rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = True)
                 for pack in range (self.femb_config.alive_length):
@@ -175,6 +192,7 @@ class ALIVE_TESTER(object):
 
     def analyze_data(self):
         for num,i in enumerate(self.chip_list):
+            print("Analyzing chip {}".format(i[1]))
             if self.asic_pass[i[0]] == [1,1,-1] and self.config_list[i[0]]:
                 folder_path = os.path.join(self.datadir, i[1])
                 self.result = self.analyze.alive_directory(folder_path, i[1], self.datasubdir, self.tests, self.leaks)

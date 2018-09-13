@@ -66,12 +66,13 @@ class GUI_WINDOW(Frame):
             operator_name = "",
             test_stand = "",
             boardid = "",
+            chipver = "",
             asic0id = "",
             asic1id = "",
             asic2id = "",
             asic3id = "",
             test_category = "sbnd_feasic",
-            test_version = "1",
+            test_version = "2",
             femb_config = femb_config,
             asic_pass = [[-1,-1,-1],[-1,-1,-1],[-1,-1,-1],[-1,-1,-1]], #results for each test
             config_list = [0,1,0,0], #update if any sockets fail configuration stage
@@ -189,6 +190,14 @@ class GUI_WINDOW(Frame):
 
         self.boardid_entry = Entry(self,width=25)
         self.boardid_entry.grid(sticky=W,row=3,column=columnbase+1)
+
+        # Adding version number and read entry box
+        label = Label(self,text="Chip Version:",width=25)
+        label.grid(sticky=W,row=4,column=columnbase+0)
+
+        self.chipver_entry = Entry(self,width=25)
+        self.chipver_entry.insert(END, '8')
+        self.chipver_entry.grid(sticky=W,row=4,column=columnbase+1)
 
         # ASIC 0 ID
         label = Label(self,text="ASIC 0 ID:",width=25)
@@ -338,6 +347,7 @@ class GUI_WINDOW(Frame):
         self.params['operator_name'] = self.operator_entry.get()
         self.params['test_stand'] = self.test_stand_entry.get()
         self.params['boardid'] = self.boardid_entry.get().lower()
+        self.params['chipver'] = self.chipver_entry.get().lower()
         self.params['asic0id'] = self.asic0_entry.get()
         self.params['asic1id'] = self.asic1_entry.get()
         self.params['asic2id'] = self.asic2_entry.get()
@@ -618,7 +628,7 @@ ASIC 3 ID: {asic3id}
          
         self.generic_sequence("baseline_test_sequence", "femb_feasic_sbnd_baseline_test",
                               #range(4), range(4), range(2), 0 , 1 , 1 , 0 , #warm test
-                              [2] , [2] , [0,1] , 0 , 0 , 1 , 0 , #expedited cold test
+                              [2] , [2] , [0] , 0 , 0 , 1 , 0 , #expedited cold test
                               #[2] , [2] , [0] , 0 , 0 , 1 , 0 , #test
                               handler=self.handle_result)
                               
