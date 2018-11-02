@@ -68,6 +68,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.FPGA_IP = "192.168.121.1"
         self.FEMB_VER = "Quad FE Chip Tester with v0x201 Firmware"
         self.frame_size = 0x02cb
+        self.default_timeout = 0x00005000
+        self.default_sample_speed = 0x26
         
         #SYNC SETTINGS#####################################################################################
         self.default_DAC = 0x270
@@ -80,7 +82,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.Latch_Settings = {'1v0': [0x00000000, 0x00000000, 0x00000000, 0x00000000],'2v0': [0x00000000, 0x00000000, 0x00000000, 0x00000000],'3v0': [0x00000000, 0x00000000, 0x00000000, 0x00000000]}
         self.Phase_Settings = {'1v0': [0x55555555, 0x51401550, 0x55555555, 0x01555004], '2v0': [0x00000000, 0x00000000, 0x00000000, 0x00000000], '3v0': [0x01000005, 0x00000000, 0x55555555, 0x00000000]}
         self.test_ADC_Settings = 0x000000C8
-        self.Sample_Clock_Settings = [0x00000000, 0x00000000]
         
         self.sync_peak_min = 3500
         self.sync_peak_max = 7500
@@ -244,6 +245,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
         #Tells the FPGA to turn off each DAC
         self.femb.write_reg(61, 0xF)
+        print ("FEMB_CONFIG--> Set timeout to {}".format(self.default_timeout))
+        #Set the normal packet timeout
+        self.femb.write_reg(76, self.default_timeout)
+        print ("FEMB_CONFIG--> Set sample speed to {}".format(self.default_sample_speed))
+        #Set the normal sample speed
+        self.femb.write_reg(75, self.default_sample_speed)
 
         #Set to Regular Mode (as opposed to Sampling Scope mode) and pick a chip/channel output
         self.femb.write_reg(10, 0)
@@ -259,7 +266,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(1, self.default_DAC)
         self.femb.write_reg(2, 1)
         self.femb.write_reg(2, 0)
-        
+        print ("FEMB_CONFIG--> Initialize 1")
         #Give a default pulse timing
         self.femb.write_reg(7, (self.default_TP_Shift << 16) + self.default_TP_Period)
 
@@ -281,15 +288,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             except KeyError:
                 self.femb.write_reg(reg, self.Phase_Settings_default[i])
             i = i + 1
-            
+        print ("FEMB_CONFIG--> Initialize 2")
         self.femb.write_reg(73, self.test_ADC_Settings)
         
         self.femb.write_reg(74, self.pre_buffer)
-        
-        i = 0
-        for reg in range(75, 77, 1):
-            self.femb.write_reg(reg, self.Sample_Clock_Settings[i])
-            i = i + 1
+
             
         #Write the frame size as a multiple of 16
         frame_size = self.frame_size
