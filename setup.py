@@ -179,6 +179,9 @@ setup(
             'femb_feasic_gain_externaldac=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement_externalDac:main',
             'femb_control_power=femb_python.test_measurements.feAsicTest.doFemb_controlPower:main',
             
+            #General cold FE quad
+            'feasic_quad_testgui=femb_python.test_measurements.sbnd_femb_test.gui_fe_asic_cold:main',
+            
             #sbnd cold electronics testing
             'femb_feasic_sbnd_testgui=femb_python.test_measurements.sbnd_femb_test.gui_sbnd_fembTest:main',
             'femb_sync_adcs=femb_python.test_measurements.sbnd_femb_test.sync_adcs:main',

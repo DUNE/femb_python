@@ -27,29 +27,25 @@ import git
 #from femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement import FEMB_TEST_SIMPLE
 #from femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement import FEMB_TEST_GAIN
 
-import femb_python
 from femb_python import runpolicy
+from femb_python.configuration import CONFIG
 
 class GUI_WINDOW(tk.Frame):
 
     #GUI window defined entirely in init function
     def __init__(self, master=None):
         self.use_sumatra = True
-        #TODO Can't get this to work
         repo = git.Repo(__file__, search_parent_directories=True)
         self.sw_version = repo.head.object.hexsha
-        self.sw_version = 1
+#        self.sw_version = 1
 
         #It's calling the constructor of the parent tkinter object, the pack method of the class, which is now a tkinter object
         tk.Frame.__init__(self,master)
         self.pack()
 
-        #Define general commands column
-        self.define_test_details_column()
-
-        #Define general commands column
-        self.define_general_commands_column()
+        
         #TODO put this somewhere else. list of board IDs with known phase settings in config file
+        self.config = CONFIG()
         self.knownBoardIDs = ['1v0','2v0','3v0']
         #update after completing each test
         self.methodMap = {'baseline_test_sequence' : 0,
@@ -72,10 +68,63 @@ class GUI_WINDOW(tk.Frame):
         )
         self.save_sync_results = True
         # Check out the data disk situation and find the most available disk
-        print(self.params["test_category"])
         self.runner = runpolicy.make_runner(use_sumatra = self.use_sumatra, **self.params)
-        print(self.params)
+        self.params = self.runner.default_params
+        self.params.update(root_testdir = "{datadisk}/{user}/{test_category}/{femb_config}")
+        
+        resolved_params = self.resolveParams(**self.params)
+        self.root_dir = resolved_params['root_testdir']
+        file_name = os.path.join(self.root_dir,self.config.default_file_name)
+
+        if os.path.isfile(file_name):
+            self.default_settings = dict()
+            with open(file_name, 'r') as f:
+                jsondata = json.load(f)
+                for i in jsondata:
+                    self.default_settings[i] = jsondata[i]
+        else:
+            self.default_settings = dict(
+            operator_name = "",
+            test_stand = "",
+            boardid = "",
+            chipver = "",
+            asic0id = "",
+            asic1id = "",
+            asic2id = "",
+            asic3id = ""
+        )
+        
+        #Define general commands column
+        self.define_test_details_column()
+
+        #Define general commands column
+        self.define_general_commands_column()
         return
+        
+    def callback(self,*args,**kwargs):
+        if (args[0] == "test_stand_GUI_variable"):
+            if (self.test_stand_selection.get() == "Other"):
+                self.test_stand_entry_other.grid(sticky=tk.W,row=2,column=2)
+                self.test_stand_other = True
+            else:
+                self.test_stand_entry_other.grid_forget()
+                self.test_stand_other = False
+                
+        elif (args[0] == "boardid_GUI_variable"):
+            if (self.boardid_selection.get() == "Other"):
+                self.boardid_entry_other.grid(sticky=tk.W,row=3,column=2)
+                self.boardid_other = True
+            else:
+                self.boardid_entry_other.grid_forget()
+                self.boardid_other = False
+                
+        elif (args[0] == "chipver_GUI_variable"):
+            if (self.chipver_selection.get() == "Other"):
+                self.chipver_entry_other.grid(sticky=tk.W,row=4,column=2)
+                self.chipver_other = True
+            else:
+                self.chipver_entry_other.grid_forget()
+                self.chipver_other = False
 
     def define_test_details_column(self):
         columnbase=0
@@ -84,60 +133,109 @@ class GUI_WINDOW(tk.Frame):
         label.grid(row=0,column=columnbase, columnspan=50)
 
         # Adding operator name label and read entry box
-        label = tk.Label(self,text="Operator Name:",width=25)
+        label = tk.Label(self,text="Operator Name:",width=15)
         label.grid(sticky=tk.W,row=1,column=columnbase+0)
 
-        self.operator_entry = tk.Entry(self,width=25)
+        self.operator_entry = tk.Entry(self,width=15)
+        self.operator_entry.insert(tk.END, self.default_settings["operator_name"])
         self.operator_entry.grid(sticky=tk.W,row=1,column=columnbase+1)
 
         # Adding test stand ID and read entry box
-        label = tk.Label(self,text="Test Stand #:",width=25)
+        label = tk.Label(self,text="Test Stand #:",width=15)
         label.grid(sticky=tk.W,row=2,column=columnbase+0)
-
-        self.test_stand_entry = tk.Entry(self,width=25)
+        
+        self.test_stand_selection = tk.StringVar(self.master, name = "test_stand_GUI_variable")
+        self.test_stand_selection.set(self.default_settings["test_stand"]) # initial value
+        self.test_stand_selection.trace("w", self.callback)
+        stands = self.config.known_test_stands
+        self.test_stand_entry = tk.OptionMenu(self, self.test_stand_selection, *stands)
+        self.test_stand_entry.config(width=10)
         self.test_stand_entry.grid(sticky=tk.W,row=2,column=columnbase+1)
+        
+        if (self.test_stand_selection.get() == "Other"):
+            self.test_stand_entry_other = tk.Entry(self,width=15)
+            self.test_stand_entry_other.insert(tk.END, self.default_settings["test_stand_other"])
+            self.test_stand_entry_other.grid(sticky=tk.W,row=2,column=2)
+            self.test_stand_other = True
+        else:
+            self.test_stand_entry_other = tk.Entry(self,width=15)
+            self.test_stand_entry_other.grid_forget()
+            self.test_stand_other = False
 
         # Adding electronics ID and read entry box
-        label = tk.Label(self,text="Test Board ID:",width=25)
+        label = tk.Label(self,text="Test Board ID:",width=15)
         label.grid(sticky=tk.W,row=3,column=columnbase+0)
 
-        self.boardid_entry = tk.Entry(self,width=25)
+        self.boardid_selection = tk.StringVar(self.master, name = "boardid_GUI_variable")
+        self.boardid_selection.set(self.default_settings["boardid"]) # initial value
+        self.boardid_selection.trace("w", self.callback)
+        boards = self.config.known_quad_boards
+        self.boardid_entry = tk.OptionMenu(self, self.boardid_selection, *boards)
+        self.boardid_entry.config(width=10)
         self.boardid_entry.grid(sticky=tk.W,row=3,column=columnbase+1)
+        
+        if (self.boardid_selection.get() == "Other"):
+            self.boardid_entry_other = tk.Entry(self,width=15)
+            self.boardid_entry_other.insert(tk.END, self.default_settings["boardid_other"])
+            self.boardid_entry_other.grid(sticky=tk.W,row=3,column=2)
+            self.boardid_other = True
+        else:
+            self.boardid_entry_other = tk.Entry(self,width=15)
+            self.boardid_entry_other.grid_forget()
+            self.boardid_other = False
 
         # Adding version number and read entry box
-        label = tk.Label(self,text="Chip Version:",width=25)
+        label = tk.Label(self,text="Chip Version:",width=15)
         label.grid(sticky=tk.W,row=4,column=columnbase+0)
 
-        self.chipver_entry = tk.Entry(self,width=25)
-        self.chipver_entry.insert(tk.END, '8')
+        self.chipver_selection = tk.StringVar(self.master, name = "chipver_GUI_variable")
+        self.chipver_selection.set(self.default_settings["chipver"]) # initial value
+        self.chipver_selection.trace("w", self.callback)
+        chips = self.config.known_chip_versions
+        self.chipver_entry = tk.OptionMenu(self, self.chipver_selection, *chips)
+        self.chipver_entry.config(width=10)
         self.chipver_entry.grid(sticky=tk.W,row=4,column=columnbase+1)
+        
+        if (self.chipver_selection.get() == "Other"):
+            self.chipver_entry_other = tk.Entry(self,width=15)
+            self.chipver_entry_other.insert(tk.END, self.default_settings["chipver_other"])
+            self.chipver_entry_other.grid(sticky=tk.W,row=4,column=2)
+            self.chipver_other = True
+        else:
+            self.chipver_entry_other = tk.Entry(self,width=15)
+            self.chipver_entry_other.grid_forget()
+            self.chipver_other = False
 
         # ASIC 0 ID
-        label = tk.Label(self,text="ASIC 0 ID:",width=25)
+        label = tk.Label(self,text="ASIC 0 ID:",width=15)
         label.grid(sticky=tk.W,row=7,column=columnbase+0)
 
-        self.asic0_entry = tk.Entry(self, width=25)
+        self.asic0_entry = tk.Entry(self, width=15)
+        self.asic0_entry.insert(tk.END, self.default_settings["asic0id"])
         self.asic0_entry.grid(sticky=tk.W,row=7,column=columnbase+1)
 
         # ASIC 1 ID
-        label = tk.Label(self,text="ASIC 1 ID:",width=25)
+        label = tk.Label(self,text="ASIC 1 ID:",width=15)
         label.grid(sticky=tk.W,row=8,column=columnbase+0)
 
-        self.asic1_entry = tk.Entry(self,width=25)
+        self.asic1_entry = tk.Entry(self,width=15)
+        self.asic1_entry.insert(tk.END, self.default_settings["asic1id"])
         self.asic1_entry.grid(sticky=tk.W,row=8,column=columnbase+1)
 
         # ASIC 2 ID
-        label = tk.Label(self,text="ASIC 2 ID:",width=25)
+        label = tk.Label(self,text="ASIC 2 ID:",width=15)
         label.grid(sticky=tk.W,row=9,column=columnbase+0)
 
-        self.asic2_entry = tk.Entry(self,width=25)
+        self.asic2_entry = tk.Entry(self,width=15)
+        self.asic2_entry.insert(tk.END, self.default_settings["asic2id"])
         self.asic2_entry.grid(sticky=tk.W,row=9,column=columnbase+1)
 
         # ASIC 3 ID
-        label = tk.Label(self,text="ASIC 3 ID:",width=25)
+        label = tk.Label(self,text="ASIC 3 ID:",width=15)
         label.grid(sticky=tk.W,row=10,column=columnbase+0)
 
-        self.asic3_entry = tk.Entry(self,width=25)
+        self.asic3_entry = tk.Entry(self,width=15)
+        self.asic3_entry.insert(tk.END, self.default_settings["asic3id"])
         self.asic3_entry.grid(sticky=tk.W,row=10,column=columnbase+1)                      
 
 
@@ -258,18 +356,54 @@ class GUI_WINDOW(tk.Frame):
 
     def start_measurements(self):
         self.params['operator_name'] = self.operator_entry.get()
-        self.params['test_stand'] = self.test_stand_entry.get()
-        self.params['boardid'] = self.boardid_entry.get().lower()
-        self.params['chipver'] = self.chipver_entry.get().lower()
+        
+        if (self.test_stand_other == True):
+            self.params['test_stand'] = self.test_stand_entry_other.get()
+        else:
+            self.params['test_stand'] = self.test_stand_selection.get()
+            
+        if (self.boardid_other == True):
+            self.params['boardid'] = self.boardid_entry_other.get()
+        else:
+            self.params['boardid'] = self.boardid_selection.get()
+            
+        if (self.chipver_other == True):
+            self.params['chipver'] = self.chipver_entry_other.get()
+        else:
+            self.params['chipver'] = self.chipver_selection.get()
+        
         self.params['asic0id'] = self.asic0_entry.get()
         self.params['asic1id'] = self.asic1_entry.get()
         self.params['asic2id'] = self.asic2_entry.get()
         self.params['asic3id'] = self.asic3_entry.get()
+        
+        self.defaultjson = dict(
+            operator_name = self.operator_entry.get(),
+            test_stand = self.test_stand_selection.get(),
+            test_stand_other = self.test_stand_entry_other.get(),
+            boardid = self.boardid_selection.get(),
+            boardid_other = self.boardid_entry_other.get(),
+            chipver = self.chipver_selection.get(),
+            chipver_other = self.chipver_entry_other.get(),
+            asic0id = self.asic0_entry.get(),
+            asic1id = self.asic1_entry.get(),
+            asic2id = self.asic2_entry.get(),
+            asic3id = self.asic3_entry.get()
+        )
+        
+
+        #dump results 
+        jsonFile = os.path.join(self.root_dir,self.config.default_file_name)
+        with open(jsonFile,'w') as outfile:
+            json.dump(self.defaultjson, outfile, indent=4)
+        
+        #TODO save input settings in a JSON file in self.root_directory to be picked up for the next test
 
         print("""\
 Operator Name: {operator_name}
 Test Stand # : {test_stand}
 Test Board ID: {boardid}
+Chip Version: {chipver}
 ASIC 0 ID: {asic0id}
 ASIC 1 ID: {asic1id}
 ASIC 2 ID: {asic2id}
@@ -334,7 +468,7 @@ ASIC 3 ID: {asic3id}
                               argstr="OFF", handler=None)
                               
         self.postResults()          
-
+        
         self.update_idletasks()      
         
         end_time = time.time()
@@ -734,6 +868,27 @@ ASIC 3 ID: {asic3id}
         d = datetime(1,1,1) + sec    
         time_str = "{}:{}:{}".format(d.hour, d.minute, d.second)
         return time_str
+        
+    def resolveParams(self, **params):
+        params = self.params.copy()
+        params.update(self.params)
+
+        while True:             # warning: cycles will loop 
+            newparams = dict()
+            changes = 0
+            for var, val in sorted(params.items()):
+                if type(val) != str:
+                    newparams[var] = val
+                    continue
+                newval = val.format(**params)
+                if val != newval:
+                    changes += 1
+                newparams[var] = newval
+            if not changes:
+                return newparams
+            params = newparams  # around again
+
+        return params
 
 def main():
     root = tk.Tk()

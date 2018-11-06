@@ -24,6 +24,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.NASICS = 4
         self.NASICCH = 16
         
+        self.known_test_stands = ["1", "2", "3", "Other"]
+        self.known_quad_boards = ["1v0", "2v0", "3v0", "Other"]
+        self.known_fpga_mezzanines = ["FM17", "FM43", "16", "Other"]
+        self.known_chip_versions = ["7", "8", "Other"]
+        self.adc = "LTC2314"
+        self.default_file_name = "defaults.json"
+        
+        
         self.REG_RESET = 0
         self.REG_FEASIC_SPI = 5
         self.REG_FESPI_BASE = 20
