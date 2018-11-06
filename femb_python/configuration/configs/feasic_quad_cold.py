@@ -28,6 +28,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.known_quad_boards = ["1v0", "2v0", "3v0", "Other"]
         self.known_fpga_mezzanines = ["FM17", "FM43", "16", "Other"]
         self.known_chip_versions = ["7", "8", "Other"]
+        self.chip_range = [0,2000]
+        self.socket_range = [0,200]
         self.adc = "LTC2314"
         self.default_file_name = "defaults.json"
         
