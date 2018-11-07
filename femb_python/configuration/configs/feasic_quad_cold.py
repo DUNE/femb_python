@@ -31,6 +31,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.chip_range = [0,2000]
         self.socket_range = [0,200]
         self.adc = "LTC2314"
+        self.adc_full_scale = 2^14
         self.default_file_name = "defaults.json"
         
         
@@ -96,7 +97,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.sync_peak_min = 3500
         self.sync_peak_max = 7500
         self.sync_peak_height = 11
-        self.sync_peaks_max = 10
+        self.sync_peaks_max = 20
         self.sync_baseline_min = 1000
         self.sync_baseline_max = 3500
         self.sync_baseline_r = 15
@@ -276,7 +277,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(1, self.default_DAC)
         self.femb.write_reg(2, 1)
         self.femb.write_reg(2, 0)
-        print ("FEMB_CONFIG--> Initialize 1")
         #Give a default pulse timing
         self.femb.write_reg(7, (self.default_TP_Shift << 16) + self.default_TP_Period)
 
@@ -285,10 +285,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         for reg in range(65, 69, 1):
             try:
                 self.femb.write_reg(reg, self.Latch_Settings[boardID][i])
-                print(boardID)
             except KeyError:
+                print("Board not recognized, using default settings")
                 self.femb.write_reg(reg, self.Latch_Settings_default[i])
-                print(boardID)
             i = i + 1
             
         i = 0
@@ -296,9 +295,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             try:
                 self.femb.write_reg(reg, self.Phase_Settings[boardID][i])
             except KeyError:
+                print("Board not recognized, using default settings")
                 self.femb.write_reg(reg, self.Phase_Settings_default[i])
             i = i + 1
-        print ("FEMB_CONFIG--> Initialize 2")
         self.femb.write_reg(73, self.test_ADC_Settings)
         
         self.femb.write_reg(74, self.pre_buffer)
@@ -406,7 +405,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
         
     #ASSUMES ASICS HAVE BEEN SET FOR THE INTERNAL PULSER
-    def syncADC(self, datadir, chiplist, datasubdir, config_list = [1,1,1,1], saveresults=False): 
+    def syncADC(self, datadir, chiplist, datasubdir, config_list = [1,1,1,1], saveresults=True): 
         print ("FEMB_CONFIG--> Start sync ADC")
         chips = self.chips_to_use
         #Don't ask me why, but you need to set the channel at this point for it to output the right data
@@ -530,16 +529,28 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if not saveresults:
             os.remove(outputfile)
 
-    def testUnsync(self, f, savefigpath, saveresults, chip, chn):
+    def testUnsync(self, f, savefigpath, saveresults, chip, chn, index = 0):
         #Get some packets of data
         self.select_chip_chn(chip = chip, chn = chn)
         packets = 25
         data = self.get_data_chipXchnX(chip = chip, chn = chn, packets = packets, data_format = "counts")
         
-        #self.plot.ryans_quickplot(data)
+        feed_index = []
+        for i in range(len(data)):
+            if (data[i] > 16000):
+                f.write("Must be something here {}\n".format(data[i]))
+                f.write(0b11 << 14)
+                f.write(data[i] > (0b11 << 14))
+            if (data[i] > (0b11 << 14)):
+                f.write("Found feed\n")
+                feed_index.append(i)
+                data[i] = (data[i] & 0b11111111111111)
         
+        #self.plot.ryans_quickplot(data)
+#        f.write("Chn{} feed index is {}\n".format(chn,feed_index))
         #Find some peaks
         peaks_index = detect_peaks(x=data, mph=self.sync_peak_min, mpd=100) 
+        f.write("Peaks are {}\n".format(peaks_index))
         #Make sure you have more than 0 peaks (so it's not flat) and less than the maximum 
         #(if there's no peak, the baseline will give hundreds of peaks)
         #If it's bad, print it, so we see (must enable inline printing for iPython)
@@ -556,9 +567,23 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 #            item.set_fontsize(20)
 #        plt.show()
 #        plt.close()
-        if (len(peaks_index) == 0) or (len(peaks_index) > packets):
+        if (len(peaks_index) == 0) or (len(peaks_index) > self.sync_peaks_max):
             #print ("Chip {}, Channel {} has {} peaks!".format(chip, chn, len(peaks_index)))
-            if saveresults:            
+            if saveresults:   
+                figure_data = self.plot.quickPlot(data)
+                ax = figure_data[0]
+                for j in peaks_index:
+                    y_value = data[j]
+                    ax.scatter(j/2, y_value, marker='x')
+                    
+                ax.set_ylabel('ADC Counts')
+                ax.set_title("ERROR: Chip {}, Chn {} has {} peaks".format(chip, chn, len(peaks_index)))
+                ax.title.set_fontsize(30)
+                for item in ([ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
+                    item.set_fontsize(20)
+                plt.savefig(os.path.join(savefigpath,"chip{}chn{}peaks{}_index{}.jpg".format(chip,chn,len(peaks_index),index)))
+                plt.close()
+                
                 f.write("Chip {}, Channel {} has {} peaks!\n".format(chip, chn, len(peaks_index)))
 #            print (peaks_index)
             return False
@@ -567,6 +592,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         peaks_value = []
         for i in peaks_index :
             peaks_value.append(data[i])
+        f.write("Peak values are {}\n".format(peaks_value))
 #        print ("Chip {}, Channel {} has peak values {}".format(chip, chn, peaks_value))
         #Check if the peak is at the wrong height (happens when it's not synced, the peak will be havled or doubled)
         for peak in peaks_value:
@@ -574,7 +600,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 #print ("FEMB CONFIG--> Chip {}, Chn {} has a peak that's {}".format(chip, chn, peak))
                 if saveresults:
                     f.write("FEMB CONFIG--> Chip {}, Chn {} has a peak that's {}\n".format(chip, chn, peak))
-                    figure_data = self.plot.quickPlot(data)
+                    figure_data = F.quickPlot(data)
                     ax = figure_data[0]
                     for j in peaks_index:
                         y_value = data[j]
@@ -617,46 +643,50 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 return False
                 
         #check if the pulse has high frequency noise
-        total_high_freq_noise = 0
-        for peak in peaks_index:
-            dt = 0
-            t_high = 0
-            t_low = 0
-            while True:
-                dt = dt + 1
-                #check to see if we have reached the neighborhood of the baseline
-                if abs(data[peak+dt] - baseline) < self.sync_baseline_r and not t_high:
-                    t_high = peak+dt
-                if abs(data[peak-dt] - baseline) < self.sync_baseline_r and not t_low:
-                    t_low = peak-dt
-                if t_high and t_low:
-                    break
-                if dt == 100:
-                    if not t_high:
-                        t_high = peak + 100
-                    if not t_low:
-                        t_low = peak - 100
-                    break
-            pulse_data = data[t_low:t_high]
-            pulse_data_fft = np.fft.fft(pulse_data)[:int(len(pulse_data)/2)]
-            total_high_freq_noise = total_high_freq_noise + np.sum(abs(pulse_data_fft[5:].real))
-        avg_high_freq_noise = total_high_freq_noise / len(peaks_index)
-        
-        if avg_high_freq_noise > self.sync_high_freq_noise_max:
-            if saveresults:
-                f.write("FEMB CONFIG--> Chip {}, Chn {} has lots of high frequency noise".format(chip, chn))
-                figure_data = self.plot.quickPlot(pulse_data)
-                ax = figure_data[0]
-                    
-                ax.set_ylabel('mV')
-                ax.set_title("Chip {}, Chn {} has lots of high frequency noise".format(chip, chn))
-                ax.title.set_fontsize(30)
-                for item in ([ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
-                    item.set_fontsize(20)
-                plt.savefig(os.path.join(savefigpath,"chip{}chn{}high_freq.jpg"))
-                plt.close()
-                return False
-            
+        #Giving errors.  There's gotta be a simpler way of checking for high frequency noise, maybe just seeing if there's any sample that are X far away from baseline, or looking at histogram distribution?
+#        total_high_freq_noise = 0
+#        for peak in peaks_index:
+#            dt = 0
+#            t_high = 0
+#            t_low = 0
+#            print("Length of data is {}".format(len(data)))
+#            while True:
+#                dt = dt + 1
+#                #check to see if we have reached the neighborhood of the baseline
+#                print("peak is {}".format(peak))
+#                print("dt is {}".format(dt))
+#                if abs(data[peak+dt] - baseline) < self.sync_baseline_r and not t_high:
+#                    t_high = peak+dt
+#                if abs(data[peak-dt] - baseline) < self.sync_baseline_r and not t_low:
+#                    t_low = peak-dt
+#                if t_high and t_low:
+#                    break
+#                if dt == 100:
+#                    if not t_high:
+#                        t_high = peak + 100
+#                    if not t_low:
+#                        t_low = peak - 100
+#                    break
+#            pulse_data = data[t_low:t_high]
+#            pulse_data_fft = np.fft.fft(pulse_data)[:int(len(pulse_data)/2)]
+#            total_high_freq_noise = total_high_freq_noise + np.sum(abs(pulse_data_fft[5:].real))
+#        avg_high_freq_noise = total_high_freq_noise / len(peaks_index)
+#        
+#        if avg_high_freq_noise > self.sync_high_freq_noise_max:
+#            if saveresults:
+#                f.write("FEMB CONFIG--> Chip {}, Chn {} has lots of high frequency noise".format(chip, chn))
+#                figure_data = self.plot.quickPlot(pulse_data)
+#                ax = figure_data[0]
+#                    
+#                ax.set_ylabel('mV')
+#                ax.set_title("Chip {}, Chn {} has lots of high frequency noise".format(chip, chn))
+#                ax.title.set_fontsize(30)
+#                for item in ([ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
+#                    item.set_fontsize(20)
+#                plt.savefig(os.path.join(savefigpath,"chip{}chn{}high_freq.jpg"))
+#                plt.close()
+#                return False
+#            
         return True
             
     #Shifts through all possible delay and phase options, checking to see if each one fixed the issue
@@ -720,7 +750,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.femb.write_reg(phase_reg, final_phase)
                 
                 #See if this new setting fixed it
-                unsync = self.testUnsync(f, savefigpath, saveresults, chip = chip, chn = chn)
+                index = (shift+4) + phase
+                f.write("Trying shift {} phase {} index {}".format(shift,phase,index))
+                unsync = self.testUnsync(f, savefigpath, saveresults, chip = chip, chn = chn,index = index)
                 if unsync == True:
                     #print ("FEMB_CONFIG--> Chip {}, Chn {} fixed!".format(chip, chn))
                     if saveresults:

@@ -180,7 +180,7 @@ setup(
             'femb_control_power=femb_python.test_measurements.feAsicTest.doFemb_controlPower:main',
             
             #General cold FE quad
-            'feasic_quad_testgui=femb_python.test_measurements.sbnd_femb_test.gui_fe_asic_cold:main',
+            'feasic_quad_testgui=femb_python.test_measurements.quad_FE_Board.gui_fe_asic_cold:main',
             
             #sbnd cold electronics testing
             'femb_feasic_sbnd_testgui=femb_python.test_measurements.sbnd_femb_test.gui_sbnd_fembTest:main',
