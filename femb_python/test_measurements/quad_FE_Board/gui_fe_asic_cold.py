@@ -33,7 +33,7 @@ from femb_python import runpolicy
 from femb_python.configuration import CONFIG
 from femb_python.test_instrument_interface.rigol_dp800 import RigolDP800
 from femb_python.test_measurements.OscillatorTesting.code.driverUSBTMC import DriverUSBTMC
-from femb_python.test_measurements.sbnd_femb_test.define_tests import main as maintest
+from femb_python.test_measurements.quad_FE_Board.define_tests import main as maintest
 
 class GUI_WINDOW(tk.Frame):
 

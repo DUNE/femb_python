@@ -25,10 +25,10 @@ import pickle
 
 from femb_python.configuration import CONFIG
 from femb_python.write_data import WRITE_DATA
-from femb_python.test_measurements.sbnd_femb_test.plotting import plot_functions
+from femb_python.test_measurements.quad_FE_Board.plotting import plot_functions
 from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
-from femb_python.test_measurements.sbnd_femb_test.Data_Analysis import Data_Analysis
+from femb_python.test_measurements.quad_FE_Board.Data_Analysis import Data_Analysis
 
 class ALIVE_TESTER(object):
     

@@ -14,8 +14,8 @@ import pickle
 import numpy as np
 import warnings
 import matplotlib.patches as mpatches
-from femb_python.test_measurements.sbnd_femb_test.detect_peaks import detect_peaks
-from femb_python.test_measurements.sbnd_femb_test.plotting import plot_functions
+from femb_python.test_measurements.quad_FE_Board.detect_peaks import detect_peaks
+from femb_python.test_measurements.quad_FE_Board.plotting import plot_functions
 import math
 import json
 import warnings
