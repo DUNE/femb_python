@@ -54,13 +54,14 @@ class SYNC_ADCS(object):
         
         #stablish IP addresses for board and machine running this program
         #make sure IP address for the ethernet port is set correctly
+        #make filepaths to store the synchronization plots
+        self.femb_config.make_filepaths(self.datadir,self.chip_list,self.datasubdir)
         self.femb_config.femb.init_ports(hostIP = self.femb_config.PC_IP, destIP = self.femb_config.FPGA_IP)
 
 
         time.sleep(0.1)        
         print("Chip tester version {}".format(hex(self.femb_config.femb.read_reg(0x64))))
-        #make filepaths to store the synchronization plots
-        self.femb_config.make_filepaths(self.datadir,self.chip_list,self.datasubdir)
+        
 
         self.femb_config.resetFEMBBoard()
         self.config_list = self.femb_config.initBoard(self.boardID)
@@ -88,14 +89,26 @@ class SYNC_ADCS(object):
 
         for num,i in enumerate(self.chip_list):
             chip_outpathlabel = os.path.join(self.datadir, i[1], self.datasubdir)
-            data = self.femb_config.get_data_chipX(chip = i[0], packets = 5)
+            data = self.femb_config.get_data_chipX(chip = i[0], packets = 25)[1]
             print("Test--> Printing synchronization plot for Chip {}".format(i[1]))
+        
+            feed_index = []
+            for j in range(len(data)):
+                if (data[j] > self.femb_config.adc_full_scale):
+                    if (data[j] & (0b01 << 14)):
+                        data[j] = data[j] & self.femb_config.adc_full_scale
+                        
+                    if (data[j] & (0b10 << 14)):
+                        data[j] = data[j] & self.femb_config.adc_full_scale
+                        feed_index.append(j)
+                
             self.plotting.plot(data = data, plot_name = "Sync_Plot.png", 
                                  title_name = "Pulses for synchronization: Gain = 14 mv/fC, Peaking Time = 3 us, Buffer on, "
                                               "DAC Pulse at {} \nPeaks should be between {} and {}, Baseline should be between "
                                               "{} and {}".format(hex(self.femb_config.default_DAC), self.femb_config.sync_peak_min, 
-                                                self.femb_config.sync_peak_max, self.femb_config.sync_baseline_min, self.femb_config.sync_baseline_max))
-            plotname = "chipname_{}-syncPlot.png".format(i[1])
+                                                self.femb_config.sync_peak_max, self.femb_config.sync_baseline_min, self.femb_config.sync_baseline_max),
+                                length = 1000)
+            plotname = "chipname_{}-syncPlot.png".format(i)
             call(["mv", "Sync_Plot.png", os.path.join(chip_outpathlabel,plotname)])
             
             self.femb_config.fe_reg.set_fe_chn(chip = i[0], chn = 0, smn = 1)
@@ -108,7 +121,7 @@ class SYNC_ADCS(object):
             self.femb_config.femb.write_reg(9, 3)
             data = []
             for j in range(5):
-                data.extend(self.femb_config.get_data_chipXchnX(chip = i[0], chn = 0, packets = 1, data_format = "triggered"))
+                data.extend(self.femb_config.get_data_chipXchnX(chip = i[0], chn = 0, packets = 1, data_format = "counts"))
             monitor_plot = self.plotting.quickPlot(data = data)
             plot_name = "Sync_Plot_Monitor.png"
             monitor_plot[1].savefig ("{}".format(os.path.join(chip_outpathlabel,plot_name)))
@@ -153,12 +166,7 @@ def main():
     sync_adcs.datasubdir = params['datasubdir']
     sync_adcs.boardID = params['boardid']
     sync_adcs.config_list = params['config_list']
-    
-    print(params['datadir'])
-    print(params['outlabel'])
-    print(params['datasubdir'])
-    
-    sys.exit("here")
+
     sync_adcs.sync()
 
     

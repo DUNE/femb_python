@@ -19,12 +19,9 @@ from femb_python.test_measurements.quad_FE_Board.detect_peaks import detect_peak
 class plot_functions:
         
 
-    def plot(self, data, plot_name, title_name):
-        chip_num = data[0]
-
-        time_x = []
-        length = len(data[1])            
+    def plot(self, data, plot_name, title_name, length = 1000):
         
+        time_x = []       
         for j in range(length):
             time_x.append(0.5 * j)
 
@@ -40,25 +37,23 @@ class plot_functions:
         overlay_ax.set_ylabel('ADC Counts')
         overlay_ax.yaxis.set_label_coords(-0.035,0.5)
         ax1 = fig.add_subplot(16,1,16)
-        
-        plt.plot(time_x, data[1])
+        plt.plot(time_x, data[:length])
 #        plt.setp(ax1.get_xticklabels(), fontsize=12)
-        ax1.set_title("Channel 0")
+        ax1.set_title("Chn 0")
         ax2 = ax1.twinx()
-        ax2.set_ylabel("Channel 0", rotation = 0)
+        ax2.set_ylabel("Chn 0", rotation = 0)
         ax2.spines['top'].set_color('none')
         ax2.spines['bottom'].set_color('none')
         ax2.spines['left'].set_color('none')
         ax2.spines['right'].set_color('none')
         ax2.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
         for j in range(15):
-            time_x = []
-            length = len(data[j+2])            
+            time_x = []         
             
             for k in range(length):
                 time_x.append(0.5 * k)
             ax = fig.add_subplot(16,1,15-j, sharex=ax1)
-            plt.plot(time_x, data[j+2])
+            plt.plot(time_x, data[:length])
             for item in (ax.get_xticklabels()):
                 item.set_fontsize(20)
             plt.setp(ax.get_xticklabels(), visible=False)

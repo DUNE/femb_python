@@ -31,7 +31,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.chip_range = [0,2000]
         self.socket_range = [0,200]
         self.adc = "LTC2314"
-        self.adc_full_scale = 2^14
+        self.adc_full_scale = 0x3FFF
         self.default_file_name = "defaults.json"
         
         
@@ -81,6 +81,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.frame_size = 0x02cb
         self.default_timeout = 0x00005000
         self.default_sample_speed = 0x26
+        
+        #POWER SETTINGS#####################################################################################
+        #Settings for the power supply
+        self.ps_heating_chn = 1
+        self.ps_quad_chn = 2
+        self.ps_fpga_chn = 3
+        
         
         #SYNC SETTINGS#####################################################################################
         self.default_DAC = 0x270
@@ -453,7 +460,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
                     #print ("FEMB_CONFIG--> ADC {} synced!".format(chip))
                     if saveresults:
-                        f.write("FEMB_CONFIG--> ADC {} synced!\n".format(chip))
+                       print("FEMB_CONFIG--> ADC {} synced!\n".format(chip))
                     
                     #print ("FEMB_CONFIG--> Trying to sync test ADC".format(chip))
                     if saveresults:
@@ -533,24 +540,27 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Get some packets of data
         self.select_chip_chn(chip = chip, chn = chn)
         packets = 25
-        data = self.get_data_chipXchnX(chip = chip, chn = chn, packets = packets, data_format = "counts")
+        data = list(self.get_data_chipXchnX(chip = chip, chn = chn, packets = packets, data_format = "counts"))
         
         feed_index = []
         for i in range(len(data)):
-            if (data[i] > 16000):
-                f.write("Must be something here {}\n".format(data[i]))
-                f.write(0b11 << 14)
-                f.write(data[i] > (0b11 << 14))
-            if (data[i] > (0b11 << 14)):
-                f.write("Found feed\n")
-                feed_index.append(i)
-                data[i] = (data[i] & 0b11111111111111)
+            if (data[i] > self.adc_full_scale):
+#                f.write("Must be something here {}\n".format(hex(data[i])))
+                if (data[i] & (0b01 << 14)):
+#                    f.write("Negative Pulse\n")
+                    data[i] = data[i] & self.adc_full_scale
+                    
+                if (data[i] & (0b10 << 14)):
+#                    f.write("Positive Pulse\n")
+                    data[i] = data[i] & self.adc_full_scale
+                    feed_index.append(i)
+#                f.write("Changed to {}\n".format(hex(data[i])))
         
         #self.plot.ryans_quickplot(data)
 #        f.write("Chn{} feed index is {}\n".format(chn,feed_index))
         #Find some peaks
         peaks_index = detect_peaks(x=data, mph=self.sync_peak_min, mpd=100) 
-        f.write("Peaks are {}\n".format(peaks_index))
+#        f.write("Peaks are {}\n".format(peaks_index))
         #Make sure you have more than 0 peaks (so it's not flat) and less than the maximum 
         #(if there's no peak, the baseline will give hundreds of peaks)
         #If it's bad, print it, so we see (must enable inline printing for iPython)
@@ -756,12 +766,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 if unsync == True:
                     #print ("FEMB_CONFIG--> Chip {}, Chn {} fixed!".format(chip, chn))
                     if saveresults:
-                        f.write(("FEMB_CONFIG--> Chip {}, Chn {} fixed!\n".format(chip, chn)))
+                        print(("FEMB_CONFIG--> Chip {}, Chn {} fixed!\n".format(chip, chn)))
                     return True
 
         print ("FEMB_CONFIG--> ADC SYNC process failed for Chip {}, Channel {}".format(chip, chn))
         if saveresults:        
-            f.write("FEMB_CONFIG--> ADC SYNC process failed for Chip {}, Channel {}\n".format(chip, chn))
+            print("FEMB_CONFIG--> ADC SYNC process failed for Chip {}, Channel {}\n".format(chip, chn))
         self.femb.write_reg(shift_reg, init_shift)
         self.femb.write_reg(phase_reg, init_phase)
         return False
@@ -899,10 +909,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             for i in range (len(data)):
                 data[i] = data[i] * (1.8 / 16384)
                 
-        if (data_format == "triggered"):
-            return data[1:]
-        else:
-            return data
+        return data
         
     #Get a whole chip's worth of data
     def get_data_chipX(self, chip, packets = 1, data_format = "counts"):
@@ -910,7 +917,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         chip_data = [chip, [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
         for chn in range(16):
             for i in range(packets):
-                chip_data[chn + 1].extend(list(self.get_data_chipXchnX(chip, chn, packets = 1, data_format = data_format)[1:]))
+                chip_data[chn + 1].extend(list(self.get_data_chipXchnX(chip, chn, packets = 1, data_format = data_format)))
         return chip_data
     
     #Placeholder for the full chip readout

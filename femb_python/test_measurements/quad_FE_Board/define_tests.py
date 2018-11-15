@@ -72,12 +72,12 @@ def main(**params):
     
     #Test 1
     params_test_1 = dict(params)
-    params_test_1.update( executable = "femb_sync_adcs", argstr="{paramfile}", datasubdir = ".", outlabel = "Sync",)
+    params_test_1.update( executable = "feasic_quad_sync", argstr="{paramfile}", datasubdir = ".", outlabel = "Sync",)
     tests.append( Test(**params_test_1) )
 
     #Test 2
     params_test_2 = dict(params)
-    params_test_2.update( executable = "femb_feasic_sbnd_baseline_test", argstr="{paramfile}", datasubdir = "Baseline", outlabel = "Baseline",)
+    params_test_2.update( executable = "feasic_quad_baseline", argstr="{paramfile}", datasubdir = "Baseline", outlabel = "Baseline",)
     tests.append( Test(**params_test_2) )
 
     ##add more test as needed

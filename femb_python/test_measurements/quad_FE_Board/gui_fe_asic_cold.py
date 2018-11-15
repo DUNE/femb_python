@@ -31,7 +31,7 @@ import git
 
 from femb_python import runpolicy
 from femb_python.configuration import CONFIG
-from femb_python.test_instrument_interface.rigol_dp800 import RigolDP800
+from femb_python.test_instrument_interface.rigol_dp832 import RigolDP832
 from femb_python.test_measurements.OscillatorTesting.code.driverUSBTMC import DriverUSBTMC
 from femb_python.test_measurements.quad_FE_Board.define_tests import main as maintest
 
@@ -574,50 +574,23 @@ ASIC 3 SOCKET: {socket3id}
         print(self.GetTimeString(int(run_time)))
 
     def load_asics(self):
-        #Power down all 4 chips:
-        self.powerSupplyDevice = None
-        dirList = os.listdir("/dev/bus/usb/")
-        print("dirList is {}".format(dirList))
-        for fName in dirList:
-            print("fName is {}".format(fName))
-            dirList2 = os.listdir("/dev/bus/usb/{}/".format(fName))
-            print("dirList2 is {}".format(dirList2))
-            for fName2 in dirList2:
-                print("/dev/bus/usb/{}/{}".format(fName,fName2))
-                try:
-                    device = DriverUSBTMC("/dev/bus/usb/{}/{}".format(fName,fName2))
-                    print("device is {}".format(device))
-                    deviceID = device.getID()
-                    print(deviceID)
-                    if(deviceID.startswith(b"RIGOL TECHNOLOGIES,DP832")):
-                        print("DC Power Supply found with identification %s" %(deviceID.decode()))
-                        self.powerSupplyDevice = device
-                except PermissionError:
-                    print("Permission Error")
-                    pass
-                    
-        if self.powerSupplyDevice is None:
-            print("Power supply of our interest not found!\nExiting!\n")
-            sys.exit(1)
 
-        #Turn channels 1 off
-        self.powerSupplyDevice.write(":OUTP CH1, OFF")
-        time.sleep(1)
+        
+        self.PowerSupply = RigolDP832()
+        self.PowerSupply.off()
+        self.PowerSupply.set_channel(channel = self.config.ps_heating_chn, voltage = 12, v_limit = 13.1, c_limit = 3.2, vp = "OFF", cp = "ON")
+        self.PowerSupply.set_channel(channel = self.config.ps_quad_chn, voltage = 5, v_limit = 5.1, c_limit = 1.2, vp = "OFF", cp = "ON")
+        self.PowerSupply.set_channel(channel = self.config.ps_fpga_chn, voltage = 5, v_limit = 5.1, c_limit = 1.2, vp = "OFF", cp = "ON")
+    
 
-        #Choose channel 1
-        self.powerSupplyDevice.write(":INST CH1")
-
-        #Set voltage to 5.0 V
-        self.powerSupplyDevice.write(":VOLT 5.0")
-        self.powerSupplyDevice.write(":OUTP CH1, ON")
-        time.sleep(5)
+        self.config.initBoard()
         
+        #Measure initial volatage and current
+        self.powerSupplyDevice.write(":MEAS:VOLT?")
+        initialVoltage = float(self.powerSupplyDevice.read().strip().decode())
+        self.powerSupplyDevice.write(":MEAS:CURR?")
+        initialCurrent = float(self.powerSupplyDevice.read().lstrip().decode())
         
-        
-        
-        RigolDP800.on(self)
-        self.runner(executable="femb_control_power", argstr="ON")
-        self.load_button_result["text"] = "Ok to load new ASICs"
         self.update_idletasks()
         self.load_button["bg"]="green"
 
