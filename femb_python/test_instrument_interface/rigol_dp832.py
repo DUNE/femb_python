@@ -20,6 +20,7 @@ class RigolDP832(object):
     Interface to Rigol DP832 Power Supply
     """
 
+    #Creates a DriverUSBTMC object, because that read/write method seems to be more reliable than the original one here
     def __init__(self):
         self.powerSupplyDevice = None
         dirList = os.listdir("/dev")
@@ -32,8 +33,7 @@ class RigolDP832(object):
                     self.powerSupplyDevice = device
                     
         if self.powerSupplyDevice is None:
-            print("RigolDP832 Error --> Power supply of our interest not found!\nExiting!\n")
-            sys.exit(1)
+            print("RigolDP832 Error --> Power supply of interest not found!")
 
     def on(self, channels = [1,2,3]):
         if type(channels) is not list:
@@ -79,6 +79,7 @@ class RigolDP832(object):
         self.powerSupplyDevice.write(":OUTP? CH{}".format(channel))
         return (self.powerSupplyDevice.read().strip().decode())
         
+    #Set all useful parameters of a channel.  Will ignore setting parameters that were not explicitly passed as arguments.
     def set_channel(self, channel, voltage = None, current = None, v_limit = None, c_limit = None, vp = None, cp = None):
         if (voltage and current):
             print("RigolDP832 Error --> Can't set both voltage and current for Channel {}".format(channel))
@@ -142,3 +143,15 @@ class RigolDP832(object):
                     print("RigolDP832 Error --> OverCurrent was set to {}, but response is {}".format(cp, response))
             else:
                 print("RigolDP832 Error --> OverCurrent protection must be 'ON' or 'OFF', was {}".format(cp))
+                
+    #Returns array of 3 numbers: Voltage, Current and Power
+    def measure_params(self,channel):
+        if ((channel < 1) or (channel > 3)):
+            print("RigolDP832 Error --> Channel needs to be 1, 2, or 3!  {} was given!".format(channel))
+            return
+        
+        self.powerSupplyDevice.write(":MEAS:ALL? CH{}".format(channel))
+        response = (self.powerSupplyDevice.read().strip().decode().split(","))
+        for i in range(len(response)):
+            response[i] = float(response[i])
+        return response

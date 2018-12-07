@@ -15,6 +15,7 @@ standard_library.install_aliases()
 from time import sleep, time
 from datetime import timedelta, datetime
 import tkinter as tk
+from tkinter import messagebox
 import json
 import getpass
 
@@ -23,6 +24,7 @@ import os                                 # for statv
 import os.path
 import time
 import git
+import shutil
 #import sys
 
 #import the test module
@@ -40,25 +42,25 @@ class GUI_WINDOW(tk.Frame):
     #GUI window defined entirely in init function
     def __init__(self, master=None,forceQuick=False,forceLong=False):
         self.use_sumatra = True
+        
+        #Useful to have if we ever want to look back and see what version of femb_python we were using
         repo = git.Repo(__file__, search_parent_directories=True)
         self.sw_version = repo.head.object.hexsha
 
         #It's calling the constructor of the parent tkinter object, the pack method of the class, which is now a tkinter object
         tk.Frame.__init__(self,master)
         self.pack()
-
         self.config = CONFIG()
-        #update after completing each test
+        
+        #Probably will remove eventually
         self.methodMap = {'baseline_test_sequence' : 0,
                           'monitor_data_test_sequence' : 1,
                           'input_alive_power_cycle_sequence' : 2,
                           'baseline_test_sequence_complete' : False,
                           'monitor_data_test_sequence_complete' : False,
                           'input_alive_power_cycle_sequence_complete' : False}
-        # fixme: a huge chunk of the following code is now generically
-        # available as runpolicy.make_runner().
 
-        #define required variables
+        #Variables that I want to save in the JSON but aren't included in the generic runner
         self.params = dict(
             test_category = "feasic_quad_cold",
             sw_version = self.sw_version,
@@ -68,7 +70,9 @@ class GUI_WINDOW(tk.Frame):
             config_list = [0,0,0,0], #update if any sockets fail configuration stage
         )
         
-        self.root_dir = self.getDefaultFile()
+        #Look in the root folder for the test name and see if there was a JSON file created with the previous settings
+        #This is used to pre-fill in the fields, much more preferable than putting in the sockets and all that from scratch
+        self.root_dir = self.getDefaultDirectory()
         file_name = os.path.join(self.root_dir,self.config.default_file_name)
         if os.path.isfile(file_name):
             self.default_settings = dict()
@@ -100,6 +104,9 @@ class GUI_WINDOW(tk.Frame):
         self.define_general_commands_column()
         return
         
+    #For GUI options where there are predefined but have the option for "other" (in case we're testing a new version of something)
+    #Every time a change is made to those fields, this is called to see if "other" was chosen.  If it was, it creates a text field to manually write the value
+    #If it's not, it hides that text field
     def gui_callback(self,*args,**kwargs):
         if (args[0] == "test_stand_GUI_variable"):
             if (self.test_stand_selection.get() == "Other"):
@@ -133,6 +140,8 @@ class GUI_WINDOW(tk.Frame):
                 self.fpgamezz_entry_other.grid_forget()
                 self.fpgamezz_other = False
 
+    #For fields with predefined values, it gets those values from the config files
+    #There's also a variable to tell if "other" was chosen, so it knows to look at the manual entry field for the value
     def define_test_details_column(self):
         columnbase=0
         entry_width=9
@@ -311,91 +320,73 @@ class GUI_WINDOW(tk.Frame):
         label = tk.Label(self, text="FE ASIC TESTS")
         label.grid(row=0,column=columnbase, columnspan=50)
 
-        self.load_button = tk.Button(self, text="Load ASICs", bg="red", command=self.load_asics,width=25)
-        self.load_button.grid(row=1,column=columnbase,columnspan=25)
-
-        self.load_button_result = tk.Label(self, text="Press Load ASICs before loading",width=25)
-        self.load_button_result.grid(sticky=tk.W,row=1,column=columnbase+25,columnspan=25)
+        self.power_button = tk.Button(self, text="Power On", bg="green", command=self.power_on,width=10)
+        self.power_button.grid(row=1,column=columnbase,columnspan=1)
         
-        self.start_button = tk.Button(self, text="Start Tests", command=self.start_measurements,width=25)
-        self.start_button.grid(row=2,column=columnbase,columnspan=25)
-
-        self.start_button_result = tk.Label(self, text="NOT STARTED",width=25)
-        self.start_button_result.grid(sticky=tk.W,row=2,column=columnbase+25,columnspan=25)
-
-        #Adding the record data button
-        #record_data_button = Button(self, text="Record Data", command=self.record_data,width=25)
-        #record_data_button.grid(row=2,column=columnbase,columnspan=25)
-
-#        self.check_setup_result = Label(self, text="CHECK SETUP - NOT STARTED",width=50)
-#        self.check_setup_result.grid(sticky=W,row=3,column=columnbase,columnspan=50)
-
-        self.sync_adcs_sequence_result = tk.Label(self, text="SYNCHRONIZING ADCS - NOT STARTED",width=50)
-        self.sync_adcs_sequence_result.grid(sticky=tk.W,row=3,column=columnbase,columnspan=50)
-
-        self.baseline_test_sequence_result = tk.Label(self, text="BASELINE TEST - NOT STARTED",width=50)
-        self.baseline_test_sequence_result.grid(sticky=tk.W,row=4,column=columnbase,columnspan=50)
-
-        self.monitor_data_test_sequence_result = tk.Label(self, text="MONITOR DATA TEST - NOT STARTED",width=50)
-        self.monitor_data_test_sequence_result.grid(sticky=tk.W,row=5,column=columnbase,columnspan=50)
-
-        self.input_alive_power_cycle_sequence_result = tk.Label(self, text="INPUT ALIVE POWER CYCLE TEST - NOT STARTED",width=50)
-        self.input_alive_power_cycle_sequence_result.grid(sticky=tk.W,row=6,column=columnbase,columnspan=50)
+        self.power_button = tk.Button(self, text="Power Off", bg="red", command=self.power_off,width=10)
+        self.power_button.grid(row=1,column=columnbase+1,columnspan=1)
         
-        self.result_label = tk.Label(self, text="", width=25)
-        self.result_label.grid(sticky=tk.W,row=8,column=columnbase+2)        
+        self.connection_button = tk.Button(self, text="Test Connection", command=self.test_connection,width=10)
+        self.connection_button.grid(row=2,column=columnbase+1,columnspan=1)
+        
+        self.start_button = tk.Button(self, text="Start Tests", command=self.start_measurements,width=10)
+        self.start_button.grid(row=2,column=columnbase,columnspan=1)
+
+        self.status_label = tk.Label(self, text="NOT STARTED",width=10)
+        self.status_label.grid(sticky=tk.W,row=3,column=columnbase,columnspan=1)
+        
         self.baseline_result_label = tk.Label(self, text="BASELINE", width=10)
-        self.baseline_result_label.grid(sticky=tk.W, row=7, column=columnbase+3)        
+        self.baseline_result_label.grid(sticky=tk.W, row=7, column=columnbase+1)        
         self.monitor_result_label = tk.Label(self, text="MONITOR", width=10)
-        self.monitor_result_label.grid(sticky=tk.W, row=7, column=columnbase+4)        
+        self.monitor_result_label.grid(sticky=tk.W, row=7, column=columnbase+2)        
         self.alive_result_label = tk.Label(self, text="ALIVE", width=10)
-        self.alive_result_label.grid(sticky=tk.W, row=7, column=columnbase+5)
+        self.alive_result_label.grid(sticky=tk.W, row=7, column=columnbase+3)
         self.final_result_label = tk.Label(self, text="FINAL", width=10)
-        self.final_result_label.grid(sticky=tk.W, row=7, column=columnbase+6)
+        self.final_result_label.grid(sticky=tk.W, row=7, column=columnbase+4)
         
-        self.asic0_result = tk.Label(self, text="ASIC 0 Results:", width=25)
-        self.asic0_result.grid(sticky=tk.W,row=8,column=columnbase+2)        
+        self.asic0_result = tk.Label(self, text="ASIC 0 Results:", width=15)
+        self.asic0_result.grid(sticky=tk.W,row=8,column=columnbase+0)        
         self.asic0_baseline_result = tk.Label(self, text="TBD", width=10)
-        self.asic0_baseline_result.grid(sticky=tk.W, row=8, column=columnbase+3)        
+        self.asic0_baseline_result.grid(sticky=tk.W, row=8, column=columnbase+1)        
         self.asic0_monitor_result = tk.Label(self, text="TBD", width=10)
-        self.asic0_monitor_result.grid(sticky=tk.W, row=8, column=columnbase+4)        
+        self.asic0_monitor_result.grid(sticky=tk.W, row=8, column=columnbase+2)        
         self.asic0_alive_result = tk.Label(self, text="TBD", width=10)
-        self.asic0_alive_result.grid(sticky=tk.W, row=8, column=columnbase+5)
+        self.asic0_alive_result.grid(sticky=tk.W, row=8, column=columnbase+3)
         self.asic0_final_result = tk.Label(self, text="TBD", width=10)
-        self.asic0_final_result.grid(sticky=tk.W, row=8, column=columnbase+6)        
+        self.asic0_final_result.grid(sticky=tk.W, row=8, column=columnbase+4)        
         
-        self.asic1_result = tk.Label(self, text="ASIC 1 Results:", width=25)
-        self.asic1_result.grid(sticky=tk.W,row=9,column=columnbase+2)        
+        self.asic1_result = tk.Label(self, text="ASIC 1 Results:", width=15)
+        self.asic1_result.grid(sticky=tk.W,row=9,column=columnbase+0)        
         self.asic1_baseline_result = tk.Label(self, text="TBD", width=10)
-        self.asic1_baseline_result.grid(sticky=tk.W, row=9, column=columnbase+3)        
+        self.asic1_baseline_result.grid(sticky=tk.W, row=9, column=columnbase+1)        
         self.asic1_monitor_result = tk.Label(self, text="TBD", width=10)
-        self.asic1_monitor_result.grid(sticky=tk.W, row=9, column=columnbase+4)        
+        self.asic1_monitor_result.grid(sticky=tk.W, row=9, column=columnbase+2)        
         self.asic1_alive_result = tk.Label(self, text="TBD", width=10)
-        self.asic1_alive_result.grid(sticky=tk.W, row=9, column=columnbase+5)
+        self.asic1_alive_result.grid(sticky=tk.W, row=9, column=columnbase+3)
         self.asic1_final_result = tk.Label(self, text="TBD", width=10)
-        self.asic1_final_result.grid(sticky=tk.W, row=9, column=columnbase+6)
+        self.asic1_final_result.grid(sticky=tk.W, row=9, column=columnbase+4)      
 
-        self.asic2_result = tk.Label(self, text="ASIC 2 Results:", width=25)
-        self.asic2_result.grid(sticky=tk.W,row=10,column=columnbase+2)        
+        self.asic2_result = tk.Label(self, text="ASIC 2 Results:", width=15)
+        self.asic2_result.grid(sticky=tk.W,row=10,column=columnbase+0)        
         self.asic2_baseline_result = tk.Label(self, text="TBD", width=10)
-        self.asic2_baseline_result.grid(sticky=tk.W, row=10, column=columnbase+3)        
+        self.asic2_baseline_result.grid(sticky=tk.W, row=10, column=columnbase+1)        
         self.asic2_monitor_result = tk.Label(self, text="TBD", width=10)
-        self.asic2_monitor_result.grid(sticky=tk.W, row=10, column=columnbase+4)        
+        self.asic2_monitor_result.grid(sticky=tk.W, row=10, column=columnbase+2)        
         self.asic2_alive_result = tk.Label(self, text="TBD", width=10)
-        self.asic2_alive_result.grid(sticky=tk.W, row=10, column=columnbase+5)
+        self.asic2_alive_result.grid(sticky=tk.W, row=10, column=columnbase+3)
         self.asic2_final_result = tk.Label(self, text="TBD", width=10)
-        self.asic2_final_result.grid(sticky=tk.W, row=10, column=columnbase+6)
+        self.asic2_final_result.grid(sticky=tk.W, row=10, column=columnbase+4)      
 
-        self.asic3_result = tk.Label(self, text="ASIC 3 Results:", width=25)
-        self.asic3_result.grid(sticky=tk.W,row=11,column=columnbase+2)        
+        self.asic3_result = tk.Label(self, text="ASIC 3 Results:", width=15)
+        self.asic3_result.grid(sticky=tk.W,row=11,column=columnbase+0)        
         self.asic3_baseline_result = tk.Label(self, text="TBD", width=10)
-        self.asic3_baseline_result.grid(sticky=tk.W, row=11, column=columnbase+3)        
+        self.asic3_baseline_result.grid(sticky=tk.W, row=11, column=columnbase+1)        
         self.asic3_monitor_result = tk.Label(self, text="TBD", width=10)
-        self.asic3_monitor_result.grid(sticky=tk.W, row=11, column=columnbase+4)        
+        self.asic3_monitor_result.grid(sticky=tk.W, row=11, column=columnbase+2)        
         self.asic3_alive_result = tk.Label(self, text="TBD", width=10)
-        self.asic3_alive_result.grid(sticky=tk.W, row=11, column=columnbase+5)
+        self.asic3_alive_result.grid(sticky=tk.W, row=11, column=columnbase+3)
         self.asic3_final_result = tk.Label(self, text="TBD", width=10)
-        self.asic3_final_result.grid(sticky=tk.W, row=11, column=columnbase+6)
+        self.asic3_final_result.grid(sticky=tk.W, row=11, column=columnbase+4)      
 
         #Finish/reset button
         finish_button = tk.Button(self, text="Reset and Power Down",command=self.reset_gui,width=25)
@@ -450,6 +441,8 @@ class GUI_WINDOW(tk.Frame):
         self.params['socket2id'] = self.socket2_entry.get()
         self.params['socket3id'] = self.socket3_entry.get()
         
+        #Create that default file
+        
         self.defaultjson = dict(
             operator_name = self.operator_entry.get(),
             test_stand = self.test_stand_selection.get(),
@@ -470,28 +463,28 @@ class GUI_WINDOW(tk.Frame):
             socket3id = self.socket3_entry.get()
         )
         
-
-        #dump results 
         jsonFile = os.path.join(self.root_dir,self.config.default_file_name)
         with open(jsonFile,'w') as outfile:
             json.dump(self.defaultjson, outfile, indent=4)
 
         print("""\
-Operator Name: {operator_name}
-Test Stand # : {test_stand}
-Test Board ID: {boardid}
-FPGA Board ID: {fpgamezz}
-Chip Version: {chipver}
-ASIC 0 ID: {asic0id}
-ASIC 1 ID: {asic1id}
-ASIC 2 ID: {asic2id}
-ASIC 3 ID: {asic3id}
-ASIC 0 SOCKET: {socket0id}
-ASIC 1 SOCKET: {socket1id}
-ASIC 2 SOCKET: {socket2id}
-ASIC 3 SOCKET: {socket3id}
+                    Operator Name: {operator_name}
+                    Test Stand # : {test_stand}
+                    Test Board ID: {boardid}
+                    FPGA Board ID: {fpgamezz}
+                    Chip Version: {chipver}
+                    ASIC 0 ID: {asic0id}
+                    ASIC 1 ID: {asic1id}
+                    ASIC 2 ID: {asic2id}
+                    ASIC 3 ID: {asic3id}
+                    ASIC 0 SOCKET: {socket0id}
+                    ASIC 1 SOCKET: {socket1id}
+                    ASIC 2 SOCKET: {socket2id}
+                    ASIC 3 SOCKET: {socket3id}
         """.format(**self.params))
         
+        
+        #Make sure everything was entered ok, that nothing was screwed up
         for i in ["asic0id","asic1id","asic2id","asic3id"]:
             j = self.params[i]
             if ((int(j) < self.config.chip_range[0]) or (int(j) > self.config.chip_range[1])):
@@ -519,11 +512,11 @@ ASIC 3 SOCKET: {socket3id}
         self.chiplist = [[0,self.params['asic0id']],[1,self.params['asic1id']],[2,self.params['asic2id']],[3,self.params['asic3id']]]
 
         print("BEGIN TESTS")
-        self.start_button_result["text"] = "IN PROGRESS"
-        self.load_button_result["text"] = "Testing - do not remove"
         self.params.update(chip_list = self.chiplist)
         self.update_idletasks()
         
+        #Calls the new generic tester/runner.  Note that this is done in a for loop and the generic tester passes values back by using "Yield"
+        #This is the only way I figured out how to get feedback back to the GUI mid-test without changing too much
         for i in (maintest(**self.params)):
             print ("Wow {}".format(i))
             
@@ -573,26 +566,81 @@ ASIC 3 SOCKET: {socket3id}
         print("Total run time: {}".format(int(run_time)))
         print(self.GetTimeString(int(run_time)))
 
-    def load_asics(self):
-
-        
+    #Show a live trace to make sure everything is connected correctly
+    def power_on(self):
         self.PowerSupply = RigolDP832()
-        self.PowerSupply.off()
-        self.PowerSupply.set_channel(channel = self.config.ps_heating_chn, voltage = 12, v_limit = 13.1, c_limit = 3.2, vp = "OFF", cp = "ON")
-        self.PowerSupply.set_channel(channel = self.config.ps_quad_chn, voltage = 5, v_limit = 5.1, c_limit = 1.2, vp = "OFF", cp = "ON")
-        self.PowerSupply.set_channel(channel = self.config.ps_fpga_chn, voltage = 5, v_limit = 5.1, c_limit = 1.2, vp = "OFF", cp = "ON")
-    
+        if (self.PowerSupply.powerSupplyDevice != None):
+            self.using_power_supply = True
+            self.params['power_supply'] = True
+        else:
+            self.using_power_supply = False
+            self.params['power_supply'] = False
+            messagebox.showinfo("Warning!", "No power supply device was detected!  Plug in the power supply and try again!  " +
+                                "If you want to run the test without the power suply connected, make sure to turn the power " +
+                                "on when testing at room temperature, off while cooling down, and on again when doing the cold test.")
+                                
+        if (self.using_power_supply):
+    #        self.PowerSupply.off()
+            self.PowerSupply.set_channel(channel = self.config.ps_heating_chn, voltage = 12, v_limit = 13.1, c_limit = 3.2, vp = "OFF", cp = "ON")
+            self.PowerSupply.set_channel(channel = self.config.ps_quad_chn, voltage = 5, v_limit = 5.1, c_limit = 1.2, vp = "OFF", cp = "ON")
+            self.PowerSupply.set_channel(channel = self.config.ps_fpga_chn, voltage = 5, v_limit = 5.1, c_limit = 1.2, vp = "OFF", cp = "ON")
+            self.PowerSupply.on(channels = [1,2,3])
+            self.PowerSupply.measure_params(channel = 1)
+    #       Measure initial volatage and current
+            self.PowerSupply.powerSupplyDevice.write(":MEAS:VOLT?")
+            initialVoltage = float(self.PowerSupply.powerSupplyDevice.read().strip().decode())
+            self.PowerSupply.powerSupplyDevice.write(":MEAS:CURR?")
+            initialCurrent = float(self.PowerSupply.powerSupplyDevice.read().lstrip().decode())
 
-        self.config.initBoard()
-        
-        #Measure initial volatage and current
-        self.powerSupplyDevice.write(":MEAS:VOLT?")
-        initialVoltage = float(self.powerSupplyDevice.read().strip().decode())
-        self.powerSupplyDevice.write(":MEAS:CURR?")
-        initialCurrent = float(self.powerSupplyDevice.read().lstrip().decode())
-        
         self.update_idletasks()
-        self.load_button["bg"]="green"
+#        self.power_button["bg"]="green"
+        
+    def power_off(self):
+        self.PowerSupply = RigolDP832()
+        if (self.PowerSupply.powerSupplyDevice != None):
+            self.using_power_supply = True
+            self.params['power_supply'] = True
+        else:
+            self.using_power_supply = False
+            self.params['power_supply'] = False
+            messagebox.showinfo("Warning!", "No power supply device was detected!  Plug in the power supply and try again!  " +
+                                "If you want to run the test without the power suply connected, make sure to turn the power " +
+                                "on when testing at room temperature, off while cooling down, and on again when doing the cold test.")
+                                
+        if (self.using_power_supply):
+            self.PowerSupply.off()
+        self.update_idletasks()
+#        self.power_button["bg"]="green"
+        
+    def test_connection(self):
+        if (self.boardid_other == True):
+            self.params['boardid'] = self.boardid_entry_other.get()
+        else:
+            self.params['boardid'] = self.boardid_selection.get()
+        fw_ver = self.config.get_fw_version()
+        self.params['fw_ver'] = hex(fw_ver)
+        
+        if (fw_ver < self.config.latest_fw):
+            messagebox.showinfo("Warning!", "The FPGA is running firmware version {} when the latest firmware is version {}.  Please let an expert know!".format(hex(fw_ver), hex(self.config.latest_fw)))
+            
+        SPI_response = self.config.initBoard(board = self.params['boardid'])
+                
+        self.root_dir = self.getDefaultDirectory()
+        temp_sync_folder = os.path.join(self.root_dir,"temp_sync_files")
+        if not os.path.exists(temp_sync_folder):
+            os.makedirs(temp_sync_folder)
+            
+        for thing in os.listdir(temp_sync_folder):
+            file_path = os.path.join(temp_sync_folder, thing)
+            try:
+                if (os.path.isfile(file_path)):
+                    os.unlink(file_path)
+                if (os.path.isdir(file_path)):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                print(e)
+                
+        self.config.syncADC(outputdir = temp_sync_folder, working_chips = SPI_response)
 
     def reset_gui(self):
         #Power down all 4 chips:
@@ -608,13 +656,7 @@ ASIC 3 SOCKET: {socket3id}
 #        self.asic3_entry.insert(tk.END, "")
         self.params['asic_pass'] = [[-1,-1,-1],[-1,-1,-1],[-1,-1,-1],[-1,-1,-1]]
         
-        self.load_button_result["text"] = "Press Load ASICs before loading"
-        self.start_button_result["text"] = "NOT STARTED"
-#        self.check_setup_result["text"] = "CHECK SETUP - NOT STARTED"
-        self.sync_adcs_sequence_result["text"] = "SYNCHRONIZING ADCS - NOT STARTED"
-        self.baseline_test_sequence_result["text"] = "BASELINE TEST - NOT STARTED"
-        self.monitor_data_test_sequence_result["text"] = "MONITOR DATA TEST - NOT STARTED"
-        self.input_alive_power_cycle_sequence_result["text"] = "INPUT ALIVE POWER CYCLE TEST - NOT STARTED"       
+        self.status_label["text"] = "Nothing started" 
         self.asic0_baseline_result["text"] = "TBD"
         self.asic0_monitor_result["text"] = "TBD"
         self.asic0_alive_result["text"] = "TBD"
@@ -666,7 +708,7 @@ ASIC 3 SOCKET: {socket3id}
         synchronize the ADCs
         '''
         print("SYNCHRONIZING ADCS")
-        self.sync_adcs_sequence_result["text"] = "SYNCHRONIZING ADCS - IN PROGRESS"
+        self.status_label["text"] = "SYNCHRONIZING ADCS - IN PROGRESS"
         self.update_idletasks()
         self.test_result = 0
         
@@ -958,28 +1000,9 @@ ASIC 3 SOCKET: {socket3id}
         time_str = "{}:{}:{}".format(d.hour, d.minute, d.second)
         return time_str
         
-    def resolveParams(self, **params):
-        params = self.params.copy()
-        params.update(self.params)
-
-        while True:             # warning: cycles will loop 
-            newparams = dict()
-            changes = 0
-            for var, val in sorted(params.items()):
-                if type(val) != str:
-                    newparams[var] = val
-                    continue
-                newval = val.format(**params)
-                if val != newval:
-                    changes += 1
-                newparams[var] = newval
-            if not changes:
-                return newparams
-            params = newparams  # around again
-
-        return params
-        
-    def getDefaultFile(self):
+    #Use the method the runner uses to determine where the root folder will be for this default file
+    #There's got to be an easier way to do this where I don't have to repeat code here
+    def getDefaultDirectory(self):
         try:
             femb_config = os.environ["FEMB_CONFIG"]  # required
         except KeyError:
@@ -1005,15 +1028,15 @@ ASIC 3 SOCKET: {socket3id}
         else:
             datadisk = "{}/tmp".format(lo_disk)
             
-        root_testdir = "{}/{}/{}/{}".format(datadisk,user,self.params["test_category"],femb_config)
-        step1 = "{}/{}/{}/".format(datadisk,user,self.params["test_category"])
-        step2 = "{}/{}/".format(datadisk,user)
+        step3 = os.path.join(datadisk,user,self.params["test_category"],femb_config)
+        step2 = os.path.join(datadisk,user,self.params["test_category"])
+        step1 = os.path.join(datadisk,user)
         
-        for i in [step1,step2,root_testdir]:
+        for i in [step1,step2,step3]:
             if not os.path.exists(i):
                 os.makedirs(i)
         
-        return root_testdir
+        return step3
 
 
 def main():
