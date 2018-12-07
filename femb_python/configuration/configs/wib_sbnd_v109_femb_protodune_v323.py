@@ -71,8 +71,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.doReSync = True
         self.spiStatus = 0x0
         self.syncStatus = 0x0
-        self.CLKSELECT_val_RT = 0xFF
-        self.CLKSELECT2_val_RT = 0xFF
+        self.CLKSELECT_val_RT = 0xF7
+        self.CLKSELECT2_val_RT = 0xF7
         self.CLKSELECT_val_CT = 0xEF
         self.CLKSELECT2_val_CT = 0xEF
         self.REG_LATCHLOC_3_TO_0_val = 0x04040404
