@@ -15,7 +15,7 @@ from femb_python.test_measurements.quad_FE_Board.detect_peaks import detect_peak
 from femb_python.test_measurements.quad_FE_Board.plotting import plot_functions
 
 #TODO add functions for the LEDs to do
-class FEMB_CONFIG(FEMB_CONFIG_BASE):
+class FEMB_CONFIG2(FEMB_CONFIG_BASE):
     #__INIT__#
     def __init__(self):
         
@@ -74,11 +74,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.adc_full_scale = 0x3FFF
         self.TAGGING_ON = 1
         self.TAGGING_OFF = 0
+        #in microsends.  This affects plots only
+        self.sample_period = 0.5
         
         #MUX Options
         self.default_mux = 8
         self.MUX_internal_pulser = 3
-#        self.plot = plot_functions()
         
         #Readout Options
         self.REG_READOUT_OPTIONS = 60
@@ -122,7 +123,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 #        self.comm_settings = None
 
         self.fe_reg = FE_ASIC_REG_MAPPING()
-        self.plot = plot_functions()
+        self.plot = plot_functions(sample_period = self.sample_period)
         
         self.WIB_RESET = 1
         
@@ -160,6 +161,17 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.Phase_Settings = {'1v0': [0x55555555, 0x51401550, 0x55555555, 0x01555004], '2v0': [0x00000000, 0x00000000, 0x00000000, 0x00000000], '3v0': [0x01000005, 0x00000000, 0x55555555, 0x00000000]}
         self.test_ADC_Settings = 0x000000C8
         
+        self.REG_Latch_Min = 65
+        self.REG_Latch_Max = 68
+        self.REG_Phase_Min = 69
+        self.REG_Phase_Max = 72
+        self.REG_Test_ADC = 73
+        
+        self.sync_baseline = "200mV"
+        self.sync_gain = "14mV"
+        self.sync_pulse = "2us"
+        self.sync_leak = "500pA"
+        self.sync_buffer = "off"
         self.sync_peak_min = 3500
         self.sync_peak_max = 7500
         self.sync_peak_height = 11
@@ -311,11 +323,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Adds tracer bits on data coming in when the internal pulser has an edge
         self.femb.write_reg(self.REG_TAGGING, self.TAGGING_ON)
         
-        #Get the ASIC to send out pulses.  Bit 6 needs to be high for ASIC DAC
-        INTERNAL_VALUE = (self.sync_INTERNAL_PERIOD << 16) + (self.sync_INTERNAL_SHIFT << 8) + (self.sync_INTERNAL_ON)
-        self.femb.write_reg(self.REG_INTERNAL, INTERNAL_VALUE)
-        self.configFeAsic(test_cap="on", base="200mV", gain="14mV", shape="2us", monitor_ch=None, buffer="off", 
-                       leak = "500pA", monitor_param = None, s16=None, acdc="dc", test_dac="test_int", dac_value=self.sync_peak_height)
+        #Get the ASIC to send out pulses
+        self.set_internal_DAC(period = self.sync_INTERNAL_PERIOD, shift = self.sync_INTERNAL_SHIFT, enable = True)
+        self.configFeAsic(test_cap="on", base=self.sync_baseline, gain=self.sync_gain, shape=self.sync_pulse, monitor_ch=None, buffer=self.sync_buffer, 
+                       leak = self.sync_leak, monitor_param = None, s16=None, acdc="dc", test_dac="test_int", dac_value=self.sync_peak_height)
         self.writeFE()
         
     def sync_prep_test(self, chip):
@@ -327,4 +338,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg(self.REG_READOUT_OPTIONS, self.READOUT_TEST_ADC)
         
         #Select the monitor readout
-        self.femb.write_reg(9, 3)
+        self.femb.write_reg(9, self.MUX_internal_pulser)
+        
+    def sync_finish(self):
+        #Read from TEST output ADCs
+        self.femb.write_reg(self.REG_READOUT_OPTIONS, self.READOUT_NORMAL)
+        self.femb.write_reg(self.REG_TAGGING, self.TAGGING_OFF)
+        self.set_internal_DAC(period = self.sync_INTERNAL_PERIOD, shift = self.sync_INTERNAL_SHIFT, enable = False)

@@ -17,13 +17,14 @@ import matplotlib.patches as mpatches
 from femb_python.test_measurements.quad_FE_Board.detect_peaks import detect_peaks
 
 class plot_functions:
-        
+    def __init__(self, sample_period):
+        self.sample_period = sample_period
 
-    def plot(self, data, plot_name, title_name, length = 1000):
+    def plot_chip(self, data, plot_name, title_name, length = 1000):
         
         time_x = []       
         for j in range(length):
-            time_x.append(0.5 * j)
+            time_x.append(self.sample_period * j)
 
         fig = plt.figure(figsize=(16, 12), dpi=80)
         plt.title(title_name, fontsize = 20)
@@ -51,7 +52,7 @@ class plot_functions:
             time_x = []         
             
             for k in range(length):
-                time_x.append(0.5 * k)
+                time_x.append(self.sample_period * k)
             ax = fig.add_subplot(16,1,15-j, sharex=ax1)
             plt.plot(time_x, data[j+1][:length])
             for item in (ax.get_xticklabels()):
@@ -80,7 +81,7 @@ class plot_functions:
         
         time = []
         for i in range(len(data)):
-            time.append(0.5 * i)
+            time.append(self.sample_period * i)
             
             
         fig = plt.figure(figsize=(16, 12), dpi=80)
