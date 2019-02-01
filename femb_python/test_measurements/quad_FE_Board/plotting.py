@@ -4,21 +4,21 @@ Created on Tue Jan 30 16:43:58 2018
 
 @author: protoDUNE
 """
-
-import os
-import sys
-import struct
-from datetime import datetime
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
-import pickle
-import numpy as np
-import matplotlib.patches as mpatches
-from femb_python.test_measurements.quad_FE_Board.detect_peaks import detect_peaks
 
 class plot_functions:
-    def __init__(self, sample_period):
-        self.sample_period = sample_period
+    def __init__(self, config_file = None):
+        """
+        Initialize this class (no board communication here. Should setup self.femb_udp as a femb_udp instance, get FE Registers, etc...)
+        """
+        if (config_file == None):
+            from femb_python.configuration import CONFIG
+            self.config = CONFIG
+        else:
+            self.config = config_file
+            
+        self.sample_period = float(self.config["DEFAULT"]["SAMPLE_PERIOD"])
 
     def plot_chip(self, data, plot_name, title_name, length = 1000):
         
@@ -94,3 +94,33 @@ class plot_functions:
         #plt.show()
         
         return [overlay_ax, fig]
+        
+    def debugScatterplot(self, data, peaks_index, title, save_location):
+        
+        time = []
+        for i in range(len(data)):
+            time.append(self.sample_period * i)
+            
+            
+        fig = plt.figure(figsize=(16, 12), dpi=80)
+        overlay_ax = fig.add_subplot(1,1,1)
+
+        overlay_ax.set_xlabel('Time (counts)')
+        overlay_ax.set_ylabel('ADC Counts')
+        overlay_ax.plot(time, data)
+        
+        try:
+            for j in peaks_index:
+                y_value = data[j]
+                overlay_ax.scatter(j * self.sample_period, y_value, marker='x')
+        except TypeError:
+            pass
+            
+        overlay_ax.set_title(title)
+        overlay_ax.title.set_fontsize(20)
+        for item in ([overlay_ax.xaxis.label, overlay_ax.yaxis.label] + overlay_ax.get_xticklabels() + overlay_ax.get_yticklabels()):
+            item.set_fontsize(20)
+                
+        plt.savefig(save_location)
+        
+        plt.close()

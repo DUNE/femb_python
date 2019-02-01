@@ -39,16 +39,18 @@ class LOW_LEVEL(object):
         Selects the chip and channel you want read out, doesn't matter if the board is reading out in "WIB mode"
         This method works for the first board to use this framework (Quad FE) so it may need to be adjusted in the future
         """
-        if (chip < int(self.config["DEFAULT"]["NASIC_MIN"]) ) or (chip > int(self.config["DEFAULT"]["NASIC_MAX"]) ):
+        chip_int = int(chip) + 1
+        chn_int = int(chn)
+        
+        if (chip_int < int(self.config["DEFAULT"]["NASIC_MIN"]) ) or (chip_int > int(self.config["DEFAULT"]["NASIC_MAX"]) ):
             print ("FEMB_CONFIG_BASE -> Error in selectChipChannel: Chip must be between {} and {}, but it was {}".format(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]), chip))
             return
             
-        if (chn < int(self.config["DEFAULT"]["NASICCH_MIN"]) ) or (chn > int(self.config["DEFAULT"]["NASICCH_MAX"]) ):
+        if (chn_int < int(self.config["DEFAULT"]["NASICCH_MIN"]) ) or (chn_int > int(self.config["DEFAULT"]["NASICCH_MAX"]) ):
             print ("FEMB_CONFIG_BASE -> Error in selectChipChannel: Channel must be between {} and {}, but it was {}".format(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]), chn))
             return
           
-        chip_int = int(chip)
-        chn_int = int(chn)
+        
         self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_CH_SEL"]), chn_int + (chip_int << 8))
 
         
@@ -78,7 +80,7 @@ class LOW_LEVEL(object):
         data_to_return = []
         while (traces < packets):
             loops = loops + 1
-            data = list(self.get_data_chipXchnX(chip, chn, packets = 5, data_format = "counts"), header = header)
+            data = list(self.get_data_chipXchnX(chip, chn, packets = 5, data_format = "counts", header = header))
             found_trace = False
             for i in range(len(data)):
                 #if (data[i] > self.adc_full_scale):
@@ -119,11 +121,22 @@ class LOW_LEVEL(object):
             
         return data_to_return
         
+    def get_data_chipX(self, chip, packets = 1, data_format = "counts", tagged = False, header = False):
+        
+        chip_data = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
+        for chn in range(int(self.config["DEFAULT"]["NASICCH"])):
+            for i in range(packets):
+                if (tagged == False):
+                    chip_data[chn].extend(list(self.get_data_chipXchnX(chip, chn, packets = packets, data_format = data_format, header = header)))
+                else:
+                    chip_data[chn].extend(list(self.get_data_chipXchnX_tagged(chip, chn, packets = packets, data_format = data_format, header = header)))
+        return chip_data
+        
     def setInternalPulser(self, period = 0, shift = 0, enable = None):
         if (enable == True):
-            en_byte = self.config['DEFINITIONS'].getboolean('INTERNAL_PULSE_ON', 2)
+            en_byte = int(self.config['DEFINITIONS']['INTERNAL_PULSE_ON'], 2)
         else:
-            en_byte = self.config['DEFINITIONS'].getboolean('INTERNAL_PULSE_OFF')
+            en_byte = int(self.config['DEFINITIONS']['INTERNAL_PULSE_OFF'])
             
         INTERNAL_VALUE = (period << 16) + (shift << 8) + (en_byte)
         self.femb_udp.write_reg(self.config["REGISTERS"]["REG_INT_PULSE"], INTERNAL_VALUE)

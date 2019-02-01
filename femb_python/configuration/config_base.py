@@ -67,7 +67,8 @@ class FEMB_CONFIG_BASE(object):
             print("FEMB_CONFIG_BASE --> self.config is {}".format(self.config))
             sys.exit("FEMB_CONFIG_BASE --> No board class for {}".format(self.config["DEFAULT"]["NAME"]))
         self.test = board()
-        self.FE_Regs = self.test.FE_Regs
+        self.FE_Regs = self.test.asic_config.FE_Regs
+        self.ASIC_functions = self.test.asic_config
         
         self.root_dir = getDefaultDirectory()
         file_name = os.path.join(self.root_dir,self.config["FILENAMES"]["DEFAULT_GUI_FILE_NAME"])
@@ -100,10 +101,10 @@ class FEMB_CONFIG_BASE(object):
         """
         self.resetBoard()
         self.turnOnAsics()
-        try:
-            result = self.test.initBoard()
-        except AttributeError:
-            sys.exit("FEMB_CONFIG_BASE --> {} does not have initBoard() method!".format(self.config["DEFAULT"]["NAME"]))
+#        try:
+        result = self.test.initBoard()
+#        except AttributeError:
+#            sys.exit("FEMB_CONFIG_BASE --> {} does not have initBoard() method!".format(self.config["DEFAULT"]["NAME"]))
         if (result != None):
             print ("FEMB_CONFIG_BASE--> Init Board Passed!")
             return (result)
@@ -143,7 +144,7 @@ class FEMB_CONFIG_BASE(object):
         This will write the last configFeAsic settings to the actual chips, so all those new settings come into affect AFTER this method
         """
         try:
-            response = self.test.writeFE()
+            response = self.ASIC_functions.writeFE()
         except AttributeError:
             sys.exit("FEMB_CONFIG_BASE --> {} does not have writeFE() method!".format(self.config["DEFAULT"]["NAME"]))
             
@@ -156,7 +157,7 @@ class FEMB_CONFIG_BASE(object):
         Prepares ASIC configuration registers for new settings but does NOT send them and make them active
         """
         try:
-            self.test.configFeAsic(**kwargs)
+            self.ASIC_functions.configFeAsic(**kwargs)
         except AttributeError:
             sys.exit("FEMB_CONFIG_BASE --> {} does not have configFeAsic() method!".format(self.config["DEFAULT"]["NAME"]))
 
@@ -164,10 +165,10 @@ class FEMB_CONFIG_BASE(object):
     #chip_id[0] is the index of the chip, where it sits on the board (spot 0, 1, 2, 3 etc...)
     #chip_id[1] is its name (A2567, A2568, etc...)
     def syncADC(self, **kwargs):
-        try:
-            response = self.sync.syncADC(**kwargs)
-        except AttributeError:
-            sys.exit("FEMB_CONFIG_BASE --> {} does not have syncADC() method!".format(self.config["DEFAULT"]["NAME"]))
+#        try:
+        response = self.sync.syncADC(**kwargs)
+#        except AttributeError:
+#            sys.exit("FEMB_CONFIG_BASE --> {} does not have syncADC() method!".format(self.config["DEFAULT"]["NAME"]))
             
         if (response == False):
             print("FEMB_CONFIG_BASE --> syncADC() failed")

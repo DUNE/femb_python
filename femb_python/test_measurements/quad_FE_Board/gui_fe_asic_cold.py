@@ -17,7 +17,7 @@ from datetime import timedelta, datetime
 import tkinter as tk
 from tkinter import messagebox
 import json
-import getpass
+from threading import Thread
 
 import sys
 import os                                 # for statv
@@ -30,7 +30,7 @@ import shutil
 #import the test module
 #from femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement import FEMB_TEST_SIMPLE
 #from femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement import FEMB_TEST_GAIN
-
+from femb_python.test_measurements.quad_FE_Board.trace_viewer import main_start as startWF
 from femb_python.configuration import CONFIG
 from femb_python.configuration.config_module_loader import getDefaultDirectory
 
@@ -38,6 +38,7 @@ from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.test_instrument_interface.rigol_dp832 import RigolDP832
 from femb_python.test_measurements.OscillatorTesting.code.driverUSBTMC import DriverUSBTMC
 from femb_python.test_measurements.quad_FE_Board.define_tests import main as maintest
+
 
 class GUI_WINDOW(tk.Frame):
 
@@ -54,6 +55,8 @@ class GUI_WINDOW(tk.Frame):
         self.pack()
         self.config = CONFIG
         self.functions = FEMB_CONFIG_BASE(self.config)
+        
+        self.waveform_window = None
         
         #Probably will remove eventually
         self.methodMap = {'baseline_test_sequence' : 0,
@@ -352,6 +355,9 @@ class GUI_WINDOW(tk.Frame):
         self.connection_button = tk.Button(self, text="Test Connection", command=self.test_connection,width=10)
         self.connection_button.grid(row=2,column=columnbase+1,columnspan=1)
         
+        self.debug_button = tk.Button(self, text="Debug", command=self.debug,width=10)
+        self.debug_button.grid(row=2,column=columnbase+3,columnspan=1)
+        
         self.start_button = tk.Button(self, text="Start Tests", command=self.start_measurements,width=10)
         self.start_button.grid(row=2,column=columnbase,columnspan=1)
 
@@ -644,6 +650,7 @@ class GUI_WINDOW(tk.Frame):
         
     def test_connection(self):
         #TODO if not on already, turn on and wait
+    
         self.write_default_file()
         fw_ver = self.functions.get_fw_version()
         self.params['fw_ver'] = hex(fw_ver)
@@ -667,7 +674,22 @@ class GUI_WINDOW(tk.Frame):
             except Exception as e:
                 print(e)
                 
-        self.functions.syncADC(outputdir = temp_sync_folder, working_chips = SPI_response)
+        chiplist = []
+        chiplist.append(self.asic0_entry.get())
+        chiplist.append(self.asic1_entry.get())
+        chiplist.append(self.asic2_entry.get())
+        chiplist.append(self.asic3_entry.get())
+        
+        self.functions.syncADC(outputdir = temp_sync_folder, working_chips = SPI_response, chiplist = chiplist, to_print = False)
+        
+        t1 = Thread(target=startWF())
+        t1.start()
+        t1.join()
+        
+    def debug(self):
+        t1 = Thread(target=startWF())
+        t1.start()
+        t1.join()
 
     def reset_gui(self):
         #Power down all 4 chips:
