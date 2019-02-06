@@ -159,7 +159,7 @@ class FEMB_CONFIG_BASE(object):
         try:
             self.ASIC_functions.configFeAsic(**kwargs)
         except AttributeError:
-            sys.exit("FEMB_CONFIG_BASE --> {} does not have configFeAsic() method!".format(self.config["DEFAULT"]["NAME"]))
+            print("FEMB_CONFIG_BASE --> {} does not have configFeAsic() method!".format(self.config["DEFAULT"]["NAME"]))
 
     #Returns boolean array of the chips that pass.  If a chips is not part of "working chips", its place will be empty in the array
     #chip_id[0] is the index of the chip, where it sits on the board (spot 0, 1, 2, 3 etc...)
@@ -182,7 +182,7 @@ class FEMB_CONFIG_BASE(object):
         if (resp != None):
             return resp
         else:
-            sys.exit("FEMB_CONFIG_BASE --> No response for firmware version!!")
+            print("FEMB_CONFIG_BASE --> No response for firmware version!!")
         
     #Get a whole chip's worth of data
     def get_data_chipX(self, chip, packets = 1, data_format = "counts", tagged = False, header = False):
@@ -200,10 +200,10 @@ class FEMB_CONFIG_BASE(object):
         try:
             self.lower_functions.setInternalPulser(**kwargs)
         except AttributeError:
-            sys.exit("FEMB_CONFIG_BASE --> {} does not have setInternalPulser() method!".format(self.config["DEFAULT"]["NAME"]))
+            print("FEMB_CONFIG_BASE --> {} does not have setInternalPulser() method!".format(self.config["DEFAULT"]["NAME"]))
         
     def setExternalPulser(self, **kwargs):
         try:
             self.lower_functions.setExternalPulser(**kwargs)
         except AttributeError:
-            sys.exit("FEMB_CONFIG_BASE --> {} does not have setExternalPulser() method!".format(self.config["DEFAULT"]["NAME"]))
+            print("FEMB_CONFIG_BASE --> {} does not have setExternalPulser() method!".format(self.config["DEFAULT"]["NAME"]))

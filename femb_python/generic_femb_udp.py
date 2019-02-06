@@ -77,6 +77,7 @@ class FEMB_UDP(object):
                 self.check_power_fault()
                 return None
             self.write_reg(regVal,dataVal,writeAttempt + 1)
+            
 
     def write_reg_bits(self, reg , pos, mask, data ):
         try:

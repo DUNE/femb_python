@@ -15,6 +15,7 @@ It maintains a state over a test sequence.
 
 from femb_python import runpolicy
 import time
+import sys
 
 class Test(object):
     def __init__(self, **params):
@@ -77,19 +78,19 @@ def main(**params):
 
     #Test 2
     params_test_2 = dict(params)
-    params_test_2.update( executable = "feasic_quad_baseline", argstr="{paramfile}", datasubdir = "Baseline", outlabel = "Baseline",)
+    params_test_2.update( executable = "feasic_quad_baseline", argstr="{paramfile}", datasubdir = ".", outlabel = "Baseline",)
     tests.append( Test(**params_test_2) )
 
     ##add more test as needed
-    yield ("uh 2")
+        
     #actually run tests here
     r = runpolicy.make_runner(**params)
     if r == None:
       print("EXAMPLE PRODUCTION TEST - ERROR: runpolicy runner could not be defined, production test not started.")
       return
-      
-    for test in tests:
-        test(r)
+
+    s = Sequencer(tests, r)
+    s.run()
 
     print( "EXAMPLE PRODUCTION TEST - DONE")
     

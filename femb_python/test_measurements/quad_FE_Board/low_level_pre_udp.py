@@ -146,7 +146,6 @@ class LOW_LEVEL(object):
             int_val = int(val)
             if ((int_val > 0) or (int_val < int(self.config["DEFAULT"]["EXTERNAL_DAC_VAL_MAX"], 16))):
                 self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_EXT_DAC_VAL"]), int_val)
-                
                 self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_EXT_DAC_SET"]), int(self.config["DEFINITIONS"]["PCB_DAC_STOP"]))
                 self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_EXT_DAC_SET"]), int(self.config["DEFINITIONS"]["PCB_DAC_START"]))
                 self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_EXT_DAC_SET"]), int(self.config["DEFINITIONS"]["PCB_DAC_STOP"]))
@@ -161,3 +160,4 @@ class LOW_LEVEL(object):
                 
         if ((period!=None) and (shift!=None)):
             self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_EXT_PULSE"]), (shift << 16) + period)
+            

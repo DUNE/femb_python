@@ -22,22 +22,24 @@ import matplotlib.pyplot as plt
 
 from femb_python.configuration import CONFIG
 from femb_python.write_data import WRITE_DATA
-from femb_python.test_measurements.quad_FE_Board.plotting import plot_functions
-from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
+from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 
 class SYNC_ADCS(object):
     
     def __init__(self, datadir="data", outlabel="syncData"):
         self.outpathlabel = os.path.join(datadir, outlabel)        
         
-        #import femb_udp modules from femb_udp package
-        self.femb_config = CONFIG()
+        self.config = CONFIG
+        self.functions = FEMB_CONFIG_BASE(self.config)
+        self.low_level = self.functions.lower_functions
+        self.sync_functions = self.functions.sync
+        self.plotting = self.functions.sync.plot
+        
+        
         self.write_data = WRITE_DATA(datadir)
         #set appropriate packet size
-        self.plotting = plot_functions()
+        
         self.write_data.femb.MAX_PACKET_SIZE = 8000
-
-        self.cppfr = CPP_FILE_RUNNER()
         
         #json output, note module version number defined here
         self.jsondict = {'type':'sync_adcs'}
@@ -47,26 +49,7 @@ class SYNC_ADCS(object):
         
         
     def sync(self):
-        self.femb_config.femb.write_reg(12,0x0)
-        time.sleep(1)
-#        for num,i in enumerate(chip_list):
-#            self.femb_config.map_directory(os.path.join(datadir,i[1]))
-        
-        #stablish IP addresses for board and machine running this program
-        #make sure IP address for the ethernet port is set correctly
-        #make filepaths to store the synchronization plots
-        self.femb_config.make_filepaths(self.datadir,self.chip_list,self.datasubdir)
-        self.femb_config.femb.init_ports(hostIP = self.femb_config.PC_IP, destIP = self.femb_config.FPGA_IP)
-
-
-        time.sleep(0.1)        
-        print("Chip tester version {}".format(hex(self.femb_config.femb.read_reg(0x64))))
-        
-
-        self.femb_config.resetFEMBBoard()
-        self.config_list = self.femb_config.initBoard(self.boardID)
-
-        self.femb_config.syncADC(self.datadir, self.chip_list, self.datasubdir, config_list = self.config_list)
+        self.sync_functions.syncADC(**self.params)
         
 #        self.femb_config.syncADC()
         #Tells the FPGA to turn on each DAC
@@ -82,7 +65,7 @@ class SYNC_ADCS(object):
         self.femb_config.femb.write_reg(9, 3)
         
         #Pulses the internal ASIC pulse (this changes the way packets are outputted through UDP and can screw things up 
-        #if you don't know how it works.  Use caution and makes ure register 17 goes back to 0 when done)
+        #if you don't know how it works.  Use caution and make sure register 17 goes back to 0 when done)
         #The way it works is that whenever the FPGA is ready to send out an ASIC pulse, it 
         self.reg_17_value = (self.femb_config.default_TP_Period << 16) + (self.femb_config.default_TP_Shift << 8) + (0b01000000)
         self.femb_config.femb.write_reg(17, self.reg_17_value)
@@ -146,7 +129,7 @@ class SYNC_ADCS(object):
         
         self.jsondict['filedir'] = str( self.write_data.filedir )
         self.jsondict['boardID'] = str( self.boardID )
-        self.jsondict['config_list'] = self.config_list
+        self.jsondict['working_chips'] = self.working_chips
 
         for chip in self.chip_list:
             jsonFile = os.path.join(self.datadir,chip[1],self.datasubdir,"results.json")
@@ -157,16 +140,20 @@ def main():
     '''
     sync the ADCs
     '''
-    sync_adcs = SYNC_ADCS()  
+    sync_adcs = SYNC_ADCS()
+    params = json.loads(open(sys.argv[1]).read())
+    params["to_print"] = True
+    params["outputdir"] = True
+    sync_adcs.params = params
     
-    params = json.loads(open(sys.argv[1]).read())            
-    sync_adcs.datadir = params['datadir']
-    sync_adcs.outlabel = params['outlabel']    
-    sync_adcs.chip_list = params['chip_list']
-    sync_adcs.datasubdir = params['datasubdir']
-    sync_adcs.boardID = params['boardid']
-    sync_adcs.config_list = params['config_list']
-
+#    for array in params["chip_list"]:
+#        params["data_dir_chip{}".format(array[0])] = "{}/{}".format(sync_adcs.datadir, array[1])
+#        print(params["data_dir_chip{}".format(array[0])])
+#        
+#    jsonFile = os.path.join(sync_adcs.datadir,"params.json")
+#    with open(jsonFile,'w') as outfile:
+#        json.dump(params, outfile, indent=4)
+        
     sync_adcs.sync()
 
     

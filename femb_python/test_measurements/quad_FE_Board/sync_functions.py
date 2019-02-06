@@ -52,7 +52,6 @@ class SYNC_FUNCTIONS(object):
     def syncADC(self, **kwargs):
         print ("sync_functions--> Start syncing ADCs")
         print_when_good = kwargs["to_print"]
-        outputdir = kwargs["outputdir"]
         #Chips that have failed SPI or have been disabled by the GUI wont be tested
         working_chips = kwargs["working_chips"]
         return_array = []
@@ -63,15 +62,15 @@ class SYNC_FUNCTIONS(object):
         self.low_func.selectChipChannel(chip = 0, chn = 1)
         for chip in working_chips:
             #"chiplist" is an argument that has the chip names.  Here we make an array with the chip index (where it is on the board) and it's name that was put in ("A5039")
-            chiplist = kwargs["chiplist"]
-            chip_id = []
-            chip_id.append(chip)
-            chip_id.append(chiplist[chip])
+            chiplist = kwargs["chip_list"]
+            chip_id = (chiplist[chip])
+            datadir = kwargs["datadir"]
             try:
-                datadir = kwargs["datadir"]
-                self.savefigpath = os.path.join(datadir,chip_id[1],outputdir,"syncplots")
+                
+                outputdir = kwargs["outlabel"]
+                self.savefigpath = os.path.join(datadir,chip_id[1],outputdir)
             except KeyError:
-                self.savefigpath = os.path.join(outputdir,str(chip_id[1]))
+                self.savefigpath = os.path.join(datadir,chip_id[1])
                 
             os.makedirs(self.savefigpath)
             
@@ -111,7 +110,7 @@ class SYNC_FUNCTIONS(object):
                 #Prints a plot of the whole chip so we can be sure there was no sketchiness (takes some time)
                 print("sync_functions--> Printing synchronization plot for Chip {}({})".format(chip_id[0],chip_id[1]))
                 data = self.low_func.get_data_chipX(chip = chip_id[0], packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), tagged = True)
-                plot_path = os.path.join(self.savefigpath,"syncplots")
+                plot_path = os.path.join(self.savefigpath,"Good_Sync")
                 self.plot.plot_chip(data = data, plot_name = plot_path, title_name = "Pulses for synchronization: Gain = {}/fC, Peaking Time = {}, Buffer {}, "
                                                                                      "DAC Pulse at {} \nPeaks should be between {} and {}, Baseline should be between "
                                                                                      "{} and {}".format(self.config["SYNC_SETTINGS"]["SYNC_GAIN"], self.config["SYNC_SETTINGS"]["SYNC_PEAK"], self.config["SYNC_SETTINGS"]["SYNC_BUFFER"], 
@@ -152,14 +151,14 @@ class SYNC_FUNCTIONS(object):
                 #Prints a plot of the monitor test pin so we can be sure there was no sketchiness
                 print("sync_functions--> Printing synchronization plot for Chip {}({})".format(chip_id[0],chip_id[1]))
                 data = self.low_func.get_data_chipXchnX_tagged(chip = chip_id[0], chn = 1, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), data_format = "counts")
-                plot_path = os.path.join(self.savefigpath,"syncplots_monitor")
+                plot_path = os.path.join(self.savefigpath,"Good_Sync_Monitor")
                 title = "Pulses for synchronization: Gain = {}/fC, Peaking Time = {}, Buffer {}, DAC Pulse at {} \nPeaks should be between {} and {}, Baseline should be between {} and {}".format(self.config["SYNC_SETTINGS"]["SYNC_GAIN"], 
                         self.config["SYNC_SETTINGS"]["SYNC_PEAK"], self.config["SYNC_SETTINGS"]["SYNC_BUFFER"], self.config["SYNC_SETTINGS"]["SYNC_DAC_PEAK_HEIGHT"], self.config["SYNC_SETTINGS"]["SYNC_PEAK_MIN"], 
                         self.config["SYNC_SETTINGS"]["SYNC_PEAK_MAX"], self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MIN"], self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MAX"])
                 self.plot.debugScatterplot(data = data, save_location = plot_path, title = title, peaks_index = None)
             
         #This just helps so that if we continuously need to sync on a board, we can go back and see what the settings it finds are and make those the default.
-        outputfile = os.path.join(outputdir,"syncresults.txt")
+        outputfile = os.path.join(datadir,"syncresults.txt")
         with open(outputfile, 'w') as f:
             f.write("sync_functions--> Final Shift Settings: \n")
             for reg in range(int(self.config["REGISTERS"]["REG_LATCH_MIN"]), int(self.config["REGISTERS"]["REG_LATCH_MAX"]) + 1):
@@ -179,6 +178,8 @@ class SYNC_FUNCTIONS(object):
         return return_array
                 
     def testUnsync(self, chip, chn, index=0):
+        save_error_path = os.join(self.savefigpath, "sync_fails")
+        os.makedirs(save_error_path)
         #Get some packets of data
         self.low_func.selectChipChannel(chip = chip[0], chn = chn)
         data = list(self.low_func.get_data_chipXchnX_tagged(chip = chip[0], chn = chn, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), data_format = "counts"))
@@ -188,7 +189,7 @@ class SYNC_FUNCTIONS(object):
         if (len(peaks_index) != int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"])):
             error = "sync_functions: Chip {}({}), Chn {} has {} peaks".format(chip[0],chip[1], chn, len(peaks_index))
             print (error)
-            save_location = os.path.join(self.savefigpath,"chip{}chn{}peaks{}_index{}.jpg".format(chip[1],chn,len(peaks_index),index))
+            save_location = os.path.join(save_error_path,"chip{}chn{}peaks{}_index{}.jpg".format(chip[1],chn,len(peaks_index),index))
             self.plot.debugScatterplot(data=data, peaks_index=peaks_index, title=error, save_location=save_location)
             return False
             
@@ -203,7 +204,7 @@ class SYNC_FUNCTIONS(object):
             if ((peak < int(self.config["SYNC_SETTINGS"]["SYNC_PEAK_MIN"])) or (peak > int(self.config["SYNC_SETTINGS"]["SYNC_PEAK_MAX"]))):
                 error = "sync_functions: Chip {}({}), Chn {} has a peak that's {}".format(chip[0],chip[1], chn, peak)
                 print (error)
-                save_location = os.path.join(self.savefigpath,"chip{}chn{}peak{}.jpg".format(chip,chn,peak))
+                save_location = os.path.join(save_error_path,"chip{}chn{}peak{}.jpg".format(chip,chn,peak))
                 self.plot.debugScatterplot(data=data, peaks_index=peaks_index, title=error, save_location=save_location)
                 return False 
                 
@@ -223,7 +224,7 @@ class SYNC_FUNCTIONS(object):
         if ((baseline < int(self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MIN"])) or (baseline > int(self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MAX"]))):
             error = "sync_functions--> Chip {}({}), Chn {} has a baseline that's {}".format(chip[0],chip[1], chn, baseline)
             print (error)
-            save_location = os.path.join(self.savefigpath,"chip{}chn{}baseline{}.jpg".format(chip,chn,baseline))
+            save_location = os.path.join(save_error_path,"chip{}chn{}baseline{}.jpg".format(chip,chn,baseline))
             self.plot.debugScatterplot(data=data, peaks_index=peaks_index, title=error, save_location=save_location)
                 
         #check if the pulse has high frequency noise
