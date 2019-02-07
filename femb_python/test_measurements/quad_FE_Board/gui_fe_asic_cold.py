@@ -17,7 +17,7 @@ from datetime import timedelta, datetime
 import tkinter as tk
 from tkinter import messagebox
 import json
-import getpass
+from threading import Thread
 
 import sys
 import os                                 # for statv
@@ -30,12 +30,15 @@ import shutil
 #import the test module
 #from femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement import FEMB_TEST_SIMPLE
 #from femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement import FEMB_TEST_GAIN
-
-from femb_python import runpolicy
+from femb_python.test_measurements.quad_FE_Board.trace_viewer import main_start as startWF
 from femb_python.configuration import CONFIG
+from femb_python.configuration.config_module_loader import getDefaultDirectory
+
+from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.test_instrument_interface.rigol_dp832 import RigolDP832
 from femb_python.test_measurements.OscillatorTesting.code.driverUSBTMC import DriverUSBTMC
 from femb_python.test_measurements.quad_FE_Board.define_tests import main as maintest
+
 
 class GUI_WINDOW(tk.Frame):
 
@@ -50,7 +53,12 @@ class GUI_WINDOW(tk.Frame):
         #It's calling the constructor of the parent tkinter object, the pack method of the class, which is now a tkinter object
         tk.Frame.__init__(self,master)
         self.pack()
-        self.config = CONFIG()
+        self.config = CONFIG
+        self.functions = FEMB_CONFIG_BASE(self.config)
+        
+        self.master.title("Quad FE ASIC Test GUI")
+        self.master.protocol("WM_DELETE_WINDOW", lambda arg=self.master: self.on_closing(arg))
+        self.WF_GUI = None
         
         #Probably will remove eventually
         self.methodMap = {'baseline_test_sequence' : 0,
@@ -72,8 +80,8 @@ class GUI_WINDOW(tk.Frame):
         
         #Look in the root folder for the test name and see if there was a JSON file created with the previous settings
         #This is used to pre-fill in the fields, much more preferable than putting in the sockets and all that from scratch
-        self.root_dir = self.getDefaultDirectory()
-        file_name = os.path.join(self.root_dir,self.config.default_file_name)
+        self.root_dir = getDefaultDirectory()
+        file_name = os.path.join(self.root_dir,self.config["FILENAMES"]["DEFAULT_GUI_FILE_NAME"])
         if os.path.isfile(file_name):
             self.default_settings = dict()
             with open(file_name, 'r') as f:
@@ -167,7 +175,12 @@ class GUI_WINDOW(tk.Frame):
         self.test_stand_selection = tk.StringVar(self.master, name = "test_stand_GUI_variable")
         self.test_stand_selection.set(self.default_settings["test_stand"]) # initial value
         self.test_stand_selection.trace("w", self.gui_callback)
-        stands = self.config.known_test_stands
+        
+        options = list(self.config._sections['KNOWN_TEST_STANDS'].keys())
+        stands = []
+        for i in range(len(options)):
+            stands.append(self.config['KNOWN_TEST_STANDS'][options[i]])
+            
         self.test_stand_entry = tk.OptionMenu(self, self.test_stand_selection, *stands)
         self.test_stand_entry.config(width=options_width)
         self.test_stand_entry.grid(sticky=tk.W,row=2,column=columnbase+1)
@@ -187,7 +200,12 @@ class GUI_WINDOW(tk.Frame):
         self.boardid_selection = tk.StringVar(self.master, name = "boardid_GUI_variable")
         self.boardid_selection.set(self.default_settings["boardid"]) # initial value
         self.boardid_selection.trace("w", self.gui_callback)
-        boards = self.config.known_quad_boards
+        
+        options = list(self.config._sections['KNOWN_QUAD_BOARDS'].keys())
+        boards = []
+        for i in range(len(options)):
+            boards.append(self.config['KNOWN_QUAD_BOARDS'][options[i]])
+            
         self.boardid_entry = tk.OptionMenu(self, self.boardid_selection, *boards)
         self.boardid_entry.config(width=options_width)
         self.boardid_entry.grid(sticky=tk.W,row=3,column=columnbase+1)
@@ -207,7 +225,12 @@ class GUI_WINDOW(tk.Frame):
         self.chipver_selection = tk.StringVar(self.master, name = "chipver_GUI_variable")
         self.chipver_selection.set(self.default_settings["chipver"]) # initial value
         self.chipver_selection.trace("w", self.gui_callback)
-        chips = self.config.known_chip_versions
+        
+        options = list(self.config._sections['KNOWN_CHIP_VERSIONS'].keys())
+        chips = []
+        for i in range(len(options)):
+            chips.append(self.config['KNOWN_CHIP_VERSIONS'][options[i]])
+            
         self.chipver_entry = tk.OptionMenu(self, self.chipver_selection, *chips)
         self.chipver_entry.config(width=options_width)
         self.chipver_entry.grid(sticky=tk.W,row=4,column=columnbase+1)
@@ -227,7 +250,12 @@ class GUI_WINDOW(tk.Frame):
         self.fpgamezz_selection = tk.StringVar(self.master, name = "fpgamezz_GUI_variable")
         self.fpgamezz_selection.set(self.default_settings["fpgamezz"]) # initial value
         self.fpgamezz_selection.trace("w", self.gui_callback)
-        fpgas = self.config.known_fpga_mezzanines
+        
+        options = list(self.config._sections['KNOWN_FPGA_MEZZANINES'].keys())
+        fpgas = []
+        for i in range(len(options)):
+            fpgas.append(self.config['KNOWN_FPGA_MEZZANINES'][options[i]])
+            
         self.fpgamezz_entry = tk.OptionMenu(self, self.fpgamezz_selection, *fpgas)
         self.fpgamezz_entry.config(width=options_width)
         self.fpgamezz_entry.grid(sticky=tk.W,row=5,column=columnbase+1)
@@ -260,55 +288,55 @@ class GUI_WINDOW(tk.Frame):
         
         # ASIC 0 ID
 
-        self.asic0_entry = tk.Spinbox(self, width=spinner_width, from_=self.config.chip_range[0], to=self.config.chip_range[1])
+        self.asic0_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['CHIP_MIN'], to=self.config['GUI_SETTINGS']['CHIP_MAX'])
         self.asic0_entry.insert(tk.END, self.default_settings["asic0id"])
         self.asic0_entry.delete(0)
         self.asic0_entry.grid(sticky=tk.W,row=8,column=columnbase+1)
 
         # ASIC 1 ID
 
-        self.asic1_entry = tk.Spinbox(self, width=spinner_width, from_=self.config.chip_range[0], to=self.config.chip_range[1])
+        self.asic1_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['CHIP_MIN'], to=self.config['GUI_SETTINGS']['CHIP_MAX'])
         self.asic1_entry.insert(tk.END, self.default_settings["asic1id"])
         self.asic1_entry.delete(0)
         self.asic1_entry.grid(sticky=tk.W,row=9,column=columnbase+1)
 
         # ASIC 2 ID
 
-        self.asic2_entry = tk.Spinbox(self, width=spinner_width, from_=self.config.chip_range[0], to=self.config.chip_range[1])
+        self.asic2_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['CHIP_MIN'], to=self.config['GUI_SETTINGS']['CHIP_MAX'])
         self.asic2_entry.insert(tk.END, self.default_settings["asic2id"])
         self.asic2_entry.delete(0)
         self.asic2_entry.grid(sticky=tk.W,row=10,column=columnbase+1)
 
         # ASIC 3 ID
-        self.asic3_entry = tk.Spinbox(self, width=spinner_width, from_=self.config.chip_range[0], to=self.config.chip_range[1])
+        self.asic3_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['CHIP_MIN'], to=self.config['GUI_SETTINGS']['CHIP_MAX'])
         self.asic3_entry.insert(tk.END, self.default_settings["asic3id"])
         self.asic3_entry.delete(0)
         self.asic3_entry.grid(sticky=tk.W,row=11,column=columnbase+1)                      
         
         # SOCKET 0 ID
 
-        self.socket0_entry = tk.Spinbox(self, width=spinner_width, from_=self.config.socket_range[0], to=self.config.socket_range[1])
+        self.socket0_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['SOCKET_MIN'], to=self.config['GUI_SETTINGS']['SOCKET_MAX'])
         self.socket0_entry.insert(tk.END, self.default_settings["socket0id"])
         self.socket0_entry.delete(0)
         self.socket0_entry.grid(sticky=tk.W,row=8,column=columnbase+2)
 
         # SOCKET 1 ID
 
-        self.socket1_entry = tk.Spinbox(self, width=spinner_width, from_=self.config.socket_range[0], to=self.config.socket_range[1])
+        self.socket1_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['SOCKET_MIN'], to=self.config['GUI_SETTINGS']['SOCKET_MAX'])
         self.socket1_entry.insert(tk.END, self.default_settings["socket1id"])
         self.socket1_entry.delete(0)
         self.socket1_entry.grid(sticky=tk.W,row=9,column=columnbase+2)
 
         # SOCKET 2 ID
 
-        self.socket2_entry = tk.Spinbox(self, width=spinner_width, from_=self.config.socket_range[0], to=self.config.socket_range[1])
+        self.socket2_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['SOCKET_MIN'], to=self.config['GUI_SETTINGS']['SOCKET_MAX'])
         self.socket2_entry.insert(tk.END, self.default_settings["socket2id"])
         self.socket2_entry.delete(0)
         self.socket2_entry.grid(sticky=tk.W,row=10,column=columnbase+2)
 
         # SOCKET 3 ID
 
-        self.socket3_entry = tk.Spinbox(self, width=spinner_width, from_=self.config.socket_range[0], to=self.config.socket_range[1])
+        self.socket3_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['SOCKET_MIN'], to=self.config['GUI_SETTINGS']['SOCKET_MAX'])
         self.socket3_entry.insert(tk.END, self.default_settings["socket3id"])
         self.socket3_entry.delete(0)
         self.socket3_entry.grid(sticky=tk.W,row=11,column=columnbase+2) 
@@ -328,6 +356,9 @@ class GUI_WINDOW(tk.Frame):
         
         self.connection_button = tk.Button(self, text="Test Connection", command=self.test_connection,width=10)
         self.connection_button.grid(row=2,column=columnbase+1,columnspan=1)
+        
+        self.debug_button = tk.Button(self, text="Debug Waveform", command=self.debug,width=10)
+        self.debug_button.grid(row=2,column=columnbase+3,columnspan=1)
         
         self.start_button = tk.Button(self, text="Start Tests", command=self.start_measurements,width=10)
         self.start_button.grid(row=2,column=columnbase,columnspan=1)
@@ -407,8 +438,7 @@ class GUI_WINDOW(tk.Frame):
         self.archive_results_result = Label(self, text="",width=25)
         self.archive_results_result.grid(sticky=W,row=4,column=columnbase+25,columnspan=25)
         """
-
-    def start_measurements(self):
+    def write_default_file(self):
         self.params['operator_name'] = self.operator_entry.get()
         
         if (self.test_stand_other == True):
@@ -463,10 +493,20 @@ class GUI_WINDOW(tk.Frame):
             socket3id = self.socket3_entry.get()
         )
         
-        jsonFile = os.path.join(self.root_dir,self.config.default_file_name)
+        jsonFile = os.path.join(self.root_dir,self.config["FILENAMES"]["DEFAULT_GUI_FILE_NAME"])
         with open(jsonFile,'w') as outfile:
             json.dump(self.defaultjson, outfile, indent=4)
-
+            
+    def start_measurements(self):
+        self.write_default_file()
+        fw_ver = self.functions.get_fw_version()
+        self.params['fw_ver'] = hex(fw_ver)
+        
+        if (fw_ver < int(self.config["DEFAULT"]["LATEST_FW"], 16)):
+            messagebox.showinfo("Warning!", "The FPGA is running firmware version {} when the latest firmware is version {}.  Please let an expert know!".format(hex(fw_ver), hex(int(self.config["DEFAULT"]["LATEST_FW"], 16))))
+            
+        self.params['working_chips'] = self.functions.initBoard()
+        
         print("""\
                     Operator Name: {operator_name}
                     Test Stand # : {test_stand}
@@ -485,18 +525,19 @@ class GUI_WINDOW(tk.Frame):
         
         
         #Make sure everything was entered ok, that nothing was screwed up
+        gui_check = self.config["GUI_SETTINGS"]
         for i in ["asic0id","asic1id","asic2id","asic3id"]:
             j = self.params[i]
-            if ((int(j) < self.config.chip_range[0]) or (int(j) > self.config.chip_range[1])):
-                print("{}({}) is out of range ({} to {})!".format(i, j, self.config.chip_range[0], self.config.chip_range[1]))
+            if ((int(j) < int(gui_check['CHIP_MIN'])) or (int(j) > int(gui_check['CHIP_MAX']))):
+                print("{}({}) is out of range ({} to {})!".format(i, j, int(gui_check['CHIP_MIN']), int(gui_check['CHIP_MAX'])))
                 self.start_button_result["text"] = "ENTER REQUIRED INFO"
                 self.update_idletasks()
                 return
                 
         for i in ["socket0id","socket1id","socket2id","socket3id"]:
             j = self.params[i]
-            if ((int(j) < self.config.socket_range[0]) or (int(j) > self.config.socket_range[1])):
-                print("{}({}) is out of range ({} to {})!".format(i, j, self.config.socket_range[0], self.config.socket_range[1]))
+            if ((int(j) < int(gui_check['SOCKET_MIN'])) or (int(j) > int(gui_check['SOCKET_MAX']))):
+                print("{}({}) is out of range ({} to {})!".format(i, j, int(gui_check['SOCKET_MIN']), int(gui_check['SOCKET_MAX'])))
                 self.start_button_result["text"] = "ENTER REQUIRED INFO"
                 self.update_idletasks()
                 return
@@ -568,6 +609,7 @@ class GUI_WINDOW(tk.Frame):
 
     #Show a live trace to make sure everything is connected correctly
     def power_on(self):
+        self.on_child_closing()
         self.PowerSupply = RigolDP832()
         if (self.PowerSupply.powerSupplyDevice != None):
             self.using_power_supply = True
@@ -581,9 +623,13 @@ class GUI_WINDOW(tk.Frame):
                                 
         if (self.using_power_supply):
     #        self.PowerSupply.off()
-            self.PowerSupply.set_channel(channel = self.config.ps_heating_chn, voltage = 12, v_limit = 13.1, c_limit = 3.2, vp = "OFF", cp = "ON")
-            self.PowerSupply.set_channel(channel = self.config.ps_quad_chn, voltage = 5, v_limit = 5.1, c_limit = 1.2, vp = "OFF", cp = "ON")
-            self.PowerSupply.set_channel(channel = self.config.ps_fpga_chn, voltage = 5, v_limit = 5.1, c_limit = 1.2, vp = "OFF", cp = "ON")
+            pwr = self.config["POWER_SUPPLY"]
+            self.PowerSupply.set_channel(channel = pwr["PS_HEATING_CHN"], voltage = float(pwr["PS_HEATING_V"]), v_limit = float(pwr["PS_HEATING_V_LIMIT"]),
+                                         c_limit = float(pwr["PS_HEATING_I_LIMIT"]), vp = pwr["PS_HEATING_V_PROTECTION"], cp = pwr["PS_HEATING_I_PROTECTION"])
+            self.PowerSupply.set_channel(channel = pwr["PS_QUAD_CHN"], voltage = float(pwr["PS_QUAD_V"]), v_limit = float(pwr["PS_QUAD_V_LIMIT"]),
+                                         c_limit = float(pwr["PS_QUAD_I_LIMIT"]), vp = pwr["PS_QUAD_V_PROTECTION"], cp = pwr["PS_QUAD_I_PROTECTION"])
+            self.PowerSupply.set_channel(channel = pwr["PS_FPGA_CHN"], voltage = float(pwr["PS_FPGA_V"]), v_limit = float(pwr["PS_FPGA_V_LIMIT"]),
+                                         c_limit = float(pwr["PS_FPGA_I_LIMIT"]), vp = pwr["PS_FPGA_V_PROTECTION"], cp = pwr["PS_FPGA_I_PROTECTION"])
             self.PowerSupply.on(channels = [1,2,3])
             self.PowerSupply.measure_params(channel = 1)
     #       Measure initial volatage and current
@@ -596,6 +642,7 @@ class GUI_WINDOW(tk.Frame):
 #        self.power_button["bg"]="green"
         
     def power_off(self):
+        self.on_child_closing()
         self.PowerSupply = RigolDP832()
         if (self.PowerSupply.powerSupplyDevice != None):
             self.using_power_supply = True
@@ -613,19 +660,17 @@ class GUI_WINDOW(tk.Frame):
 #        self.power_button["bg"]="green"
         
     def test_connection(self):
-        if (self.boardid_other == True):
-            self.params['boardid'] = self.boardid_entry_other.get()
-        else:
-            self.params['boardid'] = self.boardid_selection.get()
-        fw_ver = self.config.get_fw_version()
+        #TODO if not on already, turn on and wait
+        self.on_child_closing()
+        self.write_default_file()
+        fw_ver = self.functions.get_fw_version()
         self.params['fw_ver'] = hex(fw_ver)
         
-        if (fw_ver < self.config.latest_fw):
-            messagebox.showinfo("Warning!", "The FPGA is running firmware version {} when the latest firmware is version {}.  Please let an expert know!".format(hex(fw_ver), hex(self.config.latest_fw)))
+        if (fw_ver < int(self.config["DEFAULT"]["LATEST_FW"], 16)):
+            messagebox.showinfo("Warning!", "The FPGA is running firmware version {} when the latest firmware is version {}.  Please let an expert know!".format(hex(fw_ver), hex(int(self.config["DEFAULT"]["LATEST_FW"], 16))))
             
-        SPI_response = self.config.initBoard(board = self.params['boardid'])
+        SPI_response = self.functions.initBoard()
                 
-        self.root_dir = self.getDefaultDirectory()
         temp_sync_folder = os.path.join(self.root_dir,"temp_sync_files")
         if not os.path.exists(temp_sync_folder):
             os.makedirs(temp_sync_folder)
@@ -640,9 +685,25 @@ class GUI_WINDOW(tk.Frame):
             except Exception as e:
                 print(e)
                 
-        self.config.syncADC(outputdir = temp_sync_folder, working_chips = SPI_response)
+        chiplist = [[0,],[1,],[2,],[3,]]
+        chiplist[0].append(self.asic0_entry.get())
+        chiplist[1].append(self.asic1_entry.get())
+        chiplist[2].append(self.asic2_entry.get())
+        chiplist[3].append(self.asic3_entry.get())
+        
+        self.functions.syncADC(datadir = temp_sync_folder, working_chips = SPI_response, chip_list = chiplist, to_print = True)
+        
+        self.WF_GUI = tk.Tk()
+        self.WF_GUI.protocol("WM_DELETE_WINDOW", self.on_child_closing)
+        startWF(self.WF_GUI)
+        
+    def debug(self):
+        self.WF_GUI = tk.Tk()
+        self.WF_GUI.protocol("WM_DELETE_WINDOW", self.on_child_closing)
+        startWF(self.WF_GUI)
 
     def reset_gui(self):
+        self.on_child_closing()
         #Power down all 4 chips:
         self.runner(executable="femb_control_power", argstr="OFF")
 
@@ -1000,50 +1061,21 @@ class GUI_WINDOW(tk.Frame):
         time_str = "{}:{}:{}".format(d.hour, d.minute, d.second)
         return time_str
         
-    #Use the method the runner uses to determine where the root folder will be for this default file
-    #There's got to be an easier way to do this where I don't have to repeat code here
-    def getDefaultDirectory(self):
-        try:
-            femb_config = os.environ["FEMB_CONFIG"]  # required
-        except KeyError:
-            print( "ERROR RUNPOLICY - Please set the environment variable FEMB_CONFIG" )
-            return None
-
-        # Check out the data disk situation and find the most available disk
-        freedisks = list()
-        datadisks=["/tmp"]
-        hostname = os.uname()[1]
-        if (hostname.startswith("hoth") or hostname.startswith("hunk")):
-            datadisks = ["/dsk/1", "/dsk/2"]
-        for dd in datadisks:
-            stat = os.statvfs(dd)
-            MB = stat.f_bavail * stat.f_frsize >> 20
-            freedisks.append((MB, dd))
-        freedisks.sort()
-        lo_disk = freedisks[0][1]
-
-        user = getpass.getuser()
-        if ("user" == "oper"):
-            datadisk = "{}/data".format(lo_disk)
-        else:
-            datadisk = "{}/tmp".format(lo_disk)
-            
-        step3 = os.path.join(datadisk,user,self.params["test_category"],femb_config)
-        step2 = os.path.join(datadisk,user,self.params["test_category"])
-        step1 = os.path.join(datadisk,user)
+    def on_closing(self, window):
+        self.on_child_closing()
+        window.destroy()
+        window.quit()
         
-        for i in [step1,step2,step3]:
-            if not os.path.exists(i):
-                os.makedirs(i)
-        
-        return step3
-
+    def on_child_closing(self):
+        if (self.WF_GUI != None):
+            self.WF_GUI.destroy()
+            self.WF_GUI.quit()
+            self.WF_GUI = None
 
 def main():
     root = tk.Tk()
-    root.title("Quad FE ASIC Test GUI")
-    window = GUI_WINDOW(root)
+    GUI_WINDOW(root)
     root.mainloop() 
-
+    
 if __name__ == '__main__':
     main()

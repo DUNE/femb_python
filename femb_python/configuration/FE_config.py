@@ -8,10 +8,10 @@ class FE_CONFIG(object):
     def __init__(self, chip_num, chn_num):
         self.chip_num = chip_num
         self.chn_num = chn_num
-        self.REGS = [0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-                     0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-                     0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
-                     0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,]
+        self.REGS = []
+        #Each chip needs 4 register bytes for 16 channels plus one for the global registeres
+        for i in range(5 * self.chip_num):
+            self.REGS.append(0)
     def set_fe_chn(self, chip, chn, sts=-1, snc=-1, sg=-1, st=-1, smn=-1, sbf=-1):
 
         #to find which array the channel/chip combination belongs in, then the specific byte of the array for the chip
