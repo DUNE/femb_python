@@ -86,8 +86,8 @@ class Analyze {
 	const int const_minNumberPulses = 5;
 	const int const_cut_numBadChannels = 0;
   	const bool const_doFits = 0;
-        double const_fitRangeLow = 50.E+3;
-        double const_fitRangeHigh = 200.E+3;
+        double const_fitRangeLow = 100.E+3;
+        double const_fitRangeHigh = 215.E+3;
 
 	//data objects
 	TCanvas* c0;

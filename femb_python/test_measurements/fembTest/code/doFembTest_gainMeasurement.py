@@ -35,7 +35,7 @@ class FEMB_TEST_GAIN(object):
         self.outpathlabel = os.path.join(self.datadir, self.outlabel)
         self.fembNum = int(fembNum)
 
-        print( "FEMB # " + str(fembNum) )
+        print( "FEMB # " + str(self.fembNum) )
 
         #import femb_udp modules from femb_udp package
         self.femb_config = CONFIG()
