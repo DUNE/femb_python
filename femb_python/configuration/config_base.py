@@ -95,16 +95,12 @@ class FEMB_CONFIG_BASE(object):
         time.sleep(5)
         print ("FEMB_CONFIG_BASE--> Reset FEMB is DONE")
 
-    def initBoard(self):
+    def initBoard(self, **kwargs):
         """
         Initialize board/asics with default configuration as determined by their own classes, since it's so specific
-        """
-        self.resetBoard()
-        self.turnOnAsics()
-#        try:
-        result = self.test.initBoard()
-#        except AttributeError:
-#            sys.exit("FEMB_CONFIG_BASE --> {} does not have initBoard() method!".format(self.config["DEFAULT"]["NAME"]))
+        """        
+        result = self.test.initBoard(**kwargs)
+        
         if (result != None):
             print ("FEMB_CONFIG_BASE--> Init Board Passed!")
             return (result)

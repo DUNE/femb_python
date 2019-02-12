@@ -499,12 +499,15 @@ class GUI_WINDOW(tk.Frame):
             
     def start_measurements(self):
         self.write_default_file()
+        self.power_on()
         fw_ver = self.functions.get_fw_version()
         self.params['fw_ver'] = hex(fw_ver)
         
         if (fw_ver < int(self.config["DEFAULT"]["LATEST_FW"], 16)):
             messagebox.showinfo("Warning!", "The FPGA is running firmware version {} when the latest firmware is version {}.  Please let an expert know!".format(hex(fw_ver), hex(int(self.config["DEFAULT"]["LATEST_FW"], 16))))
             
+        self.functions.turnOnAsics()
+        self.functions.resetBoard()
         self.params['working_chips'] = self.functions.initBoard()
         
         print("""\
@@ -622,7 +625,7 @@ class GUI_WINDOW(tk.Frame):
                                 "on when testing at room temperature, off while cooling down, and on again when doing the cold test.")
                                 
         if (self.using_power_supply):
-    #        self.PowerSupply.off()
+    #        TODO check if channels are already on or not
             pwr = self.config["POWER_SUPPLY"]
             self.PowerSupply.set_channel(channel = pwr["PS_HEATING_CHN"], voltage = float(pwr["PS_HEATING_V"]), v_limit = float(pwr["PS_HEATING_V_LIMIT"]),
                                          c_limit = float(pwr["PS_HEATING_I_LIMIT"]), vp = pwr["PS_HEATING_V_PROTECTION"], cp = pwr["PS_HEATING_I_PROTECTION"])
@@ -639,6 +642,7 @@ class GUI_WINDOW(tk.Frame):
             initialCurrent = float(self.PowerSupply.powerSupplyDevice.read().lstrip().decode())
 
         self.update_idletasks()
+        time.sleep(5)
 #        self.power_button["bg"]="green"
         
     def power_off(self):
@@ -663,12 +667,15 @@ class GUI_WINDOW(tk.Frame):
         #TODO if not on already, turn on and wait
         self.on_child_closing()
         self.write_default_file()
+        self.power_on()
         fw_ver = self.functions.get_fw_version()
         self.params['fw_ver'] = hex(fw_ver)
         
         if (fw_ver < int(self.config["DEFAULT"]["LATEST_FW"], 16)):
             messagebox.showinfo("Warning!", "The FPGA is running firmware version {} when the latest firmware is version {}.  Please let an expert know!".format(hex(fw_ver), hex(int(self.config["DEFAULT"]["LATEST_FW"], 16))))
             
+        self.functions.turnOnAsics()
+        self.functions.resetBoard()
         SPI_response = self.functions.initBoard()
                 
         temp_sync_folder = os.path.join(self.root_dir,"temp_sync_files")

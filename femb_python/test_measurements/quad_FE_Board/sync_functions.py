@@ -72,7 +72,7 @@ class SYNC_FUNCTIONS(object):
             except KeyError:
                 self.savefigpath = os.path.join(datadir,chip_id[1])
                 
-            os.makedirs(self.savefigpath)
+            os.makedirs(self.savefigpath, exist_ok=True)
             
             #Read from DATA output ADCs
             self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_READOUT_OPTIONS"]), int(self.config["DEFINITIONS"]["READOUT_NORMAL"]))
@@ -178,8 +178,8 @@ class SYNC_FUNCTIONS(object):
         return return_array
                 
     def testUnsync(self, chip, chn, index=0):
-        save_error_path = os.join(self.savefigpath, "sync_fails")
-        os.makedirs(save_error_path)
+        save_error_path = os.path.join(self.savefigpath, "sync_fails")
+        os.makedirs(save_error_path, exist_ok=True)
         #Get some packets of data
         self.low_func.selectChipChannel(chip = chip[0], chn = chn)
         data = list(self.low_func.get_data_chipXchnX_tagged(chip = chip[0], chn = chn, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), data_format = "counts"))

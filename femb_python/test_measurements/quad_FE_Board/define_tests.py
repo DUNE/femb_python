@@ -43,6 +43,7 @@ class Sequencer(object):
     def run(self):
         for test in self.tests:
             test(self.runner)
+            yield ("cash me")
 
 def main(**params):
     '''
@@ -70,6 +71,8 @@ def main(**params):
 
     #Explicitly define list of production tests to perform
     tests = []
+    
+    params.update(analysis_level = "basic")
     
     #Test 1
     params_test_1 = dict(params)

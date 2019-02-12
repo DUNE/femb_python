@@ -10,24 +10,16 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import object
 import sys
-import string
-from subprocess import check_call as call
 import os
-import ntpath
-import glob
-import struct
 import json
 import time
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
-import pickle
+import datetime
 
 
 from femb_python.configuration import CONFIG
-from femb_python.write_data import WRITE_DATA
-from femb_python.test_measurements.quad_FE_Board.plotting import plot_functions
-from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
-
+from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.test_measurements.quad_FE_Board.Data_Analysis import Data_Analysis
 
 class BASELINE_TESTER(object):
@@ -36,35 +28,27 @@ class BASELINE_TESTER(object):
         
         #import femb_udp modules from femb_udp package
         self.femb_config = CONFIG()
-        self.write_data = WRITE_DATA(datadir)
-        #import data analysis and plotting objects
-        self.plotting = plot_functions()
+        self.functions = FEMB_CONFIG_BASE(self.config)
+        self.low_level = self.functions.lower_functions
+        self.sync_functions = self.functions.sync
+        self.plotting = self.functions.sync.plot
         self.analyze = Data_Analysis()
-        
-        #set appropriate packet size
-        self.write_data.femb.MAX_PACKET_SIZE = 8000
-
-        self.cppfr = CPP_FILE_RUNNER()
         
         #json output, note module version number defined here
         self.jsondict = {'type':'baseline_test'}
-        self.jsondict['version'] = '1.0'
-        self.jsondict['timestamp']  = str(self.write_data.date)     
+        self.jsondict['version'] = '1.1'
+        self.jsondict['timestamp']  = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
 
         
-    def get_data(self):
-        self.femb_config.make_filepaths(self.datadir,self.chip_list,self.datasubdir+"/Data")   
-        for num,i in enumerate(self.chip_list):
-            if self.config_list[i[0]]:
-                self.save_rms_noise(chip_index=i[0], chip_name=i[1])
-        
-#    def do_analysis(self):
-#        continue
+    def check_setup(self):
+        self.functions.initBoard(default_sync = False)
+        for i in self.params['working_chips']:
+            chip_name = self.params['chip_list'][i][1]
+            os.makedirs(self.params['datadir'],chip_name,self.params['outlabel'],"Data", exist_ok=True)
 
-    def save_rms_noise(self, chip_index, chip_name):
-        print("Test--> Collecting Baseline data for Chip {}...".format(chip_name))
-        #Because the statement will never print until after the giant for loop
-        sys.stdout.flush()      
+    def record_data(self, chip_index, chip_name):
+
+        
         data_directory = os.path.join(self.datadir,chip_name,self.datasubdir,"Data")
         
         #Select Ground to Test and FE input of all chips
@@ -76,23 +60,11 @@ class BASELINE_TESTER(object):
         #Read from FE output ADCs
         self.femb_config.femb.write_reg(60, 0)
         
-#        #Set the DAC to be on permanently (and sample at the lower clock speed)
-#        self.femb_config.femb.write_reg(13, 0b10000)
-#        originals = []
-#        for reg in range(65,69,1):
-#            value = self.femb_config.femb.read_reg(reg)
-#            originals.append(value)
-#            self.femb_config.femb.write_reg(reg, 0xFFFFFFFF)
-##            print ("The original register {} was {}".format(reg, hex(value)))
-#            
-#        original_phase = []
-#        for reg in range(69,73,1):
-#            value = self.femb_config.femb.read_reg(reg)
-#            original_phase.append(value)
-#            self.femb_config.femb.write_reg(reg, 0xAAAAAAAA)
-##            print ("The original register {} was {}".format(reg, hex(value)))
+#        #TODO Sample at the lower clock speed
             
-#        print("Old registers are {}".format(originals))
+        #TODO, check if basic or full characterization
+        #TODO, check for working chips and make for loop based on that
+            
         self.femb_config.fe_reg.set_fe_board(sts=0, snc=self.base, sg=self.gain, st=self.shape,
                                       smn=0, sbf=self.buff, slk = self.leak, stb = 0, s16=0, slkh=self.leak,
                                       sdc=0, sdacsw2=0, sdacsw1=0, sdac=0, remapping=True)
@@ -118,8 +90,7 @@ class BASELINE_TESTER(object):
                 f.write(rawdata) 
                 f.close()
 
-
-    def analyze_data(self):
+    def do_analysis(self):
         for num,i in enumerate(self.chip_list):
             if self.config_list[i[0]]:
                 print ("Baseline analysis for chip {}".format(i[1]))
@@ -130,7 +101,6 @@ class BASELINE_TESTER(object):
         print("BASELINE AND RMS RESULTS - ARCHIVE")
         
         #add summary variables to output
-        self.jsondict['filedir'] = str( self.write_data.filedir )
         self.jsondict['config_gain'] = str( self.femb_config.gainArray[self.gain] )
         self.jsondict['config_shape'] = str( self.femb_config.shapeArray[self.shape] )
         self.jsondict['config_base'] = str( self.femb_config.baseArray[self.base] )
@@ -161,27 +131,17 @@ def main():
     '''
     sync the ADCs
     '''
+    print("baseline test!")
     base_test = BASELINE_TESTER()      
-    print(sys.argv[1])
-    params = json.loads(open(sys.argv[1]).read())        
+    params = json.loads(open(sys.argv[1]).read())    
+    base_test.params = params
+
+    base_test.check_setup()
+    base_test.record_data()
+    base_test.do_analysis()
+    base_test.archiveResults()
     
-    base_test.datadir = params['datadir']
-    base_test.outlabel = params['outlabel']    
-    base_test.chip_list = params['chip_list']
-    base_test.gain = params['gain_ind']
-    base_test.shape = params['shape_ind']
-    base_test.leak = params['leakage_ind']
-    base_test.buff = params['buffer_ind']
-#    base_test.base = params['base_ind']
-    base_test.datasubdir = params['datasubdir']
-    base_test.config_list = params['config_list']
-        
-    base_test.base = 0
-    base_test.get_data()
-    base_test.base = 1
-    base_test.get_data()
-    print ("Ready to analyze baseline")
-    base_test.analyze_data()
+    return base_test.results
      
 if __name__ == '__main__':
     main()
