@@ -56,7 +56,7 @@ class FEMB_TEST_GAIN(object):
         self.base = 0
         self.leakage = 0
         self.leakagex10 = 0
-        self.buffer = 0
+        self.buffer = 1
         self.acdc = 0
         self.useInternalPulser = False
         self.useExtAdcClock = False

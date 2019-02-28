@@ -70,27 +70,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_TEST_PAT = 3
         self.REG_TEST_PAT_DATA = 0x01230000
 
-        #COTS shifts
-        self.fe1_sft = 0x00000000
-        self.fe2_sft = 0x00000000
-        self.fe3_sft = 0x00000000
-        self.fe4_sft = 0x00000000
-        self.fe5_sft = 0x00000000
-        self.fe6_sft = 0x00000000
-        self.fe7_sft = 0x00000000
-        self.fe8_sft = 0x00000000
-
-        #COTS phases
-        self.fe1_pha = 0x00000000
-        self.fe2_pha = 0x00000000
-        self.fe3_pha = 0x00000000
-        self.fe4_pha = 0x00000000
-        self.fe5_pha = 0x00000000
-        self.fe6_pha = 0x00000000
-        self.fe7_pha = 0x00000000
-        self.fe8_pha = 0x00000000
-
-                
         #internal variables
         self.fembNum = 0
         self.wibNum = 0
@@ -109,6 +88,44 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.fe_REGS = [0x00000000]*(8+1)*4
         self.useLArIATmap = False #True
 
+        #COTS shifts
+        self.fe1_sft_RT = 0x00000000
+        self.fe2_sft_RT = 0x00000000
+        self.fe3_sft_RT = 0x00000000
+        self.fe4_sft_RT = 0x00000000
+        self.fe5_sft_RT = 0x00000000
+        self.fe6_sft_RT = 0x00000000
+        self.fe7_sft_RT = 0x00000000
+        self.fe8_sft_RT = 0x00000000
+
+        self.fe1_sft_CT = 0x00000000
+        self.fe2_sft_CT = 0x00000000
+        self.fe3_sft_CT = 0x00000000
+        self.fe4_sft_CT = 0x00000000
+        self.fe5_sft_CT = 0x00000000
+        self.fe6_sft_CT = 0x00000000
+        self.fe7_sft_CT = 0x00000000
+        self.fe8_sft_CT = 0x00000000
+            
+        #COTS phases
+        self.fe1_pha_RT = 0x00000000
+        self.fe2_pha_RT = 0x00000000
+        self.fe3_pha_RT = 0x00000000
+        self.fe4_pha_RT = 0x00000000
+        self.fe5_pha_RT = 0x00000000
+        self.fe6_pha_RT = 0x00000000
+        self.fe7_pha_RT = 0x00000000
+        self.fe8_pha_RT = 0x00000000
+
+        self.fe1_pha_CT = 0x00000000
+        self.fe2_pha_CT = 0x00000000
+        self.fe3_pha_CT = 0x00000000
+        self.fe4_pha_CT = 0x00000000
+        self.fe5_pha_CT = 0x00000000
+        self.fe6_pha_CT = 0x00000000
+        self.fe7_pha_CT = 0x00000000
+        self.fe8_pha_CT = 0x00000000
+        
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
@@ -124,7 +141,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
         self.feasicGain = 2 #4.7,7.8,14,25
         self.feasicShape = 1 #0.5,1,2,3
-        self.feasicBuf = 0 #0 = OFF, 1 = ON
+        self.feasicBuf = 1 #0 = OFF, 1 = ON
 
         #Read in LArIAT mapping if desired
 
@@ -412,24 +429,43 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     #COTS Shift and Phase Settings
     def set_cots_shift(self):
-        print("Setting COTS Shifts")
-        self.femb.write_reg(21,self.fe1_sft)
-        self.femb.write_reg(29,self.fe1_pha)
-        self.femb.write_reg(22,self.fe2_sft)
-        self.femb.write_reg(30,self.fe2_pha)
-        self.femb.write_reg(23,self.fe3_sft)
-        self.femb.write_reg(31,self.fe3_pha)
-        self.femb.write_reg(24,self.fe4_sft)
-        self.femb.write_reg(32,self.fe4_pha)
-        self.femb.write_reg(25,self.fe5_sft)
-        self.femb.write_reg(33,self.fe5_pha)
-        self.femb.write_reg(26,self.fe6_sft)
-        self.femb.write_reg(34,self.fe6_pha)
-        self.femb.write_reg(27,self.fe7_sft)
-        self.femb.write_reg(35,self.fe7_pha)
-        self.femb.write_reg(28,self.fe8_sft)
-        self.femb.write_reg(36,self.fe8_pha)
-
+        if self.isRoomTemp:
+            print("Setting COTS Shifts for RT")
+            self.femb.write_reg(21,self.fe1_sft_RT)
+            self.femb.write_reg(29,self.fe1_pha_RT)
+            self.femb.write_reg(22,self.fe2_sft_RT)
+            self.femb.write_reg(30,self.fe2_pha_RT)
+            self.femb.write_reg(23,self.fe3_sft_RT)
+            self.femb.write_reg(31,self.fe3_pha_RT)
+            self.femb.write_reg(24,self.fe4_sft_RT)
+            self.femb.write_reg(32,self.fe4_pha_RT)
+            self.femb.write_reg(25,self.fe5_sft_RT)
+            self.femb.write_reg(33,self.fe5_pha_RT)
+            self.femb.write_reg(26,self.fe6_sft_RT)
+            self.femb.write_reg(34,self.fe6_pha_RT)
+            self.femb.write_reg(27,self.fe7_sft_RT)
+            self.femb.write_reg(35,self.fe7_pha_RT)
+            self.femb.write_reg(28,self.fe8_sft_RT)
+            self.femb.write_reg(36,self.fe8_pha_RT)
+        else:
+            print("Setting COTS Shifts for CT")
+            self.femb.write_reg(21,self.fe1_sft_CT)
+            self.femb.write_reg(29,self.fe1_pha_CT)
+            self.femb.write_reg(22,self.fe2_sft_CT)
+            self.femb.write_reg(30,self.fe2_pha_CT)
+            self.femb.write_reg(23,self.fe3_sft_CT)
+            self.femb.write_reg(31,self.fe3_pha_CT)
+            self.femb.write_reg(24,self.fe4_sft_CT)
+            self.femb.write_reg(32,self.fe4_pha_CT)
+            self.femb.write_reg(25,self.fe5_sft_CT)
+            self.femb.write_reg(33,self.fe5_pha_CT)
+            self.femb.write_reg(26,self.fe6_sft_CT)
+            self.femb.write_reg(34,self.fe6_pha_CT)
+            self.femb.write_reg(27,self.fe7_sft_CT)
+            self.femb.write_reg(35,self.fe7_pha_CT)
+            self.femb.write_reg(28,self.fe8_sft_CT)
+            self.femb.write_reg(36,self.fe8_pha_CT)
+            
         self.femb.write_reg(8,0)
         self.femb.write_reg(8,0)
         time.sleep(0.02)
@@ -629,6 +665,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                         snc = 1 #set baseline for induction
 
                 chn_reg = ((sts&0x01)<<7) + ((snc&0x01)<<6) + ((sg&0x03)<<4) + ((st&0x03)<<2)  + ((smn&0x01)<<1) + ((sdf&0x01)<<0)
+                #print("chip",chip,"channel",chn,"chn_reg",hex(chn_reg))
                 chn_reg_bool = []
                 for j in range(8):
                     chn_reg_bool.append ( bool( (chn_reg>>j)%2 ))
