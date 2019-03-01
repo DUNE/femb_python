@@ -51,6 +51,7 @@ class SYNC_FUNCTIONS(object):
     #chip_id[1] is its name (A2567, A2568, etc...)
     def syncADC(self, **kwargs):
         print ("sync_functions--> Start syncing ADCs")
+        data = list(self.low_func.get_data_chipXchnX_tagged(chip = 1, chn = 1, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), data_format = "counts"))
         print_when_good = kwargs["to_print"]
         #Chips that have failed SPI or have been disabled by the GUI wont be tested
         working_chips = kwargs["working_chips"]
@@ -110,7 +111,7 @@ class SYNC_FUNCTIONS(object):
                 #Prints a plot of the whole chip so we can be sure there was no sketchiness (takes some time)
                 print("sync_functions--> Printing synchronization plot for Chip {}({})".format(chip_id[0],chip_id[1]))
                 data = self.low_func.get_data_chipX(chip = chip_id[0], packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), tagged = True)
-                plot_path = os.path.join(self.savefigpath,"Good_Sync")
+                plot_path = os.path.join(self.savefigpath,self.config["FILENAMES"]["SYNC_LINK"])
                 self.plot.plot_chip(data = data, plot_name = plot_path, title_name = "Pulses for synchronization: Gain = {}/fC, Peaking Time = {}, Buffer {}, "
                                                                                      "DAC Pulse at {} \nPeaks should be between {} and {}, Baseline should be between "
                                                                                      "{} and {}".format(self.config["SYNC_SETTINGS"]["SYNC_GAIN"], self.config["SYNC_SETTINGS"]["SYNC_PEAK"], self.config["SYNC_SETTINGS"]["SYNC_BUFFER"], 
@@ -151,7 +152,7 @@ class SYNC_FUNCTIONS(object):
                 #Prints a plot of the monitor test pin so we can be sure there was no sketchiness
                 print("sync_functions--> Printing synchronization plot for Chip {}({})".format(chip_id[0],chip_id[1]))
                 data = self.low_func.get_data_chipXchnX_tagged(chip = chip_id[0], chn = 1, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), data_format = "counts")
-                plot_path = os.path.join(self.savefigpath,"Good_Sync_Monitor")
+                plot_path = os.path.join(self.savefigpath,self.config["FILENAMES"]["SYNC_LINK_MONITOR"])
                 title = "Pulses for synchronization: Gain = {}/fC, Peaking Time = {}, Buffer {}, DAC Pulse at {} \nPeaks should be between {} and {}, Baseline should be between {} and {}".format(self.config["SYNC_SETTINGS"]["SYNC_GAIN"], 
                         self.config["SYNC_SETTINGS"]["SYNC_PEAK"], self.config["SYNC_SETTINGS"]["SYNC_BUFFER"], self.config["SYNC_SETTINGS"]["SYNC_DAC_PEAK_HEIGHT"], self.config["SYNC_SETTINGS"]["SYNC_PEAK_MIN"], 
                         self.config["SYNC_SETTINGS"]["SYNC_PEAK_MAX"], self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MIN"], self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MAX"])
@@ -280,8 +281,8 @@ class SYNC_FUNCTIONS(object):
     def fixUnsync_outputADC(self, chip, chn):
         self.low_func.selectChipChannel(chip = chip[0], chn = chn)
         
-        shift_reg = chip + int(self.config["REGISTERS"]["REG_LATCH_MIN"])
-        phase_reg = chip + int(self.config["REGISTERS"]["REG_PHASE_MIN"])
+        shift_reg = chip[0] + int(self.config["REGISTERS"]["REG_LATCH_MIN"])
+        phase_reg = chip[0] + int(self.config["REGISTERS"]["REG_PHASE_MIN"])
 #        sample_reg = 75 + (chip//2)
         
         #Get the initial setting you don't disturb the other channels
@@ -339,10 +340,10 @@ class SYNC_FUNCTIONS(object):
                 print("Trying shift {} phase {} index {}".format(shift,phase,index))
                 unsync = self.testUnsync(chip = chip, chn = chn,index = index)
                 if unsync == True:
-                    print("sync_functions--> Chip {}, Chn {} fixed!\n".format(chip, chn))
+                    print("sync_functions--> Chip {}({}), Chn {} fixed!\n".format(chip[0], chip[1], chn))
                     return True
 
-        print ("sync_functions--> ADC SYNC process failed for Chip {}, Channel {}".format(chip, chn))
+        print ("sync_functions--> ADC SYNC process failed for Chip {}({}), Channel {}".format(chip[0], chip[1], chn))
         self.femb_udp.write_reg(shift_reg, init_shift)
         self.femb_udp.write_reg(phase_reg, init_phase)
         return False

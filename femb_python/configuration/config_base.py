@@ -79,7 +79,7 @@ class FEMB_CONFIG_BASE(object):
                 for i in jsondata:
                     self.default_settings[i] = jsondata[i]
                     
-        self.master_chip_list = [self.default_settings["asic0id"], self.default_settings["asic1id"], self.default_settings["asic2id"], self.default_settings["asic3id"]]
+        self.master_chip_list = [[0,self.default_settings["asic0id"]], [1,self.default_settings["asic1id"]], [2,self.default_settings["asic2id"]], [3,self.default_settings["asic3id"]]]
     
         self.femb_interface = self.test.femb_udp
         self.lower_functions = self.test.low_func

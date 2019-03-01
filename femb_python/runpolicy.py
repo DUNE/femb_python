@@ -75,6 +75,7 @@ class Runner(object):
         it as JSON.
         '''
         params = self.resolve(**user_params)
+        self.params = params
 
         # prepare param file if its wanted.
         paramfile = params.get('paramfile')

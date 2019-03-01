@@ -70,7 +70,7 @@ class FEMB_CONFIG_FUNCTIONS(object):
         default_frame_size = 16 * (int(self.config["INITIAL_SETTINGS"]["DEFAULT_FRAME_SIZE"], 16)//16)
         #Readback gives other values, it'll always be wrong
         self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_FRAME_SIZE"]), default_frame_size, doReadBack = False)
-        
+        self.low_func.setInternalPulser(period = int(self.config["INITIAL_SETTINGS"]["DEFAULT_INTERNAL_PULSE_FREQ"]), shift = int(self.config["INITIAL_SETTINGS"]["DEFAULT_INTERNAL_PULSE_DLY"]), enable = False)
         self.low_func.setExternalPulser(val=int(self.config["INITIAL_SETTINGS"]["DEFAULT_EXTERNAL_DAC_VAL"], 16), 
                                period=int(self.config["INITIAL_SETTINGS"]["DEFAULT_EXTERNAL_DAC_TP_PERIOD"]), shift=int(self.config["INITIAL_SETTINGS"]["DEFAULT_EXTERNAL_DAC_TP_SHIFT"]), enable=False)
                        
@@ -81,14 +81,12 @@ class FEMB_CONFIG_FUNCTIONS(object):
         self.low_func.selectChipChannel(chip = 1, chn = 6)
         
         if 'default_sync' in kwargs:
-            print("found it")
             default_sync = kwargs["default_sync"]
         else:
-            print("Did not find it")
             default_sync = True
     
         if (default_sync == True):
-            print("config_functions --> Putting in default sync settings")
+            print("config_functions --> Writing sync settings")
             latch_settings_name = "{}_LATCH_SETTINGS".format(self.board_ver)
             phase_settings_name = "{}_PHASE_SETTINGS".format(self.board_ver)
             

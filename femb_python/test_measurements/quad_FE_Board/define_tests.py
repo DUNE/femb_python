@@ -39,18 +39,17 @@ class Sequencer(object):
     def __init__(self, tests, runner):
         self.tests = tests      # the tests to perform
         self.runner = runner      # a runpolicy object
-
+            
     def run(self):
         for test in self.tests:
             test(self.runner)
-            yield ("cash me")
+            yield
 
 def main(**params):
     '''
     Main entry to the test script.
     '''
     print( "EXAMPLE PRODUCTION TEST - START")
-    yield ("uh 1")
     now = time.time()
     params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
     
@@ -91,8 +90,11 @@ def main(**params):
     if r == None:
       print("EXAMPLE PRODUCTION TEST - ERROR: runpolicy runner could not be defined, production test not started.")
       return
-
+      
     s = Sequencer(tests, r)
+    for i in (s.run()):
+        yield (s.runner.params)
+    
     s.run()
 
     print( "EXAMPLE PRODUCTION TEST - DONE")

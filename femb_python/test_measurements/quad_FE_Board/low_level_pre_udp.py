@@ -61,6 +61,7 @@ class LOW_LEVEL(object):
             
         if (data_format == "bin"):
             data = self.femb_udp.get_data_packets(data_type = "bin", num = packets, header = header)
+            return data
 
         data = self.femb_udp.get_data_packets(data_type = "int", num = packets, header = header)
         
@@ -99,7 +100,8 @@ class LOW_LEVEL(object):
                             break
                         
                     if ((additional_pulse == False) and (enough_data == True)):
-                        data[i] = data[i] & int(self.config["DEFAULT"]["ADC_FULL_SCALE"], 16)
+                        for j in range(len(data[i:])):
+                            data[j] = data[j] & int(self.config["DEFAULT"]["ADC_FULL_SCALE"], 16)
                         data_to_send = []
                         data_to_send.extend(list(data[i:i+int(self.config["SYNC_SETTINGS"]["SYNC_PULSE_SPACING"])]))
                         found_trace = True

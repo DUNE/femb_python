@@ -59,23 +59,12 @@ class GUI_WINDOW(tk.Frame):
         self.master.title("Quad FE ASIC Test GUI")
         self.master.protocol("WM_DELETE_WINDOW", lambda arg=self.master: self.on_closing(arg))
         self.WF_GUI = None
-        
-        #Probably will remove eventually
-        self.methodMap = {'baseline_test_sequence' : 0,
-                          'monitor_data_test_sequence' : 1,
-                          'input_alive_power_cycle_sequence' : 2,
-                          'baseline_test_sequence_complete' : False,
-                          'monitor_data_test_sequence_complete' : False,
-                          'input_alive_power_cycle_sequence_complete' : False}
 
         #Variables that I want to save in the JSON but aren't included in the generic runner
         self.params = dict(
             test_category = "feasic_quad_cold",
             sw_version = self.sw_version,
-            use_sumatra = self.use_sumatra,
-            #TODO make this programmatically expandable for new tests
-            asic_pass = [[-1,-1,-1],[-1,-1,-1],[-1,-1,-1],[-1,-1,-1]], #results for each test
-            config_list = [0,0,0,0], #update if any sockets fail configuration stage
+            use_sumatra = self.use_sumatra
         )
         
         #Look in the root folder for the test name and see if there was a JSON file created with the previous settings
@@ -562,44 +551,9 @@ class GUI_WINDOW(tk.Frame):
         #Calls the new generic tester/runner.  Note that this is done in a for loop and the generic tester passes values back by using "Yield"
         #This is the only way I figured out how to get feedback back to the GUI mid-test without changing too much
         for i in (maintest(**self.params)):
-            print ("Wow {}".format(i))
-            
-        sys.exit("think we're done here")
-
-        for method in ["sync_adcs_sequence",
-                       "baseline_test_sequence",
-                       "monitor_data_test_sequence",
-                       "input_alive_power_cycle_sequence"]:
-#        for method in ["sync_adcs_sequence",
-#                       "baseline_test_sequence"]:
-            LOUD = method.replace("_"," ").upper()
-            methname = "do_" + method
-            meth = getattr(self, methname)
-
-            getattr(self, method+"_result")["text"] = LOUD + " - IN PROGRESS"
-            self.update_idletasks()
-
-            #Come on kids...
-            try:
-                meth()
-            except RuntimeError as err:
-                print("failed: %s\n%s" % (LOUD, err)) 
-                self.start_button_result["text"] = LOUD + " - FAILED "
-                getattr(self, method + "_result")["text"] = LOUD + " - FAILED"
-                # anything else?
-                return
-            
-            getattr(self, method + "_result")["text"] = LOUD + " - DONE"
-            continue
+            self.postResults(i)
 
         self.start_button_result["text"] = "DONE "+self.params["session_start_time"]
-        
-        #this powers off the ASICs and writes final results to the params file
-        self.generic_sequence("", "femb_control_power",
-                              #range(4), range(4), range(2), 0 , 1 , 1 , 0 , #warm test
-                              [2] , [2] , [0] , 0 , 0 , 1 , 0 , #expedited cold test
-                              #[2] , [2] , [0] , 0 , 0 , 1 , 0 , #test
-                              argstr="OFF", handler=None)
                               
         self.postResults()          
         
@@ -722,7 +676,6 @@ class GUI_WINDOW(tk.Frame):
 #        self.asic1_entry.insert(tk.END, "")
 #        self.asic2_entry.insert(tk.END, "")
 #        self.asic3_entry.insert(tk.END, "")
-        self.params['asic_pass'] = [[-1,-1,-1],[-1,-1,-1],[-1,-1,-1],[-1,-1,-1]]
         
         self.status_label["text"] = "Nothing started" 
         self.asic0_baseline_result["text"] = "TBD"
@@ -759,307 +712,78 @@ class GUI_WINDOW(tk.Frame):
         self.asic3_final_result["fg"] = "black"
         self.load_button["bg"]="red"
         
-        self.methodMap['baseline_test_sequence_complete'] = False
-        self.methodMap['monitor_data_test_sequence_complete'] = False
-        self.methodMap['input_alive_power_cycle_sequence_complete'] = False
-        
         now = time.time()
         self.params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
         self.params["session_start_unix"] = now
 
         self.update_idletasks()
 
-        print("FINISHED TEST - GUI RESET")    
+        print("FINISHED TEST - GUI RESET")
 
-    def do_sync_adcs_sequence(self):
-        '''
-        synchronize the ADCs
-        '''
-        print("SYNCHRONIZING ADCS")
-        self.status_label["text"] = "SYNCHRONIZING ADCS - IN PROGRESS"
-        self.update_idletasks()
-        self.test_result = 0
-        
-        
-        
-        resolved = self.runner(**self.params)     
-                    
-        #look to see if any chips failed the configuration and skip over them for the future tests
-        for chip_name in self.chiplist:
-            file_name = os.path.join(resolved['datadir'],chip_name[1],"sync_adcs","results.json")
-            print("file_name for sync results check: {}".format(file_name))
-            if os.path.isfile(file_name):
-                with open(file_name, 'r') as f:
-                    jsondata = json.load(f)
-                    self.params['config_list'] = jsondata['config_list']
-
-    def generic_sequence_handler(self, **params):
-        '''Generically handle results after an executable runs.  The params
-        are the resolved input parameters'''
-        button = getattr(self, self.params['method']+"_result")
-        button["text"] = title + " - DONE"
-        self.update_idletasks()
-
-    def generic_sequence(self, method, executable, gains, shapes, bases,leakage,leakagex10,buff,acdc, argstr="{paramfile}", handler=None):
-
-        '''
-        Generically, run an executable through a sequence of gains/shape/bases
-        '''
-
-        datasubdir="{method}-g{gain_ind}s{shape_ind}b{base_ind}"
-        outlabel="{datasubdir}-{test_start_time}"
-        exec_now = time.strftime("%H:%M:%S", time.localtime(time.time()))
-#        print("passing instructions to runner at {}".format(exec_now))
-        
-
-        title = method.upper().replace("_", " ")
-        print (title)
-        if argstr == "{paramfile}": #do this for the tests, not the final power off
-            button = getattr(self, method+"_result")
-            button["text"] = title + " - IN PROGRESS"
-        self.update_idletasks()        
-        for gain in gains:
-            for shape in shapes:
-                for base in bases:
-                    # this raises RuntimeError if measurement script fails
-                    resolved = self.runner(**self.params,
-                                           datasubdir="{method}-g{gain_ind}s{shape_ind}b{base_ind}-{leakage_ind}{leakagex10_ind}{buffer_ind}{acdc_ind}",
-                                           outlabel = outlabel,
-                                           test_start_time = self.now,
-                                           execute_start_time = exec_now,
-                                           executable=executable,
-                                           method=method,
-                                           argstr="{paramfile}",  #change back to {paramfile} 
-                                           gain_ind = gain, 
-                                           shape_ind = shape, 
-                                           base_ind = base,
-                                           leakage_ind = leakage,
-                                           leakagex10_ind = leakagex10,
-                                           buffer_ind = buff,
-                                           acdc_ind = acdc,
-                                           chip_list = self.chiplist)
-                    if handler:
-                        self.methodMap[method+'_complete'] = True
-                        handler(**resolved)
+    def postResults(self, params):
+        datadir = params['datadir']
+        working_chips = params['working_chips']
+        chip_list = params['chip_list']
+        print(datadir)
+        print(working_chips)
+        print(chip_list)
+        for i in range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
+            if i in working_chips:
+                chip_name = chip_list[i][1]
+                results_path = os.path.join(datadir, chip_name)
+                jsonFile = os.path.join(chip_name, results_path, self.config["FILENAMES"]["RESULTS"])
+                with open(jsonFile,'r') as f:
+                    results = json.load(f)
+                #baseline results
+                print(results)
+                if "sync_result" in results:
+                if self.methodMap['baseline_test_sequence_complete']:
+                    if (self.params['asic_pass'][0][0] == -1):
+                        self.asic0_baseline_result["text"] = "????"
+                        self.asic0_baseline_result["fg"] = "yellow"
+                    elif (not self.params['asic_pass'][0][0]):
+                        self.asic0_baseline_result["text"] = "Fail"
+                        self.asic0_baseline_result["fg"] = "red"
                     else:
-                        continue
-                        self.generic_sequence_handler(**resolved)
-#                        
-
-        
-        
-    def handle_result(self, **params):
-        """
-        Check pass/fail for each test
-        """
-        for num,chip_name in self.chiplist:
-            file_name = os.path.join(params['datadir'],chip_name,params['datasubdir'],"results.json")
-            if os.path.isfile(file_name):
-                with open(file_name, 'r') as f:
-                    jsondata = json.load(f)
-                    result = jsondata['result']  
-                    if self.params['asic_pass'][num][self.methodMap[params['method']]] == 0:
-                        continue
-                    elif result == "Pass":
-                        self.params['asic_pass'][num][self.methodMap[params['method']]] = 1
+                        self.asic0_baseline_result["text"] = "Pass"
+                        self.asic0_baseline_result["fg"] = "green"
+                    if (self.params['asic_pass'][1][0] == -1):
+                        self.asic1_baseline_result["text"] = "????"
+                        self.asic1_baseline_result["fg"] = "yellow"
+                    elif (not self.params['asic_pass'][1][0]):
+                        self.asic1_baseline_result["text"] = "Fail"
+                        self.asic1_baseline_result["fg"] = "red"
                     else:
-                        self.params['asic_pass'][num][self.methodMap[params['method']]] = 0
-                    self.params['config_list'] = jsondata['config_list']
-        return
-    
-    def do_baseline_test_sequence(self):
-        '''
-        collect then analyze the baseline and RMS data
-        '''
-        print("DOING TEST OF BASELINE + RMS")           
-
-        start_time = time.time()
-         
-        self.generic_sequence("baseline_test_sequence", "femb_feasic_sbnd_baseline_test",
-                              #range(4), range(4), range(2), 0 , 1 , 1 , 0 , #warm test
-                              [2] , [2] , [0] , 0 , 0 , 1 , 0 , #expedited cold test
-                              #[2] , [2] , [0] , 0 , 0 , 1 , 0 , #test
-                              handler=self.handle_result)
-                              
-        end_time = time.time()
-        run_time = end_time-start_time
-        print("Total run time for baseline test sequence: {}\n\n".format(int(run_time)))
-        self.postResults()
-
-        return
-
-    def do_monitor_data_test_sequence(self):
-        print("DOING TEST OF MONITOR DATA")
-        
-        start_time = time.time()
-        
-        #required that baseline_test_squence have had already run over at least the same parameters
-        self.generic_sequence("monitor_data_test_sequence", "femb_feasic_sbnd_monitor_test",
-                              #range(4), [1], [0] , 0 , 1 , 1 , 0 , #warm test
-                              [2] , [2] , [0] , 0 , 0 , 1 , 0 , #expedited cold test
-                              #[2] , [2] , [0] , 0 , 0 , 1 , 0 , #test
-                              handler=self.handle_result)
-                             
-        self.postResults()
-        return 
-
-    def do_input_alive_power_cycle_sequence(self):
-        print("DOING TEST FOR INPUT POWER ALIVE AND POWER CYCLE SEQUENCE")
-        
-        start_time = time.time()
-        
-        self.generic_sequence("input_alive_power_cycle_sequence", "femb_feasic_sbnd_alive_test",
-                              #range(4), [1], [0] , 0 , 1 , 1 , 0 , #warm test
-                              [2] , [2] , [0] , 0 , 0 , 1 , 0 , #expedited cold test
-                              #[2] , [2] , [0] , 0 , 0 , 1 , 0 , #test
-                              handler=self.handle_result)
-                            
-        self.postResults()
-        return
-
-
-    def postResults(self):      
-        #baseline results
-        if self.methodMap['baseline_test_sequence_complete']:
-            if (self.params['asic_pass'][0][0] == -1):
-                self.asic0_baseline_result["text"] = "????"
-                self.asic0_baseline_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][0][0]):
-                self.asic0_baseline_result["text"] = "Fail"
-                self.asic0_baseline_result["fg"] = "red"
-            else:
-                self.asic0_baseline_result["text"] = "Pass"
-                self.asic0_baseline_result["fg"] = "green"
-            if (self.params['asic_pass'][1][0] == -1):
-                self.asic1_baseline_result["text"] = "????"
-                self.asic1_baseline_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][1][0]):
-                self.asic1_baseline_result["text"] = "Fail"
-                self.asic1_baseline_result["fg"] = "red"
-            else:
-                self.asic1_baseline_result["text"] = "Pass"
-                self.asic1_baseline_result["fg"] = "green"
-            if (self.params['asic_pass'][2][0] == -1):
-                self.asic2_baseline_result["text"] = "????"
-                self.asic2_baseline_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][2][0]):
-                self.asic2_baseline_result["text"] = "Fail"
-                self.asic2_baseline_result["fg"] = "red"
-            else: 
-                self.asic2_baseline_result["text"] = "Pass"
-                self.asic2_baseline_result["fg"] = "green"
-            if (self.params['asic_pass'][3][0] == -1):
-                self.asic3_baseline_result["text"] = "????"
-                self.asic3_baseline_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][3][0]):
-                self.asic3_baseline_result["text"] = "Fail"
-                self.asic3_baseline_result["fg"] = "red"
-            else:
-                self.asic3_baseline_result["text"] = "Pass"
-                self.asic3_baseline_result["fg"] = "green"
-        if self.methodMap['monitor_data_test_sequence_complete']:
-            #monitor results
-            if (self.params['asic_pass'][0][1] == -1):
-                self.asic0_monitor_result["text"] = "????"
-                self.asic0_monitor_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][0][1]):
-                self.asic0_monitor_result["text"] = "Fail"
-                self.asic0_monitor_result["fg"] = "red"
-            else:
-                self.asic0_monitor_result["text"] = "Pass"
-                self.asic0_monitor_result["fg"] = "green"
-            if (self.params['asic_pass'][1][1] == -1):
-                self.asic1_monitor_result["text"] = "????"
-                self.asic1_monitor_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][1][1]):
-                self.asic1_monitor_result["text"] = "Fail"
-                self.asic1_monitor_result["fg"] = "red"
-            else:
-                self.asic1_monitor_result["text"] = "Pass"
-                self.asic1_monitor_result["fg"] = "green"
-            if (self.params['asic_pass'][2][1] == -1):
-                self.asic2_monitor_result["text"] = "????"
-                self.asic2_monitor_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][2][1]):
-                self.asic2_monitor_result["text"] = "Fail"
-                self.asic2_monitor_result["fg"] = "red"
-            else:
-                self.asic2_monitor_result["text"] = "Pass"
-                self.asic2_monitor_result["fg"] = "green"
-            if (self.params['asic_pass'][3][1] == -1):
-                self.asic3_monitor_result["text"] = "????"
-                self.asic3_monitor_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][3][1]):
-                self.asic3_monitor_result["text"] = "Fail"
-                self.asic3_monitor_result["fg"] = "red"
-            else:
-                self.asic3_monitor_result["text"] = "Pass"
-                self.asic3_monitor_result["fg"] = "green"
-        if self.methodMap['input_alive_power_cycle_sequence_complete']:
-            #alive results
-            if (self.params['asic_pass'][0][2] == -1):
-                self.asic0_alive_result["text"] = "????"
-                self.asic0_alive_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][0][2]):
-                self.asic0_alive_result["text"] = "Fail"
-                self.asic0_alive_result["fg"] = "red"
-            else:
-                self.asic0_alive_result["text"] = "Pass"
-                self.asic0_alive_result["fg"] = "green"
-            if (self.params['asic_pass'][1][2] == -1):
-                self.asic1_alive_result["text"] = "????"
-                self.asic1_alive_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][1][2]):
-                self.asic1_alive_result["text"] = "Fail"
-                self.asic1_alive_result["fg"] = "red"
-            else:
-                self.asic1_alive_result["text"] = "Pass"
-                self.asic1_alive_result["fg"] = "green"
-            if (self.params['asic_pass'][2][2] == -1):
-                self.asic2_alive_result["text"] = "????"
-                self.asic2_alive_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][2][2]):
-                self.asic2_alive_result["text"] = "Fail"
-                self.asic2_alive_result["fg"] = "red"
-            else:
-                self.asic2_alive_result["text"] = "Pass"
-                self.asic2_alive_result["fg"] = "green"
-            if (self.params['asic_pass'][3][2] == -1):
-                self.asic3_alive_result["text"] = "????"
-                self.asic3_alive_result["fg"] = "yellow"
-            elif (not self.params['asic_pass'][3][2]):
-                self.asic3_alive_result["text"] = "Fail"
-                self.asic3_alive_result["fg"] = "red"
-            else:
-                self.asic3_alive_result["text"] = "Pass"
-                self.asic3_alive_result["fg"] = "green"
+                        self.asic1_baseline_result["text"] = "Pass"
+                        self.asic1_baseline_result["fg"] = "green"
+                    if (self.params['asic_pass'][2][0] == -1):
+                        self.asic2_baseline_result["text"] = "????"
+                        self.asic2_baseline_result["fg"] = "yellow"
+                    elif (not self.params['asic_pass'][2][0]):
+                        self.asic2_baseline_result["text"] = "Fail"
+                        self.asic2_baseline_result["fg"] = "red"
+                    else: 
+                        self.asic2_baseline_result["text"] = "Pass"
+                        self.asic2_baseline_result["fg"] = "green"
+                    if (self.params['asic_pass'][3][0] == -1):
+                        self.asic3_baseline_result["text"] = "????"
+                        self.asic3_baseline_result["fg"] = "yellow"
+                    elif (not self.params['asic_pass'][3][0]):
+                        self.asic3_baseline_result["text"] = "Fail"
+                        self.asic3_baseline_result["fg"] = "red"
+                    else:
+                        self.asic3_baseline_result["text"] = "Pass"
+                        self.asic3_baseline_result["fg"] = "green"
                 
-        if ((self.methodMap['baseline_test_sequence_complete']) and (self.methodMap['monitor_data_test_sequence_complete']) and (self.methodMap['input_alive_power_cycle_sequence_complete'])):
-            #final result
-            if (self.params['asic_pass'][0] == [1,1,1]):
-                self.asic0_final_result["text"] = "Pass"
-                self.asic0_final_result["fg"] = "green" 
-            else:
-                self.asic0_final_result["text"] = "Fail"
-                self.asic0_final_result["fg"] = "red"
-            if (self.params['asic_pass'][1] == [1,1,1]):
-                self.asic1_final_result["text"] = "Pass"
-                self.asic1_final_result["fg"] = "green" 
-            else:
-                self.asic1_final_result["text"] = "Fail"
-                self.asic1_final_result["fg"] = "red"
-            if (self.params['asic_pass'][2] == [1,1,1]):
-                self.asic2_final_result["text"] = "Pass"
-                self.asic2_final_result["fg"] = "green" 
-            else:
-                self.asic2_final_result["text"] = "Fail"
-                self.asic2_final_result["fg"] = "red"
-            if (self.params['asic_pass'][3] == [1,1,1]):
-                self.asic3_final_result["text"] = "Pass"
-                self.asic3_final_result["fg"] = "green" 
-            else:
-                self.asic3_final_result["text"] = "Fail"
-                self.asic3_final_result["fg"] = "red"
+    def failed(self,label):
+        pass
+    
+    def passed(self,label):
+        pass
+    
+    def skipped(self,label):
+        pass
+    
     # Can add additional testing sequences like as above with a method name
     # like "do_<semantic_label>".
     def GetTimeString(self, t):
@@ -1076,7 +800,7 @@ class GUI_WINDOW(tk.Frame):
     def on_child_closing(self):
         if (self.WF_GUI != None):
             self.WF_GUI.destroy()
-            self.WF_GUI.quit()
+            #self.WF_GUI.quit()
             self.WF_GUI = None
 
 def main():
