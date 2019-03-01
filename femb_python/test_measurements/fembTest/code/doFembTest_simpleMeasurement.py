@@ -84,8 +84,8 @@ class FEMB_TEST_SIMPLE(object):
             print("Error running doFembTest - Invalid FEMB # specified.")
             return    
 
-        #assign FEMB # to test 
-        self.femb_config.selectFemb(self.fembNum)  
+        #assign FEMB # to test
+        self.femb_config.selectFemb(self.fembNum)
 
         #initialize FEMB to known state
         print("Initializing board")

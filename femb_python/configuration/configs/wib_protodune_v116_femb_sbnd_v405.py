@@ -70,27 +70,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_TEST_PAT = 3
         self.REG_TEST_PAT_DATA = 0x01230000
 
-        #COTS shifts
-        self.fe1_sft = 0x00000000
-        self.fe2_sft = 0x00000000
-        self.fe3_sft = 0x00000000
-        self.fe4_sft = 0x00000000
-        self.fe5_sft = 0x00000000
-        self.fe6_sft = 0x00000000
-        self.fe7_sft = 0x00000000
-        self.fe8_sft = 0x00000000
-
-        #COTS phases
-        self.fe1_pha = 0x00000000
-        self.fe2_pha = 0x00000000
-        self.fe3_pha = 0x00000000
-        self.fe4_pha = 0x00000000
-        self.fe5_pha = 0x00000000
-        self.fe6_pha = 0x00000000
-        self.fe7_pha = 0x00000000
-        self.fe8_pha = 0x00000000
-
-                
         #internal variables
         self.fembNum = 0
         self.wibNum = 0
@@ -107,8 +86,46 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC_7_TO_4_val = 0x04040404
         self.fe_regs = [0x00000000]*(16+2)*8*8
         self.fe_REGS = [0x00000000]*(8+1)*4
-        self.useLArIATmap = True
+        self.useLArIATmap = False #True
 
+        #COTS shifts
+        self.fe1_sft_RT = 0x00000000
+        self.fe2_sft_RT = 0x00000000
+        self.fe3_sft_RT = 0x00000000
+        self.fe4_sft_RT = 0x00000000
+        self.fe5_sft_RT = 0x00000000
+        self.fe6_sft_RT = 0x00000000
+        self.fe7_sft_RT = 0x00000000
+        self.fe8_sft_RT = 0x00000000
+
+        self.fe1_sft_CT = 0x00000000
+        self.fe2_sft_CT = 0x00000000
+        self.fe3_sft_CT = 0x00000000
+        self.fe4_sft_CT = 0x00000000
+        self.fe5_sft_CT = 0x00000000
+        self.fe6_sft_CT = 0x00000000
+        self.fe7_sft_CT = 0x00000000
+        self.fe8_sft_CT = 0x00000000
+            
+        #COTS phases
+        self.fe1_pha_RT = 0x00000000
+        self.fe2_pha_RT = 0x00000000
+        self.fe3_pha_RT = 0x00000000
+        self.fe4_pha_RT = 0x00000000
+        self.fe5_pha_RT = 0x00000000
+        self.fe6_pha_RT = 0x00000000
+        self.fe7_pha_RT = 0x00000000
+        self.fe8_pha_RT = 0x00000000
+
+        self.fe1_pha_CT = 0x00000000
+        self.fe2_pha_CT = 0x00000000
+        self.fe3_pha_CT = 0x00000000
+        self.fe4_pha_CT = 0x00000000
+        self.fe5_pha_CT = 0x00000000
+        self.fe6_pha_CT = 0x00000000
+        self.fe7_pha_CT = 0x00000000
+        self.fe8_pha_CT = 0x00000000
+        
         #initialize FEMB UDP object
         self.femb = FEMB_UDP()
         self.femb.UDP_PORT_WREG = 32000 #WIB PORTS
@@ -120,11 +137,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.feasicLeakage = 0 #0 = 500pA, 1 = 100pA
         self.feasicLeakagex10 = 0 #0 = pA, 1 = pA*10
         self.feasicAcdc = 0 #AC = 0, DC = 1
-        self.feasicBaseline = 1 #0 = 200mV, 1 = 900mV        
+        self.feasicBaseline = 0 #0 = 900mV, 1 = 200mV        
         self.feasicEnableTestInput = 0 #0 = disabled, 1 = enabled
         self.feasicGain = 2 #4.7,7.8,14,25
         self.feasicShape = 1 #0.5,1,2,3
-        self.feasicBuf = 0 #0 = OFF, 1 = ON
+        self.feasicBuf = 1 #0 = OFF, 1 = ON
 
         #Read in LArIAT mapping if desired
 
@@ -209,7 +226,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def initBoard(self):
         self.initWib()
-        for femb in range(1,4,1):
+        for femb in range(0,4,1):
             self.selectFemb(femb)
             self.initFemb()
         
@@ -398,7 +415,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #For SBND-LArIAT
         #iplist = ["131.225.150.203","131.225.150.206"]
         #For BNL testing
-        iplist = ["192.168.121.50"]
+        iplist = ["192.168.121.1"]
         self.femb.UDP_IP = iplist[self.wibNum]
     
     def wib_reg_enable(self):
@@ -408,32 +425,47 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.UDP_PORT_RREGRESP = 32002
         self.femb.REG_SLEEP = 0.001
 
-        #wib7val = self.femb.read_reg(7)
-        #time.sleep(0.001)
-        #wib7val = self.femb.read_reg(7)        
-        #wib7val = wib7val & 0x00000000
-        #self.femb.write_reg(7, wib7val)
+ 
 
     #COTS Shift and Phase Settings
     def set_cots_shift(self):
-        print("Setting COTS Shifts")
-        self.femb.write_reg(21,self.fe1_sft)
-        self.femb.write_reg(29,self.fe1_pha)
-        self.femb.write_reg(22,self.fe2_sft)
-        self.femb.write_reg(30,self.fe2_pha)
-        self.femb.write_reg(23,self.fe3_sft)
-        self.femb.write_reg(31,self.fe3_pha)
-        self.femb.write_reg(24,self.fe4_sft)
-        self.femb.write_reg(32,self.fe4_pha)
-        self.femb.write_reg(25,self.fe5_sft)
-        self.femb.write_reg(33,self.fe5_pha)
-        self.femb.write_reg(26,self.fe6_sft)
-        self.femb.write_reg(34,self.fe6_pha)
-        self.femb.write_reg(27,self.fe7_sft)
-        self.femb.write_reg(35,self.fe7_pha)
-        self.femb.write_reg(28,self.fe8_sft)
-        self.femb.write_reg(36,self.fe8_pha)
-
+        if self.isRoomTemp:
+            print("Setting COTS Shifts for RT")
+            self.femb.write_reg(21,self.fe1_sft_RT)
+            self.femb.write_reg(29,self.fe1_pha_RT)
+            self.femb.write_reg(22,self.fe2_sft_RT)
+            self.femb.write_reg(30,self.fe2_pha_RT)
+            self.femb.write_reg(23,self.fe3_sft_RT)
+            self.femb.write_reg(31,self.fe3_pha_RT)
+            self.femb.write_reg(24,self.fe4_sft_RT)
+            self.femb.write_reg(32,self.fe4_pha_RT)
+            self.femb.write_reg(25,self.fe5_sft_RT)
+            self.femb.write_reg(33,self.fe5_pha_RT)
+            self.femb.write_reg(26,self.fe6_sft_RT)
+            self.femb.write_reg(34,self.fe6_pha_RT)
+            self.femb.write_reg(27,self.fe7_sft_RT)
+            self.femb.write_reg(35,self.fe7_pha_RT)
+            self.femb.write_reg(28,self.fe8_sft_RT)
+            self.femb.write_reg(36,self.fe8_pha_RT)
+        else:
+            print("Setting COTS Shifts for CT")
+            self.femb.write_reg(21,self.fe1_sft_CT)
+            self.femb.write_reg(29,self.fe1_pha_CT)
+            self.femb.write_reg(22,self.fe2_sft_CT)
+            self.femb.write_reg(30,self.fe2_pha_CT)
+            self.femb.write_reg(23,self.fe3_sft_CT)
+            self.femb.write_reg(31,self.fe3_pha_CT)
+            self.femb.write_reg(24,self.fe4_sft_CT)
+            self.femb.write_reg(32,self.fe4_pha_CT)
+            self.femb.write_reg(25,self.fe5_sft_CT)
+            self.femb.write_reg(33,self.fe5_pha_CT)
+            self.femb.write_reg(26,self.fe6_sft_CT)
+            self.femb.write_reg(34,self.fe6_pha_CT)
+            self.femb.write_reg(27,self.fe7_sft_CT)
+            self.femb.write_reg(35,self.fe7_pha_CT)
+            self.femb.write_reg(28,self.fe8_sft_CT)
+            self.femb.write_reg(36,self.fe8_pha_CT)
+            
         self.femb.write_reg(8,0)
         self.femb.write_reg(8,0)
         time.sleep(0.02)
@@ -449,9 +481,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #set UDP ports to WIB registers
         self.wib_reg_enable()
-        
+
         # read back existing power setting
         oldVal = self.femb.read_reg(8)
+        #print("oldVal",oldVal)
         
         #FEMB power enable
         if(fembVal == 0):
@@ -524,6 +557,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #set UDP ports to WIB
         self.wib_reg_enable()
 
+        # start streaming data from ASIC 0 in initialization
         self.femb.write_reg(7, 0x80000000)
         self.femb.write_reg(7, 0x80000000)
         femb_asic = asicVal & 0x0F
@@ -535,13 +569,18 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
         #select ASIC
         #print("Selecting ASIC " + str(asicVal) )
-        #self.femb.write_reg_bits(self.REG_SEL_ASIC , self.REG_SEL_ASIC_LSB, 0xF, asicVal )
+        self.femb.write_reg_bits(self.REG_SEL_ASIC , self.REG_SEL_ASIC_LSB, 0xF, asicVal )
 
         #Note: WIB data format streams all 16 channels, don't need to select specific channel
 
-        #set UDP ports back to normal
-        self.selectFemb(self.fembNum)
-    
+        # return to FEMB control
+        self.selectFemb(fembVal)
+
+        #Enable Streaming
+        self.femb.write_reg(9,9)
+        self.femb.write_reg(9,9)
+        time.sleep(0.1)
+        
     def configFeAsic(self):
         print("CONFIG ASICs")
 
@@ -582,6 +621,16 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         shapeArray = [2,0,3,1] #00=1.0, 10=0.5, 01=3.0, 11=2.0
         shapeValCorrect = shapeArray[shapeVal]
 
+        #datashift
+        if self.isRoomTemp == True:
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_RT ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, self.CLKSELECT2_val_RT ) #clock select 2
+        else:
+            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_CT ) #clock select
+            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF,  self.CLKSELECT2_val_CT ) #clock select 2                    
+        self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, self.REG_LATCHLOC_3_TO_0_val )
+        self.femb.write_reg_bits(self.REG_LATCHLOC_7_TO_4 , 0, 0xFFFFFFFF, self.REG_LATCHLOC_7_TO_4_val )
+        
         #COTS Register Settings
         sts = testVal
         snc = baseVal
@@ -616,6 +665,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                         snc = 1 #set baseline for induction
 
                 chn_reg = ((sts&0x01)<<7) + ((snc&0x01)<<6) + ((sg&0x03)<<4) + ((st&0x03)<<2)  + ((smn&0x01)<<1) + ((sdf&0x01)<<0)
+                #print("chip",chip,"channel",chn,"chn_reg",hex(chn_reg))
                 chn_reg_bool = []
                 for j in range(8):
                     chn_reg_bool.append ( bool( (chn_reg>>j)%2 ))
@@ -663,7 +713,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("HS link turned back on")
         time.sleep(2)
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
-        
+
+
     def doAsicConfig(self):
         print("Program ASIC SPI")
 
@@ -675,10 +726,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             i = 0
             for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+len(self.fe_REGS),1):
                 self.femb.write_reg( regNum, self.fe_REGS[i])
+                self.femb.write_reg( regNum+36, self.fe_REGS[i])
                 i += 1
             time.sleep(0.01)
             self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
 
+        #self.printParameters()
+        
         #Enable streaming
         self.femb.write_reg(9, 9)
         self.femb.write_reg(9, 9)
@@ -722,7 +776,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         time.sleep(0.1)
 
     def setFpgaPulser(self,enable,dac):
+
         enableVal = int(enable)
+        print("set FPGA pulser",enableVal)
+
         if (enableVal < 0 ) or (enableVal > 1 ) :
             print( "femb_config_femb : setFpgaPulser - invalid enable value")
             return
@@ -744,17 +801,24 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg( self.EXT_TP_EN, 0x3) #pulser disabled
 
         #connect channel test input to external pin
-        for asic in range(0,self.NASICS,1):
-            baseReg = self.REG_SPI_BASE + int(asic)*9
+        firstfourasics = int(self.NASICS/2)
+        for asic in range(0,firstfourasics,1):
+            baseReg = int(asic)*9
+
+            self.fe_REGS[baseReg+4] = self.fe_REGS[baseReg+4] & 0xFFFF0000
+            self.fe_REGS[baseReg+8] = self.fe_REGS[baseReg+8] & 0x0000FFFF
+                
             if enableVal == 1:
-                self.femb.write_reg_bits( baseReg + 8 , 24, 0x3, 0x2 ) #ASIC gen reg
-            else:
-                self.femb.write_reg_bits( baseReg + 8 , 24, 0x3, 0x0 ) #ASIC gen reg
+                self.fe_REGS[baseReg+4] = self.fe_REGS[baseReg+4] | 0x2<<8
+                self.fe_REGS[baseReg+8] = self.fe_REGS[baseReg+8] | 0x2<<24
 
         self.doAsicConfig()
 
     def setInternalPulser(self,enable,dac):
+
         enableVal = int(enable)
+        print("set ASIC pulser",enableVal)
+        
         if (enableVal < 0 ) or (enableVal > 1 ) :
             print( "femb_config_femb : setInternalPulser - invalid enable value")
             return
@@ -763,7 +827,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             print( "femb_config_femb : setInternalPulser - invalid dac value")
             return
 
-        self.femb.write_reg_bits( self.REG_DAC_SELECT, 8,0x1,0) #test pulse enable
+        self.femb.write_reg_bits( self.REG_DAC_SELECT, 8, 0x1, 0) #test pulse enable
         self.femb.write_reg_bits( self.REG_TP , 0, 0x3F, 0 ) #TP Amplitude
         self.femb.write_reg_bits( self.REG_TP , 8, 0xFF, 219 ) #DLY
         self.femb.write_reg_bits( self.REG_TP , 16, 0xFFFF, 497 ) #FREQ
@@ -780,15 +844,19 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         asicWord = ((newDacVal << 8 ) & 0xFFFF)
         if enableVal == 1 :
             asicWord = asicWord + (0x1 << 8)
-
+        #print(hex(asicWord))
+            
         #connect channel test input to external pin
-        for asic in range(0,self.NASICS,1):
-            baseReg = self.REG_SPI_BASE + int(asic)*9
+        firstfourasics = int(self.NASICS/2)
+        for asic in range(0,firstfourasics,1):
+            baseReg = int(asic)*9
+
+            self.fe_REGS[baseReg+4] = self.fe_REGS[baseReg+4] & 0xFFFF0000
+            self.fe_REGS[baseReg+8] = self.fe_REGS[baseReg+8] & 0x0000FFFF
+                
             if enableVal == 1:
-                self.femb.write_reg_bits( baseReg + 8 , 24, 0xFF, newDacVal )
-                self.femb.write_reg_bits( baseReg + 8 , 24, 0x3, 0x1 ) #ASIC gen reg
-            else: 
-                self.femb.write_reg_bits( baseReg + 8 , 24, 0xFF, 0x0 ) #ASIC gen reg
+                self.fe_REGS[baseReg+4] = self.fe_REGS[baseReg+4] | asicWord
+                self.fe_REGS[baseReg+8] = self.fe_REGS[baseReg+8] | asicWord<<16
 
         self.doAsicConfig()
 
