@@ -12,20 +12,16 @@ from builtins import str
 from builtins import hex
 from future import standard_library
 standard_library.install_aliases()
-from time import sleep, time
 from datetime import timedelta, datetime
 import tkinter as tk
 from tkinter import messagebox
 import json
-from threading import Thread
-
-import sys
 import os                                 # for statv
 import os.path
-import time
+import subprocess
 import git
 import shutil
-#import sys
+import time
 
 #import the test module
 #from femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement import FEMB_TEST_SIMPLE
@@ -36,7 +32,6 @@ from femb_python.configuration.config_module_loader import getDefaultDirectory
 
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.test_instrument_interface.rigol_dp832 import RigolDP832
-from femb_python.test_measurements.OscillatorTesting.code.driverUSBTMC import DriverUSBTMC
 from femb_python.test_measurements.quad_FE_Board.define_tests import main as maintest
 
 
@@ -99,6 +94,8 @@ class GUI_WINDOW(tk.Frame):
 
         #Define general commands column
         self.define_general_commands_column()
+        
+        
         return
         
     #For GUI options where there are predefined but have the option for "other" (in case we're testing a new version of something)
@@ -146,8 +143,8 @@ class GUI_WINDOW(tk.Frame):
         spinner_width=8
         label_width=15
 
-        label = tk.Label(self, text="Tests Details")
-        label.grid(row=0,column=columnbase, columnspan=50)
+        self.details_label = tk.Label(self, text="Tests Details")
+        self.details_label.grid(row=0,column=columnbase, columnspan=50)
 
         # Adding operator name label and read entry box
         label = tk.Label(self,text="Operator Name:",width=label_width)
@@ -355,58 +352,56 @@ class GUI_WINDOW(tk.Frame):
         self.status_label = tk.Label(self, text="NOT STARTED",width=10)
         self.status_label.grid(sticky=tk.W,row=3,column=columnbase,columnspan=1)
         
+        self.sync_result_label = tk.Label(self, text="SYNC", width=10)
+        self.sync_result_label.grid(sticky=tk.W, row=7, column=columnbase+1)   
         self.baseline_result_label = tk.Label(self, text="BASELINE", width=10)
-        self.baseline_result_label.grid(sticky=tk.W, row=7, column=columnbase+1)        
+        self.baseline_result_label.grid(sticky=tk.W, row=7, column=columnbase+2)        
         self.monitor_result_label = tk.Label(self, text="MONITOR", width=10)
-        self.monitor_result_label.grid(sticky=tk.W, row=7, column=columnbase+2)        
+        self.monitor_result_label.grid(sticky=tk.W, row=7, column=columnbase+3)        
         self.alive_result_label = tk.Label(self, text="ALIVE", width=10)
-        self.alive_result_label.grid(sticky=tk.W, row=7, column=columnbase+3)
+        self.alive_result_label.grid(sticky=tk.W, row=7, column=columnbase+4)
         self.final_result_label = tk.Label(self, text="FINAL", width=10)
-        self.final_result_label.grid(sticky=tk.W, row=7, column=columnbase+4)
+        self.final_result_label.grid(sticky=tk.W, row=7, column=columnbase+5)
+        
+        self.sync_results = []
+        self.baseline_results = []
+        self.monitor_results = []
+        self.alive_results = []
+        self.final_results = []
+        for i in range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
+            self.sync_results.append(tk.Label(self, text="TBD", width=10))
+            self.baseline_results.append(tk.Label(self, text="TBD", width=10))
+            self.monitor_results.append(tk.Label(self, text="TBD", width=10))
+            self.alive_results.append(tk.Label(self, text="TBD", width=10))
+            self.final_results.append(tk.Label(self, text="TBD", width=10))
+        
+        first_row = 8
+        for num, label in enumerate(self.sync_results):
+            label.grid(sticky=tk.W, row=first_row + num, column=columnbase+1)           
+        
+        for num, label in enumerate(self.baseline_results):
+            label.grid(sticky=tk.W, row=first_row + num, column=columnbase+2)   
+            
+        for num, label in enumerate(self.monitor_results):
+            label.grid(sticky=tk.W, row=first_row + num, column=columnbase+3)  
+            
+        for num, label in enumerate(self.alive_results):
+            label.grid(sticky=tk.W, row=first_row + num, column=columnbase+4)  
+            
+        for num, label in enumerate(self.final_results):
+            label.grid(sticky=tk.W, row=first_row + num, column=columnbase+5)  
         
         self.asic0_result = tk.Label(self, text="ASIC 0 Results:", width=15)
-        self.asic0_result.grid(sticky=tk.W,row=8,column=columnbase+0)        
-        self.asic0_baseline_result = tk.Label(self, text="TBD", width=10)
-        self.asic0_baseline_result.grid(sticky=tk.W, row=8, column=columnbase+1)        
-        self.asic0_monitor_result = tk.Label(self, text="TBD", width=10)
-        self.asic0_monitor_result.grid(sticky=tk.W, row=8, column=columnbase+2)        
-        self.asic0_alive_result = tk.Label(self, text="TBD", width=10)
-        self.asic0_alive_result.grid(sticky=tk.W, row=8, column=columnbase+3)
-        self.asic0_final_result = tk.Label(self, text="TBD", width=10)
-        self.asic0_final_result.grid(sticky=tk.W, row=8, column=columnbase+4)        
+        self.asic0_result.grid(sticky=tk.W,row=8,column=columnbase+0)      
         
         self.asic1_result = tk.Label(self, text="ASIC 1 Results:", width=15)
-        self.asic1_result.grid(sticky=tk.W,row=9,column=columnbase+0)        
-        self.asic1_baseline_result = tk.Label(self, text="TBD", width=10)
-        self.asic1_baseline_result.grid(sticky=tk.W, row=9, column=columnbase+1)        
-        self.asic1_monitor_result = tk.Label(self, text="TBD", width=10)
-        self.asic1_monitor_result.grid(sticky=tk.W, row=9, column=columnbase+2)        
-        self.asic1_alive_result = tk.Label(self, text="TBD", width=10)
-        self.asic1_alive_result.grid(sticky=tk.W, row=9, column=columnbase+3)
-        self.asic1_final_result = tk.Label(self, text="TBD", width=10)
-        self.asic1_final_result.grid(sticky=tk.W, row=9, column=columnbase+4)      
+        self.asic1_result.grid(sticky=tk.W,row=9,column=columnbase+0)     
 
         self.asic2_result = tk.Label(self, text="ASIC 2 Results:", width=15)
-        self.asic2_result.grid(sticky=tk.W,row=10,column=columnbase+0)        
-        self.asic2_baseline_result = tk.Label(self, text="TBD", width=10)
-        self.asic2_baseline_result.grid(sticky=tk.W, row=10, column=columnbase+1)        
-        self.asic2_monitor_result = tk.Label(self, text="TBD", width=10)
-        self.asic2_monitor_result.grid(sticky=tk.W, row=10, column=columnbase+2)        
-        self.asic2_alive_result = tk.Label(self, text="TBD", width=10)
-        self.asic2_alive_result.grid(sticky=tk.W, row=10, column=columnbase+3)
-        self.asic2_final_result = tk.Label(self, text="TBD", width=10)
-        self.asic2_final_result.grid(sticky=tk.W, row=10, column=columnbase+4)      
+        self.asic2_result.grid(sticky=tk.W,row=10,column=columnbase+0)    
 
         self.asic3_result = tk.Label(self, text="ASIC 3 Results:", width=15)
-        self.asic3_result.grid(sticky=tk.W,row=11,column=columnbase+0)        
-        self.asic3_baseline_result = tk.Label(self, text="TBD", width=10)
-        self.asic3_baseline_result.grid(sticky=tk.W, row=11, column=columnbase+1)        
-        self.asic3_monitor_result = tk.Label(self, text="TBD", width=10)
-        self.asic3_monitor_result.grid(sticky=tk.W, row=11, column=columnbase+2)        
-        self.asic3_alive_result = tk.Label(self, text="TBD", width=10)
-        self.asic3_alive_result.grid(sticky=tk.W, row=11, column=columnbase+3)
-        self.asic3_final_result = tk.Label(self, text="TBD", width=10)
-        self.asic3_final_result.grid(sticky=tk.W, row=11, column=columnbase+4)      
+        self.asic3_result.grid(sticky=tk.W,row=11,column=columnbase+0)   
 
         #Finish/reset button
         finish_button = tk.Button(self, text="Reset and Power Down",command=self.reset_gui,width=25)
@@ -522,7 +517,7 @@ class GUI_WINDOW(tk.Frame):
             j = self.params[i]
             if ((int(j) < int(gui_check['CHIP_MIN'])) or (int(j) > int(gui_check['CHIP_MAX']))):
                 print("{}({}) is out of range ({} to {})!".format(i, j, int(gui_check['CHIP_MIN']), int(gui_check['CHIP_MAX'])))
-                self.start_button_result["text"] = "ENTER REQUIRED INFO"
+                self.status_label["text"] = "ENTER REQUIRED INFO"
                 self.update_idletasks()
                 return
                 
@@ -530,13 +525,13 @@ class GUI_WINDOW(tk.Frame):
             j = self.params[i]
             if ((int(j) < int(gui_check['SOCKET_MIN'])) or (int(j) > int(gui_check['SOCKET_MAX']))):
                 print("{}({}) is out of range ({} to {})!".format(i, j, int(gui_check['SOCKET_MIN']), int(gui_check['SOCKET_MAX'])))
-                self.start_button_result["text"] = "ENTER REQUIRED INFO"
+                self.status_label["text"] = "ENTER REQUIRED INFO"
                 self.update_idletasks()
                 return
             
         if not (self.params['operator_name'] and self.params['test_stand'] and self.params['boardid'] and self.params['fpgamezz'] and self.params['chipver']):
             print("ENTER REQUIRED INFO")
-            self.start_button_result["text"] = "ENTER REQUIRED INFO"
+            self.status_label["text"] = "ENTER REQUIRED INFO"
             self.update_idletasks()
             return
 
@@ -552,10 +547,9 @@ class GUI_WINDOW(tk.Frame):
         #This is the only way I figured out how to get feedback back to the GUI mid-test without changing too much
         for i in (maintest(**self.params)):
             self.postResults(i)
+            self.update_idletasks()
 
-        self.start_button_result["text"] = "DONE "+self.params["session_start_time"]
-                              
-        self.postResults()          
+        self.status_label = "DONE " 
         
         self.update_idletasks()      
         
@@ -724,65 +718,55 @@ class GUI_WINDOW(tk.Frame):
         datadir = params['datadir']
         working_chips = params['working_chips']
         chip_list = params['chip_list']
-        print(datadir)
-        print(working_chips)
-        print(chip_list)
-        for i in range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
+        print("CHECKING CHIPS")
+        for i in range(int(self.config["DEFAULT"]["NASIC_MIN"]) - 1, int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
             if i in working_chips:
                 chip_name = chip_list[i][1]
                 results_path = os.path.join(datadir, chip_name)
                 jsonFile = os.path.join(chip_name, results_path, self.config["FILENAMES"]["RESULTS"])
+                #Now that we know what the timestamped directory is, we can have a button on the GUI open it directly
+                self.details_label.bind("<Button-1>",lambda event, arg=datadir: self.open_directory(arg))
+                
                 with open(jsonFile,'r') as f:
                     results = json.load(f)
-                #baseline results
-                print(results)
                 if "sync_result" in results:
-                if self.methodMap['baseline_test_sequence_complete']:
-                    if (self.params['asic_pass'][0][0] == -1):
-                        self.asic0_baseline_result["text"] = "????"
-                        self.asic0_baseline_result["fg"] = "yellow"
-                    elif (not self.params['asic_pass'][0][0]):
-                        self.asic0_baseline_result["text"] = "Fail"
-                        self.asic0_baseline_result["fg"] = "red"
-                    else:
-                        self.asic0_baseline_result["text"] = "Pass"
-                        self.asic0_baseline_result["fg"] = "green"
-                    if (self.params['asic_pass'][1][0] == -1):
-                        self.asic1_baseline_result["text"] = "????"
-                        self.asic1_baseline_result["fg"] = "yellow"
-                    elif (not self.params['asic_pass'][1][0]):
-                        self.asic1_baseline_result["text"] = "Fail"
-                        self.asic1_baseline_result["fg"] = "red"
-                    else:
-                        self.asic1_baseline_result["text"] = "Pass"
-                        self.asic1_baseline_result["fg"] = "green"
-                    if (self.params['asic_pass'][2][0] == -1):
-                        self.asic2_baseline_result["text"] = "????"
-                        self.asic2_baseline_result["fg"] = "yellow"
-                    elif (not self.params['asic_pass'][2][0]):
-                        self.asic2_baseline_result["text"] = "Fail"
-                        self.asic2_baseline_result["fg"] = "red"
-                    else: 
-                        self.asic2_baseline_result["text"] = "Pass"
-                        self.asic2_baseline_result["fg"] = "green"
-                    if (self.params['asic_pass'][3][0] == -1):
-                        self.asic3_baseline_result["text"] = "????"
-                        self.asic3_baseline_result["fg"] = "yellow"
-                    elif (not self.params['asic_pass'][3][0]):
-                        self.asic3_baseline_result["text"] = "Fail"
-                        self.asic3_baseline_result["fg"] = "red"
-                    else:
-                        self.asic3_baseline_result["text"] = "Pass"
-                        self.asic3_baseline_result["fg"] = "green"
-                
-    def failed(self,label):
-        pass
-    
-    def passed(self,label):
-        pass
-    
-    def skipped(self,label):
-        pass
+                    label = self.sync_results[i]
+                    result = results['sync_result']
+                    self.update_label(label, result)
+                    linked_folder = os.path.join(results_path, results['sync_outlabel'])
+                    linked_file1 = self.config["FILENAMES"]["SYNC_LINK"]
+                    linked_file2 = self.config["FILENAMES"]["SYNC_LINK_MONITOR"]
+                    linked_file_path1 = os.path.join(linked_folder, linked_file1)
+                    linked_file_path2 = os.path.join(linked_folder, linked_file2)
+                    label.bind("<Button-1>",lambda event, arg=linked_file_path1: self.link_label(arg))
+                    label.bind("<Button-3>",lambda event, arg=linked_file_path2: self.link_label(arg))
+                    
+                if "baseline_result" in results:
+                    label = self.baseline_results[i]
+                    result = results['baseline_result']
+                    self.update_label(label, result)
+                    linked_folder = os.path.join(results_path, results['baseline_outlabel'])
+                    linked_file = self.config["FILENAMES"]["BASELINE_LINK"].format(chip_name)
+                    linked_file_path = os.path.join(linked_folder, linked_file)
+                    label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
+                    
+    def update_label(self, label, result):
+        if (result == "PASS"):
+            label["text"] = "Pass"
+            label["fg"] = "green"
+        elif (result == "FAIL"):
+            label["text"] = "Fail"
+            label["fg"] = "red"
+        else:
+            print("Top_Level_GUI--> Incorrect result, must 'PASS' or 'FAIL', was {}".format(result))
+            
+    def link_label(self, file):
+        #eog is so it opens in the superior Image Viewer without all the junk in Image Magick
+        subprocess.check_call(["eog", file])
+        
+    def open_directory(self, directory):
+        #xdg-open is so it opens the directory as is
+        subprocess.check_call(["xdg-open", directory])
     
     # Can add additional testing sequences like as above with a method name
     # like "do_<semantic_label>".
