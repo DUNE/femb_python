@@ -66,7 +66,7 @@ class FEMB_SUMMARY(object):
                 name = params['box_ids'][i]
                 boxtext = "CE Box "
 
-            text_title = "SBND FEMB QC Summary: "+boxtext+name
+            text_title = "protoDUNE FEMB QC Summary: "+boxtext+name
 
             timestamp = "Timestamp: "+params['session_start_time']
 
@@ -91,7 +91,7 @@ class FEMB_SUMMARY(object):
             amt = "Analog MB ID: "
             fmt = "FPGA Mezz ID: "
             fet = "FE ASICS: "
-            adct = "COTS ADCs"
+            adct = "ADC ASICS: "
 
             t1 = amt+params['am_ids'][i]
             pdf.cell(40, 5, txt=t1, align='L')
@@ -100,7 +100,12 @@ class FEMB_SUMMARY(object):
 
             pdf.cell(25, 5, txt=fet, align='L')            
             for jfe in params['fe_asics'][i]:
-                pdf.cell(13, 5, txt=str(jfe), align='L')            
+                pdf.cell(10, 5, txt=str(jfe), align='L')            
+            pdf.ln(5)
+
+            pdf.cell(25, 5, txt=adct, align='L')            
+            for jadc in params['adc_asics'][i]:
+                pdf.cell(10, 5, txt=str(jadc), align='L')
             pdf.ln(5)
 
             printgain = False
@@ -140,9 +145,9 @@ class FEMB_SUMMARY(object):
                             gainlabel = gaininfo[0]+"_"+gaininfo[1]+"_"+gaininfo[2]
                             gainsummary[gainlabel] = gaininfo
                     
-                    if ("g2_s2_extpulse" in mydir):
+                    if ("g2_s2_intpulse" in mydir):
                         if os.path.isfile(self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"):
-                            gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 2 us, Internal FPGA Pulser"
+                            gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 2 us, Internal Pulser"
                             gainimage = self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"
                             printgain = True
                 #Power cycle summary:
@@ -157,7 +162,7 @@ class FEMB_SUMMARY(object):
                     current_text = "Current (A):"
                     l1 = "4.2 V"
                     l2 = "3 V"
-                    l3 = "4.2 V"
+                    l3 = "2.5 V"
                     l4 = "1.5 V"
                     l5 = "5 V"
                     info_file = self.topdir+"/"+mydir+"/params.json"
