@@ -61,6 +61,7 @@ class LOW_LEVEL(object):
             
         if (data_format == "bin"):
             data = self.femb_udp.get_data_packets(data_type = "bin", num = packets, header = header)
+            return data
 
         data = self.femb_udp.get_data_packets(data_type = "int", num = packets, header = header)
         
@@ -83,15 +84,16 @@ class LOW_LEVEL(object):
             data = list(self.get_data_chipXchnX(chip, chn, packets = 5, data_format = "counts", header = header))
             found_trace = False
             for i in range(len(data)):
-                #if (data[i] > self.adc_full_scale):
-                #Positive pulse
+                #0b10 is a positive pulse
                 if (data[i] & (0b10 << 14)):
+                    #Make sure that where you found the peak in the packet leaves enough data for the entire slice you want to see.  Sometimes you don't see it until the end of the packet
                     if (len(data[i:]) > int(self.config["SYNC_SETTINGS"]["SYNC_PULSE_SPACING"])):
                         enough_data = True
                     else:
                         enough_data = False
                         break
                     
+                    #Check if there are additional pulses for the rest of the slice (would indicate a dropped packet), it looks neater without this
                     additional_pulse = False
                     for j in range(i+1,i+int(self.config["SYNC_SETTINGS"]["SYNC_PULSE_SPACING"]),1):
                         if (data[j] & (0b10 << 14)):
@@ -99,9 +101,17 @@ class LOW_LEVEL(object):
                             break
                         
                     if ((additional_pulse == False) and (enough_data == True)):
-                        data[i] = data[i] & int(self.config["DEFAULT"]["ADC_FULL_SCALE"], 16)
                         data_to_send = []
                         data_to_send.extend(list(data[i:i+int(self.config["SYNC_SETTINGS"]["SYNC_PULSE_SPACING"])]))
+                        
+                        #After we make the slice to return, look for other "tagged" indicators.  Sometimes the negative pulse is visible too, and we want to get rid of the tag so it doens't ruin the plot
+                        traced = []
+                        for index, j in enumerate(data_to_send):
+                            if (j & (0b10 << 14) or j & (0b01 << 14)):
+                                traced.append(index)
+                        for j in traced:
+                            data_to_send[j] = data_to_send[j] & int(self.config["DEFAULT"]["ADC_FULL_SCALE"], 16)
+                            
                         found_trace = True
                         break
             if (found_trace):

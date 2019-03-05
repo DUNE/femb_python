@@ -10,178 +10,157 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import object
 import sys
-import string
-from subprocess import check_call as call
 import os
-import ntpath
-import glob
-import struct
 import json
 import time
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
-import pickle
+import datetime
 
 
 from femb_python.configuration import CONFIG
-from femb_python.write_data import WRITE_DATA
-from femb_python.test_measurements.quad_FE_Board.plotting import plot_functions
-from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
-
-from femb_python.test_measurements.quad_FE_Board.Data_Analysis import Data_Analysis
+from femb_python.configuration.config_base import FEMB_CONFIG_BASE
+from femb_python.test_measurements.quad_FE_Board.Baseline_Data_Analysis import Data_Analysis
 
 class BASELINE_TESTER(object):
     
     def __init__(self, datadir="data", outlabel="baselineTest"):
         
         #import femb_udp modules from femb_udp package
-        self.femb_config = CONFIG()
-        self.write_data = WRITE_DATA(datadir)
-        #import data analysis and plotting objects
-        self.plotting = plot_functions()
+        self.config = CONFIG
+        self.functions = FEMB_CONFIG_BASE(self.config)
+        self.low_level = self.functions.lower_functions
+        self.sync_functions = self.functions.sync
+        self.plotting = self.functions.sync.plot
         self.analyze = Data_Analysis()
-        
-        #set appropriate packet size
-        self.write_data.femb.MAX_PACKET_SIZE = 8000
-
-        self.cppfr = CPP_FILE_RUNNER()
         
         #json output, note module version number defined here
         self.jsondict = {'type':'baseline_test'}
-        self.jsondict['version'] = '1.0'
-        self.jsondict['timestamp']  = str(self.write_data.date)     
+        self.jsondict['baseline_code_version'] = '1.0'
+        self.jsondict['timestamp']  = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
+        
+    def check_setup(self):
+        print("BASELINE - SETUP")
+        self.functions.initBoard(default_sync = False)
 
-        
-    def get_data(self):
-        self.femb_config.make_filepaths(self.datadir,self.chip_list,self.datasubdir+"/Data")   
-        for num,i in enumerate(self.chip_list):
-            if self.config_list[i[0]]:
-                self.save_rms_noise(chip_index=i[0], chip_name=i[1])
-        
-#    def do_analysis(self):
-#        continue
+    def record_data(self):
+        print("BASELINE - COLLECT DATA")
+        for i in self.params['working_chips']:
+            chip_name = self.params['chip_list'][i][1]
+            chip_outpathlabel = os.path.join(self.params["datadir"], chip_name, self.params["outlabel"])
+            data_directory = os.path.join(chip_outpathlabel, self.config["FILENAMES"]["DATA_NAME"])
+            os.makedirs(data_directory, exist_ok=True)
+            self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_MUX_MODE"]), int(self.config["DEFINITIONS"]["MUX_GND_GND"]))
+                
+            self.mode = self.params['analysis_level']
+            if (self.mode == "basic"):
+                self.gain = self.config["BASELINE_SETTINGS"]["BASELINE_GAIN"]
+                self.shape = self.config["BASELINE_SETTINGS"]["BASELINE_PEAK"]
+                self.leak = self.config["BASELINE_SETTINGS"]["BASELINE_LEAK"]
+                self.buff = self.config["BASELINE_SETTINGS"]["BASELINE_BUFFER"]
+            else:
+                print("FE_baseline_test--> Need to program non-basic analysis!")
+                
+            if (self.buff == "on"):
+                self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_SAMPLESPEED"]), int(self.config["INITIAL_SETTINGS"]["DEFAULT_SAMPLE_SPEED"]))
+            elif (self.buff == "off"):
+                self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_SAMPLESPEED"]), int(self.config["INITIAL_SETTINGS"]["UNBUFFERED_SAMPLE_SPEED"]))
+            else:
+                print("FE_baseline_test --> buffer is not defined.  Should be 'on' or 'off', but is {}".format(self.buff))
+            
+            for base in ["200mV", "900mV"]:
+                self.functions.configFeAsic(test_cap="off", base=base, gain=self.gain, shape=self.shape, monitor_ch=None, buffer=self.buff, 
+                       leak = self.leak, monitor_param = None, s16=None, acdc="dc", test_dac="test_off", dac_value=0)
+            
+                self.functions.writeFE()
+                
+                for chn in range(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]) + 1, 1):
+                    self.low_level.selectChipChannel(chip = i, chn = chn)
+                    baseline_file_notation = self.config["FILENAMES"]["BASELINE_NAMING"]
+                    filename = baseline_file_notation.format(chn,self.gain,self.shape,self.leak,base, self.buff)
+                    full_filename = os.path.join(data_directory,filename)
+            
+#                    rawdata = bytearray()
+#                    rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = True)
+#                    for pack in range (self.femb_config.baseline_length):
+#                        rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = False)
+            
+            
+                    packets = int(self.config["BASELINE_SETTINGS"]["BASELINE_PACKETS"])
+                    rawdata = self.low_level.get_data_chipXchnX(chip = i, chn = chn, packets = packets, data_format = "bin", header = False)
+            
+                    with open(full_filename,"wb") as f:
+                        f.write(rawdata) 
+                        f.close()
+                        
+        self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_SAMPLESPEED"]), int(self.config["INITIAL_SETTINGS"]["DEFAULT_SAMPLE_SPEED"]))
 
-    def save_rms_noise(self, chip_index, chip_name):
-        print("Test--> Collecting Baseline data for Chip {}...".format(chip_name))
-        #Because the statement will never print until after the giant for loop
-        sys.stdout.flush()      
-        data_directory = os.path.join(self.datadir,chip_name,self.datasubdir,"Data")
-        
-        #Select Ground to Test and FE input of all chips
-        self.femb_config.femb.write_reg(9, 2)
+    def do_analysis(self):
+        print("BASELINE - ANALYZE")
+        analysis = ["mean"]
+        self.results = []
+        self.average_baseline_200 = []
+        self.average_baseline_900 = []
+        self.baseline_200 = []
+        self.baseline_900 = []
+        for i in self.params["working_chips"]:
+            chip_name = self.params['chip_list'][i][1]
+            chip_outpathlabel = os.path.join(self.params["datadir"], chip_name, self.params["outlabel"])
+            data_directory = os.path.join(chip_outpathlabel, self.config["FILENAMES"]["DATA_NAME"])
             
-        #Make sure nothing is coming from the FPGA DAC or for the signal for the ASIC's internal DAC
-        self.femb_config.femb.write_reg(17, 0)
-        
-        #Read from FE output ADCs
-        self.femb_config.femb.write_reg(60, 0)
-        
-#        #Set the DAC to be on permanently (and sample at the lower clock speed)
-#        self.femb_config.femb.write_reg(13, 0b10000)
-#        originals = []
-#        for reg in range(65,69,1):
-#            value = self.femb_config.femb.read_reg(reg)
-#            originals.append(value)
-#            self.femb_config.femb.write_reg(reg, 0xFFFFFFFF)
-##            print ("The original register {} was {}".format(reg, hex(value)))
-#            
-#        original_phase = []
-#        for reg in range(69,73,1):
-#            value = self.femb_config.femb.read_reg(reg)
-#            original_phase.append(value)
-#            self.femb_config.femb.write_reg(reg, 0xAAAAAAAA)
-##            print ("The original register {} was {}".format(reg, hex(value)))
+            print ("Baseline analysis for chip {}({})".format(i,chip_name))
+            result, average_200, average_900, baselines_200, baselines_900 = self.analyze.baseline_directory(chip_outpathlabel, data_directory, chip_name, i, self.mode, analysis)
+            self.results.append(result)
+            self.average_baseline_200.append(average_200)
+            self.average_baseline_900.append(average_900)
+            self.baseline_200.append(baselines_200)
+            self.baseline_900.append(baselines_900)
             
-#        print("Old registers are {}".format(originals))
-        self.femb_config.fe_reg.set_fe_board(sts=0, snc=self.base, sg=self.gain, st=self.shape,
-                                      smn=0, sbf=self.buff, slk = self.leak, stb = 0, s16=0, slkh=self.leak,
-                                      sdc=0, sdacsw2=0, sdacsw1=0, sdac=0, remapping=True)
-                                      #remapping is to make gain/shaping times/base settings (0-3) consecutive in output and GUI
-                   
-        self.config_list = self.femb_config.configFeAsic(to_print = False)
-#                            raw_input("Baseline Data --> Collecting Data for {}, {}, {}, {}, {}".format(gain, peak, leak, buff, base))
-#                            print ("Baseline Data --> Collecting Data for {}, {}, {}, {}, {}".format(gain, peak, leak, buff, base))
-        sys.stdout.flush()
-        time.sleep(0.5)
-        for chn in range(self.femb_config.channels):
-            self.femb_config.select_chip_chn(chip = chip_index, chn = chn)
-            filename = self.femb_config.Baseline_Naming.format(chn,self.femb_config.gainArray[self.gain],self.femb_config.shapeArray[self.shape],self.leak,self.femb_config.buffArray[self.buff],self.femb_config.baseArray[self.base])
-            
-            rawdata = bytearray()
-            full_filename = os.path.join(data_directory,filename)
-    
-            rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = True)
-            for pack in range (self.femb_config.baseline_length):
-                rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = False)
-    
-            with open(full_filename,"wb") as f:
-                f.write(rawdata) 
-                f.close()
+    def archiveResults(self):
+        print("BASELINE - ARCHIVE")
+        
+        self.jsondict['baseline_executable'] = self.params['executable']
+        self.jsondict['baseline_datasubdir'] = self.params['datasubdir']
+        self.jsondict['baseline_outlabel'] = self.params['outlabel']
+        self.jsondict['baseline_gain'] = self.config["BASELINE_SETTINGS"]["BASELINE_GAIN"]
+        self.jsondict['baseline_peak'] = self.config["BASELINE_SETTINGS"]["BASELINE_PEAK"]
+        self.jsondict['baseline_leak'] = self.config["BASELINE_SETTINGS"]["BASELINE_LEAK"]
+        self.jsondict['baseline_buffer'] = self.config["BASELINE_SETTINGS"]["BASELINE_BUFFER"]
 
-
-    def analyze_data(self):
-        for num,i in enumerate(self.chip_list):
-            if self.config_list[i[0]]:
-                print ("Baseline analysis for chip {}".format(i[1]))
-                self.result, self.average_baseline, self.baselines = self.analyze.baseline_directory(os.path.join(self.datadir,i[1]), i[1], self.datasubdir, self.outlabel, self.femb_config.gainArray[self.gain],self.femb_config.shapeArray[self.shape],self.leak,self.femb_config.buffArray[self.buff],self.femb_config.baseArray[self.base])
-                self.archive_results(i[1],i[0])
+        for chip in self.params["working_chips"]:
+            chip_name = self.params['chip_list'][chip][1]
+            jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.config["FILENAMES"]["RESULTS"])
+            with open(jsonFile, mode='r') as f:
+                existing_json = json.load(f)
+            if (self.results[chip] == True):
+                self.jsondict['baseline_result'] = "PASS"
+            elif (self.results[chip] == False):
+                self.jsondict['baseline_result'] = "FAIL"
+            else:
+                self.jsondict['baseline_result'] = "N/A"
+                
+            self.jsondict['baseline_200_average'] = self.average_baseline_200[chip]
+            self.jsondict['baseline_900_average'] = self.average_baseline_900[chip]
             
-    def archive_results(self, chip_name, chip_index):
-        print("BASELINE AND RMS RESULTS - ARCHIVE")
-        
-        #add summary variables to output
-        self.jsondict['filedir'] = str( self.write_data.filedir )
-        self.jsondict['config_gain'] = str( self.femb_config.gainArray[self.gain] )
-        self.jsondict['config_shape'] = str( self.femb_config.shapeArray[self.shape] )
-        self.jsondict['config_base'] = str( self.femb_config.baseArray[self.base] )
-        self.jsondict['config_buff'] = str ( self.femb_config.buffArray[self.buff] )
-        self.jsondict['average_baseline'] = str( self.average_baseline )
-        self.jsondict['chip_name'] = str( chip_name )
-        self.jsondict['chip_index'] = str ( chip_index )
-        self.jsondict['config_list'] = self.config_list
-        if self.result:
-            self.jsondict['result'] = "Pass"
-        else:
-            self.jsondict['result'] = "Fail"
-        
-        results = []
-        for i,ch_base in enumerate(self.baselines):
-            measurement = {}
-            measurement["ch"] = str(ch_base[0])
-            measurement["baseline"] = str(ch_base[1])
-            results.append(measurement)
-        self.jsondict['results'] = results
-        #dump results 
-        jsonFile = os.path.join(self.datadir,chip_name,self.datasubdir,"results.json")
-        with open(jsonFile,'w') as outfile:
-            json.dump(self.jsondict, outfile, indent=4)
-            
+            for chn in range(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]) + 1, 1):
+                jsname = "baseline_200_channel{}".format(chn)
+                self.jsondict[jsname] = self.baseline_200[chip][chn]
+                jsname = "baseline_900_channel{}".format(chn)
+                self.jsondict[jsname] = self.baseline_900[chip][chn]
+                
+            with open(jsonFile,'w') as outfile:
+                existing_json.update(self.jsondict)
+                json.dump(existing_json, outfile, indent=4)
         
 def main():
-    '''
-    sync the ADCs
-    '''
     base_test = BASELINE_TESTER()      
-    print(sys.argv[1])
-    params = json.loads(open(sys.argv[1]).read())        
-    
-    base_test.datadir = params['datadir']
-    base_test.outlabel = params['outlabel']    
-    base_test.chip_list = params['chip_list']
-    base_test.gain = params['gain_ind']
-    base_test.shape = params['shape_ind']
-    base_test.leak = params['leakage_ind']
-    base_test.buff = params['buffer_ind']
-#    base_test.base = params['base_ind']
-    base_test.datasubdir = params['datasubdir']
-    base_test.config_list = params['config_list']
-        
-    base_test.base = 0
-    base_test.get_data()
-    base_test.base = 1
-    base_test.get_data()
-    print ("Ready to analyze baseline")
-    base_test.analyze_data()
+    params = json.loads(open(sys.argv[1]).read())    
+    base_test.params = params
+
+    base_test.check_setup()
+    base_test.record_data()
+    base_test.do_analysis()
+    base_test.archiveResults()
      
 if __name__ == '__main__':
     main()

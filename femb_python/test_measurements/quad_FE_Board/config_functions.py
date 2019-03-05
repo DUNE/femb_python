@@ -70,7 +70,7 @@ class FEMB_CONFIG_FUNCTIONS(object):
         default_frame_size = 16 * (int(self.config["INITIAL_SETTINGS"]["DEFAULT_FRAME_SIZE"], 16)//16)
         #Readback gives other values, it'll always be wrong
         self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_FRAME_SIZE"]), default_frame_size, doReadBack = False)
-        
+        self.low_func.setInternalPulser(period = int(self.config["INITIAL_SETTINGS"]["DEFAULT_INTERNAL_PULSE_FREQ"]), shift = int(self.config["INITIAL_SETTINGS"]["DEFAULT_INTERNAL_PULSE_DLY"]), enable = False)
         self.low_func.setExternalPulser(val=int(self.config["INITIAL_SETTINGS"]["DEFAULT_EXTERNAL_DAC_VAL"], 16), 
                                period=int(self.config["INITIAL_SETTINGS"]["DEFAULT_EXTERNAL_DAC_TP_PERIOD"]), shift=int(self.config["INITIAL_SETTINGS"]["DEFAULT_EXTERNAL_DAC_TP_SHIFT"]), enable=False)
                        
@@ -80,37 +80,47 @@ class FEMB_CONFIG_FUNCTIONS(object):
         self.low_func.selectChipChannel(chip = 2, chn = 7)
         self.low_func.selectChipChannel(chip = 1, chn = 6)
         
-        latch_settings_name = "{}_LATCH_SETTINGS".format(self.board_ver)
-        phase_settings_name = "{}_PHASE_SETTINGS".format(self.board_ver)
-        
-        latch = []
-        phase = []
-        
-        #This section loops through the categories to get the settings we want, since you can't make arrays in INI files
-        try:
-            latch_settings = list(self.config._sections["{}".format(latch_settings_name)].keys())
-            phase_settings = list(self.config._sections["{}".format(phase_settings_name)].keys())
+        if 'default_sync' in kwargs:
+            default_sync = kwargs["default_sync"]
+        else:
+            default_sync = True
+    
+        if (default_sync == True):
+            print("config_functions --> Writing sync settings")
+            latch_settings_name = "{}_LATCH_SETTINGS".format(self.board_ver)
+            phase_settings_name = "{}_PHASE_SETTINGS".format(self.board_ver)
             
-            for i in range(len(latch_settings)):
-                latch.append(int(self.config["{}".format(latch_settings_name)][latch_settings[i]], 16))
-            for i in range(len(phase_settings)):
-                phase.append(int(self.config["{}".format(phase_settings_name)][phase_settings[i]], 16))
+            latch = []
+            phase = []
             
-        except KeyError:
-            print("config_functions --> No settings found for {} and {}!  Using defaults".format(latch_settings_name, phase_settings_name))
-            latch_settings = list(self.config._sections["LATCH_SETTINGS_DEFAULT"].keys())
-            phase_settings = list(self.config._sections["PHASE_SETTINGS_DEFAULT"].keys())
+            #This section loops through the categories to get the settings we want, since you can't make arrays in INI files
+            try:
+                latch_settings = list(self.config._sections["{}".format(latch_settings_name)].keys())
+                phase_settings = list(self.config._sections["{}".format(phase_settings_name)].keys())
+                
+                for i in range(len(latch_settings)):
+                    latch.append(int(self.config["{}".format(latch_settings_name)][latch_settings[i]], 16))
+                for i in range(len(phase_settings)):
+                    phase.append(int(self.config["{}".format(phase_settings_name)][phase_settings[i]], 16))
+                
+            except KeyError:
+                print("config_functions --> No settings found for {} and {}!  Using defaults".format(latch_settings_name, phase_settings_name))
+                latch_settings = list(self.config._sections["LATCH_SETTINGS_DEFAULT"].keys())
+                phase_settings = list(self.config._sections["PHASE_SETTINGS_DEFAULT"].keys())
+                
+                for i in range(len(latch_settings)):
+                    latch.append(int(self.config["LATCH_SETTINGS_DEFAULT"][latch_settings[i]], 16))
+                for i in range(len(phase_settings)):
+                    phase.append(int(self.config["PHASE_SETTINGS_DEFAULT"][phase_settings[i]], 16))
+                
+            for i,reg in enumerate(range(int(self.config["REGISTERS"]["REG_LATCH_MIN"]), int(self.config["REGISTERS"]["REG_LATCH_MAX"]) + 1, 1)):
+                self.femb_udp.write_reg(reg, latch[i])
+            for i,reg in enumerate(range(int(self.config["REGISTERS"]["REG_PHASE_MIN"]), int(self.config["REGISTERS"]["REG_PHASE_MAX"]) + 1, 1)):
+                self.femb_udp.write_reg(reg, phase[i])
+            self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_TEST_ADC"]), int(self.config["INITIAL_SETTINGS"]["DEFAULT_MONITOR_ADC_SETTINGS"], 16))
             
-            for i in range(len(latch_settings)):
-                latch.append(int(self.config["LATCH_SETTINGS_DEFAULT"][latch_settings[i]], 16))
-            for i in range(len(phase_settings)):
-                phase.append(int(self.config["PHASE_SETTINGS_DEFAULT"][phase_settings[i]], 16))
-            
-        for i,reg in enumerate(range(int(self.config["REGISTERS"]["REG_LATCH_MIN"]), int(self.config["REGISTERS"]["REG_LATCH_MAX"]) + 1, 1)):
-            self.femb_udp.write_reg(reg, latch[i])
-        for i,reg in enumerate(range(int(self.config["REGISTERS"]["REG_PHASE_MIN"]), int(self.config["REGISTERS"]["REG_PHASE_MAX"]) + 1, 1)):
-            self.femb_udp.write_reg(reg, phase[i])
-        self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_TEST_ADC"]), int(self.config["INITIAL_SETTINGS"]["DEFAULT_MONITOR_ADC_SETTINGS"], 16))
+        else:
+            print("config_functions --> Skipping default sync settings")
         
         self.SPI_array = self.asic_config.writeFE()
         return self.SPI_array

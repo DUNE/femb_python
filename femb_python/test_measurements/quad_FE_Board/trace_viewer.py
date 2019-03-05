@@ -57,6 +57,11 @@ class TRACE_VIEWER(Tk.Frame):
     #Gets the low level module to do UDP packets
     self.femb = self.functions.lower_functions
     self.master = master
+    
+    self.functions.configFeAsic(test_cap="on", base=self.config["SYNC_SETTINGS"]["SYNC_BASELINE"], gain=self.config["SYNC_SETTINGS"]["SYNC_GAIN"], shape=self.config["SYNC_SETTINGS"]["SYNC_PEAK"], 
+                                        monitor_ch=None, buffer=self.config["SYNC_SETTINGS"]["SYNC_BUFFER"], leak = self.config["SYNC_SETTINGS"]["SYNC_LEAK"], monitor_param = None, s16=None, 
+                                        acdc=self.config["SYNC_SETTINGS"]["SYNC_ACDC"], test_dac="test_int", dac_value=int(self.config["SYNC_SETTINGS"]["SYNC_DAC_PEAK_HEIGHT"]))
+    self.functions.writeFE()
     #Creates Tkinter object
     Tk.Frame.__init__(self,master) # hack to make work in python2
     self.pack()
