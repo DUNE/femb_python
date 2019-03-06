@@ -6,181 +6,139 @@ from builtins import range
 from builtins import int
 from builtins import str
 from builtins import hex
+import struct
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
 import sys
-import string
-from subprocess import check_call as call
 import os
-import ntpath
-import glob
-import struct
 import json
-import time
-import matplotlib.pyplot as plt
-plt.switch_backend('agg')
-import pickle
-
-
+import datetime
 from femb_python.configuration import CONFIG
-from femb_python.write_data import WRITE_DATA
-from femb_python.test_measurements.quad_FE_Board.plotting import plot_functions
-from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
-
-from femb_python.test_measurements.quad_FE_Board.Data_Analysis2 import Data_Analysis2
+from femb_python.configuration.config_base import FEMB_CONFIG_BASE
+from femb_python.test_measurements.quad_FE_Board.Monitor_Data_Analysis import Data_Analysis
 
 class MONITOR_TESTER(object):
     
-    def __init__(self, datadir="data", outlabel="monitorTest"):
-        self.outpathlabel = os.path.join(datadir, outlabel)        
-        
-        #import femb_udp modules from femb_udp package
-        self.femb_config = CONFIG()
-        self.write_data = WRITE_DATA(datadir)
-        #import data analysis and plotting objects
-        self.plotting = plot_functions()
-        self.analyze2 = Data_Analysis2()
-        
-        #set appropriate packet size
-        self.write_data.femb.MAX_PACKET_SIZE = 8000
-
-        self.cppfr = CPP_FILE_RUNNER()
+    def __init__(self):
+        self.config = CONFIG
+        self.functions = FEMB_CONFIG_BASE(self.config)
+        self.low_level = self.functions.lower_functions
+        self.analyze = Data_Analysis(self.config)
         
         #json output, note module version number defined here
-        self.jsondict = {'type':'monitor_test'}
-        self.jsondict['version'] = '1.0'
-        self.jsondict['timestamp']  = str(self.write_data.date)     
+        self.jsondict = {'type':'baseline_test'}
+        self.jsondict['monitor_code_version'] = '1.0'
+        self.jsondict['monitor_timestamp']  = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
 
         
-    def get_data(self):
-        for num,i in enumerate(self.chip_list):
-            if self.config_list[i[0]]:
-                folder_path = os.path.join(self.datadir,i[1])
-                self.save_monitor_data(folder_path, chip_index=i[0], chip_name=i[1])
+    def check_setup(self):
+        print("MONITOR - SETUP")
+        self.functions.initBoard(default_sync = False)
 
-    def save_monitor_data(self, folder_path, chip_index, chip_name):
-        sys.stdout.flush()
-		
-        test_directory = os.path.join(folder_path,self.datasubdir)
-        os.makedirs(test_directory)
-		
-        data_directory = os.path.join(test_directory,"Data")
-        os.makedirs(data_directory)
-		
-        #Select the monitor readout
-        self.femb_config.femb.write_reg(9, 3)
+    def record_data(self):
+        print("MONITOR - COLLECT DATA")
+        #Read from TEST output ADCs
+        self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_READOUT_OPTIONS"]), int(self.config["DEFINITIONS"]["READOUT_TEST_ADC"]))
+        
+        #Select the monitor readout to ADC
+        self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_MUX_MODE"]), int(self.config["DEFINITIONS"]["MUX_ADC_GND"]))
+        #Adds tracer bits on data coming in when the internal pulser has an edge
+        self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_TAGGING"]), int(self.config["DEFINITIONS"]["TAGGING_ON"]))
+        
+        #Get the ASIC to send out pulses
+        self.low_level.setInternalPulser(period = int(self.config["MONITOR_SETTINGS"]["MONITOR_FREQ"]), shift = int(self.config["MONITOR_SETTINGS"]["MONITOR_DLY"]), enable = True)
+        self.low_level.setExternalPulser(enable = False)
+        
+        for i in self.params['working_chips']:
+            chip_name = self.params['chip_list'][i][1]
+            chip_outpathlabel = os.path.join(self.params["datadir"], chip_name, self.params["outlabel"])
+            data_directory = os.path.join(chip_outpathlabel, self.config["FILENAMES"]["DATA_NAME"])
+            os.makedirs(data_directory, exist_ok=True)
             
-        #Get the ASIC to send out pulses.  Bit 6 needs to be high for ASIC DAC
-        reg17_value = (self.femb_config.monitor_freq << 16) + (self.femb_config.monitor_delay << 8) + (0b01000000)
-        self.femb_config.femb.write_reg(17, reg17_value)
-        
-        #Make sure the input to the DAC is not on
-        self.femb_config.femb.write_reg(7, 0)
-        
-        #Read from test output ADCs
-        self.femb_config.femb.write_reg(60, 1)
-		
-        for chn in range(self.femb_config.channels):
-#            This was from the old code, not sure why the choice of hardcoded values
-#            self.femb_config.set_fe_board(sts=a["test_int"][0], snc=a["200mV"], sg=a["14mV"], st=a["2us"], 
-#					smn=0, sbf=a["b_on"], slk = a["500pA"][1], stb = 0, s16=0, slkh=a["500pA"][0], sdc=0, 
-#					sdacsw2=1, sdacsw1=0, sdac=settings.monitor_amplitude)
-        
-            self.femb_config.fe_reg.set_fe_board(sts=0, snc=0, sg=2, st=2, 
-					smn=0, sbf=1, slk = 0, stb = 0, s16=0, slkh=0, sdc=0, 
-					sdacsw2=1, sdacsw1=0, sdac=self.femb_config.monitor_amplitude, remapping=True) #remapping is to make gain/shaping times/base settings (0-3) consecutive in output and GUI
-                                           
-            self.femb_config.fe_reg.set_fe_chn(chip=chip_index, chn=chn, sts=1, snc=-1, sg=-1, st=-1, smn=1, sbf=-1)
-            self.config_list = self.femb_config.configFeAsic(to_print = False)
-    			
-            self.femb_config.select_chip_chn(chip = chip_index, chn = chn)
-            filename = self.femb_config.Monitor_Naming.format(chn)
-            rawdata = bytearray()
-            full_filename = os.path.join(data_directory,filename)
-    
-#            rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = True)
-            rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = False)[2:]
-            for pack in range (self.femb_config.monitor_length):
-                rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = False)[2:]
+            for chn in range(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]) + 1, 1):
+                self.functions.configFeAsic(test_cap="on", base=self.config["SYNC_SETTINGS"]["SYNC_BASELINE"], gain=self.config["SYNC_SETTINGS"]["SYNC_GAIN"], shape=self.config["SYNC_SETTINGS"]["SYNC_PEAK"], 
+                                    monitor_ch=None, buffer=self.config["SYNC_SETTINGS"]["SYNC_BUFFER"], leak = self.config["SYNC_SETTINGS"]["SYNC_LEAK"], monitor_param = None, s16=None, 
+                                    acdc=self.config["SYNC_SETTINGS"]["SYNC_ACDC"], test_dac="test_int", dac_value=int(self.config["MONITOR_SETTINGS"]["MONITOR_AMPL"]))
+                self.functions.FE_Regs.set_fe_chn(chip = i, chn = chn, smn = 1)
+                self.functions.writeFE()
+                
+                monitor_file_notation = self.config["FILENAMES"]["MONITOR_NAMING"]
+                filename = monitor_file_notation.format(chn)
+                full_filename = os.path.join(data_directory,filename)            
+                packets = int(self.config["MONITOR_SETTINGS"]["MONITOR_PACKETS"])
+                data = self.low_level.get_data_chipXchnX_tagged(chip = i, chn = chn, packets = packets, data_format = "bin", header = False)
+                buffer = len(data)
+                bin_data = struct.pack(">%dH"%buffer, *data)
+                
                 with open(full_filename,"wb") as f:
-                    f.write(rawdata) 
+                    f.write(bin_data) 
                     f.close()
                     
-        self.femb_config.femb.write_reg(17, 0)
-		            
-        print ("Test--> Monitor check data collected for Chip {}".format(chip_name))
+        #Bring things back to normal
+        self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_READOUT_OPTIONS"]), int(self.config["DEFINITIONS"]["READOUT_NORMAL"]))
+        self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_TAGGING"]), int(self.config["DEFINITIONS"]["TAGGING_OFF"]))
+        self.low_level.setInternalPulser(period = int(self.config["SYNC_SETTINGS"]["SYNC_INTERNAL_PULSE_FREQ"]), shift = int(self.config["SYNC_SETTINGS"]["SYNC_INTERNAL_PULSE_DLY"]), enable = False)
 
+    def do_analysis(self):
+        print("MONITOR - ANALYZE")
+        self.results = []
+        self.peaks = []
+        self.differences = []
+        self.average_peak = []
+        for i in self.params["working_chips"]:
+            chip_name = self.params['chip_list'][i][1]
+            chip_outpathlabel = os.path.join(self.params["datadir"], chip_name, self.params["outlabel"])
+            data_directory = os.path.join(chip_outpathlabel, self.config["FILENAMES"]["DATA_NAME"])
+            #To grab baseline
+            jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.config["FILENAMES"]["RESULTS"])
+            
+            result, peaks, differences, average_peak = self.analyze.monitor_directory(chip_outpathlabel, data_directory, chip_name, i, jsonFile)
+            self.results.append(result)
+            self.peaks.append(peaks)
+            self.differences.append(differences)
+            self.average_peak.append(average_peak)
+        
+    def archiveResults(self):
+        print("MONITOR - ARCHIVE")
+        
+        self.jsondict['monitor_executable'] = self.params['executable']
+        self.jsondict['monitor_datasubdir'] = self.params['datasubdir']
+        self.jsondict['monitor_outlabel'] = self.params['outlabel']
 
-    def analyze_data(self):
-        for num,i in enumerate(self.chip_list):
-            if self.config_list[i[0]]:
-                folder_path = os.path.join(self.datadir,i[1])
-                self.result, self.peaks, self.differences, self.average_peak = self.analyze2.monitor_directory(folder_path, i[1], self.datasubdir, self.datadir, self.gain, self.shape, self.leak, self.buff, self.base)
-                self.archive_results(i[1],i[0])
-                if (self.result == True):
-                    print("Chip {} (Socket {}) PASSED!".format(i[1], i[0]))
-                if (self.result == False):
-                    print("Chip {} (Socket {}) FAILED!".format(i[1], i[0]))
-        
-    def archive_results(self, chip_name, chip_index):
-        print("MONITOR DATA RESULTS - ARCHIVE")
-        
-        #add summary variables to output
- #add summary variables to output
-        self.jsondict['filedir'] = str( self.write_data.filedir )
-        self.jsondict['config_gain'] = str( self.femb_config.gainArray[self.gain] )
-        self.jsondict['config_shape'] = str( self.femb_config.shapeArray[self.shape] )
-        self.jsondict['config_base'] = str( self.femb_config.baseArray[self.base] )
-        self.jsondict['config_buff'] = str ( self.femb_config.buffArray[self.buff] )
-        self.jsondict['average_peak'] = str( self.average_peak )
-        self.jsondict['chip_name'] = str( chip_name )
-        self.jsondict['chip_index'] = str ( chip_index )
-        self.jsondict['config_list'] = self.config_list
-        if self.result:
-            self.jsondict['result'] = "Pass"
-        else:
-            self.jsondict['result'] = "Fail"
+        for chip in self.params["working_chips"]:
+            chip_name = self.params['chip_list'][chip][1]
+            jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.config["FILENAMES"]["RESULTS"])
+            with open(jsonFile, mode='r') as f:
+                existing_json = json.load(f)
+            if (self.results[chip] == True):
+                self.jsondict['monitor_result'] = "PASS"
+            elif (self.results[chip] == False):
+                self.jsondict['monitor_result'] = "FAIL"
+            else:
+                self.jsondict['monitor_result'] = "N/A"
+                
+            self.jsondict['monitor_average_peak'] = self.average_peak[chip]
             
-        self.jsondict['average_peak'] = self.average_peak
-        
-        results = []
-        for i,ch_peak in enumerate(self.peaks):
-            measurement = {}
-            measurement["ch"] = str(ch_peak[0])
-            measurement["peak"] = str(ch_peak[1])
-            measurement["difference"] = str(self.differences[i])
-            results.append(measurement)
-        self.jsondict['results'] = results
-        #dump results 
-        jsonFile = os.path.join(self.datadir,chip_name,self.datasubdir,"results.json")
-        with open(jsonFile,'w') as outfile:
-            json.dump(self.jsondict, outfile, indent=4)
-            
+            for chn in range(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]) + 1, 1):
+                jsname = "monitor_peaks{}".format(chn)
+                self.jsondict[jsname] = self.peaks[chip][chn][1]
+                jsname = "monitor_differences{}".format(chn)
+                self.jsondict[jsname] = self.differences[chip][chn]
+                
+            with open(jsonFile,'w') as outfile:
+                existing_json.update(self.jsondict)
+                json.dump(existing_json, outfile, indent=4)            
         
 def main():
-    '''
-    sync the ADCs
-    '''
-    monitor_test = MONITOR_TESTER()      
+    mon_test = MONITOR_TESTER()      
+    params = json.loads(open(sys.argv[1]).read())    
+    mon_test.params = params
 
-    params = json.loads(open(sys.argv[1]).read())            
-    
-    monitor_test.datadir = params['datadir']
-    monitor_test.chip_list = params['chip_list']
-    monitor_test.gain = params['gain_ind']
-    monitor_test.shape = params['shape_ind']
-    monitor_test.leak = params['leakage_ind']
-    monitor_test.buff = params['buffer_ind']
-    monitor_test.base = params['base_ind']
-    monitor_test.datasubdir = params['datasubdir']
-    monitor_test.config_list = params['config_list']
-    
-    monitor_test.get_data()
-    monitor_test.analyze_data()
-#    
-#    #end of test so tell FPGA to turn off ASICs
-#    monitor_test.femb_config.femb.write_reg(12, 0xF)
+    mon_test.check_setup()
+    mon_test.record_data()
+    mon_test.do_analysis()
+    mon_test.archiveResults()
      
 if __name__ == '__main__':
     main()

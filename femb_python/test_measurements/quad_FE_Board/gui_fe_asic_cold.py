@@ -76,9 +76,13 @@ class GUI_WINDOW(tk.Frame):
             self.default_settings = dict(
             operator_name = "",
             test_stand = "",
+            test_stand_other = "",
             boardid = "",
+            boardid_other = "",
             chipver = "",
+            chipver_other = "",
             fpgamezz= "",
+            fpgamezz_other = "",
             asic0id = "",
             asic1id = "",
             asic2id = "",
@@ -94,45 +98,28 @@ class GUI_WINDOW(tk.Frame):
 
         #Define general commands column
         self.define_general_commands_column()
-        
-        
         return
         
     #For GUI options where there are predefined but have the option for "other" (in case we're testing a new version of something)
     #Every time a change is made to those fields, this is called to see if "other" was chosen.  If it was, it creates a text field to manually write the value
     #If it's not, it hides that text field
     def gui_callback(self,*args,**kwargs):
+        #TODO use dictionary map to get this quicker
         if (args[0] == "test_stand_GUI_variable"):
-            if (self.test_stand_selection.get() == "Other"):
-                self.test_stand_entry_other.grid(sticky=tk.W,row=2,column=2)
-                self.test_stand_other = True
-            else:
-                self.test_stand_entry_other.grid_forget()
-                self.test_stand_other = False
-                
+            index = 0
         elif (args[0] == "boardid_GUI_variable"):
-            if (self.boardid_selection.get() == "Other"):
-                self.boardid_entry_other.grid(sticky=tk.W,row=3,column=2)
-                self.boardid_other = True
-            else:
-                self.boardid_entry_other.grid_forget()
-                self.boardid_other = False
-                
+            index = 1
         elif (args[0] == "chipver_GUI_variable"):
-            if (self.chipver_selection.get() == "Other"):
-                self.chipver_entry_other.grid(sticky=tk.W,row=4,column=2)
-                self.chipver_other = True
-            else:
-                self.chipver_entry_other.grid_forget()
-                self.chipver_other = False
-                
+            index = 2
         elif (args[0] == "fpgamezz_GUI_variable"):
-            if (self.fpgamezz_selection.get() == "Other"):
-                self.fpgamezz_entry_other.grid(sticky=tk.W,row=5,column=2)
-                self.fpgamezz_other = True
-            else:
-                self.fpgamezz_entry_other.grid_forget()
-                self.fpgamezz_other = False
+            index = 3
+                
+        if (self.selections[index].get() == "Other"):
+                self.other_entries[index].grid(sticky=tk.W,row=index+2,column=2)
+                self.others[index] = True
+        else:
+            self.other_entries[index].grid_forget()
+            self.others[index] = False
 
     #For fields with predefined values, it gets those values from the config files
     #There's also a variable to tell if "other" was chosen, so it knows to look at the manual entry field for the value
@@ -144,7 +131,7 @@ class GUI_WINDOW(tk.Frame):
         label_width=15
 
         self.details_label = tk.Label(self, text="Tests Details")
-        self.details_label.grid(row=0,column=columnbase, columnspan=50)
+        self.details_label.grid(row=0,column=columnbase, columnspan=3)
 
         # Adding operator name label and read entry box
         label = tk.Label(self,text="Operator Name:",width=label_width)
@@ -153,215 +140,107 @@ class GUI_WINDOW(tk.Frame):
         self.operator_entry = tk.Entry(self,width=entry_width)
         self.operator_entry.insert(tk.END, self.default_settings["operator_name"])
         self.operator_entry.grid(sticky=tk.W,row=1,column=columnbase+1)
+        
+        test_stand = ["Test Stand #:", "test_stand_GUI_variable", "test_stand", 'KNOWN_TEST_STANDS', self.default_settings["test_stand_other"]]
+        board_id = ["Test Board ID:", "boardid_GUI_variable", "boardid", 'KNOWN_QUAD_BOARDS', self.default_settings["boardid_other"]]
+        chip_ver = ["Chip Version:", "chipver_GUI_variable", "chipver", 'KNOWN_CHIP_VERSIONS', self.default_settings["chipver_other"]]
+        fpgamezz = ["FPGA Board:", "fpgamezz_GUI_variable", "fpgamezz", 'KNOWN_FPGA_MEZZANINES', self.default_settings["fpgamezz_other"]]
+        
+        self.option_rows = [test_stand, board_id, chip_ver, fpgamezz]
+        self.selections = []
+        self.entries = []
+        self.other_entries = []
+        self.others = []
+        
+        for num, i in enumerate(self.option_rows):
 
-        # Adding test stand ID and read entry box
-        label = tk.Label(self,text="Test Stand #:",width=label_width)
-        label.grid(sticky=tk.W,row=2,column=columnbase+0)
-        
-        self.test_stand_selection = tk.StringVar(self.master, name = "test_stand_GUI_variable")
-        self.test_stand_selection.set(self.default_settings["test_stand"]) # initial value
-        self.test_stand_selection.trace("w", self.gui_callback)
-        
-        options = list(self.config._sections['KNOWN_TEST_STANDS'].keys())
-        stands = []
-        for i in range(len(options)):
-            stands.append(self.config['KNOWN_TEST_STANDS'][options[i]])
+            # Adding test stand ID and read entry box
+            label = tk.Label(self,text=i[0],width=label_width)
+            label.grid(sticky=tk.W,row=2+num,column=columnbase+0)
             
-        self.test_stand_entry = tk.OptionMenu(self, self.test_stand_selection, *stands)
-        self.test_stand_entry.config(width=options_width)
-        self.test_stand_entry.grid(sticky=tk.W,row=2,column=columnbase+1)
-        self.test_stand_entry_other = tk.Entry(self,width=entry_width)
-        if (self.test_stand_selection.get() == "Other"):
-            self.test_stand_entry_other.insert(tk.END, self.default_settings["test_stand_other"])
-            self.test_stand_entry_other.grid(sticky=tk.W,row=2,column=2)
-            self.test_stand_other = True
-        else:
-            self.test_stand_entry_other.grid_forget()
-            self.test_stand_other = False
-
-        # Adding electronics ID and read entry box
-        label = tk.Label(self,text="Test Board ID:",width=label_width)
-        label.grid(sticky=tk.W,row=3,column=columnbase+0)
-
-        self.boardid_selection = tk.StringVar(self.master, name = "boardid_GUI_variable")
-        self.boardid_selection.set(self.default_settings["boardid"]) # initial value
-        self.boardid_selection.trace("w", self.gui_callback)
-        
-        options = list(self.config._sections['KNOWN_QUAD_BOARDS'].keys())
-        boards = []
-        for i in range(len(options)):
-            boards.append(self.config['KNOWN_QUAD_BOARDS'][options[i]])
+            selection = tk.StringVar(self.master, name = i[1])
+            selection.set(self.default_settings[i[2]]) # initial value
+            selection.trace("w", self.gui_callback)
+            self.selections.append(selection)
             
-        self.boardid_entry = tk.OptionMenu(self, self.boardid_selection, *boards)
-        self.boardid_entry.config(width=options_width)
-        self.boardid_entry.grid(sticky=tk.W,row=3,column=columnbase+1)
-        self.boardid_entry_other = tk.Entry(self,width=entry_width)
-        if (self.boardid_selection.get() == "Other"):
-            self.boardid_entry_other.insert(tk.END, self.default_settings["boardid_other"])
-            self.boardid_entry_other.grid(sticky=tk.W,row=3,column=2)
-            self.boardid_other = True
-        else:
-            self.boardid_entry_other.grid_forget()
-            self.boardid_other = False
-
-        # Adding version number and read entry box
-        label = tk.Label(self,text="Chip Version:",width=label_width)
-        label.grid(sticky=tk.W,row=4,column=columnbase+0)
-
-        self.chipver_selection = tk.StringVar(self.master, name = "chipver_GUI_variable")
-        self.chipver_selection.set(self.default_settings["chipver"]) # initial value
-        self.chipver_selection.trace("w", self.gui_callback)
-        
-        options = list(self.config._sections['KNOWN_CHIP_VERSIONS'].keys())
-        chips = []
-        for i in range(len(options)):
-            chips.append(self.config['KNOWN_CHIP_VERSIONS'][options[i]])
+            options = list(self.config._sections[i[3]].keys())
+            possible_options = []
+            for j in range(len(options)):
+                possible_options.append(self.config[i[3]][options[j]])
+                
+            entry = tk.OptionMenu(self, selection, *possible_options)
+            entry.config(width=options_width)
+            self.entries.append(entry)
+            entry.grid(sticky=tk.W,row=2+num,column=columnbase+1)
             
-        self.chipver_entry = tk.OptionMenu(self, self.chipver_selection, *chips)
-        self.chipver_entry.config(width=options_width)
-        self.chipver_entry.grid(sticky=tk.W,row=4,column=columnbase+1)
-        self.chipver_entry_other = tk.Entry(self,width=entry_width)
-        if (self.chipver_selection.get() == "Other"):
-            self.chipver_entry_other.insert(tk.END, self.default_settings["chipver_other"])
-            self.chipver_entry_other.grid(sticky=tk.W,row=4,column=2)
-            self.chipver_other = True
-        else:
-            self.chipver_entry_other.grid_forget()
-            self.chipver_other = False
-            
-        # Adding FPGA board number and read entry box
-        label = tk.Label(self,text="FPGA Board:",width=label_width)
-        label.grid(sticky=tk.W,row=5,column=columnbase+0)
+            entry_other = tk.Entry(self,width=entry_width)
+            self.other_entries.append(entry_other)
+            if (selection.get() == "Other"):
+                entry_other.insert(tk.END, i[4])
+                entry_other.grid(sticky=tk.W,row=2+num,column=2)
+                other = True
+            else:
+                entry_other.grid_forget()
+                other = False
+            self.others.append(other)
 
-        self.fpgamezz_selection = tk.StringVar(self.master, name = "fpgamezz_GUI_variable")
-        self.fpgamezz_selection.set(self.default_settings["fpgamezz"]) # initial value
-        self.fpgamezz_selection.trace("w", self.gui_callback)
-        
-        options = list(self.config._sections['KNOWN_FPGA_MEZZANINES'].keys())
-        fpgas = []
-        for i in range(len(options)):
-            fpgas.append(self.config['KNOWN_FPGA_MEZZANINES'][options[i]])
-            
-        self.fpgamezz_entry = tk.OptionMenu(self, self.fpgamezz_selection, *fpgas)
-        self.fpgamezz_entry.config(width=options_width)
-        self.fpgamezz_entry.grid(sticky=tk.W,row=5,column=columnbase+1)
-        self.fpgamezz_entry_other = tk.Entry(self,width=entry_width)
-        if (self.fpgamezz_selection.get() == "Other"):
-            self.fpgamezz_entry_other.insert(tk.END, self.default_settings["fpgamezz_other"])
-            self.fpgamezz_entry_other.grid(sticky=tk.W,row=5,column=2)
-            self.fpgamezz_other = True
-        else:
-            self.fpgamezz_entry_other.grid_forget()
-            self.fpgamezz_other = False
-
-        label = tk.Label(self,text="ASIC 0",width=label_width)
-        label.grid(sticky=tk.W,row=8,column=columnbase+0)
-        
-        label = tk.Label(self,text="ASIC 1",width=label_width)
-        label.grid(sticky=tk.W,row=9,column=columnbase+0)
-        
-        label = tk.Label(self,text="ASIC 2",width=label_width)
-        label.grid(sticky=tk.W,row=10,column=columnbase+0)
-        
-        label = tk.Label(self,text="ASIC 3",width=label_width)
-        label.grid(sticky=tk.W,row=11,column=columnbase+0)
-        
         label = tk.Label(self,text="Chip ID:",width=entry_width)
         label.grid(sticky=tk.W,row=7,column=columnbase+1)
         
         label = tk.Label(self,text="Socket ID:",width=entry_width)
         label.grid(sticky=tk.W,row=7,column=columnbase+2)
         
-        # ASIC 0 ID
-
-        self.asic0_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['CHIP_MIN'], to=self.config['GUI_SETTINGS']['CHIP_MAX'])
-        self.asic0_entry.insert(tk.END, self.default_settings["asic0id"])
-        self.asic0_entry.delete(0)
-        self.asic0_entry.grid(sticky=tk.W,row=8,column=columnbase+1)
-
-        # ASIC 1 ID
-
-        self.asic1_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['CHIP_MIN'], to=self.config['GUI_SETTINGS']['CHIP_MAX'])
-        self.asic1_entry.insert(tk.END, self.default_settings["asic1id"])
-        self.asic1_entry.delete(0)
-        self.asic1_entry.grid(sticky=tk.W,row=9,column=columnbase+1)
-
-        # ASIC 2 ID
-
-        self.asic2_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['CHIP_MIN'], to=self.config['GUI_SETTINGS']['CHIP_MAX'])
-        self.asic2_entry.insert(tk.END, self.default_settings["asic2id"])
-        self.asic2_entry.delete(0)
-        self.asic2_entry.grid(sticky=tk.W,row=10,column=columnbase+1)
-
-        # ASIC 3 ID
-        self.asic3_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['CHIP_MIN'], to=self.config['GUI_SETTINGS']['CHIP_MAX'])
-        self.asic3_entry.insert(tk.END, self.default_settings["asic3id"])
-        self.asic3_entry.delete(0)
-        self.asic3_entry.grid(sticky=tk.W,row=11,column=columnbase+1)                      
         
-        # SOCKET 0 ID
-
-        self.socket0_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['SOCKET_MIN'], to=self.config['GUI_SETTINGS']['SOCKET_MAX'])
-        self.socket0_entry.insert(tk.END, self.default_settings["socket0id"])
-        self.socket0_entry.delete(0)
-        self.socket0_entry.grid(sticky=tk.W,row=8,column=columnbase+2)
-
-        # SOCKET 1 ID
-
-        self.socket1_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['SOCKET_MIN'], to=self.config['GUI_SETTINGS']['SOCKET_MAX'])
-        self.socket1_entry.insert(tk.END, self.default_settings["socket1id"])
-        self.socket1_entry.delete(0)
-        self.socket1_entry.grid(sticky=tk.W,row=9,column=columnbase+2)
-
-        # SOCKET 2 ID
-
-        self.socket2_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['SOCKET_MIN'], to=self.config['GUI_SETTINGS']['SOCKET_MAX'])
-        self.socket2_entry.insert(tk.END, self.default_settings["socket2id"])
-        self.socket2_entry.delete(0)
-        self.socket2_entry.grid(sticky=tk.W,row=10,column=columnbase+2)
-
-        # SOCKET 3 ID
-
-        self.socket3_entry = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['SOCKET_MIN'], to=self.config['GUI_SETTINGS']['SOCKET_MAX'])
-        self.socket3_entry.insert(tk.END, self.default_settings["socket3id"])
-        self.socket3_entry.delete(0)
-        self.socket3_entry.grid(sticky=tk.W,row=11,column=columnbase+2) 
+        self.asic_entries = []
+        self.socket_entries = []
+        for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
+            label = tk.Label(self,text="ASIC {}".format(chip),width=label_width)
+            label.grid(sticky=tk.W,row=8+i,column=columnbase+0)
+        
+            spinbox = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['CHIP_MIN'], to=self.config['GUI_SETTINGS']['CHIP_MAX'])
+            self.asic_entries.append(spinbox)
+            spinbox.insert(tk.END, self.default_settings["asic{}id".format(chip)])
+            spinbox.delete(0)
+            spinbox.grid(sticky=tk.W,row=8+i,column=columnbase+1)                  
+        
+            spinbox = tk.Spinbox(self, width=spinner_width, from_=self.config['GUI_SETTINGS']['SOCKET_MIN'], to=self.config['GUI_SETTINGS']['SOCKET_MAX'])
+            self.socket_entries.append(spinbox)
+            spinbox.insert(tk.END, self.default_settings["socket{}id".format(chip)])
+            spinbox.delete(0)
+            spinbox.grid(sticky=tk.W,row=8+i,column=columnbase+2)
 
 
     def define_general_commands_column(self):
-        columnbase=50
+        midcolumnbase=3
 
-        label = tk.Label(self, text="FE ASIC TESTS")
-        label.grid(row=0,column=columnbase, columnspan=50)
+        self.status_label = tk.Label(self, text="FE ASIC TESTS", width = 20)
+        self.status_label.grid(row=0,column=midcolumnbase, columnspan=50)
 
         self.power_button = tk.Button(self, text="Power On", bg="green", command=self.power_on,width=10)
-        self.power_button.grid(row=1,column=columnbase,columnspan=1)
+        self.power_button.grid(row=1,column=midcolumnbase,columnspan=1)
         
         self.power_button = tk.Button(self, text="Power Off", bg="red", command=self.power_off,width=10)
-        self.power_button.grid(row=1,column=columnbase+1,columnspan=1)
+        self.power_button.grid(row=2,column=midcolumnbase,columnspan=1)
         
         self.connection_button = tk.Button(self, text="Test Connection", command=self.test_connection,width=10)
-        self.connection_button.grid(row=2,column=columnbase+1,columnspan=1)
+        self.connection_button.grid(row=3,column=midcolumnbase,columnspan=1)
         
         self.debug_button = tk.Button(self, text="Debug Waveform", command=self.debug,width=10)
-        self.debug_button.grid(row=2,column=columnbase+3,columnspan=1)
+        self.debug_button.grid(row=4,column=midcolumnbase,columnspan=1)
         
         self.start_button = tk.Button(self, text="Start Tests", command=self.start_measurements,width=10)
-        self.start_button.grid(row=2,column=columnbase,columnspan=1)
-
-        self.status_label = tk.Label(self, text="NOT STARTED",width=10)
-        self.status_label.grid(sticky=tk.W,row=3,column=columnbase,columnspan=1)
+        self.start_button.grid(row=5,column=midcolumnbase,columnspan=1)
         
         self.sync_result_label = tk.Label(self, text="SYNC", width=10)
-        self.sync_result_label.grid(sticky=tk.W, row=7, column=columnbase+1)   
+        self.sync_result_label.grid(sticky=tk.W, row=7, column=midcolumnbase+1)   
         self.baseline_result_label = tk.Label(self, text="BASELINE", width=10)
-        self.baseline_result_label.grid(sticky=tk.W, row=7, column=columnbase+2)        
+        self.baseline_result_label.grid(sticky=tk.W, row=7, column=midcolumnbase+2)        
         self.monitor_result_label = tk.Label(self, text="MONITOR", width=10)
-        self.monitor_result_label.grid(sticky=tk.W, row=7, column=columnbase+3)        
+        self.monitor_result_label.grid(sticky=tk.W, row=7, column=midcolumnbase+3)        
         self.alive_result_label = tk.Label(self, text="ALIVE", width=10)
-        self.alive_result_label.grid(sticky=tk.W, row=7, column=columnbase+4)
+        self.alive_result_label.grid(sticky=tk.W, row=7, column=midcolumnbase+4)
         self.final_result_label = tk.Label(self, text="FINAL", width=10)
-        self.final_result_label.grid(sticky=tk.W, row=7, column=columnbase+5)
+        self.final_result_label.grid(sticky=tk.W, row=7, column=midcolumnbase+5)
         
         self.sync_results = []
         self.baseline_results = []
@@ -377,35 +256,31 @@ class GUI_WINDOW(tk.Frame):
         
         first_row = 8
         for num, label in enumerate(self.sync_results):
-            label.grid(sticky=tk.W, row=first_row + num, column=columnbase+1)           
+            label.grid(sticky=tk.W, row=first_row + num, column=midcolumnbase+1)           
         
         for num, label in enumerate(self.baseline_results):
-            label.grid(sticky=tk.W, row=first_row + num, column=columnbase+2)   
+            label.grid(sticky=tk.W, row=first_row + num, column=midcolumnbase+2)   
             
         for num, label in enumerate(self.monitor_results):
-            label.grid(sticky=tk.W, row=first_row + num, column=columnbase+3)  
+            label.grid(sticky=tk.W, row=first_row + num, column=midcolumnbase+3)  
             
         for num, label in enumerate(self.alive_results):
-            label.grid(sticky=tk.W, row=first_row + num, column=columnbase+4)  
+            label.grid(sticky=tk.W, row=first_row + num, column=midcolumnbase+4)  
             
         for num, label in enumerate(self.final_results):
-            label.grid(sticky=tk.W, row=first_row + num, column=columnbase+5)  
+            label.grid(sticky=tk.W, row=first_row + num, column=midcolumnbase+5)  
         
         self.asic0_result = tk.Label(self, text="ASIC 0 Results:", width=15)
-        self.asic0_result.grid(sticky=tk.W,row=8,column=columnbase+0)      
+        self.asic0_result.grid(sticky=tk.W,row=8,column=midcolumnbase+0)      
         
         self.asic1_result = tk.Label(self, text="ASIC 1 Results:", width=15)
-        self.asic1_result.grid(sticky=tk.W,row=9,column=columnbase+0)     
+        self.asic1_result.grid(sticky=tk.W,row=9,column=midcolumnbase+0)     
 
         self.asic2_result = tk.Label(self, text="ASIC 2 Results:", width=15)
-        self.asic2_result.grid(sticky=tk.W,row=10,column=columnbase+0)    
+        self.asic2_result.grid(sticky=tk.W,row=10,column=midcolumnbase+0)    
 
         self.asic3_result = tk.Label(self, text="ASIC 3 Results:", width=15)
-        self.asic3_result.grid(sticky=tk.W,row=11,column=columnbase+0)   
-
-        #Finish/reset button
-        finish_button = tk.Button(self, text="Reset and Power Down",command=self.reset_gui,width=25)
-        finish_button.grid(row=12,column=columnbase,columnspan=25)
+        self.asic3_result.grid(sticky=tk.W,row=11,column=midcolumnbase+0)
 
         """
         #Adding the record data button
@@ -424,58 +299,31 @@ class GUI_WINDOW(tk.Frame):
         """
     def write_default_file(self):
         self.params['operator_name'] = self.operator_entry.get()
-        
-        if (self.test_stand_other == True):
-            self.params['test_stand'] = self.test_stand_entry_other.get()
-        else:
-            self.params['test_stand'] = self.test_stand_selection.get()
-            
-        if (self.boardid_other == True):
-            self.params['boardid'] = self.boardid_entry_other.get()
-        else:
-            self.params['boardid'] = self.boardid_selection.get()
-            
-        if (self.chipver_other == True):
-            self.params['chipver'] = self.chipver_entry_other.get()
-        else:
-            self.params['chipver'] = self.chipver_selection.get()
-            
-        if (self.fpgamezz_other == True):
-            self.params['fpgamezz'] = self.fpgamezz_entry_other.get()
-        else:
-            self.params['fpgamezz'] = self.fpgamezz_selection.get()
-            
-        self.params['asic0id'] = self.asic0_entry.get()
-        self.params['asic1id'] = self.asic1_entry.get()
-        self.params['asic2id'] = self.asic2_entry.get()
-        self.params['asic3id'] = self.asic3_entry.get()
-        
-        self.params['socket0id'] = self.socket0_entry.get()
-        self.params['socket1id'] = self.socket1_entry.get()
-        self.params['socket2id'] = self.socket2_entry.get()
-        self.params['socket3id'] = self.socket3_entry.get()
-        
+        for num, i in enumerate(self.option_rows):
+            using_other = self.others[num]
+            if (using_other == True):
+                self.params[i[2]] = self.other_entries[num].get()
+            else:
+                self.params[i[2]] = self.selections[num].get()
+                
         #Create that default file
-        
         self.defaultjson = dict(
             operator_name = self.operator_entry.get(),
-            test_stand = self.test_stand_selection.get(),
-            test_stand_other = self.test_stand_entry_other.get(),
-            boardid = self.boardid_selection.get(),
-            boardid_other = self.boardid_entry_other.get(),
-            chipver = self.chipver_selection.get(),
-            chipver_other = self.chipver_entry_other.get(),
-            fpgamezz = self.fpgamezz_selection.get(),
-            fpgamezz_other = self.fpgamezz_entry_other.get(),
-            asic0id = self.asic0_entry.get(),
-            asic1id = self.asic1_entry.get(),
-            asic2id = self.asic2_entry.get(),
-            asic3id = self.asic3_entry.get(),
-            socket0id = self.socket0_entry.get(),
-            socket1id = self.socket1_entry.get(),
-            socket2id = self.socket2_entry.get(),
-            socket3id = self.socket3_entry.get()
+            test_stand = self.selections[0].get(),
+            test_stand_other = self.other_entries[0].get(),
+            boardid = self.selections[1].get(),
+            boardid_other = self.other_entries[1].get(),
+            chipver = self.selections[2].get(),
+            chipver_other = self.other_entries[2].get(),
+            fpgamezz = self.selections[3].get(),
+            fpgamezz_other = self.other_entries[3].get()
         )
+        
+        for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
+            self.params['asic{}id'.format(chip)] = self.asic_entries[i].get()
+            self.params['socket{}id'.format(chip)] = self.socket_entries[i].get()
+            self.defaultjson['asic{}id'.format(chip)] = self.asic_entries[i].get()
+            self.defaultjson['socket{}id'.format(chip)] = self.socket_entries[i].get()
         
         jsonFile = os.path.join(self.root_dir,self.config["FILENAMES"]["DEFAULT_GUI_FILE_NAME"])
         with open(jsonFile,'w') as outfile:
@@ -494,26 +342,15 @@ class GUI_WINDOW(tk.Frame):
         self.functions.resetBoard()
         self.params['working_chips'] = self.functions.initBoard()
         
-        print("""\
-                    Operator Name: {operator_name}
-                    Test Stand # : {test_stand}
-                    Test Board ID: {boardid}
-                    FPGA Board ID: {fpgamezz}
-                    Chip Version: {chipver}
-                    ASIC 0 ID: {asic0id}
-                    ASIC 1 ID: {asic1id}
-                    ASIC 2 ID: {asic2id}
-                    ASIC 3 ID: {asic3id}
-                    ASIC 0 SOCKET: {socket0id}
-                    ASIC 1 SOCKET: {socket1id}
-                    ASIC 2 SOCKET: {socket2id}
-                    ASIC 3 SOCKET: {socket3id}
-        """.format(**self.params))
-        
-        
         #Make sure everything was entered ok, that nothing was screwed up
         gui_check = self.config["GUI_SETTINGS"]
-        for i in ["asic0id","asic1id","asic2id","asic3id"]:
+        asic_tup = []
+        sock_tup = []
+        for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
+            asic_tup.append("asic{}id".format(chip))
+            sock_tup.append("socket{}id".format(chip))
+                
+        for i in asic_tup:
             j = self.params[i]
             if ((int(j) < int(gui_check['CHIP_MIN'])) or (int(j) > int(gui_check['CHIP_MAX']))):
                 print("{}({}) is out of range ({} to {})!".format(i, j, int(gui_check['CHIP_MIN']), int(gui_check['CHIP_MAX'])))
@@ -521,7 +358,7 @@ class GUI_WINDOW(tk.Frame):
                 self.update_idletasks()
                 return
                 
-        for i in ["socket0id","socket1id","socket2id","socket3id"]:
+        for i in sock_tup:
             j = self.params[i]
             if ((int(j) < int(gui_check['SOCKET_MIN'])) or (int(j) > int(gui_check['SOCKET_MAX']))):
                 print("{}({}) is out of range ({} to {})!".format(i, j, int(gui_check['SOCKET_MIN']), int(gui_check['SOCKET_MAX'])))
@@ -537,7 +374,11 @@ class GUI_WINDOW(tk.Frame):
 
         start_time = time.time()
         self.now = time.strftime("%Y%m%dT%H%M%S", time.localtime(time.time()))
-        self.chiplist = [[0,self.params['asic0id']],[1,self.params['asic1id']],[2,self.params['asic2id']],[3,self.params['asic3id']]]
+        
+        self.chiplist = []
+        for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
+            tup = [i, self.params["asic{}id".format(chip)]]
+            self.chiplist.append(tup)
 
         print("BEGIN TESTS")
         self.params.update(chip_list = self.chiplist)
@@ -550,12 +391,27 @@ class GUI_WINDOW(tk.Frame):
             self.update_idletasks()
 
         self.status_label = "DONE " 
+        self.update_idletasks()
+        response = CustomDialog(self).show()
         
-        self.update_idletasks()      
+        for i in range(int(self.config["DEFAULT"]["NASIC_MIN"]) - 1, int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
+            if i in self.working_chips:
+                chip_name = self.chip_list[i][1]
+                results_file = os.path.join(self.datadir, chip_name, "results.json")
+                with open(results_file,'r') as f:
+                    results = json.load(f)
+                    
+                ver = {'verified':response[i]}
+                
+                with open(results_file,'w') as outfile:
+                    results.update(ver)
+                    json.dump(results, outfile, indent=4)
+                
         
         end_time = time.time()
         run_time = end_time-start_time
         print("Total run time: {}".format(int(run_time)))
+        #TODO turn off chips power
         print(self.GetTimeString(int(run_time)))
 
     #Show a live trace to make sure everything is connected correctly
@@ -640,11 +496,10 @@ class GUI_WINDOW(tk.Frame):
             except Exception as e:
                 print(e)
                 
-        chiplist = [[0,],[1,],[2,],[3,]]
-        chiplist[0].append(self.asic0_entry.get())
-        chiplist[1].append(self.asic1_entry.get())
-        chiplist[2].append(self.asic2_entry.get())
-        chiplist[3].append(self.asic3_entry.get())
+        chiplist = []
+        for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
+            tup = [i, self.params["asic{}id".format(chip)]]
+            chiplist.append(tup)
         
         self.functions.syncADC(datadir = temp_sync_folder, working_chips = SPI_response, chip_list = chiplist, to_print = True)
         
@@ -657,75 +512,18 @@ class GUI_WINDOW(tk.Frame):
         self.WF_GUI.protocol("WM_DELETE_WINDOW", self.on_child_closing)
         startWF(self.WF_GUI)
 
-    def reset_gui(self):
-        self.on_child_closing()
-        #Power down all 4 chips:
-        self.runner(executable="femb_control_power", argstr="OFF")
-
-        #Reset GUI:
-#        self.operator_entry.delete(0,1000)
-#        self.test_stand_entry.delete(0,1000)
-#        self.boardid_entry.delete(0,1000)
-#        self.asic0_entry.insert(tk.END, "")
-#        self.asic1_entry.insert(tk.END, "")
-#        self.asic2_entry.insert(tk.END, "")
-#        self.asic3_entry.insert(tk.END, "")
-        
-        self.status_label["text"] = "Nothing started" 
-        self.asic0_baseline_result["text"] = "TBD"
-        self.asic0_monitor_result["text"] = "TBD"
-        self.asic0_alive_result["text"] = "TBD"
-        self.asic0_final_result["text"] = "TBD"
-        self.asic1_baseline_result["text"] = "TBD"
-        self.asic1_monitor_result["text"] = "TBD"
-        self.asic1_alive_result["text"] = "TBD" 
-        self.asic1_final_result["text"] = "TBD"
-        self.asic2_baseline_result["text"] = "TBD"
-        self.asic2_monitor_result["text"] = "TBD"
-        self.asic2_alive_result["text"] = "TBD"
-        self.asic2_final_result["text"] = "TBD"
-        self.asic3_baseline_result["text"] = "TBD"
-        self.asic3_monitor_result["text"] = "TBD"
-        self.asic3_alive_result["text"] = "TBD"
-        self.asic3_final_result["text"] = "TBD"
-        self.asic0_baseline_result["fg"] = "black"
-        self.asic0_monitor_result["fg"] = "black"
-        self.asic0_alive_result["fg"] = "black"
-        self.asic0_final_result["fg"] = "black"        
-        self.asic1_baseline_result["fg"] = "black"
-        self.asic1_monitor_result["fg"] = "black"
-        self.asic1_alive_result["fg"] = "black"
-        self.asic1_final_result["fg"] = "black"        
-        self.asic2_baseline_result["fg"] = "black"
-        self.asic2_monitor_result["fg"] = "black"
-        self.asic2_alive_result["fg"] = "black"
-        self.asic2_final_result["fg"] = "black"        
-        self.asic3_baseline_result["fg"] = "black"
-        self.asic3_monitor_result["fg"] = "black"
-        self.asic3_alive_result["fg"] = "black"
-        self.asic3_final_result["fg"] = "black"
-        self.load_button["bg"]="red"
-        
-        now = time.time()
-        self.params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
-        self.params["session_start_unix"] = now
-
-        self.update_idletasks()
-
-        print("FINISHED TEST - GUI RESET")
-
     def postResults(self, params):
-        datadir = params['datadir']
-        working_chips = params['working_chips']
-        chip_list = params['chip_list']
+        self.datadir = params['datadir']
+        self.working_chips = params['working_chips']
+        self.chip_list = params['chip_list']
         print("CHECKING CHIPS")
         for i in range(int(self.config["DEFAULT"]["NASIC_MIN"]) - 1, int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
-            if i in working_chips:
-                chip_name = chip_list[i][1]
-                results_path = os.path.join(datadir, chip_name)
+            if i in self.working_chips:
+                chip_name = self.chip_list[i][1]
+                results_path = os.path.join(self.datadir, chip_name)
                 jsonFile = os.path.join(chip_name, results_path, self.config["FILENAMES"]["RESULTS"])
                 #Now that we know what the timestamped directory is, we can have a button on the GUI open it directly
-                self.details_label.bind("<Button-1>",lambda event, arg=datadir: self.open_directory(arg))
+                self.details_label.bind("<Button-1>",lambda event, arg=self.datadir: self.open_directory(arg))
                 
                 with open(jsonFile,'r') as f:
                     results = json.load(f)
@@ -747,6 +545,24 @@ class GUI_WINDOW(tk.Frame):
                     self.update_label(label, result)
                     linked_folder = os.path.join(results_path, results['baseline_outlabel'])
                     linked_file = self.config["FILENAMES"]["BASELINE_LINK"].format(chip_name)
+                    linked_file_path = os.path.join(linked_folder, linked_file)
+                    label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
+                    
+                if "monitor_result" in results:
+                    label = self.monitor_results[i]
+                    result = results['monitor_result']
+                    self.update_label(label, result)
+                    linked_folder = os.path.join(results_path, results['monitor_outlabel'])
+                    linked_file = self.config["FILENAMES"]["MONITOR_LINK"].format(chip_name)
+                    linked_file_path = os.path.join(linked_folder, linked_file)
+                    label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
+                    
+                if "alive_result" in results:
+                    label = self.alive_results[i]
+                    result = results['alive_result']
+                    self.update_label(label, result)
+                    linked_folder = os.path.join(results_path, results['alive_outlabel'])
+                    linked_file = self.config["FILENAMES"]["ALIVE_LINK"].format(chip_name)
                     linked_file_path = os.path.join(linked_folder, linked_file)
                     label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
                     
@@ -786,6 +602,39 @@ class GUI_WINDOW(tk.Frame):
             self.WF_GUI.destroy()
             #self.WF_GUI.quit()
             self.WF_GUI = None
+            
+class CustomDialog(tk.Toplevel):
+    def __init__(self, parent):
+        tk.Toplevel.__init__(self, parent)
+        self.config = CONFIG
+        
+        self.labels = []
+        self.entries = []
+        self.values= []
+        for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
+            label = tk.Label(self, text="Chip {}".format(chip))
+            self.labels.append(label)
+            label.grid(row=0,column=i)
+            var = tk.BooleanVar()
+            self.values.append(var)
+            button = tk.Checkbutton(self, text="Genuine Test?", variable=var)
+            self.entries.append(button)
+            button.grid(row=1,column=i)
+            
+        self.ok_button = tk.Button(self, text="OK", command=self.on_ok)
+        self.ok_button.grid(row=2,column=0)
+
+    def on_ok(self, event=None):
+        self.destroy()
+
+    def show(self):
+        self.wm_deiconify()
+        self.focus_force()
+        self.wait_window()
+        response = []
+        for i in range(len(self.entries)):
+            response.append(self.values[i].get())
+        return response
 
 def main():
     root = tk.Tk()

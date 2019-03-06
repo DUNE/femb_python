@@ -12,9 +12,6 @@ from builtins import object
 import sys
 import os
 import json
-import time
-import matplotlib.pyplot as plt
-plt.switch_backend('agg')
 import datetime
 
 
@@ -24,20 +21,16 @@ from femb_python.test_measurements.quad_FE_Board.Baseline_Data_Analysis import D
 
 class BASELINE_TESTER(object):
     
-    def __init__(self, datadir="data", outlabel="baselineTest"):
-        
-        #import femb_udp modules from femb_udp package
+    def __init__(self):
         self.config = CONFIG
         self.functions = FEMB_CONFIG_BASE(self.config)
         self.low_level = self.functions.lower_functions
-        self.sync_functions = self.functions.sync
-        self.plotting = self.functions.sync.plot
-        self.analyze = Data_Analysis()
+        self.analyze = Data_Analysis(self.config)
         
         #json output, note module version number defined here
         self.jsondict = {'type':'baseline_test'}
         self.jsondict['baseline_code_version'] = '1.0'
-        self.jsondict['timestamp']  = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
+        self.jsondict['baseline_timestamp']  = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
         
     def check_setup(self):
         print("BASELINE - SETUP")
@@ -78,14 +71,7 @@ class BASELINE_TESTER(object):
                     self.low_level.selectChipChannel(chip = i, chn = chn)
                     baseline_file_notation = self.config["FILENAMES"]["BASELINE_NAMING"]
                     filename = baseline_file_notation.format(chn,self.gain,self.shape,self.leak,base, self.buff)
-                    full_filename = os.path.join(data_directory,filename)
-            
-#                    rawdata = bytearray()
-#                    rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = True)
-#                    for pack in range (self.femb_config.baseline_length):
-#                        rawdata += self.femb_config.femb.get_data_packets(data_type = "bin", num = 1, header = False)
-            
-            
+                    full_filename = os.path.join(data_directory,filename)            
                     packets = int(self.config["BASELINE_SETTINGS"]["BASELINE_PACKETS"])
                     rawdata = self.low_level.get_data_chipXchnX(chip = i, chn = chn, packets = packets, data_format = "bin", header = False)
             
@@ -107,8 +93,6 @@ class BASELINE_TESTER(object):
             chip_name = self.params['chip_list'][i][1]
             chip_outpathlabel = os.path.join(self.params["datadir"], chip_name, self.params["outlabel"])
             data_directory = os.path.join(chip_outpathlabel, self.config["FILENAMES"]["DATA_NAME"])
-            
-            print ("Baseline analysis for chip {}({})".format(i,chip_name))
             result, average_200, average_900, baselines_200, baselines_900 = self.analyze.baseline_directory(chip_outpathlabel, data_directory, chip_name, i, self.mode, analysis)
             self.results.append(result)
             self.average_baseline_200.append(average_200)

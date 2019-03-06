@@ -42,12 +42,12 @@ class LOW_LEVEL(object):
         chip_int = int(chip) + 1
         chn_int = int(chn)
         
-        if (chip_int < int(self.config["DEFAULT"]["NASIC_MIN"]) ) or (chip_int > int(self.config["DEFAULT"]["NASIC_MAX"]) ):
-            print ("FEMB_CONFIG_BASE -> Error in selectChipChannel: Chip must be between {} and {}, but it was {}".format(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]), chip))
+        if (chip_int < int(self.config["DEFAULT"]["NASIC_MIN"]) ) or (chip_int > int(self.config["DEFAULT"]["NASIC_MAX"])+1 ):
+            print ("Low_Level -> Error in selectChipChannel: Chip must be between {} and {}, but it was {}".format(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]), chip))
             return
             
         if (chn_int < int(self.config["DEFAULT"]["NASICCH_MIN"]) ) or (chn_int > int(self.config["DEFAULT"]["NASICCH_MAX"]) ):
-            print ("FEMB_CONFIG_BASE -> Error in selectChipChannel: Channel must be between {} and {}, but it was {}".format(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]), chn))
+            print ("Low_Level -> Error in selectChipChannel: Channel must be between {} and {}, but it was {}".format(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]), chn))
             return
           
         
@@ -134,12 +134,11 @@ class LOW_LEVEL(object):
     def get_data_chipX(self, chip, packets = 1, data_format = "counts", tagged = False, header = False):
         
         chip_data = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
-        for chn in range(int(self.config["DEFAULT"]["NASICCH"])):
-            for i in range(packets):
-                if (tagged == False):
-                    chip_data[chn].extend(list(self.get_data_chipXchnX(chip, chn, packets = packets, data_format = data_format, header = header)))
-                else:
-                    chip_data[chn].extend(list(self.get_data_chipXchnX_tagged(chip, chn, packets = packets, data_format = data_format, header = header)))
+        for chn in range(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]) + 1, 1):
+            if (tagged == False):
+                chip_data[chn].extend(list(self.get_data_chipXchnX(chip, chn, packets = packets, data_format = data_format, header = header)))
+            else:
+                chip_data[chn].extend(list(self.get_data_chipXchnX_tagged(chip, chn, packets = packets, data_format = data_format, header = header)))
         return chip_data
         
     def setInternalPulser(self, period = 0, shift = 0, enable = None):

@@ -51,7 +51,10 @@ class ASIC_CONFIG_FUNCTIONS(object):
                 for i in jsondata:
                     self.default_settings[i] = jsondata[i]
                     
-        self.chip_ver = int(self.default_settings["chipver"])
+        try:
+            self.chip_ver = int(self.default_settings["chipver"])
+        except (ValueError, AttributeError):
+            self.chip_ver = 7
     
     def writeFE(self):
         #Grab ASIC settings from linked class

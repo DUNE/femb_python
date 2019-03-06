@@ -55,7 +55,10 @@ class FEMB_CONFIG_FUNCTIONS(object):
                 for i in jsondata:
                     self.default_settings[i] = jsondata[i]
                     
-        self.board_ver = self.default_settings["boardid"]
+        try:
+            self.board_ver = self.default_settings["boardid"]
+        except(ValueError, AttributeError):
+            self.board_ver = "1v0"
 
     def initBoard(self, **kwargs):
         """

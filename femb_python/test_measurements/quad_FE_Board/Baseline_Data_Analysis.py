@@ -8,10 +8,8 @@ Created on Fri Jun  2 11:50:17 2017
 import os
 import sys
 import struct
-from datetime import datetime
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
-import pickle
 import numpy as np
 import matplotlib.patches as mpatches
 from femb_python.test_measurements.quad_FE_Board.detect_peaks import detect_peaks
@@ -19,16 +17,11 @@ from femb_python.test_measurements.quad_FE_Board.plotting import plot_functions
 import warnings
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", category=RuntimeWarning)
-    
-from femb_python.configuration import CONFIG
 
 class Data_Analysis:
-    def __init__(self):       
-        self.test_folder = None
-        self.filename = None
-        self.curr_analysis = None
+    def __init__(self, config):
         self.plot = plot_functions()
-        self.config = CONFIG
+        self.config = config
     
     #Puts the channel designations where they should be, as long as you know how many discrete sections there are and what the spacing between them is
     def setup_spreadsheet(self, ws, sections, rows, start):
@@ -39,7 +32,7 @@ class Data_Analysis:
             
     def baseline_directory(self, directory, datasubdir, chip_name, chip_index, mode, analysis):
           
-        print("Test--> Analyzing Baseline data for Chip {}({})...".format(chip_index, chip_name))
+        print("Baseline_Data_Analysis -->  Analyzing Baseline data for Chip {}({})...".format(chip_index, chip_name))
         self.data_folder = os.path.join(directory,datasubdir)
         analyses = []
         if "mean" in analysis:
@@ -53,7 +46,7 @@ class Data_Analysis:
             self.leak = self.config["BASELINE_SETTINGS"]["BASELINE_LEAK"]
             self.buff = self.config["BASELINE_SETTINGS"]["BASELINE_BUFFER"]       
         else:
-            print("Baseline_Data_Analysis --> Need to define the not basic analysis!")
+            print("Baseline_Test_Analysis --> Need to define the not basic analysis!")
             
         overall_result = True
         baselines_200 = []
@@ -162,7 +155,7 @@ class Data_Analysis:
                 fig_summary.savefig (save_file)
                 plt.close(fig_summary)
         
-        print ("Test--> Baseline data analyzed for Chip {}({})".format(chip_index, chip_name))
+        print ("Baseline_Data_Analysis--> Baseline data analyzed for Chip {}({})".format(chip_index, chip_name))
         return overall_result, self.average_200, self.average_900, baselines_200, baselines_900
 #        os.startfile(test_folder + "Baseline_Data.xlsx".format(base))
         
@@ -197,7 +190,7 @@ class Data_Analysis:
             response = self.noise_analysis(value, mv = std_mv)
             
         if response != True:
-            rejects_folder = os.path.join(directory,"Outside Range")
+            rejects_folder = os.path.join(self.data_folder,"Outside Range")
             if (os.path.exists(rejects_folder) == False):
                 os.makedirs(rejects_folder)
 
@@ -245,117 +238,4 @@ class Data_Analysis:
 ##                return True
 #            
 #        return True
-    def alive_directory(self, directory, chip, datasubdir, tests, leaks):
-        print("Test--> Analyzing 'Channel Alive' data for Chip {}...".format(chip))
-        sys.stdout.flush()
-        
-        self.test_folder = os.path.join(directory,datasubdir)
-
-        data_file_scheme = self.femb_config.Alive_Naming
-        
-        fig_summary = plt.figure(figsize=(16, 12), dpi=80)
-        ax = fig_summary.add_subplot(1,1,1)
-        ax.set_xlabel('Time (us)')
-        for item in ([ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-            item.set_fontsize(20)
-            
-        overall_result = True
-        
-        for i, test in enumerate(tests):
-            for j, leak in enumerate([leaks]):
-                 for chn in range(self.femb_config.channels):
-                    self.filename = data_file_scheme.format(chn,leak,test)
-                    sample_pulse, result = self.alive_file(os.path.join(self.data_folder,self.filename))
-                    overall_result = overall_result and result
-                    if (test == "test_off"):
-                        plot_color = "green"
-                    elif (test == "test_ext"):
-                        plot_color = "red"
-                    ax.plot(sample_pulse, color = plot_color)
-        data_file_scheme = self.femb_config.Alive_Naming2
-        for cycle in range(self.femb_config.power_cycles):
-            self.filename = data_file_scheme.format(1,leak,test,cycle)
-            sample_pulse, result = self.alive_file(os.path.join(self.data_folder,self.filename))
-            overall_result = overall_result and result
-            plot_color = "blue"
-            ax.plot(sample_pulse, color = plot_color)
-                    
-        green_patch = mpatches.Patch(color='green', label='Input pin to FE')
-        red_patch = mpatches.Patch(color='red', label='Test pin to FE')
-        blue_patch = mpatches.Patch(color='blue', label='Pulses after power cycles')
-        plt.legend(handles=[green_patch, red_patch, blue_patch])
-                    
-        ax.set_ylabel('mV')
-        ax.set_title("Sample pulses for Chip {} Channel Alive Test".format(chip))
-        ax.title.set_fontsize(30)
-        save_file = os.path.join(self.test_folder,"Sample_Pulses.png")
-        fig_summary.savefig (save_file)
-        plt.close(fig_summary)      
-                
-        print ("Test--> 'Channel Alive' data analyzed for Chip {}".format(chip))
-        return overall_result
-                    
-    def alive_file(self, filepath):
-        fileinfo  = os.stat(filepath)
-        filelength = fileinfo.st_size
-
-        with open(filepath, 'rb') as f:
-            raw_data = f.read(filelength)
-            f.close()
-        #Filelength is in bytes, but the data we're getting is 2 bytes each
-        unpacked_shorts = struct.unpack_from(">{}H".format(int(filelength/2)),raw_data)
-
-        #Ignore header for now
-        data = unpacked_shorts[8:]
-        data_mv = []
-        for i in range(len(data)):
-            data_mv.append(data[i] * self.femb_config.bits_to_mv)
-        
-        failure = False
-        peaks_index = detect_peaks(x = data_mv, mph = (self.femb_config.test_peak_min / 4), mpd=self.femb_config.test_TP_Period - 50) 
-        peaks_value = []
-        peaks_index_fix = []
-        maximum = max(data_mv)
-        for i in peaks_index :
-            if (data_mv[i] > self.femb_config.test_peak_min) and (data_mv[i] > (maximum - self.femb_config.under_max)):
-                peaks_value.append(data_mv[i])
-                peaks_index_fix.append(i)
-                
-#        print ("Chip {}, Channel {} has peak values {}".format(chip, chn, peaks_value))
-        #Check if the peak is in the wrong place (happens when it's not synced)
-        response = "Good response, channel is alive"
-        
-        peak_num = len(peaks_index_fix)
-        if ((peak_num <= self.femb_config.test_peaks_min) or (peak_num >= self.femb_config.test_peaks_max)):
-            failure = "num"
-            response = "Number of peaks should be between {} and {}, but it was {:.0f}.  Wanted peaks between {} and {}".format(self.femb_config.test_peaks_min,self.femb_config.test_peaks_max, peak_num, self.femb_config.test_peak_min, maximum - self.femb_config.under_max)
-
-#        if (failure != False):
-        rejects_folder = os.path.join(self.test_folder,"Plots")
-        if (os.path.exists(rejects_folder) == False):
-            os.makedirs(rejects_folder)
-
-        figure_data = self.plot.quickPlot(data_mv)
-        ax = figure_data[0]
-        for j in peaks_index_fix:
-            y_value = data_mv[j]
-            ax.scatter(j/2, y_value, marker='x')
-        
-        ax.set_ylabel('mV')
-        ax.set_title(self.filename)
-        ax.title.set_fontsize(30)
-        x_lim = ax.get_xlim()
-        ax.set_xlim(0, x_lim[1])
-        ax.text(0.01,0.95,response,transform=ax.transAxes, fontsize = 20)
-        for item in ([ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
-            item.set_fontsize(20)
-        save_file = os.path.join(rejects_folder,self.filename[:len(self.filename)-4] + ".png")
-        figure_data[1].savefig (save_file)
-        plt.close(figure_data[1])
-                            
-        plot_data = data_mv[500-self.femb_config.alive_plot_x_back : 500 + self.femb_config.alive_plot_x_forward]
-        if (len(peaks_index_fix) >= 3):
-            peak = peaks_index_fix[1]
-            plot_data = data_mv[peak - self.femb_config.alive_plot_x_back : peak + self.femb_config.alive_plot_x_forward]
-            
-        return plot_data, not failure
+    

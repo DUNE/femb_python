@@ -171,7 +171,7 @@ class SYNC_FUNCTIONS(object):
                 value = self.femb_udp.read_reg(reg)
                 f.write("Register {}: {}\n".format(reg, hex(value)))
             
-        #Read from TEST output ADCs
+        #Bring things back to normal
         self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_READOUT_OPTIONS"]), int(self.config["DEFINITIONS"]["READOUT_NORMAL"]))
         self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_TAGGING"]), int(self.config["DEFINITIONS"]["TAGGING_OFF"]))
         self.low_func.setInternalPulser(period = int(self.config["SYNC_SETTINGS"]["SYNC_INTERNAL_PULSE_FREQ"]), shift = int(self.config["SYNC_SETTINGS"]["SYNC_INTERNAL_PULSE_DLY"]), enable = False)

@@ -86,11 +86,11 @@ class plot_functions:
             
         fig = plt.figure(figsize=(16, 12), dpi=80)
         overlay_ax = fig.add_subplot(1,1,1)
-
+        overlay_ax.set_ylim(0, 1000 * float(self.config["DEFAULT"]["ADC_REF_VOLTAGE"]))
         overlay_ax.set_xlabel('Time (counts)')
         overlay_ax.set_ylabel('ADC Counts')
         overlay_ax.plot(time, data)
-                
+        
         #plt.show()
         
         return [overlay_ax, fig]

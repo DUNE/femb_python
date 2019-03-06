@@ -79,7 +79,14 @@ class FEMB_CONFIG_BASE(object):
                 for i in jsondata:
                     self.default_settings[i] = jsondata[i]
                     
-        self.master_chip_list = [[0,self.default_settings["asic0id"]], [1,self.default_settings["asic1id"]], [2,self.default_settings["asic2id"]], [3,self.default_settings["asic3id"]]]
+        try:
+            self.master_chip_list = []
+            for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
+                tup = [i, self.default_settings["asic{}id".append(chip)]]
+                self.master_chip_list.append(tup)
+                
+        except(AttributeError):
+            self.master_chip_list = [[0,0], [1,1], [2,2], [3,3]]
     
         self.femb_interface = self.test.femb_udp
         self.lower_functions = self.test.low_func
@@ -110,14 +117,14 @@ class FEMB_CONFIG_BASE(object):
     #Note, on the FE quad board, REG_ON_OFF also returns the status of the buttons being pushed, so it won't always return exactly what you wrote, hence doReadback=False
     def turnOffAsics(self):
         print ("FEMB_CONFIG_BASE--> Turning ASICs off (2 seconds)")
-        self.femb_interface.write_reg(int(self.config["REGISTERS"]["REG_ON_OFF"]), int(self.config["DEFINITIONS"]["ASIC_OFF"], 2), doReadBack=False)
+        self.femb_interface.write_reg(int(self.config["REGISTERS"]["REG_ON_OFF"]), int(self.config["DEFINITIONS"]["ASIC_OFF"], 16), doReadBack=False)
         #pause after turning off ASICs
         time.sleep(2)
         print ("FEMB_CONFIG_BASE--> ASICs off")
         
     def turnOnAsics(self):
         print ("FEMB_CONFIG_BASE--> Turning ASICs on (2 seconds)")
-        self.femb_interface.write_reg(int(self.config["REGISTERS"]["REG_ON_OFF"]), int(self.config["DEFINITIONS"]["ASIC_ON"]), doReadBack=False)
+        self.femb_interface.write_reg(int(self.config["REGISTERS"]["REG_ON_OFF"]), int(self.config["DEFINITIONS"]["ASIC_ON"], 16), doReadBack=False)
         #pause after turning on ASICSs
         time.sleep(2)
         print ("FEMB_CONFIG_BASE--> ASICs on")

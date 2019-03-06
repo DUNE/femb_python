@@ -49,7 +49,7 @@ class SYNC_ADCS(object):
         
         for num,i in enumerate(self.params["chip_list"]):
             chip_outpathlabel = os.path.join(self.params["datadir"], i[1], self.params["outlabel"])
-            data = self.low_level.get_data_chipX(chip = i[0], packets = 5, tagged = True)
+            data = self.low_level.get_data_chipX(chip = i[0], packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), tagged = True)
             print("quad_sync_adcs--> Printing internal synchronization plot for Chip {}".format(i[1]))
             savefig = os.path.join(chip_outpathlabel, "Sync_Plot_Internal")
             self.plotting.plot_chip(data = data, plot_name = savefig, title_name = "Pulses for synchronization: Gain = {}/fC, Peaking Time = {}".format(self.config["SYNC_SETTINGS"]["SYNC_GAIN"],
@@ -59,7 +59,7 @@ class SYNC_ADCS(object):
 
         for num,i in enumerate(self.params["chip_list"]):
             chip_outpathlabel = os.path.join(self.params["datadir"], i[1], self.params["outlabel"])
-            data = self.low_level.get_data_chipX(chip = i[0], packets = 5, tagged = True)
+            data = self.low_level.get_data_chipX(chip = i[0], packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), tagged = True)
             print("quad_sync_adcs--> Printing external synchronization plot for Chip {}".format(i[1]))
             savefig = os.path.join(chip_outpathlabel, "Sync_Plot_External")
             self.plotting.plot_chip(data = data, plot_name = savefig, title_name = "Pulses for synchronization: Gain = {}/fC, Peaking Time = {}".format(self.config["SYNC_SETTINGS"]["SYNC_GAIN"],

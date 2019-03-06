@@ -72,16 +72,25 @@ def main(**params):
     tests = []
     
     params.update(analysis_level = "basic")
-    
     #Test 1
     params_test_1 = dict(params)
     params_test_1.update( executable = "feasic_quad_sync", argstr="{paramfile}", datasubdir = ".", outlabel = "Sync",)
     tests.append( Test(**params_test_1) )
-
-    #Test 2
-    params_test_2 = dict(params)
-    params_test_2.update( executable = "feasic_quad_baseline", argstr="{paramfile}", datasubdir = ".", outlabel = "Baseline",)
-    tests.append( Test(**params_test_2) )
+#
+#    #Test 2
+#    params_test_2 = dict(params)
+#    params_test_2.update( executable = "feasic_quad_baseline", argstr="{paramfile}", datasubdir = ".", outlabel = "Baseline",)
+#    tests.append( Test(**params_test_2) )
+#    
+#    #Test 3
+#    params_test_3 = dict(params)
+#    params_test_3.update( executable = "feasic_quad_monitor", argstr="{paramfile}", datasubdir = ".", outlabel = "Monitor",)
+#    tests.append( Test(**params_test_3) )
+    
+    #Test 4
+    params_test_4 = dict(params)
+    params_test_4.update( executable = "feasic_quad_alive", argstr="{paramfile}", datasubdir = ".", outlabel = "Alive",)
+    tests.append( Test(**params_test_4) )
 
     ##add more test as needed
         
@@ -96,8 +105,6 @@ def main(**params):
         yield (s.runner.params)
     
     s.run()
-
-    print( "EXAMPLE PRODUCTION TEST - DONE")
     
 if '__main__' == __name__:
     main()
