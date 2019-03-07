@@ -124,6 +124,6 @@ class FEMB_CONFIG_FUNCTIONS(object):
             
         else:
             print("config_functions --> Skipping default sync settings")
-        
-        self.SPI_array = self.asic_config.writeFE()
+            
+        self.SPI_array = self.asic_config.writeFE(**kwargs)
         return self.SPI_array

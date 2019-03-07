@@ -45,14 +45,11 @@ class BASELINE_TESTER(object):
             os.makedirs(data_directory, exist_ok=True)
             self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_MUX_MODE"]), int(self.config["DEFINITIONS"]["MUX_GND_GND"]))
                 
-            self.mode = self.params['analysis_level']
-            if (self.mode == "basic"):
-                self.gain = self.config["BASELINE_SETTINGS"]["BASELINE_GAIN"]
-                self.shape = self.config["BASELINE_SETTINGS"]["BASELINE_PEAK"]
-                self.leak = self.config["BASELINE_SETTINGS"]["BASELINE_LEAK"]
-                self.buff = self.config["BASELINE_SETTINGS"]["BASELINE_BUFFER"]
-            else:
-                print("FE_baseline_test--> Need to program non-basic analysis!")
+            #TODO options if user wants to try other ones
+            self.gain = self.config["BASELINE_SETTINGS"]["BASELINE_GAIN"]
+            self.shape = self.config["BASELINE_SETTINGS"]["BASELINE_PEAK"]
+            self.leak = self.config["BASELINE_SETTINGS"]["BASELINE_LEAK"]
+            self.buff = self.config["BASELINE_SETTINGS"]["BASELINE_BUFFER"]
                 
             if (self.buff == "on"):
                 self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_SAMPLESPEED"]), int(self.config["INITIAL_SETTINGS"]["DEFAULT_SAMPLE_SPEED"]))
@@ -93,7 +90,7 @@ class BASELINE_TESTER(object):
             chip_name = self.params['chip_list'][i][1]
             chip_outpathlabel = os.path.join(self.params["datadir"], chip_name, self.params["outlabel"])
             data_directory = os.path.join(chip_outpathlabel, self.config["FILENAMES"]["DATA_NAME"])
-            result, average_200, average_900, baselines_200, baselines_900 = self.analyze.baseline_directory(chip_outpathlabel, data_directory, chip_name, i, self.mode, analysis)
+            result, average_200, average_900, baselines_200, baselines_900 = self.analyze.baseline_directory(chip_outpathlabel, data_directory, chip_name, i, analysis)
             self.results.append(result)
             self.average_baseline_200.append(average_200)
             self.average_baseline_900.append(average_900)
@@ -111,26 +108,26 @@ class BASELINE_TESTER(object):
         self.jsondict['baseline_leak'] = self.config["BASELINE_SETTINGS"]["BASELINE_LEAK"]
         self.jsondict['baseline_buffer'] = self.config["BASELINE_SETTINGS"]["BASELINE_BUFFER"]
 
-        for chip in self.params["working_chips"]:
-            chip_name = self.params['chip_list'][chip][1]
+        for num,i in enumerate(self.params['working_chips']):
+            chip_name = self.params['chip_list'][i][1]
             jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.config["FILENAMES"]["RESULTS"])
             with open(jsonFile, mode='r') as f:
                 existing_json = json.load(f)
-            if (self.results[chip] == True):
+            if (self.results[num] == True):
                 self.jsondict['baseline_result'] = "PASS"
-            elif (self.results[chip] == False):
+            elif (self.results[num] == False):
                 self.jsondict['baseline_result'] = "FAIL"
             else:
                 self.jsondict['baseline_result'] = "N/A"
                 
-            self.jsondict['baseline_200_average'] = self.average_baseline_200[chip]
-            self.jsondict['baseline_900_average'] = self.average_baseline_900[chip]
+            self.jsondict['baseline_200_average'] = self.average_baseline_200[num]
+            self.jsondict['baseline_900_average'] = self.average_baseline_900[num]
             
             for chn in range(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]) + 1, 1):
                 jsname = "baseline_200_channel{}".format(chn)
-                self.jsondict[jsname] = self.baseline_200[chip][chn]
+                self.jsondict[jsname] = self.baseline_200[num][chn]
                 jsname = "baseline_900_channel{}".format(chn)
-                self.jsondict[jsname] = self.baseline_900[chip][chn]
+                self.jsondict[jsname] = self.baseline_900[num][chn]
                 
             with open(jsonFile,'w') as outfile:
                 existing_json.update(self.jsondict)

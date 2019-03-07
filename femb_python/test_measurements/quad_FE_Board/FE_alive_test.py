@@ -158,14 +158,14 @@ class ALIVE_TESTER(object):
         self.jsondict['alive_acdc'] = self.config["ALIVE_SETTINGS"]["ALIVE_ACDC"]
         self.jsondict['alive_baseline'] = self.config["ALIVE_SETTINGS"]["ALIVE_BASELINE"]
 
-        for chip in self.params["working_chips"]:
-            chip_name = self.params['chip_list'][chip][1]
+        for num, i in enumerate(self.params['working_chips']):
+            chip_name = self.params['chip_list'][i][1]
             jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.config["FILENAMES"]["RESULTS"])
             with open(jsonFile, mode='r') as f:
                 existing_json = json.load(f)
-            if (self.results[chip] == True):
+            if (self.results[num] == True):
                 self.jsondict['alive_result'] = "PASS"
-            elif (self.results[chip] == False):
+            elif (self.results[num] == False):
                 self.jsondict['alive_result'] = "FAIL"
             else:
                 self.jsondict['alive_result'] = "N/A"

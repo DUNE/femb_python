@@ -56,12 +56,15 @@ class ASIC_CONFIG_FUNCTIONS(object):
         except (ValueError, AttributeError):
             self.chip_ver = 7
     
-    def writeFE(self):
+    def writeFE(self,**kwargs):
         #Grab ASIC settings from linked class
         Feasic_regs = self.feasic_regs
-        #note which sockets fail    
-        #TODO get info from GUI to skip over certain chips
-        config_list = [0,0,0,0]
+        #note which sockets fail
+        config_list = [False,False,False,False]
+        try:
+            working_chips = kwargs['working_chips']
+        except KeyError:
+            working_chips = [0, 1, 2, 3]
         #Try 10 times (ocassionally it wont work the first time)
         for k in range(10):
             #Puts the settings in FPGA memory
@@ -90,33 +93,37 @@ class ASIC_CONFIG_FUNCTIONS(object):
             wrong = False
 
             #check to see if everything went well, and return the status of the 4 chips in the array, so the sequence can notify/skip them
-            if (((val & 0x10000) >> 16) != 1):
-                print ("FEMB_CONFIG_BASE--> Something went wrong when programming FE 1")
-                config_list[0] = 0
-                wrong = True
-            else:
-                config_list[0] = 1
+            if 0 in working_chips:
+                if (((val & 0x10000) >> 16) != 1):
+                    print ("FEMB_CONFIG_BASE--> Something went wrong when programming FE 1")
+                    config_list[0] = False
+                    wrong = True
+                else:
+                    config_list[0] = True
+                    
+            if 1 in working_chips:
+                if (((val & 0x20000) >> 17) != 1):
+                    print ("FEMB_CONFIG_BASE--> Something went wrong when programming FE 2")
+                    config_list[1] = False
+                    wrong = True
+                else:
+                    config_list[1] = True
                 
-            if (((val & 0x20000) >> 17) != 1):
-                print ("FEMB_CONFIG_BASE--> Something went wrong when programming FE 2")
-                config_list[1] = 0
-                wrong = True
-            else:
-                config_list[1] = 1
+            if 2 in working_chips:
+                if (((val & 0x40000) >> 18) != 1):
+                    print ("FEMB_CONFIG_BASE--> Something went wrong when programming FE 3")
+                    config_list[2] = False
+                    wrong = True
+                else:
+                    config_list[2] = True
                 
-            if (((val & 0x40000) >> 18) != 1):
-                print ("FEMB_CONFIG_BASE--> Something went wrong when programming FE 3")
-                config_list[2] = 0
-                wrong = True
-            else:
-                config_list[2] = 1
-                
-            if (((val & 0x80000) >> 19) != 1):
-                print ("FEMB_CONFIG_BASE--> Something went wrong when programming FE 4")
-                config_list[3] = 0
-                wrong = True
-            else:
-                config_list[3] = 1
+            if 3 in working_chips:
+                if (((val & 0x80000) >> 19) != 1):
+                    print ("FEMB_CONFIG_BASE--> Something went wrong when programming FE 4")
+                    config_list[3] = False
+                    wrong = True
+                else:
+                    config_list[3] = True
 
             if (wrong == True and k == 9):
                 try:
@@ -130,7 +137,7 @@ class ASIC_CONFIG_FUNCTIONS(object):
                 
         working_chips = []
         for i,j in enumerate(config_list):
-            if (j==1):
+            if (j==True):
                 working_chips.append(i)
                 
         return working_chips

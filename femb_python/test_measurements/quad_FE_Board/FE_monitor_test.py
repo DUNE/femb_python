@@ -106,25 +106,25 @@ class MONITOR_TESTER(object):
         self.jsondict['monitor_datasubdir'] = self.params['datasubdir']
         self.jsondict['monitor_outlabel'] = self.params['outlabel']
 
-        for chip in self.params["working_chips"]:
-            chip_name = self.params['chip_list'][chip][1]
+        for num, i in enumerate(self.params['working_chips']):
+            chip_name = self.params['chip_list'][i][1]
             jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.config["FILENAMES"]["RESULTS"])
             with open(jsonFile, mode='r') as f:
                 existing_json = json.load(f)
-            if (self.results[chip] == True):
+            if (self.results[num] == True):
                 self.jsondict['monitor_result'] = "PASS"
-            elif (self.results[chip] == False):
+            elif (self.results[num] == False):
                 self.jsondict['monitor_result'] = "FAIL"
             else:
                 self.jsondict['monitor_result'] = "N/A"
                 
-            self.jsondict['monitor_average_peak'] = self.average_peak[chip]
+            self.jsondict['monitor_average_peak'] = self.average_peak[num]
             
             for chn in range(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]) + 1, 1):
                 jsname = "monitor_peaks{}".format(chn)
-                self.jsondict[jsname] = self.peaks[chip][chn][1]
+                self.jsondict[jsname] = self.peaks[num][chn][1]
                 jsname = "monitor_differences{}".format(chn)
-                self.jsondict[jsname] = self.differences[chip][chn]
+                self.jsondict[jsname] = self.differences[num][chn]
                 
             with open(jsonFile,'w') as outfile:
                 existing_json.update(self.jsondict)

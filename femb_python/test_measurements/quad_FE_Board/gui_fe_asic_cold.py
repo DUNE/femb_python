@@ -54,6 +54,7 @@ class GUI_WINDOW(tk.Frame):
         self.master.title("Quad FE ASIC Test GUI")
         self.master.protocol("WM_DELETE_WINDOW", lambda arg=self.master: self.on_closing(arg))
         self.WF_GUI = None
+        self.analysis = "basic"
 
         #Variables that I want to save in the JSON but aren't included in the generic runner
         self.params = dict(
@@ -124,7 +125,7 @@ class GUI_WINDOW(tk.Frame):
     #For fields with predefined values, it gets those values from the config files
     #There's also a variable to tell if "other" was chosen, so it knows to look at the manual entry field for the value
     def define_test_details_column(self):
-        columnbase=0
+        columnbase=1
         entry_width=9
         options_width=5
         spinner_width=8
@@ -193,7 +194,14 @@ class GUI_WINDOW(tk.Frame):
         
         self.asic_entries = []
         self.socket_entries = []
+        self.asic_enables = []
         for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
+            var = tk.BooleanVar(value=True)
+            self.asic_enables.append(var)
+            button = tk.Checkbutton(self, variable=var)
+            button.grid(row=8+i,column=columnbase-1)
+            
+            
             label = tk.Label(self,text="ASIC {}".format(chip),width=label_width)
             label.grid(sticky=tk.W,row=8+i,column=columnbase+0)
         
@@ -211,92 +219,72 @@ class GUI_WINDOW(tk.Frame):
 
 
     def define_general_commands_column(self):
-        midcolumnbase=3
+        self.midcolumnbase=4
 
         self.status_label = tk.Label(self, text="FE ASIC TESTS", width = 20)
-        self.status_label.grid(row=0,column=midcolumnbase, columnspan=50)
+        self.status_label.grid(row=0,column=self.midcolumnbase, columnspan=50)
+        
+        
+        #Set up buttons
+        power_on = ["Power On", self.power_on, "green"]
+        power_off = ["Power Off", self.power_off, "red"]
+        test_connection = ["Test Connection", self.test_connection]
+        debug = ["Debug Waveform", self.debug]
+        start = ["Start Tests", self.start_measurements]
+        
+        buttons = [power_on, power_off, test_connection, debug, start]
 
-        self.power_button = tk.Button(self, text="Power On", bg="green", command=self.power_on,width=10)
-        self.power_button.grid(row=1,column=midcolumnbase,columnspan=1)
-        
-        self.power_button = tk.Button(self, text="Power Off", bg="red", command=self.power_off,width=10)
-        self.power_button.grid(row=2,column=midcolumnbase,columnspan=1)
-        
-        self.connection_button = tk.Button(self, text="Test Connection", command=self.test_connection,width=10)
-        self.connection_button.grid(row=3,column=midcolumnbase,columnspan=1)
-        
-        self.debug_button = tk.Button(self, text="Debug Waveform", command=self.debug,width=10)
-        self.debug_button.grid(row=4,column=midcolumnbase,columnspan=1)
-        
-        self.start_button = tk.Button(self, text="Start Tests", command=self.start_measurements,width=10)
-        self.start_button.grid(row=5,column=midcolumnbase,columnspan=1)
-        
-        self.sync_result_label = tk.Label(self, text="SYNC", width=10)
-        self.sync_result_label.grid(sticky=tk.W, row=7, column=midcolumnbase+1)   
-        self.baseline_result_label = tk.Label(self, text="BASELINE", width=10)
-        self.baseline_result_label.grid(sticky=tk.W, row=7, column=midcolumnbase+2)        
-        self.monitor_result_label = tk.Label(self, text="MONITOR", width=10)
-        self.monitor_result_label.grid(sticky=tk.W, row=7, column=midcolumnbase+3)        
-        self.alive_result_label = tk.Label(self, text="ALIVE", width=10)
-        self.alive_result_label.grid(sticky=tk.W, row=7, column=midcolumnbase+4)
-        self.final_result_label = tk.Label(self, text="FINAL", width=10)
-        self.final_result_label.grid(sticky=tk.W, row=7, column=midcolumnbase+5)
-        
-        self.sync_results = []
-        self.baseline_results = []
-        self.monitor_results = []
-        self.alive_results = []
-        self.final_results = []
-        for i in range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
-            self.sync_results.append(tk.Label(self, text="TBD", width=10))
-            self.baseline_results.append(tk.Label(self, text="TBD", width=10))
-            self.monitor_results.append(tk.Label(self, text="TBD", width=10))
-            self.alive_results.append(tk.Label(self, text="TBD", width=10))
-            self.final_results.append(tk.Label(self, text="TBD", width=10))
-        
-        first_row = 8
-        for num, label in enumerate(self.sync_results):
-            label.grid(sticky=tk.W, row=first_row + num, column=midcolumnbase+1)           
-        
-        for num, label in enumerate(self.baseline_results):
-            label.grid(sticky=tk.W, row=first_row + num, column=midcolumnbase+2)   
+        for num,i in enumerate(buttons):
+            try:
+                button_i = tk.Button(self, text = i[0], bg = i[2], command = i[1], width = 10)
+            except IndexError:
+                button_i = tk.Button(self, text = i[0], command = i[1], width = 10)
+            button_i.grid(row = 1 + num, column = self.midcolumnbase)
             
-        for num, label in enumerate(self.monitor_results):
-            label.grid(sticky=tk.W, row=first_row + num, column=midcolumnbase+3)  
-            
-        for num, label in enumerate(self.alive_results):
-            label.grid(sticky=tk.W, row=first_row + num, column=midcolumnbase+4)  
-            
-        for num, label in enumerate(self.final_results):
-            label.grid(sticky=tk.W, row=first_row + num, column=midcolumnbase+5)  
+        advanced = tk.Button(self, text = "Advanced", command = self.change_analysis_level)
+        advanced.grid(row = 3, column = self.midcolumnbase+1)
         
-        self.asic0_result = tk.Label(self, text="ASIC 0 Results:", width=15)
-        self.asic0_result.grid(sticky=tk.W,row=8,column=midcolumnbase+0)      
+        #Name as appears on GUI, basic or advanced, executible, and name of folder
+        sync_test = ["Sync", "basic", "feasic_quad_sync", "Sync"]
+        baseline_test = ["Baseline", "basic", "feasic_quad_baseline", "Baseline"]
+        monitor_test = ["Monitor", "basic","feasic_quad_monitor", "Monitor"]
+        alive_test = ["Alive", "basic", "feasic_quad_alive", "Alive"]
+        dac_test = ["DAC", "advanced", "feasic_quad_dac", "Internal DAC"]
+        gain_test = ["Pulse", "advanced", "feasic_quad_pulse", "Pulse"]
+        ledge_test = ["Ledge", "advanced", "feasic_quad_ledge", "Ledge"]
+        final_test = ["Final", "basic"]
+        self.all_tests = [sync_test, baseline_test, monitor_test, alive_test, dac_test, gain_test, ledge_test, final_test]
+        self.test_enables = []
+        for num, i in enumerate(self.all_tests):
+            label = tk.Label(self, text = i[0], width = 10)
+            i.append(label)
+            
+            var = tk.BooleanVar(value=True)
+            i.append(var)
+            button = tk.Checkbutton(self, variable=var)
+            i.append(button)
+            if (i[1] == "basic"):
+                label.grid(sticky=tk.W, row = 7, column = self.midcolumnbase+num+1)
+                if (i[0]!="Final"):
+                    button.grid(row=6,column=self.midcolumnbase+num+1)
+                
+        self.results_array = []
+        for num, i in enumerate(self.all_tests):
+            test_specific = []
+            for chips in range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
+                label = tk.Label(self, text="----", width=10)
+                if (i[1] == "basic"):
+                    label.grid(stick=tk.W, row = 8 + chips, column = self.midcolumnbase+num+1)
+                test_specific.append(label)
+                
+            self.results_array.append(test_specific)
         
-        self.asic1_result = tk.Label(self, text="ASIC 1 Results:", width=15)
-        self.asic1_result.grid(sticky=tk.W,row=9,column=midcolumnbase+0)     
+        #Set up static labels
+        for num, chips in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
+            label = tk.Label(self, text="ASIC {} Results:".format(chips), width=15)
+            label.grid(sticky=tk.W,row=8+num,column=self.midcolumnbase+0)
 
-        self.asic2_result = tk.Label(self, text="ASIC 2 Results:", width=15)
-        self.asic2_result.grid(sticky=tk.W,row=10,column=midcolumnbase+0)    
-
-        self.asic3_result = tk.Label(self, text="ASIC 3 Results:", width=15)
-        self.asic3_result.grid(sticky=tk.W,row=11,column=midcolumnbase+0)
-
-        """
-        #Adding the record data button
-        analyze_data_button = Button(self, text="Analyze Data", command=self.analyze_data,width=25)
-        analyze_data_button.grid(row=3,column=columnbase,columnspan=25)
-
-        self.analyze_data_result = Label(self, text="",width=25)
-        self.analyze_data_result.grid(sticky=W,row=3,column=columnbase+25,columnspan=25)
-
-        #Adding the archive results button
-        archive_results_button = Button(self, text="Archive Results", command=self.archive_results,width=25)
-        archive_results_button.grid(row=4,column=columnbase,columnspan=25)
-
-        self.archive_results_result = Label(self, text="",width=25)
-        self.archive_results_result.grid(sticky=W,row=4,column=columnbase+25,columnspan=25)
-        """
+        
     def write_default_file(self):
         self.params['operator_name'] = self.operator_entry.get()
         for num, i in enumerate(self.option_rows):
@@ -331,16 +319,6 @@ class GUI_WINDOW(tk.Frame):
             
     def start_measurements(self):
         self.write_default_file()
-        self.power_on()
-        fw_ver = self.functions.get_fw_version()
-        self.params['fw_ver'] = hex(fw_ver)
-        
-        if (fw_ver < int(self.config["DEFAULT"]["LATEST_FW"], 16)):
-            messagebox.showinfo("Warning!", "The FPGA is running firmware version {} when the latest firmware is version {}.  Please let an expert know!".format(hex(fw_ver), hex(int(self.config["DEFAULT"]["LATEST_FW"], 16))))
-            
-        self.functions.turnOnAsics()
-        self.functions.resetBoard()
-        self.params['working_chips'] = self.functions.initBoard()
         
         #Make sure everything was entered ok, that nothing was screwed up
         gui_check = self.config["GUI_SETTINGS"]
@@ -371,15 +349,43 @@ class GUI_WINDOW(tk.Frame):
             self.status_label["text"] = "ENTER REQUIRED INFO"
             self.update_idletasks()
             return
+            
+        self.power_on()
+        fw_ver = self.functions.get_fw_version()
+        self.params['fw_ver'] = hex(fw_ver)
+        
+        if (fw_ver < int(self.config["DEFAULT"]["LATEST_FW"], 16)):
+            messagebox.showinfo("Warning!", "The FPGA is running firmware version {} when the latest firmware is version {}.  Please let an expert know!".format(hex(fw_ver), hex(int(self.config["DEFAULT"]["LATEST_FW"], 16))))
+            
+        self.functions.turnOnAsics()
+        self.functions.resetBoard()
+        
+        responding_chips = self.functions.initBoard()
+        self.chiplist = []
+        working_chips = []
+        for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
+            tup = [i, self.params["asic{}id".format(chip)]]
+            self.chiplist.append(tup)
+            if (self.asic_enables[i].get() == True):
+                if chip in (responding_chips):
+                    working_chips.append(chip)
+                    
+        self.params['working_chips'] = working_chips
+        
+        tests_to_do = []
+        for i in self.all_tests:
+            if (i[0]!="Final"):
+                if ((i[1] == "basic") and (i[5].get() == True)):
+                    tests_to_do.append([i[2],i[3]])
+                    
+                elif (self.analysis == "advanced" and i[1] == "advanced" and i[5].get() == True):
+                    tests_to_do.append([i[2],i[3]])
+                
+        self.params['tests_to_do'] = tests_to_do
 
         start_time = time.time()
         self.now = time.strftime("%Y%m%dT%H%M%S", time.localtime(time.time()))
         
-        self.chiplist = []
-        for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
-            tup = [i, self.params["asic{}id".format(chip)]]
-            self.chiplist.append(tup)
-
         print("BEGIN TESTS")
         self.params.update(chip_list = self.chiplist)
         self.update_idletasks()
@@ -394,18 +400,17 @@ class GUI_WINDOW(tk.Frame):
         self.update_idletasks()
         response = CustomDialog(self).show()
         
-        for i in range(int(self.config["DEFAULT"]["NASIC_MIN"]) - 1, int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
-            if i in self.working_chips:
-                chip_name = self.chip_list[i][1]
-                results_file = os.path.join(self.datadir, chip_name, "results.json")
-                with open(results_file,'r') as f:
-                    results = json.load(f)
-                    
-                ver = {'verified':response[i]}
+        for i in self.working_chips:
+            chip_name = self.chip_list[i][1]
+            results_file = os.path.join(self.datadir, chip_name, "results.json")
+            with open(results_file,'r') as f:
+                results = json.load(f)
                 
-                with open(results_file,'w') as outfile:
-                    results.update(ver)
-                    json.dump(results, outfile, indent=4)
+            ver = {'verified':response[i]}
+            
+            with open(results_file,'w') as outfile:
+                results.update(ver)
+                json.dump(results, outfile, indent=4)
                 
         
         end_time = time.time()
@@ -414,7 +419,35 @@ class GUI_WINDOW(tk.Frame):
         #TODO turn off chips power
         print(self.GetTimeString(int(run_time)))
 
-    #Show a live trace to make sure everything is connected correctly
+    def change_analysis_level(self):
+        if (self.analysis == "basic"):
+            self.analysis = "advanced"
+            for num, i in enumerate(self.all_tests):
+                if (i[1] == "advanced"):
+                    label = i[4]
+                    label.grid(sticky=tk.W, row = 7, column = self.midcolumnbase+num+1)
+                    button = i[6]
+                    button.grid(row=6,column=self.midcolumnbase+num+1)
+
+                    for chips in range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
+                        label = self.results_array[num][chips]
+                        label.grid(stick=tk.W, row = 8 + chips, column = self.midcolumnbase+num+1)
+                
+        elif (self.analysis == "advanced"):
+            self.analysis = "basic"
+            for num, i in enumerate(self.all_tests):
+                if (i[1] == "advanced"):
+                    label = i[4]
+                    label.grid_forget()
+                    button = i[6]
+                    button.grid_forget()
+                    
+                    for chips in range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
+                        label = self.results_array[num][chips]
+                        label.grid_forget()
+        else:
+            print("GUI_ERROR --> Analysis level should only ever be 'basic' or 'advanced', it was {}".format(self.analysis))
+            
     def power_on(self):
         self.on_child_closing()
         self.PowerSupply = RigolDP832()
@@ -517,54 +550,53 @@ class GUI_WINDOW(tk.Frame):
         self.working_chips = params['working_chips']
         self.chip_list = params['chip_list']
         print("CHECKING CHIPS")
-        for i in range(int(self.config["DEFAULT"]["NASIC_MIN"]) - 1, int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
-            if i in self.working_chips:
-                chip_name = self.chip_list[i][1]
-                results_path = os.path.join(self.datadir, chip_name)
-                jsonFile = os.path.join(chip_name, results_path, self.config["FILENAMES"]["RESULTS"])
-                #Now that we know what the timestamped directory is, we can have a button on the GUI open it directly
-                self.details_label.bind("<Button-1>",lambda event, arg=self.datadir: self.open_directory(arg))
+        for i in self.working_chips:
+            chip_name = self.chip_list[i][1]
+            results_path = os.path.join(self.datadir, chip_name)
+            jsonFile = os.path.join(chip_name, results_path, self.config["FILENAMES"]["RESULTS"])
+            #Now that we know what the timestamped directory is, we can have a button on the GUI open it directly
+            self.details_label.bind("<Button-1>",lambda event, arg=self.datadir: self.open_directory(arg))
+            
+            with open(jsonFile,'r') as f:
+                results = json.load(f)
+            if "sync_result" in results:
+                label = self.results_array[0][i]
+                result = results['sync_result']
+                self.update_label(label, result)
+                linked_folder = os.path.join(results_path, results['sync_outlabel'])
+                linked_file1 = self.config["FILENAMES"]["SYNC_LINK"]
+                linked_file2 = self.config["FILENAMES"]["SYNC_LINK_MONITOR"]
+                linked_file_path1 = os.path.join(linked_folder, linked_file1)
+                linked_file_path2 = os.path.join(linked_folder, linked_file2)
+                label.bind("<Button-1>",lambda event, arg=linked_file_path1: self.link_label(arg))
+                label.bind("<Button-3>",lambda event, arg=linked_file_path2: self.link_label(arg))
                 
-                with open(jsonFile,'r') as f:
-                    results = json.load(f)
-                if "sync_result" in results:
-                    label = self.sync_results[i]
-                    result = results['sync_result']
-                    self.update_label(label, result)
-                    linked_folder = os.path.join(results_path, results['sync_outlabel'])
-                    linked_file1 = self.config["FILENAMES"]["SYNC_LINK"]
-                    linked_file2 = self.config["FILENAMES"]["SYNC_LINK_MONITOR"]
-                    linked_file_path1 = os.path.join(linked_folder, linked_file1)
-                    linked_file_path2 = os.path.join(linked_folder, linked_file2)
-                    label.bind("<Button-1>",lambda event, arg=linked_file_path1: self.link_label(arg))
-                    label.bind("<Button-3>",lambda event, arg=linked_file_path2: self.link_label(arg))
-                    
-                if "baseline_result" in results:
-                    label = self.baseline_results[i]
-                    result = results['baseline_result']
-                    self.update_label(label, result)
-                    linked_folder = os.path.join(results_path, results['baseline_outlabel'])
-                    linked_file = self.config["FILENAMES"]["BASELINE_LINK"].format(chip_name)
-                    linked_file_path = os.path.join(linked_folder, linked_file)
-                    label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
-                    
-                if "monitor_result" in results:
-                    label = self.monitor_results[i]
-                    result = results['monitor_result']
-                    self.update_label(label, result)
-                    linked_folder = os.path.join(results_path, results['monitor_outlabel'])
-                    linked_file = self.config["FILENAMES"]["MONITOR_LINK"].format(chip_name)
-                    linked_file_path = os.path.join(linked_folder, linked_file)
-                    label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
-                    
-                if "alive_result" in results:
-                    label = self.alive_results[i]
-                    result = results['alive_result']
-                    self.update_label(label, result)
-                    linked_folder = os.path.join(results_path, results['alive_outlabel'])
-                    linked_file = self.config["FILENAMES"]["ALIVE_LINK"].format(chip_name)
-                    linked_file_path = os.path.join(linked_folder, linked_file)
-                    label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
+            if "baseline_result" in results:
+                label = self.results_array[1][i]
+                result = results['baseline_result']
+                self.update_label(label, result)
+                linked_folder = os.path.join(results_path, results['baseline_outlabel'])
+                linked_file = self.config["FILENAMES"]["BASELINE_LINK"].format(chip_name)
+                linked_file_path = os.path.join(linked_folder, linked_file)
+                label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
+                
+            if "monitor_result" in results:
+                label = self.results_array[2][i]
+                result = results['monitor_result']
+                self.update_label(label, result)
+                linked_folder = os.path.join(results_path, results['monitor_outlabel'])
+                linked_file = self.config["FILENAMES"]["MONITOR_LINK"].format(chip_name)
+                linked_file_path = os.path.join(linked_folder, linked_file)
+                label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
+                
+            if "alive_result" in results:
+                label = self.results_array[3][i]
+                result = results['alive_result']
+                self.update_label(label, result)
+                linked_folder = os.path.join(results_path, results['alive_outlabel'])
+                linked_file = self.config["FILENAMES"]["ALIVE_LINK"].format(chip_name)
+                linked_file_path = os.path.join(linked_folder, linked_file)
+                label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
                     
     def update_label(self, label, result):
         if (result == "PASS"):
@@ -615,7 +647,7 @@ class CustomDialog(tk.Toplevel):
             label = tk.Label(self, text="Chip {}".format(chip))
             self.labels.append(label)
             label.grid(row=0,column=i)
-            var = tk.BooleanVar()
+            var = tk.BooleanVar(value=True)
             self.values.append(var)
             button = tk.Checkbutton(self, text="Genuine Test?", variable=var)
             self.entries.append(button)

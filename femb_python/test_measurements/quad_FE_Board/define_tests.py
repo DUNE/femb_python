@@ -69,38 +69,20 @@ def main(**params):
     #tests = [Test(test=n, **main_params) for n in range(1,4)]
 
     #Explicitly define list of production tests to perform
-    tests = []
-    
-    params.update(analysis_level = "basic")
+    all_tests = []
+    tests = params["tests_to_do"]
+    for i in tests:
     #Test 1
-    params_test_1 = dict(params)
-    params_test_1.update( executable = "feasic_quad_sync", argstr="{paramfile}", datasubdir = ".", outlabel = "Sync",)
-    tests.append( Test(**params_test_1) )
-#
-#    #Test 2
-#    params_test_2 = dict(params)
-#    params_test_2.update( executable = "feasic_quad_baseline", argstr="{paramfile}", datasubdir = ".", outlabel = "Baseline",)
-#    tests.append( Test(**params_test_2) )
-#    
-#    #Test 3
-#    params_test_3 = dict(params)
-#    params_test_3.update( executable = "feasic_quad_monitor", argstr="{paramfile}", datasubdir = ".", outlabel = "Monitor",)
-#    tests.append( Test(**params_test_3) )
-    
-    #Test 4
-    params_test_4 = dict(params)
-    params_test_4.update( executable = "feasic_quad_alive", argstr="{paramfile}", datasubdir = ".", outlabel = "Alive",)
-    tests.append( Test(**params_test_4) )
-
-    ##add more test as needed
-        
+        params_test = dict(params)
+        params_test.update( executable = i[0], argstr="{paramfile}", datasubdir = ".", outlabel = i[1],)
+        all_tests.append(Test(**params_test))
     #actually run tests here
     r = runpolicy.make_runner(**params)
     if r == None:
       print("EXAMPLE PRODUCTION TEST - ERROR: runpolicy runner could not be defined, production test not started.")
       return
       
-    s = Sequencer(tests, r)
+    s = Sequencer(all_tests, r)
     for i in (s.run()):
         yield (s.runner.params)
     

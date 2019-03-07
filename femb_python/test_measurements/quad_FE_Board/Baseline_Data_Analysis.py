@@ -30,7 +30,7 @@ class Data_Analysis:
             for j in range(16):
                 ws.cell(row = j + (rows * i) + start + 1, column = 1).value = "{}".format(j)
             
-    def baseline_directory(self, directory, datasubdir, chip_name, chip_index, mode, analysis):
+    def baseline_directory(self, directory, datasubdir, chip_name, chip_index, analysis):
           
         print("Baseline_Data_Analysis -->  Analyzing Baseline data for Chip {}({})...".format(chip_index, chip_name))
         self.data_folder = os.path.join(directory,datasubdir)
@@ -40,13 +40,11 @@ class Data_Analysis:
         if "std" in analysis:
             analyses.append("std")
 
-        if (mode == "basic"):
-            self.gain = self.config["BASELINE_SETTINGS"]["BASELINE_GAIN"]
-            self.shape = self.config["BASELINE_SETTINGS"]["BASELINE_PEAK"]
-            self.leak = self.config["BASELINE_SETTINGS"]["BASELINE_LEAK"]
-            self.buff = self.config["BASELINE_SETTINGS"]["BASELINE_BUFFER"]       
-        else:
-            print("Baseline_Test_Analysis --> Need to define the not basic analysis!")
+        #TODO change here to change which base/peaks are analyzed
+        self.gain = self.config["BASELINE_SETTINGS"]["BASELINE_GAIN"]
+        self.shape = self.config["BASELINE_SETTINGS"]["BASELINE_PEAK"]
+        self.leak = self.config["BASELINE_SETTINGS"]["BASELINE_LEAK"]
+        self.buff = self.config["BASELINE_SETTINGS"]["BASELINE_BUFFER"]
             
         overall_result = True
         baselines_200 = []
