@@ -181,13 +181,13 @@ setup(
             
             #General cold FE quad
             'feasic_quad_testgui=femb_python.test_measurements.quad_FE_Board.gui_fe_asic_cold:main',
-            'feasic_quad_sync=femb_python.test_measurements.quad_FE_Board.quad_sync_adcs:main',
-            'feasic_quad_baseline=femb_python.test_measurements.quad_FE_Board.FE_baseline_test:main',
-            'feasic_quad_monitor=femb_python.test_measurements.quad_FE_Board.FE_monitor_test:main',
-            'feasic_quad_alive=femb_python.test_measurements.quad_FE_Board.FE_alive_test:main',
-            'feasic_quad_dac=femb_python.test_measurements.quad_FE_Board.FE_dac_test:main',
-            'feasic_quad_gain=femb_python.test_measurements.quad_FE_Board.FE_gain_test:main',
-            'feasic_quad_ledge=femb_python.test_measurements.quad_FE_Board.FE_ledge_test:main',
+            'feasic_quad_sync=femb_python.test_measurements.quad_FE_Board.Tests.quad_sync_adcs:main',
+            'feasic_quad_baseline=femb_python.test_measurements.quad_FE_Board.Tests.FE_baseline_test:main',
+            'feasic_quad_monitor=femb_python.test_measurements.quad_FE_Board.Tests.FE_monitor_test:main',
+            'feasic_quad_alive=femb_python.test_measurements.quad_FE_Board.Tests.FE_alive_test:main',
+            'feasic_quad_dac=femb_python.test_measurements.quad_FE_Board.Tests.FE_dac_test:main',
+            'feasic_quad_gain=femb_python.test_measurements.quad_FE_Board.Tests.FE_pulse_test:main',
+            'feasic_quad_ledge=femb_python.test_measurements.quad_FE_Board.Tests.FE_ledge_test:main',
             
             #sbnd cold electronics testing
             'femb_feasic_sbnd_testgui=femb_python.test_measurements.sbnd_femb_test.gui_sbnd_fembTest:main',

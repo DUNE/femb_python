@@ -20,7 +20,7 @@ class plot_functions:
             
         self.sample_period = float(self.config["DEFAULT"]["SAMPLE_PERIOD"])
 
-    def plot_chip(self, data, plot_name, title_name, length = 1000):
+    def plot_chip(self, data, plot_name, title_name, power, length = 1000):
         
         time_x = []       
         for j in range(length):
@@ -37,6 +37,13 @@ class plot_functions:
         overlay_ax.set_xlabel('Time (counts)')
         overlay_ax.set_ylabel('ADC Counts')
         overlay_ax.yaxis.set_label_coords(-0.035,0.5)
+        
+        vdda_comment = "VDDA --> {} V, {} mA".format(round(power[0][1],2), round(power[0][2] * 1000, 2))
+        overlay_ax.text(0.00,-0.04,vdda_comment,transform=overlay_ax.transAxes, fontsize = 10)
+        
+        vddp_comment = "VDDP --> {} V, {} mA".format(round(power[1][1],2), round(power[1][2] * 1000, 2))
+        overlay_ax.text(0.15,-0.04,vddp_comment,transform=overlay_ax.transAxes, fontsize = 10)
+        
         ax1 = fig.add_subplot(16,1,16)
         plt.plot(time_x, data[0][:length])
 #        plt.setp(ax1.get_xticklabels(), fontsize=12)
@@ -70,7 +77,8 @@ class plot_functions:
             pos2 = [pos1.x0 + 0.025, pos1.y0 + 0.005,  pos1.width , pos1.height ] 
             ax2.set_position(pos2) # set a new position
             
-
+        
+        
         plt.subplots_adjust(wspace=0, hspace=0, top = 0.95, bottom = 0.05, right = 0.95, left = 0.05)
         
         plt.savefig (plot_name)  

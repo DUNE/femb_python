@@ -1,4 +1,3 @@
-from femb_python.test_measurements.quad_FE_Board.fe_info import FE_INFO
 class FE_ASIC_REG_MAPPING:
     
     def set_fe_chn(self, chip, chn, sts=-1, snc=-1, sg=-1, st=-1, smn=-1, sbf=-1):
@@ -153,4 +152,3 @@ class FE_ASIC_REG_MAPPING:
                     0xD1D1D1D1, 0xD1D1D1D1, 0xD1D1D1D1, 0xD1D1D1D1, 0x0000C100,
                     0xD1D1D1D1, 0xD1D1D1D1, 0xD1D1D1D1, 0xD1D1D1D1, 0x0000C100,
                     0xD1D1D1D1, 0xD1D1D1D1, 0xD1D1D1D1, 0xD1D1D1D1, 0x0000C100]
-        self.info = FE_INFO()

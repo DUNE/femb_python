@@ -22,7 +22,7 @@ plt.switch_backend('agg')
 from femb_python.configuration import CONFIG
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 
-from femb_python.test_measurements.quad_FE_Board.Alive_Data_Analysis import Data_Analysis
+from femb_python.test_measurements.quad_FE_Board.Tests.Alive_Data_Analysis import Data_Analysis
 
 class ALIVE_TESTER(object):
     
@@ -160,9 +160,7 @@ class ALIVE_TESTER(object):
 
         for num, i in enumerate(self.params['working_chips']):
             chip_name = self.params['chip_list'][i][1]
-            jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.config["FILENAMES"]["RESULTS"])
-            with open(jsonFile, mode='r') as f:
-                existing_json = json.load(f)
+            jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.params["outlabel"], self.config["FILENAMES"]["RESULTS"])
             if (self.results[num] == True):
                 self.jsondict['alive_result'] = "PASS"
             elif (self.results[num] == False):
@@ -172,8 +170,15 @@ class ALIVE_TESTER(object):
                 
             #TODO add which channels, cycles, tests, failed
                 
+            with open(jsonFile,'a') as outfile:
+                json.dump(self.jsondict, outfile, indent=4)
+                
+            jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.config["FILENAMES"]["RESULTS"])
+            with open(jsonFile,'r') as f:
+                existing_json = json.load(f)
+            
+            existing_json['alive_outlabel'] = self.params['outlabel']
             with open(jsonFile,'w') as outfile:
-                existing_json.update(self.jsondict)
                 json.dump(existing_json, outfile, indent=4)
                 
 def main():

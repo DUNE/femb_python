@@ -13,13 +13,14 @@ from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
+import json
 from femb_python.generic_femb_udp import FEMB_UDP
 from femb_python.test_measurements.quad_FE_Board.detect_peaks import detect_peaks
 from femb_python.test_measurements.quad_FE_Board.low_level_pre_udp import LOW_LEVEL
 from femb_python.configuration.FE_config import FE_CONFIG 
 from femb_python.test_measurements.quad_FE_Board.ASIC_config import ASIC_CONFIG_FUNCTIONS
+from femb_python.test_measurements.quad_FE_Board.i2c_functions import I2C_comm
 from femb_python.test_measurements.quad_FE_Board.plotting import plot_functions
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 
@@ -40,6 +41,7 @@ class SYNC_FUNCTIONS(object):
         else:
             self.config = config_file
             
+        self.i2c = I2C_comm(self.config)
         self.femb_udp = FEMB_UDP(self.config)     
         self.low_func = LOW_LEVEL(self.config)
         self.FE_Regs = FE_CONFIG(chip_num = int(self.config["DEFAULT"]["NASICS"]), chn_num = int(self.config["DEFAULT"]["NASICCH"]))
@@ -112,11 +114,13 @@ class SYNC_FUNCTIONS(object):
                 print("sync_functions--> Printing synchronization plot for Chip {}({})".format(chip_id[0],chip_id[1]))
                 data = self.low_func.get_data_chipX(chip = chip_id[0], packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), tagged = True)
                 plot_path = os.path.join(self.savefigpath,self.config["FILENAMES"]["SYNC_LINK"])
-                self.plot.plot_chip(data = data, plot_name = plot_path, title_name = "Pulses for synchronization: Gain = {}/fC, Peaking Time = {}, Buffer {}, "
+                power_info = self.i2c.PCB_power_monitor(chips = i)
+                self.plot.plot_chip(data = data, plot_name = plot_path, title_name = "Chip {} synchronization: Gain = {}/fC, Peaking Time = {}, Buffer {}, "
                                                                                      "DAC Pulse at {} \nPeaks should be between {} and {}, Baseline should be between "
-                                                                                     "{} and {}".format(self.config["SYNC_SETTINGS"]["SYNC_GAIN"], self.config["SYNC_SETTINGS"]["SYNC_PEAK"], self.config["SYNC_SETTINGS"]["SYNC_BUFFER"], 
-                                                                                    self.config["SYNC_SETTINGS"]["SYNC_DAC_PEAK_HEIGHT"], self.config["SYNC_SETTINGS"]["SYNC_PEAK_MIN"], self.config["SYNC_SETTINGS"]["SYNC_PEAK_MAX"], 
-                                                                                    self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MIN"], self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MAX"]))
+                                                                                     "{} and {}".format(chip_id[1], self.config["SYNC_SETTINGS"]["SYNC_GAIN"], self.config["SYNC_SETTINGS"]["SYNC_PEAK"], 
+                                                                                    self.config["SYNC_SETTINGS"]["SYNC_BUFFER"], self.config["SYNC_SETTINGS"]["SYNC_DAC_PEAK_HEIGHT"], 
+                                                                                    self.config["SYNC_SETTINGS"]["SYNC_PEAK_MIN"], self.config["SYNC_SETTINGS"]["SYNC_PEAK_MAX"], 
+                                                                                    self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MIN"], self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MAX"]), power = power_info)
             
             print ("sync_functions--> Trying to sync test ADC {}({})".format(chip_id[0],chip_id[1]))
             
@@ -159,17 +163,19 @@ class SYNC_FUNCTIONS(object):
                 self.plot.debugScatterplot(data = data, save_location = plot_path, title = title, peaks_index = None)
             
         #This just helps so that if we continuously need to sync on a board, we can go back and see what the settings it finds are and make those the default.
-        outputfile = os.path.join(datadir,"syncresults.txt")
-        with open(outputfile, 'w') as f:
-            f.write("sync_functions--> Final Shift Settings: \n")
+        jsonFile = os.path.join(datadir,"params.json")
+        if os.path.exists(jsonFile):
+            sync_dict = {}
             for reg in range(int(self.config["REGISTERS"]["REG_LATCH_MIN"]), int(self.config["REGISTERS"]["REG_LATCH_MAX"]) + 1):
                 value = self.femb_udp.read_reg(reg)
-                f.write("Register {}: {}\n".format(reg, hex(value)))
-    
-            f.write("sync_functions--> Final Phase Settings: \n")
+                sync_dict['Register {}'.format(reg)] = '{}'.format(hex(value))
+                
             for reg in range(int(self.config["REGISTERS"]["REG_PHASE_MIN"]), int(self.config["REGISTERS"]["REG_TEST_ADC"]) + 1):
                 value = self.femb_udp.read_reg(reg)
-                f.write("Register {}: {}\n".format(reg, hex(value)))
+                sync_dict['Register {}'.format(reg)] = '{}'.format(hex(value))
+                
+            with open(jsonFile,'a') as outfile:
+                json.dump(sync_dict, outfile, indent=4)
             
         #Bring things back to normal
         self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_READOUT_OPTIONS"]), int(self.config["DEFINITIONS"]["READOUT_NORMAL"]))

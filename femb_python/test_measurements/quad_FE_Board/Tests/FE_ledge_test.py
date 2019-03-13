@@ -16,7 +16,7 @@ import json
 import datetime
 from femb_python.configuration import CONFIG
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
-from femb_python.test_measurements.quad_FE_Board.Monitor_Data_Analysis import Data_Analysis
+from femb_python.test_measurements.quad_FE_Board.tests.Monitor_Data_Analysis import Data_Analysis
 
 class MONITOR_TESTER(object):
     

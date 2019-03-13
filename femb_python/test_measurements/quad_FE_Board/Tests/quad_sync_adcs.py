@@ -27,9 +27,9 @@ class SYNC_ADCS(object):
         self.plotting = self.functions.sync.plot
 
         #json output, note module version number defined here
-        self.jsondict = {'type':'sync_adcs'}
-        self.jsondict['sync_code_version'] = '1.0'
-        self.jsondict['sync_timestamp']  = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
+        self.syncdict = {'type':'sync_adcs'}
+        self.syncdict['sync_code_version'] = '1.0'
+        self.syncdict['sync_timestamp']  = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
         
     def sync(self):
         print("SYNCHRONIZATION - COLLECT DATA")
@@ -53,8 +53,10 @@ class SYNC_ADCS(object):
             data = self.low_level.get_data_chipX(chip = chip_index, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), tagged = True)
             print("quad_sync_adcs--> Printing internal synchronization plot for Chip {}".format(chip_name))
             savefig = os.path.join(chip_outpathlabel, "Sync_Plot_Internal")
-            self.plotting.plot_chip(data = data, plot_name = savefig, title_name = "Pulses for synchronization: Gain = {}/fC, Peaking Time = {}".format(self.config["SYNC_SETTINGS"]["SYNC_GAIN"],
-                                                                                                                                                        self.config["SYNC_SETTINGS"]["SYNC_PEAK"]), length = 1000)
+            power_info = self.functions.PCB_power_monitor(chips = i)
+            self.plotting.plot_chip(data = data, plot_name = savefig, title_name = "Chip {} Internal Sync: Gain = {}/fC, Peaking Time = {}".format(chip_name, self.config["SYNC_SETTINGS"]["SYNC_GAIN"],
+                                                                                                                                                        self.config["SYNC_SETTINGS"]["SYNC_PEAK"]), 
+                                                                                                                                                        power = power_info, length = 1000)
             
         self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_MUX_MODE"]), int(self.config["DEFINITIONS"]["MUX_GND_DACPULSE"]))
 
@@ -65,8 +67,10 @@ class SYNC_ADCS(object):
             data = self.low_level.get_data_chipX(chip = chip_index, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), tagged = True)
             print("quad_sync_adcs--> Printing external synchronization plot for Chip {}".format(chip_name))
             savefig = os.path.join(chip_outpathlabel, "Sync_Plot_External")
-            self.plotting.plot_chip(data = data, plot_name = savefig, title_name = "Pulses for synchronization: Gain = {}/fC, Peaking Time = {}".format(self.config["SYNC_SETTINGS"]["SYNC_GAIN"],
-                                                                                                                                                        self.config["SYNC_SETTINGS"]["SYNC_PEAK"]), length = 1000)
+            power_info = self.functions.PCB_power_monitor(chips = i)
+            self.plotting.plot_chip(data = data, plot_name = savefig, title_name = "Chip {} External Sync: Gain = {}/fC, Peaking Time = {}".format(chip_name, self.config["SYNC_SETTINGS"]["SYNC_GAIN"],
+                                                                                                                                                        self.config["SYNC_SETTINGS"]["SYNC_PEAK"]), 
+                                                                                                                                                        power = power_info, length = 1000)
             
         self.low_level.setExternalPulser(enable=False)
         self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_MUX_MODE"]), int(self.config["DEFINITIONS"]["MUX_GND_GND"]))
@@ -86,37 +90,43 @@ class SYNC_ADCS(object):
     def archiveResults(self):
         print("SYNCHRONIZATION - ARCHIVE")
         
-        self.jsondict['boardID'] = self.params['boardid']
+        self.jsondict = {'boardID':self.params['boardid']}
         self.jsondict['fw_ver'] = self.params['fw_ver']
         self.jsondict['test_category'] = self.params['test_category']
         self.jsondict['test_stand'] = self.params['test_stand']
         self.jsondict['chipver'] = self.params['chipver']
         self.jsondict['sw_version'] = self.params['sw_version']
         self.jsondict['fpgamezz'] = self.params['fpgamezz']
-        self.jsondict['sync_executable'] = self.params['executable']
-        self.jsondict['sync_datasubdir'] = self.params['datasubdir']
         self.jsondict['power_supply'] = self.params['power_supply']
         self.jsondict['femb_config'] = self.params['femb_config']
         self.jsondict['paramfile'] = self.params['paramfile']
         self.jsondict['sync_outlabel'] = self.params['outlabel']
-        
-        self.jsondict['sync_baseline'] = self.config["SYNC_SETTINGS"]["SYNC_BASELINE"]
-        self.jsondict['sync_buffer'] = self.config["SYNC_SETTINGS"]["SYNC_BUFFER"]
-        self.jsondict['sync_gain'] = self.config["SYNC_SETTINGS"]["SYNC_GAIN"]
-        self.jsondict['sync_peak'] = self.config["SYNC_SETTINGS"]["SYNC_PEAK"]
-        self.jsondict['sync_acdc'] = self.config["SYNC_SETTINGS"]["SYNC_ACDC"]
-        self.jsondict['sync_leak'] = self.config["SYNC_SETTINGS"]["SYNC_LEAK"]
-
         for i in self.params['working_chips']:
             chip_index = self.params['chip_list'][i][0]
             chip_name = self.params['chip_list'][i][1]
             jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.config["FILENAMES"]["RESULTS"])
             self.jsondict['chip_index'] = chip_index
             self.jsondict['chip_name'] = chip_name
-            self.jsondict['sync_result'] = self.results[chip_index][2]
             self.jsondict['socket'] = self.params["socket{}id".format(chip_index)]
             with open(jsonFile,'a') as outfile:
                 json.dump(self.jsondict, outfile, indent=4)
+        
+        self.syncdict['sync_baseline'] = self.config["SYNC_SETTINGS"]["SYNC_BASELINE"]
+        self.syncdict['sync_buffer'] = self.config["SYNC_SETTINGS"]["SYNC_BUFFER"]
+        self.syncdict['sync_gain'] = self.config["SYNC_SETTINGS"]["SYNC_GAIN"]
+        self.syncdict['sync_peak'] = self.config["SYNC_SETTINGS"]["SYNC_PEAK"]
+        self.syncdict['sync_acdc'] = self.config["SYNC_SETTINGS"]["SYNC_ACDC"]
+        self.syncdict['sync_leak'] = self.config["SYNC_SETTINGS"]["SYNC_LEAK"]
+        self.syncdict['sync_executable'] = self.params['executable']
+        self.syncdict['sync_datasubdir'] = self.params['datasubdir']
+
+        for i in self.params['working_chips']:
+            chip_index = self.params['chip_list'][i][0]
+            chip_name = self.params['chip_list'][i][1]
+            jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.params["outlabel"],self.config["FILENAMES"]["RESULTS"])
+            self.syncdict['sync_result'] = self.results[chip_index][2]
+            with open(jsonFile,'a') as outfile:
+                json.dump(self.syncdict, outfile, indent=4)
 
 def main():
     '''

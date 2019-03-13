@@ -69,6 +69,7 @@ class FEMB_CONFIG_BASE(object):
         self.test = board()
         self.FE_Regs = self.test.asic_config.FE_Regs
         self.ASIC_functions = self.test.asic_config
+        self.i2c = self.test.i2c
         
         self.root_dir = getDefaultDirectory()
         file_name = os.path.join(self.root_dir,self.config["FILENAMES"]["DEFAULT_GUI_FILE_NAME"])
@@ -115,19 +116,11 @@ class FEMB_CONFIG_BASE(object):
             print("FEMB_CONFIG_BASE --> initBoard failed - Response was {}".format(result))
     
     #Note, on the FE quad board, REG_ON_OFF also returns the status of the buttons being pushed, so it won't always return exactly what you wrote, hence doReadback=False
-    def turnOffAsics(self):
-        print ("FEMB_CONFIG_BASE--> Turning ASICs off (2 seconds)")
-        self.femb_interface.write_reg(int(self.config["REGISTERS"]["REG_ON_OFF"]), int(self.config["DEFINITIONS"]["ASIC_OFF"], 16), doReadBack=False)
-        #pause after turning off ASICs
-        time.sleep(2)
-        print ("FEMB_CONFIG_BASE--> ASICs off")
+    def turnOffAsics(self, **kwargs):
+        self.test.turnOffAsics(**kwargs)
         
-    def turnOnAsics(self):
-        print ("FEMB_CONFIG_BASE--> Turning ASICs on (2 seconds)")
-        self.femb_interface.write_reg(int(self.config["REGISTERS"]["REG_ON_OFF"]), int(self.config["DEFINITIONS"]["ASIC_ON"], 16), doReadBack=False)
-        #pause after turning on ASICSs
-        time.sleep(4)
-        print ("FEMB_CONFIG_BASE--> ASICs on")
+    def turnOnAsics(self, **kwargs):
+        self.test.turnOnAsics(**kwargs)
 
     def writeADC(self,Adcasic_regs):
         """
@@ -168,11 +161,7 @@ class FEMB_CONFIG_BASE(object):
     #chip_id[0] is the index of the chip, where it sits on the board (spot 0, 1, 2, 3 etc...)
     #chip_id[1] is its name (A2567, A2568, etc...)
     def syncADC(self, **kwargs):
-#        try:
         response = self.sync.syncADC(**kwargs)
-#        except AttributeError:
-#            sys.exit("FEMB_CONFIG_BASE --> {} does not have syncADC() method!".format(self.config["DEFAULT"]["NAME"]))
-            
         if (response == False):
             print("FEMB_CONFIG_BASE --> syncADC() failed")
     
@@ -186,10 +175,12 @@ class FEMB_CONFIG_BASE(object):
             return resp
         else:
             print("FEMB_CONFIG_BASE --> No response for firmware version!!")
+            
+    def PCB_power_monitor(self, **kwargs):
+        return self.i2c.PCB_power_monitor(**kwargs)
         
     #Get a whole chip's worth of data
     def get_data_chipX(self, chip, packets = 1, data_format = "counts", tagged = False, header = False):
-        
         chip_data = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
         for chn in range(int(self.config["DEFAULT"]["NASICCH"])):
             for i in range(packets):

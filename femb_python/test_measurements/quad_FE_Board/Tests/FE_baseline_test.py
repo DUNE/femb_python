@@ -17,7 +17,7 @@ import datetime
 
 from femb_python.configuration import CONFIG
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
-from femb_python.test_measurements.quad_FE_Board.Baseline_Data_Analysis import Data_Analysis
+from femb_python.test_measurements.quad_FE_Board.Tests.Baseline_Data_Analysis import Data_Analysis
 
 class BASELINE_TESTER(object):
     
@@ -110,9 +110,7 @@ class BASELINE_TESTER(object):
 
         for num,i in enumerate(self.params['working_chips']):
             chip_name = self.params['chip_list'][i][1]
-            jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.config["FILENAMES"]["RESULTS"])
-            with open(jsonFile, mode='r') as f:
-                existing_json = json.load(f)
+            jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.params["outlabel"], self.config["FILENAMES"]["RESULTS"])
             if (self.results[num] == True):
                 self.jsondict['baseline_result'] = "PASS"
             elif (self.results[num] == False):
@@ -129,8 +127,15 @@ class BASELINE_TESTER(object):
                 jsname = "baseline_900_channel{}".format(chn)
                 self.jsondict[jsname] = self.baseline_900[num][chn]
                 
+            with open(jsonFile,'a') as outfile:
+                json.dump(self.jsondict, outfile, indent=4)
+                
+            jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.config["FILENAMES"]["RESULTS"])
+            with open(jsonFile,'r') as f:
+                existing_json = json.load(f)
+            
+            existing_json['baseline_outlabel'] = self.params['outlabel']
             with open(jsonFile,'w') as outfile:
-                existing_json.update(self.jsondict)
                 json.dump(existing_json, outfile, indent=4)
         
 def main():

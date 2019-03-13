@@ -17,11 +17,10 @@ from femb_python.generic_femb_udp import FEMB_UDP
 from femb_python.test_measurements.quad_FE_Board.low_level_pre_udp import LOW_LEVEL
 from femb_python.test_measurements.quad_FE_Board.sync_functions import SYNC_FUNCTIONS
 from femb_python.test_measurements.quad_FE_Board.ASIC_config import ASIC_CONFIG_FUNCTIONS
+from femb_python.test_measurements.quad_FE_Board.i2c_functions import I2C_comm
 from femb_python.configuration.config_module_loader import getDefaultDirectory
-import time
-import matplotlib.pyplot as plt
-import numpy as np
 import os
+import time
 import json
 
 class FEMB_CONFIG_FUNCTIONS(object):
@@ -45,6 +44,7 @@ class FEMB_CONFIG_FUNCTIONS(object):
         self.low_func = LOW_LEVEL(self.config)
         self.sync_functions = SYNC_FUNCTIONS(self.config)
         self.asic_config = ASIC_CONFIG_FUNCTIONS(self.config)
+        self.i2c = I2C_comm(self.config)
         
         self.root_dir = getDefaultDirectory()
         file_name = os.path.join(self.root_dir,self.config["FILENAMES"]["DEFAULT_GUI_FILE_NAME"])
@@ -69,6 +69,9 @@ class FEMB_CONFIG_FUNCTIONS(object):
         self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_SS"]), int(self.config["INITIAL_SETTINGS"]["DEFAULT_SS"]))
         self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_TIMEOUT"]), int(self.config["INITIAL_SETTINGS"]["DEFAULT_TIMEOUT"], 16))
         self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_SAMPLESPEED"]), int(self.config["INITIAL_SETTINGS"]["DEFAULT_SAMPLE_SPEED"]))
+        
+        for i in range(int(self.config["REGISTERS"]["REG_INA226_VDDA_0"], 16), int(self.config["REGISTERS"]["REG_INA226_VDDP_3"], 16), 1):
+            self.i2c.INA226_write(i, 0, int(self.config["INITIAL_SETTINGS"]["DEFAULT_INA_HIGH_BYTE"], 16), int(self.config["INITIAL_SETTINGS"]["DEFAULT_INA_LOW_BYTE"], 16))
         
         default_frame_size = 16 * (int(self.config["INITIAL_SETTINGS"]["DEFAULT_FRAME_SIZE"], 16)//16)
         #Readback gives other values, it'll always be wrong
@@ -127,3 +130,28 @@ class FEMB_CONFIG_FUNCTIONS(object):
             
         self.SPI_array = self.asic_config.writeFE(**kwargs)
         return self.SPI_array
+        
+    #The FPGA is weird with this register. It's set to also give information about the buttons, so we mask it to 0xF
+    def turnOffAsics(self, **kwargs):
+        print ("config_functions--> Turning ASICs off (2 seconds)")
+        status = self.femb_udp.read_reg(int(self.config["REGISTERS"]["REG_ON_OFF"])) & 0xF
+        if (status != int(self.config["DEFINITIONS"]["ASIC_OFF"], 16)):
+            self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_ON_OFF"]), int(self.config["DEFINITIONS"]["ASIC_OFF"], 16), doReadBack=False)
+            #pause after turning off ASICs
+            time.sleep(2)
+            print ("config_functions--> ASICs off")
+        else:
+            print ("config_functions--> ASICs already off")
+        
+        
+    #The FPGA is weird with this register. It's set to also give information about the buttons, so we mask it to 0xF
+    def turnOnAsics(self, **kwargs):
+        print ("config_functions--> Turning ASICs on (4 seconds)")
+        status = self.femb_udp.read_reg(int(self.config["REGISTERS"]["REG_ON_OFF"])) & 0xF
+        if (status != int(self.config["DEFINITIONS"]["ASIC_ON"], 16)):
+            self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_ON_OFF"]), int(self.config["DEFINITIONS"]["ASIC_ON"], 16), doReadBack=False)
+            #pause after turning on ASICs
+            time.sleep(4)
+            print ("config_functions--> ASICs on")
+        else:
+            print ("config_functions--> ASICs already on")

@@ -48,7 +48,7 @@ class Data_Analysis:
                     sample_pulse, result = self.alive_file(os.path.join(self.data_folder,self.filename))
                     overall_result = overall_result and result
                     if (result == False):
-                        fails.append("Channel {}, Test {} not found!".format(chn,test))
+                        fails.append("Channel {}, {} not found!".format(chn,test))
                     if (test == "test_off"):
                         plot_color = "green"
                     elif (test == "test_ext"):
@@ -59,7 +59,7 @@ class Data_Analysis:
                 sample_pulse, result = self.alive_file(os.path.join(self.data_folder,self.filename))
                 overall_result = overall_result and result
                 if (result == False):
-                        fails.append("Cycle {}, Test{} not found!".format(cycle,test))
+                        fails.append("Cycle {}, {} not found!".format(cycle,test))
                 plot_color = "blue"
                 ax.plot(sample_pulse, color = plot_color)
                     

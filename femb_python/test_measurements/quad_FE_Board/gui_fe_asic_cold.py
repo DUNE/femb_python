@@ -254,7 +254,6 @@ class GUI_WINDOW(tk.Frame):
         ledge_test = ["Ledge", "advanced", "feasic_quad_ledge", "Ledge"]
         final_test = ["Final", "basic"]
         self.all_tests = [sync_test, baseline_test, monitor_test, alive_test, dac_test, gain_test, ledge_test, final_test]
-        self.test_enables = []
         for num, i in enumerate(self.all_tests):
             label = tk.Label(self, text = i[0], width = 10)
             i.append(label)
@@ -265,8 +264,20 @@ class GUI_WINDOW(tk.Frame):
             i.append(button)
             if (i[1] == "basic"):
                 label.grid(sticky=tk.W, row = 7, column = self.midcolumnbase+num+1)
-                if (i[0]!="Final"):
+                if (i[0]!="Final" and i[0]!="Sync"):
                     button.grid(row=6,column=self.midcolumnbase+num+1)
+                    
+        self.connected_power_supply = ["Connected Power Supply"]
+        self.temperature_cold = ["Cold Test"]
+        self.online_analysis = ["Concurrent Analysis"]
+        self.advanced_options = [self.connected_power_supply, self.temperature_cold, self.online_analysis]
+        for i in self.advanced_options:
+            label = tk.Label(self, text = i[0], width = 20, anchor="w")
+            i.append(label)
+            var = tk.BooleanVar(value=True)
+            i.append(var)
+            button = tk.Checkbutton(self, variable=var)
+            i.append(button)
                 
         self.results_array = []
         for num, i in enumerate(self.all_tests):
@@ -359,6 +370,7 @@ class GUI_WINDOW(tk.Frame):
             
         self.functions.turnOnAsics()
         self.functions.resetBoard()
+        self.functions.turnOnAsics()
         
         responding_chips = self.functions.initBoard()
         self.chiplist = []
@@ -371,6 +383,8 @@ class GUI_WINDOW(tk.Frame):
                     working_chips.append(chip)
                     
         self.params['working_chips'] = working_chips
+        print ("Working chips are {}".format(working_chips))
+        print ("Because enabled chips are {}".format(self.asic_enables))
         
         tests_to_do = []
         for i in self.all_tests:
@@ -396,6 +410,7 @@ class GUI_WINDOW(tk.Frame):
             self.postResults(i)
             self.update_idletasks()
 
+        end_time = time.time()
         self.status_label = "DONE " 
         self.update_idletasks()
         response = CustomDialog(self).show()
@@ -413,7 +428,7 @@ class GUI_WINDOW(tk.Frame):
                 json.dump(results, outfile, indent=4)
                 
         
-        end_time = time.time()
+        
         run_time = end_time-start_time
         print("Total run time: {}".format(int(run_time)))
         #TODO turn off chips power
@@ -432,6 +447,14 @@ class GUI_WINDOW(tk.Frame):
                     for chips in range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
                         label = self.results_array[num][chips]
                         label.grid(stick=tk.W, row = 8 + chips, column = self.midcolumnbase+num+1)
+                        
+            for num, i in enumerate(self.advanced_options):
+                button = i[3]
+                button.grid(row = 1 + num, column = self.midcolumnbase + 2)
+                label= i[1]
+                label.grid(row = 1 + num, column = self.midcolumnbase + 3, columnspan = 3)
+                        
+            
                 
         elif (self.analysis == "advanced"):
             self.analysis = "basic"
@@ -445,6 +468,12 @@ class GUI_WINDOW(tk.Frame):
                     for chips in range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1):
                         label = self.results_array[num][chips]
                         label.grid_forget()
+                        
+                for num, i in enumerate(self.advanced_options):
+                    button = i[3]
+                    button.grid_forget()
+                    label = i[1]
+                    label.grid_forget()
         else:
             print("GUI_ERROR --> Analysis level should only ever be 'basic' or 'advanced', it was {}".format(self.analysis))
             
@@ -471,13 +500,20 @@ class GUI_WINDOW(tk.Frame):
             self.PowerSupply.set_channel(channel = pwr["PS_FPGA_CHN"], voltage = float(pwr["PS_FPGA_V"]), v_limit = float(pwr["PS_FPGA_V_LIMIT"]),
                                          c_limit = float(pwr["PS_FPGA_I_LIMIT"]), vp = pwr["PS_FPGA_V_PROTECTION"], cp = pwr["PS_FPGA_I_PROTECTION"])
             self.PowerSupply.on(channels = [1,2,3])
-            self.PowerSupply.measure_params(channel = 1)
+            results = self.PowerSupply.measure_params(channel = 1)
+            print(results)
+            results = self.PowerSupply.measure_params(channel = 2)
+            print(results)
+            results = self.PowerSupply.measure_params(channel = 3)
+            print(results)
     #       Measure initial volatage and current
             self.PowerSupply.powerSupplyDevice.write(":MEAS:VOLT?")
             initialVoltage = float(self.PowerSupply.powerSupplyDevice.read().strip().decode())
             self.PowerSupply.powerSupplyDevice.write(":MEAS:CURR?")
             initialCurrent = float(self.PowerSupply.powerSupplyDevice.read().lstrip().decode())
-
+            print(initialVoltage)
+            print(initialCurrent)
+            
         self.update_idletasks()
         time.sleep(5)
 #        self.power_button["bg"]="green"
@@ -553,17 +589,22 @@ class GUI_WINDOW(tk.Frame):
         for i in self.working_chips:
             chip_name = self.chip_list[i][1]
             results_path = os.path.join(self.datadir, chip_name)
-            jsonFile = os.path.join(chip_name, results_path, self.config["FILENAMES"]["RESULTS"])
+            jsonFile = os.path.join(results_path, self.config["FILENAMES"]["RESULTS"])
             #Now that we know what the timestamped directory is, we can have a button on the GUI open it directly
             self.details_label.bind("<Button-1>",lambda event, arg=self.datadir: self.open_directory(arg))
             
             with open(jsonFile,'r') as f:
-                results = json.load(f)
-            if "sync_result" in results:
+                test_list = json.load(f)
+                
+            if "sync_outlabel" in test_list:
+                outlabel = test_list["sync_outlabel"]
+                jsonFile = os.path.join(results_path, outlabel, self.config["FILENAMES"]["RESULTS"])
+                with open(jsonFile,'r') as f:
+                    results = json.load(f)
                 label = self.results_array[0][i]
                 result = results['sync_result']
                 self.update_label(label, result)
-                linked_folder = os.path.join(results_path, results['sync_outlabel'])
+                linked_folder = os.path.join(results_path, outlabel)
                 linked_file1 = self.config["FILENAMES"]["SYNC_LINK"]
                 linked_file2 = self.config["FILENAMES"]["SYNC_LINK_MONITOR"]
                 linked_file_path1 = os.path.join(linked_folder, linked_file1)
@@ -571,29 +612,41 @@ class GUI_WINDOW(tk.Frame):
                 label.bind("<Button-1>",lambda event, arg=linked_file_path1: self.link_label(arg))
                 label.bind("<Button-3>",lambda event, arg=linked_file_path2: self.link_label(arg))
                 
-            if "baseline_result" in results:
+            if "baseline_outlabel" in test_list:
+                outlabel = test_list["baseline_outlabel"]
+                jsonFile = os.path.join(results_path, outlabel, self.config["FILENAMES"]["RESULTS"])
+                with open(jsonFile,'r') as f:
+                    results = json.load(f)
                 label = self.results_array[1][i]
                 result = results['baseline_result']
                 self.update_label(label, result)
-                linked_folder = os.path.join(results_path, results['baseline_outlabel'])
+                linked_folder = os.path.join(results_path, outlabel)
                 linked_file = self.config["FILENAMES"]["BASELINE_LINK"].format(chip_name)
                 linked_file_path = os.path.join(linked_folder, linked_file)
                 label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
                 
-            if "monitor_result" in results:
+            if "monitor_outlabel" in test_list:
+                outlabel = test_list["monitor_outlabel"]
+                jsonFile = os.path.join(results_path, outlabel, self.config["FILENAMES"]["RESULTS"])
+                with open(jsonFile,'r') as f:
+                    results = json.load(f)
                 label = self.results_array[2][i]
                 result = results['monitor_result']
                 self.update_label(label, result)
-                linked_folder = os.path.join(results_path, results['monitor_outlabel'])
+                linked_folder = os.path.join(results_path, outlabel)
                 linked_file = self.config["FILENAMES"]["MONITOR_LINK"].format(chip_name)
                 linked_file_path = os.path.join(linked_folder, linked_file)
                 label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
                 
-            if "alive_result" in results:
+            if "alive_outlabel" in test_list:
+                outlabel = test_list["alive_outlabel"]
+                jsonFile = os.path.join(results_path, outlabel, self.config["FILENAMES"]["RESULTS"])
+                with open(jsonFile,'r') as f:
+                    results = json.load(f)
                 label = self.results_array[3][i]
                 result = results['alive_result']
                 self.update_label(label, result)
-                linked_folder = os.path.join(results_path, results['alive_outlabel'])
+                linked_folder = os.path.join(results_path, outlabel)
                 linked_file = self.config["FILENAMES"]["ALIVE_LINK"].format(chip_name)
                 linked_file_path = os.path.join(linked_folder, linked_file)
                 label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
