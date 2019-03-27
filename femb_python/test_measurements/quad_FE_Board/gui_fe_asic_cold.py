@@ -31,7 +31,7 @@ from femb_python.configuration import CONFIG
 from femb_python.configuration.config_module_loader import getDefaultDirectory
 
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
-from femb_python.test_instrument_interface.rigol_dp832 import RigolDP832
+from femb_python.test_instrument_interface.power_supply_interface import Power_Supply
 from femb_python.test_measurements.quad_FE_Board.define_tests import main as maintest
 
 
@@ -55,7 +55,7 @@ class GUI_WINDOW(tk.Frame):
         self.master.protocol("WM_DELETE_WINDOW", lambda arg=self.master: self.on_closing(arg))
         self.WF_GUI = None
         self.analysis = "basic"
-
+        self.PowerSupply = Power_Supply(self.config)
         #Variables that I want to save in the JSON but aren't included in the generic runner
         self.params = dict(
             test_category = "feasic_quad_cold",
@@ -361,16 +361,28 @@ class GUI_WINDOW(tk.Frame):
             self.update_idletasks()
             return
             
-        self.power_on()
+        for num, i in enumerate(self.advanced_options):
+            if (num == 0):
+                if (i[2].get() == True):
+                    self.params['using_power_supply'] = True
+                    self.get_power_supply()
+                    if (self.PowerSupply.interface == None):
+                        return
+                    else:
+                        self.power_on()
+                        
+                else:
+                    self.params['using_power_supply'] = False
+        
         fw_ver = self.functions.get_fw_version()
         self.params['fw_ver'] = hex(fw_ver)
         
         if (fw_ver < int(self.config["DEFAULT"]["LATEST_FW"], 16)):
             messagebox.showinfo("Warning!", "The FPGA is running firmware version {} when the latest firmware is version {}.  Please let an expert know!".format(hex(fw_ver), hex(int(self.config["DEFAULT"]["LATEST_FW"], 16))))
             
+        
         self.functions.turnOnAsics()
         self.functions.resetBoard()
-        self.functions.turnOnAsics()
         
         responding_chips = self.functions.initBoard()
         self.chiplist = []
@@ -383,8 +395,6 @@ class GUI_WINDOW(tk.Frame):
                     working_chips.append(chip)
                     
         self.params['working_chips'] = working_chips
-        print ("Working chips are {}".format(working_chips))
-        print ("Because enabled chips are {}".format(self.asic_enables))
         
         tests_to_do = []
         for i in self.all_tests:
@@ -403,7 +413,6 @@ class GUI_WINDOW(tk.Frame):
         print("BEGIN TESTS")
         self.params.update(chip_list = self.chiplist)
         self.update_idletasks()
-        
         #Calls the new generic tester/runner.  Note that this is done in a for loop and the generic tester passes values back by using "Yield"
         #This is the only way I figured out how to get feedback back to the GUI mid-test without changing too much
         for i in (maintest(**self.params)):
@@ -411,7 +420,7 @@ class GUI_WINDOW(tk.Frame):
             self.update_idletasks()
 
         end_time = time.time()
-        self.status_label = "DONE " 
+        self.status_label = "DONE"
         self.update_idletasks()
         response = CustomDialog(self).show()
         
@@ -433,6 +442,9 @@ class GUI_WINDOW(tk.Frame):
         print("Total run time: {}".format(int(run_time)))
         #TODO turn off chips power
         print(self.GetTimeString(int(run_time)))
+        
+        if (self.params['using_power_supply'] == True):
+            self.power_off()
 
     def change_analysis_level(self):
         if (self.analysis == "basic"):
@@ -479,59 +491,17 @@ class GUI_WINDOW(tk.Frame):
             
     def power_on(self):
         self.on_child_closing()
-        self.PowerSupply = RigolDP832()
-        if (self.PowerSupply.powerSupplyDevice != None):
-            self.using_power_supply = True
-            self.params['power_supply'] = True
-        else:
-            self.using_power_supply = False
-            self.params['power_supply'] = False
-            messagebox.showinfo("Warning!", "No power supply device was detected!  Plug in the power supply and try again!  " +
-                                "If you want to run the test without the power suply connected, make sure to turn the power " +
-                                "on when testing at room temperature, off while cooling down, and on again when doing the cold test.")
-                                
-        if (self.using_power_supply):
-    #        TODO check if channels are already on or not
+        self.PowerSupply = self.get_power_supply()
+        if (self.PowerSupply.interface != None):
             pwr = self.config["POWER_SUPPLY"]
-            self.PowerSupply.set_channel(channel = pwr["PS_HEATING_CHN"], voltage = float(pwr["PS_HEATING_V"]), v_limit = float(pwr["PS_HEATING_V_LIMIT"]),
-                                         c_limit = float(pwr["PS_HEATING_I_LIMIT"]), vp = pwr["PS_HEATING_V_PROTECTION"], cp = pwr["PS_HEATING_I_PROTECTION"])
-            self.PowerSupply.set_channel(channel = pwr["PS_QUAD_CHN"], voltage = float(pwr["PS_QUAD_V"]), v_limit = float(pwr["PS_QUAD_V_LIMIT"]),
-                                         c_limit = float(pwr["PS_QUAD_I_LIMIT"]), vp = pwr["PS_QUAD_V_PROTECTION"], cp = pwr["PS_QUAD_I_PROTECTION"])
-            self.PowerSupply.set_channel(channel = pwr["PS_FPGA_CHN"], voltage = float(pwr["PS_FPGA_V"]), v_limit = float(pwr["PS_FPGA_V_LIMIT"]),
-                                         c_limit = float(pwr["PS_FPGA_I_LIMIT"]), vp = pwr["PS_FPGA_V_PROTECTION"], cp = pwr["PS_FPGA_I_PROTECTION"])
-            self.PowerSupply.on(channels = [1,2,3])
-            results = self.PowerSupply.measure_params(channel = 1)
-            print(results)
-            results = self.PowerSupply.measure_params(channel = 2)
-            print(results)
-            results = self.PowerSupply.measure_params(channel = 3)
-            print(results)
-    #       Measure initial volatage and current
-            self.PowerSupply.powerSupplyDevice.write(":MEAS:VOLT?")
-            initialVoltage = float(self.PowerSupply.powerSupplyDevice.read().strip().decode())
-            self.PowerSupply.powerSupplyDevice.write(":MEAS:CURR?")
-            initialCurrent = float(self.PowerSupply.powerSupplyDevice.read().lstrip().decode())
-            print(initialVoltage)
-            print(initialCurrent)
-            
+            self.PowerSupply.on(channels = [int(pwr["PS_HEATING_CHN"]),int(pwr["PS_QUAD_CHN"]),int(pwr["PS_FPGA_CHN"])])
         self.update_idletasks()
-        time.sleep(5)
 #        self.power_button["bg"]="green"
         
     def power_off(self):
         self.on_child_closing()
-        self.PowerSupply = RigolDP832()
-        if (self.PowerSupply.powerSupplyDevice != None):
-            self.using_power_supply = True
-            self.params['power_supply'] = True
-        else:
-            self.using_power_supply = False
-            self.params['power_supply'] = False
-            messagebox.showinfo("Warning!", "No power supply device was detected!  Plug in the power supply and try again!  " +
-                                "If you want to run the test without the power suply connected, make sure to turn the power " +
-                                "on when testing at room temperature, off while cooling down, and on again when doing the cold test.")
-                                
-        if (self.using_power_supply):
+        self.PowerSupply = self.get_power_supply()
+        if (self.PowerSupply.interface != None):
             self.PowerSupply.off()
         self.update_idletasks()
 #        self.power_button["bg"]="green"
@@ -586,14 +556,29 @@ class GUI_WINDOW(tk.Frame):
         self.working_chips = params['working_chips']
         self.chip_list = params['chip_list']
         print("CHECKING CHIPS")
+
+        #just gets the first "results.json" from the first working chip, just to get the main test paramfile json location
+        chip_name = self.chip_list[self.working_chips[0]][1]
+        results_path = os.path.join(self.datadir, chip_name)
+        jsonFile_chip = os.path.join(results_path, self.config["FILENAMES"]["RESULTS"])
+        
+        with open(jsonFile_chip,'r') as f:
+            test_list = json.load(f)
+            
+        paramfile = test_list["paramfile"]
+        print(paramfile)
+        with open(paramfile,'r') as f:
+            param_json = json.load(f)        
+        #Now we have the json and can add to it during the loop
+            
         for i in self.working_chips:
             chip_name = self.chip_list[i][1]
             results_path = os.path.join(self.datadir, chip_name)
-            jsonFile = os.path.join(results_path, self.config["FILENAMES"]["RESULTS"])
+            jsonFile_chip = os.path.join(results_path, self.config["FILENAMES"]["RESULTS"])
             #Now that we know what the timestamped directory is, we can have a button on the GUI open it directly
             self.details_label.bind("<Button-1>",lambda event, arg=self.datadir: self.open_directory(arg))
             
-            with open(jsonFile,'r') as f:
+            with open(jsonFile_chip,'r') as f:
                 test_list = json.load(f)
                 
             if "sync_outlabel" in test_list:
@@ -603,6 +588,8 @@ class GUI_WINDOW(tk.Frame):
                     results = json.load(f)
                 label = self.results_array[0][i]
                 result = results['sync_result']
+                test_list["sync_result"] = result
+                param_json["sync_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
                 linked_file1 = self.config["FILENAMES"]["SYNC_LINK"]
@@ -619,6 +606,8 @@ class GUI_WINDOW(tk.Frame):
                     results = json.load(f)
                 label = self.results_array[1][i]
                 result = results['baseline_result']
+                test_list["baseline_result"] = result
+                param_json["baseline_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
                 linked_file = self.config["FILENAMES"]["BASELINE_LINK"].format(chip_name)
@@ -632,6 +621,8 @@ class GUI_WINDOW(tk.Frame):
                     results = json.load(f)
                 label = self.results_array[2][i]
                 result = results['monitor_result']
+                test_list["monitor_result"] = result
+                param_json["monitor_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
                 linked_file = self.config["FILENAMES"]["MONITOR_LINK"].format(chip_name)
@@ -645,12 +636,20 @@ class GUI_WINDOW(tk.Frame):
                     results = json.load(f)
                 label = self.results_array[3][i]
                 result = results['alive_result']
+                test_list["alive_result"] = result
+                param_json["salive_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
                 linked_file = self.config["FILENAMES"]["ALIVE_LINK"].format(chip_name)
                 linked_file_path = os.path.join(linked_folder, linked_file)
                 label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
-                    
+                
+            with open(jsonFile_chip,'w') as outfile:
+                json.dump(test_list, outfile, indent=4)
+                
+        with open(paramfile,'w') as outfile:
+            json.dump(param_json, outfile, indent=4)
+                
     def update_label(self, label, result):
         if (result == "PASS"):
             label["text"] = "Pass"
@@ -687,6 +686,30 @@ class GUI_WINDOW(tk.Frame):
             self.WF_GUI.destroy()
             #self.WF_GUI.quit()
             self.WF_GUI = None
+            
+    def get_power_supply(self):
+        
+        if (self.PowerSupply.interface != None):
+            #print("Top_Level_GUI--> Using power supply {}".format(self.PowerSupply.name))
+            return (self.PowerSupply)
+        else:
+            self.PowerSupply = Power_Supply(self.config)
+            if (self.PowerSupply.interface == None):
+                messagebox.showinfo("Warning!", "No power supply device was detected!  Plug in the power supply and try again!  " +
+                                "If you want to run the test without the power supply connected, uncheck the box in 'Advanced Options', make sure to turn the power " +
+                                "on when testing at room temperature, off while cooling down, and on again when doing the cold test.")
+                return (self.PowerSupply)
+            else:
+        #        TODO check if channels are already on or not
+                pwr = self.config["POWER_SUPPLY"]
+                self.PowerSupply.set_channel(channel = pwr["PS_HEATING_CHN"], voltage = float(pwr["PS_HEATING_V"]), v_limit = float(pwr["PS_HEATING_V_LIMIT"]),
+                                             c_limit = float(pwr["PS_HEATING_I_LIMIT"]), vp = pwr["PS_HEATING_V_PROTECTION"], cp = pwr["PS_HEATING_I_PROTECTION"])
+                self.PowerSupply.set_channel(channel = pwr["PS_QUAD_CHN"], voltage = float(pwr["PS_QUAD_V"]), v_limit = float(pwr["PS_QUAD_V_LIMIT"]),
+                                             c_limit = float(pwr["PS_QUAD_I_LIMIT"]), vp = pwr["PS_QUAD_V_PROTECTION"], cp = pwr["PS_QUAD_I_PROTECTION"])
+                self.PowerSupply.set_channel(channel = pwr["PS_FPGA_CHN"], voltage = float(pwr["PS_FPGA_V"]), v_limit = float(pwr["PS_FPGA_V_LIMIT"]),
+                                             c_limit = float(pwr["PS_FPGA_I_LIMIT"]), vp = pwr["PS_FPGA_V_PROTECTION"], cp = pwr["PS_FPGA_I_PROTECTION"])
+                self.PowerSupply.on(channels = [pwr["PS_HEATING_CHN"],pwr["PS_QUAD_CHN"],pwr["PS_FPGA_CHN"]])
+                return (self.PowerSupply)
             
 class CustomDialog(tk.Toplevel):
     def __init__(self, parent):

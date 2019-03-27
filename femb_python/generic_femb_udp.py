@@ -18,8 +18,7 @@ import time
 from socket import AF_INET, SOCK_DGRAM
 import binascii
 from .helper_scripts.locking import FEMB_LOCK
-from femb_python.test_instrument_interface.rigol_dp832 import RigolDP832
-from femb_python.test_measurements.OscillatorTesting.code.driverUSBTMC import DriverUSBTMC
+from femb_python.test_instrument_interface.power_supply_interface import Power_Supply
 
 class FEMB_UDP(object):
     """
@@ -322,7 +321,7 @@ class FEMB_UDP(object):
         
     #TODO communicate with the power supply and see if it was tripped
     def check_power_fault(self):
-        self.PowerSupply = RigolDP832()
+        self.PowerSupply = Power_Supply(config = self.config)
         return
         
     def init_ports(self, hostIP = '', destIP = '', dummy_port = 0):
@@ -338,4 +337,5 @@ class FEMB_UDP(object):
 
     #__INIT__#
     def __init__(self, config):
+        self.config = config
         self.udp = config["UDP_SETTINGS"]

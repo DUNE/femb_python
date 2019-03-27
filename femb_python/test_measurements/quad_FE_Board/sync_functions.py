@@ -165,17 +165,18 @@ class SYNC_FUNCTIONS(object):
         #This just helps so that if we continuously need to sync on a board, we can go back and see what the settings it finds are and make those the default.
         jsonFile = os.path.join(datadir,"params.json")
         if os.path.exists(jsonFile):
-            sync_dict = {}
+            with open(jsonFile,'r') as f:
+                param_json = json.load(f)
             for reg in range(int(self.config["REGISTERS"]["REG_LATCH_MIN"]), int(self.config["REGISTERS"]["REG_LATCH_MAX"]) + 1):
                 value = self.femb_udp.read_reg(reg)
-                sync_dict['Register {}'.format(reg)] = '{}'.format(hex(value))
+                param_json['Register {}'.format(reg)] = '{}'.format(hex(value))
                 
             for reg in range(int(self.config["REGISTERS"]["REG_PHASE_MIN"]), int(self.config["REGISTERS"]["REG_TEST_ADC"]) + 1):
                 value = self.femb_udp.read_reg(reg)
-                sync_dict['Register {}'.format(reg)] = '{}'.format(hex(value))
+                param_json['Register {}'.format(reg)] = '{}'.format(hex(value))
                 
-            with open(jsonFile,'a') as outfile:
-                json.dump(sync_dict, outfile, indent=4)
+            with open(jsonFile,'w') as outfile:
+                json.dump(param_json, outfile, indent=4)
             
         #Bring things back to normal
         self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_READOUT_OPTIONS"]), int(self.config["DEFINITIONS"]["READOUT_NORMAL"]))

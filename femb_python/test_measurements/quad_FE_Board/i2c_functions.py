@@ -58,9 +58,9 @@ class I2C_comm(object):
             
     def get_PCB_power_info(self, device):
         dev_address = device
-        shunt_voltage = self.INA226_read(dev_address, 1, 2) * 2.5E-6
-        bus_voltage = self.INA226_read(dev_address, 2, 2) * 0.00125
-        current = shunt_voltage / float(self.config["DEFAULT"]["PCB_SHUNT_RESISTOR"])
+        shunt_voltage = round(self.INA226_read(dev_address, 1, 2) * 2.5E-6, 6)
+        bus_voltage = round(self.INA226_read(dev_address, 2, 2) * 0.00125, 3)
+        current = round(shunt_voltage / float(self.config["DEFAULT"]["PCB_SHUNT_RESISTOR"]), 3)
         return [shunt_voltage, bus_voltage, current]
         
     def INA226_write(self, device_address, reg_address, high_byte, low_byte):

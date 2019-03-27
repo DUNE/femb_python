@@ -15,13 +15,9 @@ import os
 import json
 import time
 import struct
-import matplotlib.pyplot as plt
-plt.switch_backend('agg')
-
-
 from femb_python.configuration import CONFIG
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
-
+from femb_python.test_instrument_interface.power_supply_interface import Power_Supply
 from femb_python.test_measurements.quad_FE_Board.Tests.Alive_Data_Analysis import Data_Analysis
 
 class ALIVE_TESTER(object):
@@ -40,6 +36,10 @@ class ALIVE_TESTER(object):
     def check_setup(self):
         print("ALIVE - SETUP")
         self.functions.initBoard(default_sync = False)
+        if (self.params['using_power_supply'] == True):
+            self.PowerSupply = Power_Supply(self.config)
+            if (self.PowerSupply.interface == None):
+                sys.exit("SYNCHRONIZATION --> Power Supply not found!")    
         
     def record_data(self):
         
@@ -56,7 +56,7 @@ class ALIVE_TESTER(object):
         
         self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_MUX_MODE"]), int(self.config["DEFINITIONS"]["MUX_GND_DACPULSE"]))
         self.low_level.setExternalPulser(period = int(self.config["MONITOR_SETTINGS"]["MONITOR_FREQ"]), shift = int(self.config["MONITOR_SETTINGS"]["MONITOR_DLY"]), enable = True)
-        
+        self.power_info_total = []
         for i in self.params['working_chips']:
             chip_name = self.params['chip_list'][i][1]
             chip_outpathlabel = os.path.join(self.params["datadir"], chip_name, self.params["outlabel"])
@@ -91,9 +91,23 @@ class ALIVE_TESTER(object):
                     with open(full_filename,"wb") as f:
                         f.write(bin_data) 
                         f.close()
+                        
+            power_info = self.functions.PCB_power_monitor(chips = i)
+            self.power_info_total.append(power_info)
+            
+        if (self.params['using_power_supply'] == True):   
+            pwr = self.config["POWER_SUPPLY"]
+            self.heating_results = self.PowerSupply.measure_params(channel = int(pwr["PS_HEATING_CHN"]))
+            self.quad_results = self.PowerSupply.measure_params(channel = int(pwr["PS_QUAD_CHN"]))
+            self.fpga_results = self.PowerSupply.measure_params(channel = int(pwr["PS_FPGA_CHN"]))
         
+        self.power_cycle_PCB_power = []
+        self.power_cycle_heating_results = []
+        self.power_cycle_quad_results = []
+        self.power_cycle_fpga_results = []
         print("Test--> Testing {} power cycles ({} seconds in between)".format(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES"], self.config["ALIVE_SETTINGS"]["ALIVE_TIME_OFF"]))
         for cycle in range(int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES"])):
+            self.power_cycle_PCB_power.append([])
             print("Test--> Cycle {}".format(cycle))
             
             self.functions.turnOffAsics()
@@ -133,6 +147,15 @@ class ALIVE_TESTER(object):
                         f.write(bin_data) 
                         f.close()
                         
+                    power_info = self.functions.PCB_power_monitor(chips = i)
+                    self.power_cycle_PCB_power[cycle].append(power_info)
+            
+            if (self.params['using_power_supply'] == True):   
+                pwr = self.config["POWER_SUPPLY"]
+                self.power_cycle_heating_results.append(self.PowerSupply.measure_params(channel = int(pwr["PS_HEATING_CHN"])))
+                self.power_cycle_quad_results.append(self.PowerSupply.measure_params(channel = int(pwr["PS_QUAD_CHN"])))
+                self.power_cycle_fpga_results.append(self.PowerSupply.measure_params(channel = int(pwr["PS_FPGA_CHN"])))
+                        
         print ("Test--> Input Alive data completed")
         
     def do_analysis(self):
@@ -157,6 +180,21 @@ class ALIVE_TESTER(object):
         self.jsondict['alive_leak'] = self.config["ALIVE_SETTINGS"]["ALIVE_LEAK"]
         self.jsondict['alive_acdc'] = self.config["ALIVE_SETTINGS"]["ALIVE_ACDC"]
         self.jsondict['alive_baseline'] = self.config["ALIVE_SETTINGS"]["ALIVE_BASELINE"]
+        
+        self.jsondict['PS_heating_voltage'] = self.heating_results[0]
+        self.jsondict['PS_heating_current'] = self.heating_results[1]
+        self.jsondict['PS_quad_voltage'] = self.quad_results[0]
+        self.jsondict['PS_quad_current'] = self.quad_results[1]
+        self.jsondict['PS_fpga_voltage'] = self.fpga_results[0]
+        self.jsondict['PS_fpga_current'] = self.fpga_results[1]
+        
+        for cycle in range(int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES"])):
+            self.jsondict['PS_heating_voltage_cycle{}'.format(cycle)] = self.power_cycle_heating_results[cycle][0]
+            self.jsondict['PS_heating_current_cycle{}'.format(cycle)] = self.power_cycle_heating_results[cycle][1]
+            self.jsondict['PS_quad_voltage_cycle{}'.format(cycle)] = self.power_cycle_quad_results[cycle][0]
+            self.jsondict['PS_quad_current_cycle{}'.format(cycle)] = self.power_cycle_quad_results[cycle][1]
+            self.jsondict['PS_fpga_voltage_cycle{}'.format(cycle)] = self.power_cycle_fpga_results[cycle][0]
+            self.jsondict['PS_fpga_current_cycle{}'.format(cycle)] = self.power_cycle_fpga_results[cycle][1]
 
         for num, i in enumerate(self.params['working_chips']):
             chip_name = self.params['chip_list'][i][1]
@@ -169,6 +207,23 @@ class ALIVE_TESTER(object):
                 self.jsondict['alive_result'] = "N/A"
                 
             #TODO add which channels, cycles, tests, failed
+                
+            self.jsondict['vdda_shunt_voltage'] = self.power_info_total[num][0][0]
+            self.jsondict['vdda_bus_voltage'] = self.power_info_total[num][0][1]
+            self.jsondict['vdda_current'] = self.power_info_total[num][0][2]
+            self.jsondict['vddp_shunt_voltage'] = self.power_info_total[num][1][0]
+            self.jsondict['vddp_bus_voltage'] = self.power_info_total[num][1][1]
+            self.jsondict['vddp_current'] = self.power_info_total[num][1][2]
+                
+                
+            for cycle in range(int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES"])):
+                print(self.power_cycle_PCB_power)
+                self.jsondict['vdda_shunt_voltage_cycle{}'.format(cycle)] = self.power_cycle_PCB_power[cycle][num][0][0]
+                self.jsondict['vdda_bus_voltage_cycle{}'.format(cycle)] = self.power_cycle_PCB_power[cycle][num][0][1]
+                self.jsondict['vdda_current_cycle{}'.format(cycle)] = self.power_cycle_PCB_power[cycle][num][0][2]
+                self.jsondict['vddp_shunt_voltage_cycle{}'.format(cycle)] = self.power_cycle_PCB_power[cycle][num][1][0]
+                self.jsondict['vddp_bus_voltage_cycle{}'.format(cycle)] = self.power_cycle_PCB_power[cycle][num][1][1]
+                self.jsondict['vddp_current_cycle{}'.format(cycle)] = self.power_cycle_PCB_power[cycle][num][1][2]
                 
             with open(jsonFile,'a') as outfile:
                 json.dump(self.jsondict, outfile, indent=4)

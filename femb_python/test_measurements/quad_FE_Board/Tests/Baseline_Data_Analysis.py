@@ -69,9 +69,9 @@ class Data_Analysis:
                     
                     if (val != None):
                         if (base == "200mV"):
-                            baselines_200.append(val)
+                            baselines_200.append(round(val,2))
                         elif (base == "900mV"):
-                            baselines_900.append(val)
+                            baselines_900.append(round(val,2))
                         else:
                             print("Baseline_Data_Analysis --> Incorrect baseline test chosen!  Should be 200mV or 900mV, you have {}".format(base))
                     

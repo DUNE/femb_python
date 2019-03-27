@@ -66,7 +66,7 @@ class Data_Analysis:
             if (result == False):
                 fails.append("Channel {} not found!".format(chn))
             overall_result = result and overall_result
-            peaks.append(average)
+            peaks.append(round(average, 2))
             ax.plot(sample_pulse)
             ax2.plot(corrected_pulse)
                     
@@ -91,7 +91,7 @@ class Data_Analysis:
         differences = []
         for chn in range(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]) + 1, 1):
             difference = average_peak - peaks[chn]
-            differences.append(difference)            
+            differences.append(round(difference, 2))         
             
         ax2.set_ylabel('mV')
         ax2.set_title("Sample pulses for Chip {} Monitor Test, baseline corrected".format(chip_name))

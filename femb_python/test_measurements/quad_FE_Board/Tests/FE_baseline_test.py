@@ -18,6 +18,7 @@ import datetime
 from femb_python.configuration import CONFIG
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.test_measurements.quad_FE_Board.Tests.Baseline_Data_Analysis import Data_Analysis
+from femb_python.test_instrument_interface.power_supply_interface import Power_Supply
 
 class BASELINE_TESTER(object):
     
@@ -35,17 +36,21 @@ class BASELINE_TESTER(object):
     def check_setup(self):
         print("BASELINE - SETUP")
         self.functions.initBoard(default_sync = False)
+        if (self.params['using_power_supply'] == True):
+            self.PowerSupply = Power_Supply(self.config)
+            if (self.PowerSupply.interface == None):
+                sys.exit("SYNCHRONIZATION --> Power Supply not found!")      
 
     def record_data(self):
         print("BASELINE - COLLECT DATA")
+        self.power_info_total = []
         for i in self.params['working_chips']:
             chip_name = self.params['chip_list'][i][1]
             chip_outpathlabel = os.path.join(self.params["datadir"], chip_name, self.params["outlabel"])
             data_directory = os.path.join(chip_outpathlabel, self.config["FILENAMES"]["DATA_NAME"])
             os.makedirs(data_directory, exist_ok=True)
             self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_MUX_MODE"]), int(self.config["DEFINITIONS"]["MUX_GND_GND"]))
-                
-            #TODO options if user wants to try other ones
+            
             self.gain = self.config["BASELINE_SETTINGS"]["BASELINE_GAIN"]
             self.shape = self.config["BASELINE_SETTINGS"]["BASELINE_PEAK"]
             self.leak = self.config["BASELINE_SETTINGS"]["BASELINE_LEAK"]
@@ -75,6 +80,15 @@ class BASELINE_TESTER(object):
                     with open(full_filename,"wb") as f:
                         f.write(rawdata) 
                         f.close()
+                        
+            power_info = self.functions.PCB_power_monitor(chips = i)
+            self.power_info_total.append(power_info)
+            
+        if (self.params['using_power_supply'] == True):   
+            pwr = self.config["POWER_SUPPLY"]
+            self.heating_results = self.PowerSupply.measure_params(channel = int(pwr["PS_HEATING_CHN"]))
+            self.quad_results = self.PowerSupply.measure_params(channel = int(pwr["PS_QUAD_CHN"]))
+            self.fpga_results = self.PowerSupply.measure_params(channel = int(pwr["PS_FPGA_CHN"]))
                         
         self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_SAMPLESPEED"]), int(self.config["INITIAL_SETTINGS"]["DEFAULT_SAMPLE_SPEED"]))
 
@@ -107,6 +121,13 @@ class BASELINE_TESTER(object):
         self.jsondict['baseline_peak'] = self.config["BASELINE_SETTINGS"]["BASELINE_PEAK"]
         self.jsondict['baseline_leak'] = self.config["BASELINE_SETTINGS"]["BASELINE_LEAK"]
         self.jsondict['baseline_buffer'] = self.config["BASELINE_SETTINGS"]["BASELINE_BUFFER"]
+        
+        self.jsondict['PS_heating_voltage'] = self.heating_results[0]
+        self.jsondict['PS_heating_current'] = self.heating_results[1]
+        self.jsondict['PS_quad_voltage'] = self.quad_results[0]
+        self.jsondict['PS_quad_current'] = self.quad_results[1]
+        self.jsondict['PS_fpga_voltage'] = self.fpga_results[0]
+        self.jsondict['PS_fpga_current'] = self.fpga_results[1]
 
         for num,i in enumerate(self.params['working_chips']):
             chip_name = self.params['chip_list'][i][1]
@@ -120,6 +141,12 @@ class BASELINE_TESTER(object):
                 
             self.jsondict['baseline_200_average'] = self.average_baseline_200[num]
             self.jsondict['baseline_900_average'] = self.average_baseline_900[num]
+            self.jsondict['vdda_shunt_voltage'] = self.power_info_total[num][0][0]
+            self.jsondict['vdda_bus_voltage'] = self.power_info_total[num][0][1]
+            self.jsondict['vdda_current'] = self.power_info_total[num][0][2]
+            self.jsondict['vddp_shunt_voltage'] = self.power_info_total[num][1][0]
+            self.jsondict['vddp_bus_voltage'] = self.power_info_total[num][1][1]
+            self.jsondict['vddp_current'] = self.power_info_total[num][1][2]
             
             for chn in range(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]) + 1, 1):
                 jsname = "baseline_200_channel{}".format(chn)

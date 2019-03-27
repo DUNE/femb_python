@@ -13,7 +13,7 @@ standard_library.install_aliases()
 import time
 import os
 import sys
-from femb_python.test_measurements.OscillatorTesting.code.driverUSBTMC import DriverUSBTMC
+from .driverUSBTMC import DriverUSBTMC
 
 class RigolDP832(object):
     """
@@ -31,9 +31,6 @@ class RigolDP832(object):
                 if(deviceID.startswith(b"RIGOL TECHNOLOGIES,DP832")):
                     print("RigolDP832 --> DC Power Supply found with identification %s" %(deviceID.decode()))
                     self.powerSupplyDevice = device
-                    
-        if self.powerSupplyDevice is None:
-            print("RigolDP832 Error --> Power supply of interest not found!")
 
     def on(self, channels = [1,2,3]):
         if type(channels) is not list:
@@ -41,7 +38,7 @@ class RigolDP832(object):
                 print("RigolDP832 Error --> Channel needs to be 1, 2, or 3!  {} was given!".format(channels))
                 return
             self.powerSupplyDevice.write(":OUTP CH{}, ON".format(channels))
-            if (self.get_on_off(channels) != "ON"):
+            if (self.get_on_off(channels) != True):
                    print("RigolDP832 Error --> Tried to turn on Channel {} of the Rigol DP832, but it didn't turn on".format(channels))
             
         else:
@@ -52,7 +49,7 @@ class RigolDP832(object):
                 
             for i in channels:
                self.powerSupplyDevice.write(":OUTP CH{}, ON".format(i))
-               if (self.get_on_off(i) != "ON"):
+               if (self.get_on_off(i) != True):
                    print("RigolDP832 Error --> Tried to turn on Channel {} of the Rigol DP832, but it didn't turn on".format(i))
 
     def off(self, channels = [1,2,3]):
@@ -61,7 +58,7 @@ class RigolDP832(object):
                 print("RigolDP832 Error --> Channel needs to be 1, 2, or 3!  {} was given!".format(channels))
                 return
             self.powerSupplyDevice.write(":OUTP CH{}, OFF".format(channels))
-            if (self.get_on_off(channels) != "OFF"):
+            if (self.get_on_off(channels) != True):
                    print("RigolDP832 Error --> Tried to turn off Channel {} of the Rigol DP832, but it didn't turn off".format(channels))
             
         else:
@@ -72,12 +69,18 @@ class RigolDP832(object):
                 
             for i in channels:
                self.powerSupplyDevice.write(":OUTP CH{}, OFF".format(i))
-               if (self.get_on_off(i) != "OFF"):
+               if (self.get_on_off(i) != False):
                    print("RigolDP832 Error --> Tried to turn off Channel {} of the Rigol DP832, but it didn't turn off".format(i))
                
     def get_on_off(self, channel):
         self.powerSupplyDevice.write(":OUTP? CH{}".format(channel))
-        return (self.powerSupplyDevice.read().strip().decode())
+        resp = self.powerSupplyDevice.read().strip().decode()
+        status = None
+        if (resp == "ON"):
+            status = True
+        elif (resp == "OFF"):
+            status = False
+        return (status)
         
     #Set all useful parameters of a channel.  Will ignore setting parameters that were not explicitly passed as arguments.
     def set_channel(self, channel, voltage = None, current = None, v_limit = None, c_limit = None, vp = None, cp = None):

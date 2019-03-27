@@ -17,6 +17,7 @@ import datetime
 from femb_python.configuration import CONFIG
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
 from femb_python.test_measurements.quad_FE_Board.Tests.Monitor_Data_Analysis import Data_Analysis
+from femb_python.test_instrument_interface.power_supply_interface import Power_Supply
 
 class MONITOR_TESTER(object):
     
@@ -35,6 +36,10 @@ class MONITOR_TESTER(object):
     def check_setup(self):
         print("MONITOR - SETUP")
         self.functions.initBoard(default_sync = False)
+        if (self.params['using_power_supply'] == True):
+            self.PowerSupply = Power_Supply(self.config)
+            if (self.PowerSupply.interface == None):
+                sys.exit("SYNCHRONIZATION --> Power Supply not found!")      
 
     def record_data(self):
         print("MONITOR - COLLECT DATA")
@@ -49,7 +54,7 @@ class MONITOR_TESTER(object):
         #Get the ASIC to send out pulses
         self.low_level.setInternalPulser(period = int(self.config["MONITOR_SETTINGS"]["MONITOR_FREQ"]), shift = int(self.config["MONITOR_SETTINGS"]["MONITOR_DLY"]), enable = True)
         self.low_level.setExternalPulser(enable = False)
-        
+        self.power_info_total = []
         for i in self.params['working_chips']:
             chip_name = self.params['chip_list'][i][1]
             chip_outpathlabel = os.path.join(self.params["datadir"], chip_name, self.params["outlabel"])
@@ -74,6 +79,15 @@ class MONITOR_TESTER(object):
                 with open(full_filename,"wb") as f:
                     f.write(bin_data) 
                     f.close()
+                    
+            power_info = self.functions.PCB_power_monitor(chips = i)
+            self.power_info_total.append(power_info)
+            
+        if (self.params['using_power_supply'] == True):   
+            pwr = self.config["POWER_SUPPLY"]
+            self.heating_results = self.PowerSupply.measure_params(channel = int(pwr["PS_HEATING_CHN"]))
+            self.quad_results = self.PowerSupply.measure_params(channel = int(pwr["PS_QUAD_CHN"]))
+            self.fpga_results = self.PowerSupply.measure_params(channel = int(pwr["PS_FPGA_CHN"]))
                     
         #Bring things back to normal
         self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_READOUT_OPTIONS"]), int(self.config["DEFINITIONS"]["READOUT_NORMAL"]))
@@ -109,6 +123,13 @@ class MONITOR_TESTER(object):
         self.jsondict['monitor_executable'] = self.params['executable']
         self.jsondict['monitor_datasubdir'] = self.params['datasubdir']
         self.jsondict['monitor_outlabel'] = self.params['outlabel']
+        
+        self.jsondict['PS_heating_voltage'] = self.heating_results[0]
+        self.jsondict['PS_heating_current'] = self.heating_results[1]
+        self.jsondict['PS_quad_voltage'] = self.quad_results[0]
+        self.jsondict['PS_quad_current'] = self.quad_results[1]
+        self.jsondict['PS_fpga_voltage'] = self.fpga_results[0]
+        self.jsondict['PS_fpga_current'] = self.fpga_results[1]
 
         for num, i in enumerate(self.params['working_chips']):
             chip_name = self.params['chip_list'][i][1]
@@ -121,6 +142,12 @@ class MONITOR_TESTER(object):
                 self.jsondict['monitor_result'] = "N/A"
                 
             self.jsondict['monitor_average_peak'] = self.average_peak[num]
+            self.jsondict['vdda_shunt_voltage'] = self.power_info_total[num][0][0]
+            self.jsondict['vdda_bus_voltage'] = self.power_info_total[num][0][1]
+            self.jsondict['vdda_current'] = self.power_info_total[num][0][2]
+            self.jsondict['vddp_shunt_voltage'] = self.power_info_total[num][1][0]
+            self.jsondict['vddp_bus_voltage'] = self.power_info_total[num][1][1]
+            self.jsondict['vddp_current'] = self.power_info_total[num][1][2]
             
             for chn in range(int(self.config["DEFAULT"]["NASICCH_MIN"]), int(self.config["DEFAULT"]["NASICCH_MAX"]) + 1, 1):
                 jsname = "monitor_peak{}".format(chn)

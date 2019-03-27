@@ -13,8 +13,10 @@ import sys
 import os
 import json
 import datetime
+import time
 from femb_python.configuration import CONFIG
 from femb_python.configuration.config_base import FEMB_CONFIG_BASE
+from femb_python.test_instrument_interface.power_supply_interface import Power_Supply
 
 class SYNC_ADCS(object):
     
@@ -31,9 +33,16 @@ class SYNC_ADCS(object):
         self.syncdict['sync_code_version'] = '1.0'
         self.syncdict['sync_timestamp']  = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
         
+    def check_setup(self):
+        print("SYNCHRONIZATION - SETUP")
+        self.functions.initBoard(default_sync = False)
+        if (self.params['using_power_supply'] == True):
+            self.PowerSupply = Power_Supply(self.config)
+            if (self.PowerSupply.interface == None):
+                sys.exit("SYNCHRONIZATION --> Power Supply not found!")            
+        
     def sync(self):
         print("SYNCHRONIZATION - COLLECT DATA")
-        self.functions.initBoard(**self.params, default_sync = False)
         self.return_results = self.sync_functions.syncADC(**self.params)
         
         self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_TAGGING"]), int(self.config["DEFINITIONS"]["TAGGING_ON"]))
@@ -45,7 +54,7 @@ class SYNC_ADCS(object):
                                         acdc=self.config["SYNC_SETTINGS"]["SYNC_ACDC"], test_dac="test_int", dac_value=int(self.config["SYNC_SETTINGS"]["SYNC_DAC_PEAK_HEIGHT"]))
         self.functions.writeFE()
         self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_MUX_MODE"]), int(self.config["DEFINITIONS"]["MUX_GND_GND_INTPULSE"]))
-        
+        self.power_info_total = []
         for i in self.params['working_chips']:
             chip_index = self.params['chip_list'][i][0]
             chip_name = self.params['chip_list'][i][1]
@@ -54,10 +63,15 @@ class SYNC_ADCS(object):
             print("quad_sync_adcs--> Printing internal synchronization plot for Chip {}".format(chip_name))
             savefig = os.path.join(chip_outpathlabel, "Sync_Plot_Internal")
             power_info = self.functions.PCB_power_monitor(chips = i)
+            self.power_info_total.append(power_info)
             self.plotting.plot_chip(data = data, plot_name = savefig, title_name = "Chip {} Internal Sync: Gain = {}/fC, Peaking Time = {}".format(chip_name, self.config["SYNC_SETTINGS"]["SYNC_GAIN"],
                                                                                                                                                         self.config["SYNC_SETTINGS"]["SYNC_PEAK"]), 
                                                                                                                                                         power = power_info, length = 1000)
-            
+        if (self.params['using_power_supply'] == True):                                                                                                                                            
+            pwr = self.config["POWER_SUPPLY"]
+            self.heating_results = self.PowerSupply.measure_params(channel = int(pwr["PS_HEATING_CHN"]))
+            self.quad_results = self.PowerSupply.measure_params(channel = int(pwr["PS_QUAD_CHN"]))
+            self.fpga_results = self.PowerSupply.measure_params(channel = int(pwr["PS_FPGA_CHN"]))
         self.low_level.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_MUX_MODE"]), int(self.config["DEFINITIONS"]["MUX_GND_DACPULSE"]))
 
         for i in self.params['working_chips']:
@@ -97,7 +111,6 @@ class SYNC_ADCS(object):
         self.jsondict['chipver'] = self.params['chipver']
         self.jsondict['sw_version'] = self.params['sw_version']
         self.jsondict['fpgamezz'] = self.params['fpgamezz']
-        self.jsondict['power_supply'] = self.params['power_supply']
         self.jsondict['femb_config'] = self.params['femb_config']
         self.jsondict['paramfile'] = self.params['paramfile']
         self.jsondict['sync_outlabel'] = self.params['outlabel']
@@ -119,12 +132,25 @@ class SYNC_ADCS(object):
         self.syncdict['sync_leak'] = self.config["SYNC_SETTINGS"]["SYNC_LEAK"]
         self.syncdict['sync_executable'] = self.params['executable']
         self.syncdict['sync_datasubdir'] = self.params['datasubdir']
+        
+        self.syncdict['PS_heating_voltage'] = self.heating_results[0]
+        self.syncdict['PS_heating_current'] = self.heating_results[1]
+        self.syncdict['PS_quad_voltage'] = self.quad_results[0]
+        self.syncdict['PS_quad_current'] = self.quad_results[1]
+        self.syncdict['PS_fpga_voltage'] = self.fpga_results[0]
+        self.syncdict['PS_fpga_current'] = self.fpga_results[1]
 
-        for i in self.params['working_chips']:
+        for num, i in enumerate(self.params['working_chips']):
             chip_index = self.params['chip_list'][i][0]
             chip_name = self.params['chip_list'][i][1]
             jsonFile = os.path.join(self.params["datadir"],chip_name,self.params["datasubdir"],self.params["outlabel"],self.config["FILENAMES"]["RESULTS"])
             self.syncdict['sync_result'] = self.results[chip_index][2]
+            self.syncdict['vdda_shunt_voltage'] = self.power_info_total[num][0][0]
+            self.syncdict['vdda_bus_voltage'] = self.power_info_total[num][0][1]
+            self.syncdict['vdda_current'] = self.power_info_total[num][0][2]
+            self.syncdict['vddp_shunt_voltage'] = self.power_info_total[num][1][0]
+            self.syncdict['vddp_bus_voltage'] = self.power_info_total[num][1][1]
+            self.syncdict['vddp_current'] = self.power_info_total[num][1][2]
             with open(jsonFile,'a') as outfile:
                 json.dump(self.syncdict, outfile, indent=4)
 
@@ -136,6 +162,7 @@ def main():
     params = json.loads(open(sys.argv[1]).read())
     params["to_print"] = True
     sync_adcs.params = params
+    sync_adcs.check_setup()
     sync_adcs.sync()
     sync_adcs.do_analysis()
     sync_adcs.archiveResults()
