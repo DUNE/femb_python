@@ -42,16 +42,16 @@ class Power_Supply(object):
         if (self.interface == None):
             print("power_supply_interface --> No valid power supply found!")
         else:
-            resp = None
-            
+            wait = False
             channels = kwargs["channels"]
             if type(channels) is int:
                 status = self.get_on_off(channels)
                 if (status == True):
                     print("power_supply_interface --> Channel {} is already on!".format(channels))
-                    resp = True
                 else:
                     resp = self.interface.on(**kwargs)
+                    if (resp == True):
+                        wait = True
                 
             elif type(channels) is list:
                 status = []
@@ -60,16 +60,16 @@ class Power_Supply(object):
                    
                 if False in status:
                     resp = self.interface.on(**kwargs)
+                    if (resp == True):
+                        wait = True
                 else:
                     print("power_supply_interface --> All channels are already on!")
-                    resp = True
                        
             else:
                 print("power_supply_interface --> Channel input should be a list or int, it's a {}".format(type(channels)))
                        
-            resp = self.interface.on(**kwargs)
-            time.sleep(5)
-            return (resp)
+            if (wait == True):
+                time.sleep(5)
 
     def off(self, **kwargs):
         if (self.interface == None):

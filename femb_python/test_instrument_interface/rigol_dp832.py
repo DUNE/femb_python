@@ -39,7 +39,7 @@ class RigolDP832(object):
                 return
             self.powerSupplyDevice.write(":OUTP CH{}, ON".format(channels))
             if (self.get_on_off(channels) != True):
-                   print("RigolDP832 Error --> Tried to turn on Channel {} of the Rigol DP832, but it didn't turn on".format(channels))
+                print("RigolDP832 Error --> Tried to turn on Channel {} of the Rigol DP832, but it didn't turn on".format(channels))
             
         else:
             for i in channels:
@@ -51,6 +51,8 @@ class RigolDP832(object):
                self.powerSupplyDevice.write(":OUTP CH{}, ON".format(i))
                if (self.get_on_off(i) != True):
                    print("RigolDP832 Error --> Tried to turn on Channel {} of the Rigol DP832, but it didn't turn on".format(i))
+                   
+        return True
 
     def off(self, channels = [1,2,3]):
         if type(channels) is not list:
@@ -58,7 +60,7 @@ class RigolDP832(object):
                 print("RigolDP832 Error --> Channel needs to be 1, 2, or 3!  {} was given!".format(channels))
                 return
             self.powerSupplyDevice.write(":OUTP CH{}, OFF".format(channels))
-            if (self.get_on_off(channels) != True):
+            if (self.get_on_off(channels) != False):
                    print("RigolDP832 Error --> Tried to turn off Channel {} of the Rigol DP832, but it didn't turn off".format(channels))
             
         else:

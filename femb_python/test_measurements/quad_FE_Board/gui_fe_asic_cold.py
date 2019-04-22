@@ -230,9 +230,10 @@ class GUI_WINDOW(tk.Frame):
         power_off = ["Power Off", self.power_off, "red"]
         test_connection = ["Test Connection", self.test_connection]
         debug = ["Debug Waveform", self.debug]
-        start = ["Start Tests", self.start_measurements]
+        start = ["Start Cold Tests", self.start_cold_measurements]
+        start_warm = ["Start Warm Tests", self.start_warm_measurements]
         
-        buttons = [power_on, power_off, test_connection, debug, start]
+        buttons = [power_on, power_off, test_connection, debug, start, start_warm]
 
         for num,i in enumerate(buttons):
             try:
@@ -328,6 +329,14 @@ class GUI_WINDOW(tk.Frame):
         with open(jsonFile,'w') as outfile:
             json.dump(self.defaultjson, outfile, indent=4)
             
+    def start_warm_measurements(self):
+        self.advanced_options[1][2].set(value=False)
+        self.start_measurements()
+        
+    def start_cold_measurements(self):
+        self.advanced_options[1][2].set(value=True)
+        self.start_measurements()        
+            
     def start_measurements(self):
         self.write_default_file()
         
@@ -373,6 +382,18 @@ class GUI_WINDOW(tk.Frame):
                         
                 else:
                     self.params['using_power_supply'] = False
+                    
+            if (num == 1):
+                if (i[2].get() == True):
+                    self.params['temperature'] = "LN"
+                    self.get_power_supply()
+                    if (self.PowerSupply.interface == None):
+                        return
+                    else:
+                        self.power_on()
+                        
+                else:
+                    self.params['temperature'] = "RT"
         
         fw_ver = self.functions.get_fw_version()
         self.params['fw_ver'] = hex(fw_ver)
@@ -397,13 +418,20 @@ class GUI_WINDOW(tk.Frame):
         self.params['working_chips'] = working_chips
         
         tests_to_do = []
-        for i in self.all_tests:
-            if (i[0]!="Final"):
-                if ((i[1] == "basic") and (i[5].get() == True)):
-                    tests_to_do.append([i[2],i[3]])
-                    
-                elif (self.analysis == "advanced" and i[1] == "advanced" and i[5].get() == True):
-                    tests_to_do.append([i[2],i[3]])
+        if (self.params['temperature'] == "LN"):
+            for i in self.all_tests:
+                if (i[0]!="Final"):
+                    if ((i[1] == "basic") and (i[5].get() == True)):
+                        tests_to_do.append([i[2],i[3]])
+                        
+                    elif (self.analysis == "advanced" and i[1] == "advanced" and i[5].get() == True):
+                        tests_to_do.append([i[2],i[3]])
+                        
+        else:
+            sync = self.all_tests[0]
+            tests_to_do.append([sync[2],sync[3]])
+            alive = self.all_tests[3]
+            tests_to_do.append([alive[2],alive[3]])
                 
         self.params['tests_to_do'] = tests_to_do
 
@@ -413,11 +441,27 @@ class GUI_WINDOW(tk.Frame):
         print("BEGIN TESTS")
         self.params.update(chip_list = self.chiplist)
         self.update_idletasks()
+        params = None
         #Calls the new generic tester/runner.  Note that this is done in a for loop and the generic tester passes values back by using "Yield"
         #This is the only way I figured out how to get feedback back to the GUI mid-test without changing too much
         for i in (maintest(**self.params)):
             self.postResults(i)
             self.update_idletasks()
+            params = i
+            
+        for i in self.working_chips:
+            chip_name = self.chip_list[i][1]
+            results_file = os.path.join(self.datadir, chip_name, "results.json")
+            with open(results_file,'r') as f:
+                results = json.load(f)
+                
+            ver = {'verified':False}
+            
+            with open(results_file,'w') as outfile:
+                results.update(ver)
+                json.dump(results, outfile, indent=4)
+                
+        self.postResults(params)
 
         end_time = time.time()
         self.status_label = "DONE"
@@ -436,11 +480,9 @@ class GUI_WINDOW(tk.Frame):
                 results.update(ver)
                 json.dump(results, outfile, indent=4)
                 
-        
-        
         run_time = end_time-start_time
         print("Total run time: {}".format(int(run_time)))
-        #TODO turn off chips power
+        self.functions.turnOffAsics()
         print(self.GetTimeString(int(run_time)))
         
         if (self.params['using_power_supply'] == True):
@@ -465,8 +507,6 @@ class GUI_WINDOW(tk.Frame):
                 button.grid(row = 1 + num, column = self.midcolumnbase + 2)
                 label= i[1]
                 label.grid(row = 1 + num, column = self.midcolumnbase + 3, columnspan = 3)
-                        
-            
                 
         elif (self.analysis == "advanced"):
             self.analysis = "basic"
@@ -566,7 +606,6 @@ class GUI_WINDOW(tk.Frame):
             test_list = json.load(f)
             
         paramfile = test_list["paramfile"]
-        print(paramfile)
         with open(paramfile,'r') as f:
             param_json = json.load(f)        
         #Now we have the json and can add to it during the loop
@@ -581,6 +620,8 @@ class GUI_WINDOW(tk.Frame):
             with open(jsonFile_chip,'r') as f:
                 test_list = json.load(f)
                 
+            overall_result = True
+                
             if "sync_outlabel" in test_list:
                 outlabel = test_list["sync_outlabel"]
                 jsonFile = os.path.join(results_path, outlabel, self.config["FILENAMES"]["RESULTS"])
@@ -589,6 +630,7 @@ class GUI_WINDOW(tk.Frame):
                 label = self.results_array[0][i]
                 result = results['sync_result']
                 test_list["sync_result"] = result
+                overall_result = overall_result and result
                 param_json["sync_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
@@ -607,6 +649,7 @@ class GUI_WINDOW(tk.Frame):
                 label = self.results_array[1][i]
                 result = results['baseline_result']
                 test_list["baseline_result"] = result
+                overall_result = overall_result and result
                 param_json["baseline_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
@@ -622,6 +665,7 @@ class GUI_WINDOW(tk.Frame):
                 label = self.results_array[2][i]
                 result = results['monitor_result']
                 test_list["monitor_result"] = result
+                overall_result = overall_result and result
                 param_json["monitor_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
@@ -637,12 +681,18 @@ class GUI_WINDOW(tk.Frame):
                 label = self.results_array[3][i]
                 result = results['alive_result']
                 test_list["alive_result"] = result
-                param_json["salive_result_{}".format(i)] = result
+                overall_result = overall_result and result
+                param_json["alive_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
                 linked_file = self.config["FILENAMES"]["ALIVE_LINK"].format(chip_name)
                 linked_file_path = os.path.join(linked_folder, linked_file)
                 label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
+                
+            if "verified" in test_list:
+                param_json["overall_result_{}".format(i)] = overall_result
+                label = self.results_array[7][i]
+                self.update_label(label, overall_result)
                 
             with open(jsonFile_chip,'w') as outfile:
                 json.dump(test_list, outfile, indent=4)

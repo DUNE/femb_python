@@ -25,7 +25,7 @@ class Data_Analysis:
         num_bits = int(self.config["DEFAULT"]["ADC_FULL_SCALE"], 16)
         self.bits_to_mv = ADC_voltage/num_bits
         
-    def alive_directory(self, directory, chip, datasubdir, tests, leaks):
+    def alive_directory(self, directory, chip, datasubdir, tests, leaks, temp):
         print("Test--> Analyzing 'Channel Alive' data for Chip {}...".format(chip))
         
         self.data_folder = os.path.join(directory,datasubdir)
@@ -54,14 +54,15 @@ class Data_Analysis:
                     elif (test == "test_ext"):
                         plot_color = "red"
                     ax.plot(sample_pulse, color = plot_color)
-            for cycle in range(int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES"])):
-                self.filename = data_file_scheme_cycle.format(leak,test,cycle)
-                sample_pulse, result = self.alive_file(os.path.join(self.data_folder,self.filename))
-                overall_result = overall_result and result
-                if (result == False):
-                        fails.append("Cycle {}, {} not found!".format(cycle,test))
-                plot_color = "blue"
-                ax.plot(sample_pulse, color = plot_color)
+            if (temp == "LN"):
+                for cycle in range(int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES"])):
+                    self.filename = data_file_scheme_cycle.format(leak,test,cycle)
+                    sample_pulse, result = self.alive_file(os.path.join(self.data_folder,self.filename))
+                    overall_result = overall_result and result
+                    if (result == False):
+                            fails.append("Cycle {}, {} not found!".format(cycle,test))
+                    plot_color = "blue"
+                    ax.plot(sample_pulse, color = plot_color)
                     
         green_patch = mpatches.Patch(color='green', label='Input pin to FE')
         red_patch = mpatches.Patch(color='red', label='Test pin to FE')
