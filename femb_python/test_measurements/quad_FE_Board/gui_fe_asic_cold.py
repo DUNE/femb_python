@@ -339,7 +339,7 @@ class GUI_WINDOW(tk.Frame):
             
     def start_measurements(self):
         self.write_default_file()
-        
+        self.clear_labels()
         #Make sure everything was entered ok, that nothing was screwed up
         gui_check = self.config["GUI_SETTINGS"]
         asic_tup = []
@@ -700,6 +700,11 @@ class GUI_WINDOW(tk.Frame):
         with open(paramfile,'w') as outfile:
             json.dump(param_json, outfile, indent=4)
                 
+    def clear_labels(self):
+        for i in range(5):
+            for j in range(4):
+                label = self.results_array[i][j]
+                label["text"] = "----"
     def update_label(self, label, result):
         if (result == "PASS"):
             label["text"] = "Pass"
