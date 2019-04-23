@@ -22,7 +22,7 @@ import subprocess
 import git
 import shutil
 import time
-
+import threading
 #import the test module
 #from femb_python.test_measurements.feAsicTest.doFembTest_simpleMeasurement import FEMB_TEST_SIMPLE
 #from femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement import FEMB_TEST_GAIN
@@ -42,8 +42,11 @@ class GUI_WINDOW(tk.Frame):
         self.use_sumatra = True
         
         #Useful to have if we ever want to look back and see what version of femb_python we were using
-        repo = git.Repo(__file__, search_parent_directories=True)
-        self.sw_version = repo.head.object.hexsha
+        try:
+            repo = git.Repo(__file__, search_parent_directories=True)
+            self.sw_version = repo.head.object.hexsha
+        except:
+            self.sw_version = "Not Found"
 
         #It's calling the constructor of the parent tkinter object, the pack method of the class, which is now a tkinter object
         tk.Frame.__init__(self,master)
@@ -272,11 +275,12 @@ class GUI_WINDOW(tk.Frame):
         self.temperature_cold = ["Cold Test"]
         self.online_analysis = ["Concurrent Analysis"]
         self.advanced_options = [self.connected_power_supply, self.temperature_cold, self.online_analysis]
+        self.advanced_variables = []
         for i in self.advanced_options:
             label = tk.Label(self, text = i[0], width = 20, anchor="w")
             i.append(label)
             var = tk.BooleanVar(value=True)
-            i.append(var)
+            self.advanced_variables.append(var)
             button = tk.Checkbutton(self, variable=var)
             i.append(button)
                 
@@ -330,11 +334,11 @@ class GUI_WINDOW(tk.Frame):
             json.dump(self.defaultjson, outfile, indent=4)
             
     def start_warm_measurements(self):
-        self.advanced_options[1][2].set(value=False)
+        self.advanced_variables[1].set(value=False)
         self.start_measurements()
         
     def start_cold_measurements(self):
-        self.advanced_options[1][2].set(value=True)
+        self.advanced_variables[1].set(value=True)
         self.start_measurements()        
             
     def start_measurements(self):
@@ -370,30 +374,28 @@ class GUI_WINDOW(tk.Frame):
             self.update_idletasks()
             return
             
-        for num, i in enumerate(self.advanced_options):
-            if (num == 0):
-                if (i[2].get() == True):
-                    self.params['using_power_supply'] = True
-                    self.get_power_supply()
-                    if (self.PowerSupply.interface == None):
-                        return
-                    else:
-                        self.power_on()
-                        
-                else:
-                    self.params['using_power_supply'] = False
-                    
-            if (num == 1):
-                if (i[2].get() == True):
-                    self.params['temperature'] = "LN"
-                    self.get_power_supply()
-                    if (self.PowerSupply.interface == None):
-                        return
-                    else:
-                        self.power_on()
-                        
-                else:
-                    self.params['temperature'] = "RT"
+        
+        if (self.advanced_variables[0].get() == True):
+            self.params['using_power_supply'] = True
+            self.get_power_supply()
+            if (self.PowerSupply.interface == None):
+                return
+            else:
+                self.power_on()
+                
+        else:
+            self.params['using_power_supply'] = False
+            
+        if (self.advanced_variables[1].get() == True):
+            self.params['temperature'] = "LN"
+            self.get_power_supply()
+            if (self.PowerSupply.interface == None):
+                return
+            else:
+                self.power_on()
+                
+        else:
+            self.params['temperature'] = "RT"
         
         fw_ver = self.functions.get_fw_version()
         self.params['fw_ver'] = hex(fw_ver)
@@ -466,7 +468,7 @@ class GUI_WINDOW(tk.Frame):
         end_time = time.time()
         self.status_label = "DONE"
         self.update_idletasks()
-        response = CustomDialog(self).show()
+        response = CustomDialog(self, power_supply = self.advanced_variables[0].get(), PS = self.PowerSupply)
         
         for i in self.working_chips:
             chip_name = self.chip_list[i][1]
@@ -503,7 +505,7 @@ class GUI_WINDOW(tk.Frame):
                         label.grid(stick=tk.W, row = 8 + chips, column = self.midcolumnbase+num+1)
                         
             for num, i in enumerate(self.advanced_options):
-                button = i[3]
+                button = i[2]
                 button.grid(row = 1 + num, column = self.midcolumnbase + 2)
                 label= i[1]
                 label.grid(row = 1 + num, column = self.midcolumnbase + 3, columnspan = 3)
@@ -522,7 +524,7 @@ class GUI_WINDOW(tk.Frame):
                         label.grid_forget()
                         
                 for num, i in enumerate(self.advanced_options):
-                    button = i[3]
+                    button = i[2]
                     button.grid_forget()
                     label = i[1]
                     label.grid_forget()
@@ -744,33 +746,37 @@ class GUI_WINDOW(tk.Frame):
             
     def get_power_supply(self):
         
-        if (self.PowerSupply.interface != None):
-            #print("Top_Level_GUI--> Using power supply {}".format(self.PowerSupply.name))
-            return (self.PowerSupply)
-        else:
-            self.PowerSupply = Power_Supply(self.config)
-            if (self.PowerSupply.interface == None):
-                messagebox.showinfo("Warning!", "No power supply device was detected!  Plug in the power supply and try again!  " +
-                                "If you want to run the test without the power supply connected, uncheck the box in 'Advanced Options', make sure to turn the power " +
-                                "on when testing at room temperature, off while cooling down, and on again when doing the cold test.")
+        if (self.advanced_variables[0].get() == True):
+            if (self.PowerSupply.interface != None):
+                #print("Top_Level_GUI--> Using power supply {}".format(self.PowerSupply.name))
                 return (self.PowerSupply)
             else:
-        #        TODO check if channels are already on or not
-                pwr = self.config["POWER_SUPPLY"]
-                self.PowerSupply.set_channel(channel = pwr["PS_HEATING_CHN"], voltage = float(pwr["PS_HEATING_V"]), v_limit = float(pwr["PS_HEATING_V_LIMIT"]),
-                                             c_limit = float(pwr["PS_HEATING_I_LIMIT"]), vp = pwr["PS_HEATING_V_PROTECTION"], cp = pwr["PS_HEATING_I_PROTECTION"])
-                self.PowerSupply.set_channel(channel = pwr["PS_QUAD_CHN"], voltage = float(pwr["PS_QUAD_V"]), v_limit = float(pwr["PS_QUAD_V_LIMIT"]),
-                                             c_limit = float(pwr["PS_QUAD_I_LIMIT"]), vp = pwr["PS_QUAD_V_PROTECTION"], cp = pwr["PS_QUAD_I_PROTECTION"])
-                self.PowerSupply.set_channel(channel = pwr["PS_FPGA_CHN"], voltage = float(pwr["PS_FPGA_V"]), v_limit = float(pwr["PS_FPGA_V_LIMIT"]),
-                                             c_limit = float(pwr["PS_FPGA_I_LIMIT"]), vp = pwr["PS_FPGA_V_PROTECTION"], cp = pwr["PS_FPGA_I_PROTECTION"])
-                self.PowerSupply.on(channels = [pwr["PS_HEATING_CHN"],pwr["PS_QUAD_CHN"],pwr["PS_FPGA_CHN"]])
-                return (self.PowerSupply)
+                self.PowerSupply = Power_Supply(self.config)
+                if (self.PowerSupply.interface == None):
+                    messagebox.showinfo("Warning!", "No power supply device was detected!  Plug in the power supply and try again!  " +
+                                    "If you want to run the test without the power supply connected, uncheck the box in 'Advanced Options', make sure to turn the power " +
+                                    "on when testing at room temperature, off while cooling down, and on again when doing the cold test.")
+                    return (self.PowerSupply)
+                else:
+            #        TODO check if channels are already on or not
+                    pwr = self.config["POWER_SUPPLY"]
+                    self.PowerSupply.set_channel(channel = pwr["PS_HEATING_CHN"], voltage = float(pwr["PS_HEATING_V"]), v_limit = float(pwr["PS_HEATING_V_LIMIT"]),
+                                                 c_limit = float(pwr["PS_HEATING_I_LIMIT"]), vp = pwr["PS_HEATING_V_PROTECTION"], cp = pwr["PS_HEATING_I_PROTECTION"])
+                    self.PowerSupply.set_channel(channel = pwr["PS_QUAD_CHN"], voltage = float(pwr["PS_QUAD_V"]), v_limit = float(pwr["PS_QUAD_V_LIMIT"]),
+                                                 c_limit = float(pwr["PS_QUAD_I_LIMIT"]), vp = pwr["PS_QUAD_V_PROTECTION"], cp = pwr["PS_QUAD_I_PROTECTION"])
+                    self.PowerSupply.set_channel(channel = pwr["PS_FPGA_CHN"], voltage = float(pwr["PS_FPGA_V"]), v_limit = float(pwr["PS_FPGA_V_LIMIT"]),
+                                                 c_limit = float(pwr["PS_FPGA_I_LIMIT"]), vp = pwr["PS_FPGA_V_PROTECTION"], cp = pwr["PS_FPGA_I_PROTECTION"])
+                    self.PowerSupply.on(channels = [pwr["PS_HEATING_CHN"],pwr["PS_QUAD_CHN"],pwr["PS_FPGA_CHN"]])
+                    return (self.PowerSupply)
+                    
+        else:
+            print("Top Level GUI --> Not using Power Supply")
             
 class CustomDialog(tk.Toplevel):
-    def __init__(self, parent):
+    def __init__(self, parent, power_supply, PS):
         tk.Toplevel.__init__(self, parent)
         self.config = CONFIG
-        
+        self.PowerSupply = PS
         self.labels = []
         self.entries = []
         self.values= []
@@ -786,6 +792,17 @@ class CustomDialog(tk.Toplevel):
             
         self.ok_button = tk.Button(self, text="OK", command=self.on_ok)
         self.ok_button.grid(row=2,column=0)
+        
+        print("Power supply is {}".format(power_supply))
+        if (power_supply == True):
+            print("Starting thread")
+            threading.Thread(target=self.beeping)
+            
+            print("Beeping function2")
+            while(True):
+                print("Beep2")
+                self.PowerSupply.beep()
+                time.sleep(int(self.config["DEFAULT"]["BEEP_PAUSE"]))
 
     def on_ok(self, event=None):
         self.destroy()
@@ -798,6 +815,13 @@ class CustomDialog(tk.Toplevel):
         for i in range(len(self.entries)):
             response.append(self.values[i].get())
         return response
+        
+    def beeping(self):
+        print("Beeping function")
+        while(True):
+            print("Beep")
+            self.PowerSupply.beep()
+            time.sleep(int(self.config["DEFAULT"]["BEEP_PAUSE"]))
 
 def main():
     root = tk.Tk()

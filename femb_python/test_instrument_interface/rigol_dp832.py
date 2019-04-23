@@ -160,3 +160,7 @@ class RigolDP832(object):
         for i in range(len(response)):
             response[i] = float(response[i])
         return response
+        
+    def beep(self):
+        self.powerSupplyDevice.write(":SYSTem:BEEPer:IMMediate")
+        return True

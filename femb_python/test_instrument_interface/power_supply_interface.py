@@ -96,3 +96,9 @@ class Power_Supply(object):
             print("power_supply_interface --> No valid power supply found!")
         else:
             return (self.interface.measure_params(**kwargs))
+            
+    def beep(self,**kwargs):
+        if (self.interface == None):
+            print("power_supply_interface --> No valid power supply found!")
+        else:
+            return (self.interface.beep(**kwargs))
