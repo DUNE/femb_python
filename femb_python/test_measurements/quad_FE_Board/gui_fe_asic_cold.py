@@ -488,7 +488,7 @@ class GUI_WINDOW(tk.Frame):
         print(self.GetTimeString(int(run_time)))
         
         if (self.params['using_power_supply'] == True):
-            self.power_off()
+            self.power_off(channels = [2,3])
 
     def change_analysis_level(self):
         if (self.analysis == "basic"):
@@ -540,11 +540,11 @@ class GUI_WINDOW(tk.Frame):
         self.update_idletasks()
 #        self.power_button["bg"]="green"
         
-    def power_off(self):
+    def power_off(self, channels = None):
         self.on_child_closing()
         self.PowerSupply = self.get_power_supply()
         if (self.PowerSupply.interface != None):
-            self.PowerSupply.off()
+            self.PowerSupply.off(channels = channels)
         self.update_idletasks()
 #        self.power_button["bg"]="green"
         
@@ -597,7 +597,6 @@ class GUI_WINDOW(tk.Frame):
         self.datadir = params['datadir']
         self.working_chips = params['working_chips']
         self.chip_list = params['chip_list']
-        print("CHECKING CHIPS")
 
         #just gets the first "results.json" from the first working chip, just to get the main test paramfile json location
         chip_name = self.chip_list[self.working_chips[0]][1]

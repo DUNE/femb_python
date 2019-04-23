@@ -358,7 +358,7 @@ class SYNC_FUNCTIONS(object):
     #TODO check other channels if one doesn't work
     def fixUnsync_testADC(self, chip):
         test_reg = int(self.config["REGISTERS"]["REG_TEST_ADC"])
-        self.low_func.select_chip_chn(chip = chip, chn = 2)
+        self.low_func.selectChipChannel(chip = chip, chn = 2)
         init_mask = (0xF << (2 * chip))
         
         neg_mask = 0
