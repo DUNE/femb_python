@@ -468,7 +468,7 @@ class GUI_WINDOW(tk.Frame):
         end_time = time.time()
         self.status_label = "DONE"
         self.update_idletasks()
-        response = CustomDialog(self, power_supply = self.advanced_variables[0].get(), PS = self.PowerSupply)
+        response = CustomDialog(self, power_supply = self.advanced_variables[0].get(), PS = self.PowerSupply).show()
         
         for i in self.working_chips:
             chip_name = self.chip_list[i][1]
@@ -476,7 +476,7 @@ class GUI_WINDOW(tk.Frame):
             with open(results_file,'r') as f:
                 results = json.load(f)
                 
-            ver = {'verified':response[i]}
+            ver = {'verified':str(response[i])}
             
             with open(results_file,'w') as outfile:
                 results.update(ver)
@@ -703,7 +703,7 @@ class GUI_WINDOW(tk.Frame):
             json.dump(param_json, outfile, indent=4)
                 
     def clear_labels(self):
-        for i in range(5):
+        for i in range(8):
             for j in range(4):
                 label = self.results_array[i][j]
                 label["text"] = "----"
