@@ -793,16 +793,16 @@ class CustomDialog(tk.Toplevel):
         self.ok_button = tk.Button(self, text="OK", command=self.on_ok)
         self.ok_button.grid(row=2,column=0)
         
-        print("Power supply is {}".format(power_supply))
-        if (power_supply == True):
-            print("Starting thread")
-            threading.Thread(target=self.beeping)
-            
-            print("Beeping function2")
-            while(True):
-                print("Beep2")
-                self.PowerSupply.beep()
-                time.sleep(int(self.config["DEFAULT"]["BEEP_PAUSE"]))
+#        print("Power supply is {}".format(power_supply))
+#        if (power_supply == True):
+#            print("Starting thread")
+#            threading.Thread(target=self.beeping)
+#            
+#            print("Beeping function2")
+#            while(True):
+#                print("Beep2")
+#                self.PowerSupply.beep()
+#                time.sleep(int(self.config["DEFAULT"]["BEEP_PAUSE"]))
 
     def on_ok(self, event=None):
         self.destroy()
