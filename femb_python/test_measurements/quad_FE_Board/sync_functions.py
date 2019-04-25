@@ -97,10 +97,10 @@ class SYNC_FUNCTIONS(object):
             channel_output_result = True
             for chn in range(int(self.config["DEFAULT"]["NASICS"])):
                 #Tests if it's synchronized, returns True if it is
-                unsync = self.testUnsync(chip = chip_id, chn = chn)
+                unsync = self.testUnsync(chip = chip_id[0], chn = chn)
                 if unsync != True:
                     print ("sync_functions--> Chip {}({}), Chn {} not synced, try to fix".format(chip_id[0],chip_id[1], chn))
-                    response = self.fixUnsync_outputADC(chip = chip_id, chn = chn)
+                    response = self.fixUnsync_outputADC(chip = chip_id[0], chn = chn)
                     if (response != True):
                         channel_output_result = False
                         print ("sync_functions--> Unable to fix Chip {}({}), Chn {}".format(chip_id[0],chip_id[1], chn))
@@ -135,10 +135,10 @@ class SYNC_FUNCTIONS(object):
             self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_MUX_MODE"]), int(self.config["DEFINITIONS"]["MUX_ADC_GND"]))
             
             monitor_test_result = True
-            unsync = self.testUnsync(chip = chip_id, chn = chn)
+            unsync = self.testUnsync(chip = chip_id[0], chn = chn)
             if unsync != True:
                 print ("sync_functions--> Chip {}({}) (test ADC) not synced, try to fix".format(chip_id[0],chip_id[1]))
-                response = self.fixUnsync_testADC(chip = chip_id)
+                response = self.fixUnsync_testADC(chip = chip_id[0])
                 if (response != True):
                     monitor_test_result = False
                     print ("sync_functions--> Something is wrong with Chip {}({}) (test ADC)".format(chip_id[0],chip_id[1]))

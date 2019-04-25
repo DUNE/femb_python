@@ -540,7 +540,7 @@ class GUI_WINDOW(tk.Frame):
         self.update_idletasks()
 #        self.power_button["bg"]="green"
         
-    def power_off(self, channels = None):
+    def power_off(self, channels = [1,2,3]):
         self.on_child_closing()
         self.PowerSupply = self.get_power_supply()
         if (self.PowerSupply.interface != None):
