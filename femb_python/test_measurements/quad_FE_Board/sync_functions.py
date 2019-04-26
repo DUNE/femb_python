@@ -372,7 +372,7 @@ class SYNC_FUNCTIONS(object):
                 result_bit = 0
             neg_mask = neg_mask + (result_bit << i)
             
-        init_shift = self.femb.read_reg(test_reg)          
+        init_shift = self.femb_udp.read_reg(test_reg)          
         #print ("Init shift is {}".format(hex(init_shift)))
         #print ("Init mask is {}".format(bin(init_mask)))
         #print ("Negative mask is {}".format(bin(neg_mask))))
@@ -397,7 +397,7 @@ class SYNC_FUNCTIONS(object):
 #                print ("Making space for the new setting is {}".format(bin(init_shift_with_mask)))
 #                print ("Adding together is {}".format(bin(final_shift)))
                 
-                self.femb.write_reg(test_reg, really_final)
+                self.femb_udp.write_reg(test_reg, really_final)
                 index = (shift+4) + phase + 100
                 unsync = self.testUnsync(chip = chip, chn = 1, index = index)
                 if unsync == True:
@@ -405,5 +405,5 @@ class SYNC_FUNCTIONS(object):
                     return True
 
         print ("FEMB_CONFIG--> ADC SYNC process failed for Chip {}({}) ADC".format(chip[0], chip[1]))
-        self.femb.write_reg(test_reg, init_shift)
+        self.femb_udp.write_reg(test_reg, init_shift)
         return False
