@@ -534,7 +534,7 @@ class GUI_WINDOW(tk.Frame):
     def power_on(self):
         self.on_child_closing()
         self.PowerSupply = self.get_power_supply()
-        if (self.PowerSupply.interface != None):
+        if (self.PowerSupply != None):
             pwr = self.config["POWER_SUPPLY"]
             self.PowerSupply.on(channels = [int(pwr["PS_HEATING_CHN"]),int(pwr["PS_QUAD_CHN"]),int(pwr["PS_FPGA_CHN"])])
         self.update_idletasks()

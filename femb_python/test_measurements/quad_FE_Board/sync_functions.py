@@ -100,7 +100,7 @@ class SYNC_FUNCTIONS(object):
                 unsync = self.testUnsync(chip = chip_id, chn = chn)
                 if unsync != True:
                     print ("sync_functions--> Chip {}({}), Chn {} not synced, try to fix".format(chip_id[0],chip_id[1], chn))
-                    response = self.fixUnsync_outputADC(chip = chip_id[0], chn = chn)
+                    response = self.fixUnsync_outputADC(chip = chip_id, chn = chn)
                     if (response != True):
                         channel_output_result = False
                         print ("sync_functions--> Unable to fix Chip {}({}), Chn {}".format(chip_id[0],chip_id[1], chn))
