@@ -34,7 +34,7 @@ class RigolDP832(object):
 
     def on(self, channels = [1,2,3]):
         if type(channels) is not list:
-            if ((channels < 1) or (channels > 3)):
+            if ((int(channels) < 1) or (int(channels) > 3)):
                 print("RigolDP832 Error --> Channel needs to be 1, 2, or 3!  {} was given!".format(channels))
                 return
             self.powerSupplyDevice.write(":OUTP CH{}, ON".format(channels))
@@ -43,7 +43,7 @@ class RigolDP832(object):
             
         else:
             for i in channels:
-                if ((i < 1) or (i > 3)):
+                if ((int(i) < 1) or (int(i) > 3)):
                     print("RigolDP832 Error --> Channel needs to be 1, 2, or 3!  {} was given!".format(i))
                     return
                 
@@ -56,7 +56,7 @@ class RigolDP832(object):
 
     def off(self, channels = [1,2,3]):
         if type(channels) is not list:
-            if ((channels < 1) or (channels > 3)):
+            if ((int(channels) < 1) or (int(channels) > 3)):
                 print("RigolDP832 Error --> Channel needs to be 1, 2, or 3!  {} was given!".format(channels))
                 return
             self.powerSupplyDevice.write(":OUTP CH{}, OFF".format(channels))
@@ -65,7 +65,7 @@ class RigolDP832(object):
             
         else:
             for i in channels:
-                if ((i < 1) or (i > 3)):
+                if ((int(i) < 1) or (int(i) > 3)):
                     print("RigolDP832 Error --> Channel needs to be 1, 2, or 3!  {} was given!".format(i))
                     return
                 
@@ -151,7 +151,7 @@ class RigolDP832(object):
                 
     #Returns array of 3 numbers: Voltage, Current and Power
     def measure_params(self,channel):
-        if ((channel < 1) or (channel > 3)):
+        if ((int(channel) < 1) or (int(channel) > 3)):
             print("RigolDP832 Error --> Channel needs to be 1, 2, or 3!  {} was given!".format(channel))
             return
         

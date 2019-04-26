@@ -62,8 +62,8 @@ class Power_Supply(object):
                     resp = self.interface.on(**kwargs)
                     if (resp == True):
                         wait = True
-                else:
-                    print("power_supply_interface --> All channels are already on!")
+                #else:
+                    #print("power_supply_interface --> All channels are already on!")
                        
             else:
                 print("power_supply_interface --> Channel input should be a list or int, it's a {}".format(type(channels)))

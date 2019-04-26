@@ -765,13 +765,13 @@ class GUI_WINDOW(tk.Frame):
             
     def set_supply_params(self):
         pwr = self.config["POWER_SUPPLY"]
-        self.PowerSupply.set_channel(channel = pwr["PS_HEATING_CHN"], voltage = float(pwr["PS_HEATING_V"]), v_limit = float(pwr["PS_HEATING_V_LIMIT"]),
+        self.PowerSupply.set_channel(channel = int(pwr["PS_HEATING_CHN"]), voltage = float(pwr["PS_HEATING_V"]), v_limit = float(pwr["PS_HEATING_V_LIMIT"]),
                                      c_limit = float(pwr["PS_HEATING_I_LIMIT"]), vp = pwr["PS_HEATING_V_PROTECTION"], cp = pwr["PS_HEATING_I_PROTECTION"])
-        self.PowerSupply.set_channel(channel = pwr["PS_QUAD_CHN"], voltage = float(pwr["PS_QUAD_V"]), v_limit = float(pwr["PS_QUAD_V_LIMIT"]),
+        self.PowerSupply.set_channel(channel = int(pwr["PS_QUAD_CHN"]), voltage = float(pwr["PS_QUAD_V"]), v_limit = float(pwr["PS_QUAD_V_LIMIT"]),
                                      c_limit = float(pwr["PS_QUAD_I_LIMIT"]), vp = pwr["PS_QUAD_V_PROTECTION"], cp = pwr["PS_QUAD_I_PROTECTION"])
-        self.PowerSupply.set_channel(channel = pwr["PS_FPGA_CHN"], voltage = float(pwr["PS_FPGA_V"]), v_limit = float(pwr["PS_FPGA_V_LIMIT"]),
+        self.PowerSupply.set_channel(channel = int(pwr["PS_FPGA_CHN"]), voltage = float(pwr["PS_FPGA_V"]), v_limit = float(pwr["PS_FPGA_V_LIMIT"]),
                                      c_limit = float(pwr["PS_FPGA_I_LIMIT"]), vp = pwr["PS_FPGA_V_PROTECTION"], cp = pwr["PS_FPGA_I_PROTECTION"])
-        self.PowerSupply.on(channels = [pwr["PS_HEATING_CHN"],pwr["PS_QUAD_CHN"],pwr["PS_FPGA_CHN"]])
+        self.PowerSupply.on(channels = [int(pwr["PS_HEATING_CHN"]),int(pwr["PS_QUAD_CHN"]),int(pwr["PS_FPGA_CHN"])])
             
 class CustomDialog(tk.Toplevel):
     def __init__(self, parent, power_supply, PS):

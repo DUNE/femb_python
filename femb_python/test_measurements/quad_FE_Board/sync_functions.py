@@ -97,7 +97,7 @@ class SYNC_FUNCTIONS(object):
             channel_output_result = True
             for chn in range(int(self.config["DEFAULT"]["NASICS"])):
                 #Tests if it's synchronized, returns True if it is
-                unsync = self.testUnsync(chip = chip_id[0], chn = chn)
+                unsync = self.testUnsync(chip = chip_id, chn = chn)
                 if unsync != True:
                     print ("sync_functions--> Chip {}({}), Chn {} not synced, try to fix".format(chip_id[0],chip_id[1], chn))
                     response = self.fixUnsync_outputADC(chip = chip_id[0], chn = chn)
@@ -135,10 +135,10 @@ class SYNC_FUNCTIONS(object):
             self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_MUX_MODE"]), int(self.config["DEFINITIONS"]["MUX_ADC_GND"]))
             
             monitor_test_result = True
-            unsync = self.testUnsync(chip = chip_id[0], chn = chn)
+            unsync = self.testUnsync(chip = chip_id, chn = chn)
             if unsync != True:
                 print ("sync_functions--> Chip {}({}) (test ADC) not synced, try to fix".format(chip_id[0],chip_id[1]))
-                response = self.fixUnsync_testADC(chip = chip_id[0])
+                response = self.fixUnsync_testADC(chip = chip_id)
                 if (response != True):
                     monitor_test_result = False
                     print ("sync_functions--> Something is wrong with Chip {}({}) (test ADC)".format(chip_id[0],chip_id[1]))
@@ -174,9 +174,10 @@ class SYNC_FUNCTIONS(object):
             for reg in range(int(self.config["REGISTERS"]["REG_PHASE_MIN"]), int(self.config["REGISTERS"]["REG_TEST_ADC"]) + 1):
                 value = self.femb_udp.read_reg(reg)
                 param_json['Register {}'.format(reg)] = '{}'.format(hex(value))
-                
             with open(jsonFile,'w') as outfile:
                 json.dump(param_json, outfile, indent=4)
+        else:
+            print("It doesn't exist")
             
         #Bring things back to normal
         self.femb_udp.write_reg(int(self.config["REGISTERS"]["REG_READOUT_OPTIONS"]), int(self.config["DEFINITIONS"]["READOUT_NORMAL"]))
@@ -358,8 +359,8 @@ class SYNC_FUNCTIONS(object):
     #TODO check other channels if one doesn't work
     def fixUnsync_testADC(self, chip):
         test_reg = int(self.config["REGISTERS"]["REG_TEST_ADC"])
-        self.low_func.selectChipChannel(chip = chip, chn = 2)
-        init_mask = (0xF << (2 * chip))
+        self.low_func.selectChipChannel(chip = chip[0], chn = 2)
+        init_mask = (0xF << (2 * chip[0]))
         
         neg_mask = 0
         for i in range(32):
@@ -379,7 +380,7 @@ class SYNC_FUNCTIONS(object):
             for phase in range(4):
                 setting = (phase << 2) + shift
                 #print ("Setting is {}".format(bin(setting)))
-                final_setting = setting << (chip * 4)
+                final_setting = setting << (chip[0] * 4)
                 #print ("Final Setting is {}".format(bin(setting)))
                 init_shift_with_mask = init_shift & neg_mask
                 #print ("Initshift with mask is {}".format(hex(init_shift_with_mask)))
@@ -400,9 +401,9 @@ class SYNC_FUNCTIONS(object):
                 index = (shift+4) + phase + 100
                 unsync = self.testUnsync(chip = chip, chn = 1, index = index)
                 if unsync == True:
-                    print ("FEMB_CONFIG--> Chip {} test ADC fixed!".format(chip))
+                    print ("FEMB_CONFIG--> Chip {}({}) test ADC fixed!".format(chip[0], chip[1]))
                     return True
 
-        print ("FEMB_CONFIG--> ADC SYNC process failed for Chip {} ADC".format(chip))
+        print ("FEMB_CONFIG--> ADC SYNC process failed for Chip {}({}) ADC".format(chip[0], chip[1]))
         self.femb.write_reg(test_reg, init_shift)
         return False
