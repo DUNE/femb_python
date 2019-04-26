@@ -747,7 +747,7 @@ class GUI_WINDOW(tk.Frame):
         
         if (self.advanced_variables[0].get() == True):
             if (self.PowerSupply.interface != None):
-                #print("Top_Level_GUI--> Using power supply {}".format(self.PowerSupply.name))
+                self.set_supply_params()
                 return (self.PowerSupply)
             else:
                 self.PowerSupply = Power_Supply(self.config)
@@ -756,20 +756,22 @@ class GUI_WINDOW(tk.Frame):
                                     "If you want to run the test without the power supply connected, uncheck the box in 'Advanced Options', make sure to turn the power " +
                                     "on when testing at room temperature, off while cooling down, and on again when doing the cold test.")
                     return (self.PowerSupply)
-                else:
-            #        TODO check if channels are already on or not
-                    pwr = self.config["POWER_SUPPLY"]
-                    self.PowerSupply.set_channel(channel = pwr["PS_HEATING_CHN"], voltage = float(pwr["PS_HEATING_V"]), v_limit = float(pwr["PS_HEATING_V_LIMIT"]),
-                                                 c_limit = float(pwr["PS_HEATING_I_LIMIT"]), vp = pwr["PS_HEATING_V_PROTECTION"], cp = pwr["PS_HEATING_I_PROTECTION"])
-                    self.PowerSupply.set_channel(channel = pwr["PS_QUAD_CHN"], voltage = float(pwr["PS_QUAD_V"]), v_limit = float(pwr["PS_QUAD_V_LIMIT"]),
-                                                 c_limit = float(pwr["PS_QUAD_I_LIMIT"]), vp = pwr["PS_QUAD_V_PROTECTION"], cp = pwr["PS_QUAD_I_PROTECTION"])
-                    self.PowerSupply.set_channel(channel = pwr["PS_FPGA_CHN"], voltage = float(pwr["PS_FPGA_V"]), v_limit = float(pwr["PS_FPGA_V_LIMIT"]),
-                                                 c_limit = float(pwr["PS_FPGA_I_LIMIT"]), vp = pwr["PS_FPGA_V_PROTECTION"], cp = pwr["PS_FPGA_I_PROTECTION"])
-                    self.PowerSupply.on(channels = [pwr["PS_HEATING_CHN"],pwr["PS_QUAD_CHN"],pwr["PS_FPGA_CHN"]])
-                    return (self.PowerSupply)
                     
+                else:
+                    self.set_supply_params()
+                    return (self.PowerSupply)
         else:
             print("Top Level GUI --> Not using Power Supply")
+            
+    def set_supply_params(self):
+        pwr = self.config["POWER_SUPPLY"]
+        self.PowerSupply.set_channel(channel = pwr["PS_HEATING_CHN"], voltage = float(pwr["PS_HEATING_V"]), v_limit = float(pwr["PS_HEATING_V_LIMIT"]),
+                                     c_limit = float(pwr["PS_HEATING_I_LIMIT"]), vp = pwr["PS_HEATING_V_PROTECTION"], cp = pwr["PS_HEATING_I_PROTECTION"])
+        self.PowerSupply.set_channel(channel = pwr["PS_QUAD_CHN"], voltage = float(pwr["PS_QUAD_V"]), v_limit = float(pwr["PS_QUAD_V_LIMIT"]),
+                                     c_limit = float(pwr["PS_QUAD_I_LIMIT"]), vp = pwr["PS_QUAD_V_PROTECTION"], cp = pwr["PS_QUAD_I_PROTECTION"])
+        self.PowerSupply.set_channel(channel = pwr["PS_FPGA_CHN"], voltage = float(pwr["PS_FPGA_V"]), v_limit = float(pwr["PS_FPGA_V_LIMIT"]),
+                                     c_limit = float(pwr["PS_FPGA_I_LIMIT"]), vp = pwr["PS_FPGA_V_PROTECTION"], cp = pwr["PS_FPGA_I_PROTECTION"])
+        self.PowerSupply.on(channels = [pwr["PS_HEATING_CHN"],pwr["PS_QUAD_CHN"],pwr["PS_FPGA_CHN"]])
             
 class CustomDialog(tk.Toplevel):
     def __init__(self, parent, power_supply, PS):
