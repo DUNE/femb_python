@@ -55,7 +55,8 @@ class Data_Analysis:
                         plot_color = "red"
                     ax.plot(sample_pulse, color = plot_color)
             if (temp == "LN"):
-                for cycle in range(int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES"])):
+                total_cycles = int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_1"]) + int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_2"])
+                for cycle in range(total_cycles):
                     self.filename = data_file_scheme_cycle.format(leak,test,cycle)
                     sample_pulse, result = self.alive_file(os.path.join(self.data_folder,self.filename))
                     overall_result = overall_result and result

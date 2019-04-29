@@ -109,13 +109,21 @@ class ALIVE_TESTER(object):
         temp = self.params['temperature']
         
         if (temp == "LN"):
-            print("Test--> Testing {} power cycles ({} seconds in between)".format(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES"], self.config["ALIVE_SETTINGS"]["ALIVE_TIME_OFF"]))
-            for cycle in range(int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES"])):
+            
+            total_cycles = int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_1"]) + int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_2"])
+            
+            print("Test--> Testing {} power cycles ({} seconds in between for the first {}, {} seconds in between for the next {})".format(total_cycles, self.config["ALIVE_SETTINGS"]["ALIVE_TIME_OFF_1"],
+                                                                                                  self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_1"], self.config["ALIVE_SETTINGS"]["ALIVE_TIME_OFF_2"],
+                                                                                                    self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_2"]))
+            for cycle in range(total_cycles):
                 self.power_cycle_PCB_power.append([])
                 print("Test--> Cycle {}".format(cycle))
                 
                 self.functions.turnOffAsics()
-                time.sleep(int(self.config["ALIVE_SETTINGS"]["ALIVE_TIME_OFF"]))
+                if (cycle < int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_1"])):
+                    time.sleep(int(self.config["ALIVE_SETTINGS"]["ALIVE_TIME_OFF_1"]))
+                else:
+                    time.sleep(int(self.config["ALIVE_SETTINGS"]["ALIVE_TIME_OFF_2"]))
                 self.functions.turnOnAsics()
                 
                 for test in ["test_off", "test_ext"]:
@@ -193,7 +201,8 @@ class ALIVE_TESTER(object):
         self.jsondict['PS_fpga_current'] = self.fpga_results[1]
         
         if (self.params['temperature'] == "LN"):
-            for cycle in range(int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES"])):
+            total_cycles = int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_1"]) + int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_2"])
+            for cycle in range(total_cycles):
                 self.jsondict['PS_heating_voltage_cycle{}'.format(cycle)] = self.power_cycle_heating_results[cycle][0]
                 self.jsondict['PS_heating_current_cycle{}'.format(cycle)] = self.power_cycle_heating_results[cycle][1]
                 self.jsondict['PS_quad_voltage_cycle{}'.format(cycle)] = self.power_cycle_quad_results[cycle][0]
@@ -221,7 +230,8 @@ class ALIVE_TESTER(object):
             self.jsondict['vddp_current'] = self.power_info_total[num][1][2]
                 
             if (self.params['temperature'] == "LN"):
-                for cycle in range(int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES"])):
+                total_cycles = int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_1"]) + int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_2"])
+                for cycle in range(total_cycles):
                     print(self.power_cycle_PCB_power)
                     self.jsondict['vdda_shunt_voltage_cycle{}'.format(cycle)] = self.power_cycle_PCB_power[cycle][num][0][0]
                     self.jsondict['vdda_bus_voltage_cycle{}'.format(cycle)] = self.power_cycle_PCB_power[cycle][num][0][1]

@@ -706,6 +706,7 @@ class GUI_WINDOW(tk.Frame):
             for j in range(4):
                 label = self.results_array[i][j]
                 label["text"] = "----"
+                label["fg"] = "black"
     def update_label(self, label, result):
         if (result == "PASS"):
             label["text"] = "Pass"
