@@ -64,7 +64,7 @@ class FEMB_SUMMARY(object):
                 boxtext = ""
             else:
                 name = params['box_ids'][i]
-                boxtext = "CE Box "
+                boxtext = "FEMB "
 
             text_title = "SBND FEMB QC Summary: "+boxtext+name
 
@@ -100,9 +100,11 @@ class FEMB_SUMMARY(object):
 
             pdf.cell(25, 5, txt=fet, align='L')            
             for jfe in params['fe_asics'][i]:
-                pdf.cell(13, 5, txt=str(jfe), align='L')            
+                pdf.cell(12, 5, txt=str(jfe), align='L')            
             pdf.ln(5)
 
+            pdf.cell(40, 5, txt=adct, align='L')
+            
             printgain = False
             printpc = False
             printcurrent = False

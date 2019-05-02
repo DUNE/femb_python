@@ -100,12 +100,12 @@ class FEMB_SUMMARY(object):
 
             pdf.cell(25, 5, txt=fet, align='L')            
             for jfe in params['fe_asics'][i]:
-                pdf.cell(10, 5, txt=str(jfe), align='L')            
+                pdf.cell(13, 5, txt=str(jfe), align='L')            
             pdf.ln(5)
 
             pdf.cell(25, 5, txt=adct, align='L')            
             for jadc in params['adc_asics'][i]:
-                pdf.cell(10, 5, txt=str(jadc), align='L')
+                pdf.cell(13, 5, txt=str(jadc), align='L')
             pdf.ln(5)
 
             printgain = False
