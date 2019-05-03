@@ -1,9 +1,9 @@
 #!/usr/bin/env python33
 
 """
-Configuration for SBND FEMB + protoDUNE WIB Setup
-WIB firmware v116
-FEMB firmware v405
+Configuration for production SBND FEMB + SBND WIB Setup
+WIB firmware v108
+FEMB firmware v501
 """
 
 from __future__ import print_function
@@ -488,13 +488,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
         #FEMB power enable
         if(fembVal == 0):
-            regVal = 0x1000F
+            regVal = 0x31000F
         if(fembVal == 1):
-            regVal = 0x200F0
+            regVal = 0x5200F0
         if(fembVal == 2):
-            regVal = 0x40F00
+            regVal = 0x940F00
         if(fembVal == 3):
-            regVal = 0x8F000
+            regVal = 0x118F000
 
         pwrVal = 0x100000 | regVal | oldVal
 
@@ -883,11 +883,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if fembVerReg == None :
             return False
         fembVerReg = (fembVerReg & 0xFFF)
-        if wibVerReg != 0x116 :
-            print("Invalid WIB firmware version detected " + str(wibVerReg) + ", this configuration requires version 0x116")
+        if wibVerReg != 0x108 :
+            print("Invalid WIB firmware version detected " + str(wibVerReg) + ", this configuration requires version 0x108")
             return False
-        if fembVerReg != 0x405 :
-            print("Invalid FEMB firmware version detected " + str(fembVerReg) + ", this configuration requires version 0x405")
+        if fembVerReg != 0x501 :
+            print("Invalid FEMB firmware version detected " + str(fembVerReg) + ", this configuration requires version 0x501")
             return False
         
         print( "WIB Firmware Version : " + str(hex(wibVerReg)) )

@@ -64,7 +64,7 @@ class FEMB_SUMMARY(object):
                 boxtext = ""
             else:
                 name = params['box_ids'][i]
-                boxtext = "CE Box "
+                boxtext = "FEMB "
 
             text_title = "SBND FEMB QC Summary: "+boxtext+name
 
@@ -90,7 +90,7 @@ class FEMB_SUMMARY(object):
 
             amt = "Analog MB ID: "
             fmt = "FPGA Mezz ID: "
-            fet = "FE ASICS: "
+            fet = "V7 FE ASICs"
             adct = "COTS ADCs"
 
             t1 = amt+params['am_ids'][i]
@@ -99,10 +99,12 @@ class FEMB_SUMMARY(object):
             pdf.cell(25, 5, txt=t2, align='L',ln=1)
 
             pdf.cell(25, 5, txt=fet, align='L')            
-            for jfe in params['fe_asics'][i]:
-                pdf.cell(13, 5, txt=str(jfe), align='L')            
-            pdf.ln(5)
+            #for jfe in params['fe_asics'][i]:
+            #    pdf.cell(12, 5, txt=str(jfe), align='L')            
+            #pdf.ln(5)
 
+            pdf.cell(40, 5, txt=adct, align='L')
+            
             printgain = False
             printpc = False
             printcurrent = False
@@ -155,11 +157,11 @@ class FEMB_SUMMARY(object):
                     currentmonitortext = "Current Monitoring:"
                     voltage_text = "Voltage (V):"                    
                     current_text = "Current (A):"
-                    l1 = "4.2 V"
-                    l2 = "3 V"
-                    l3 = "4.2 V"
-                    l4 = "1.5 V"
-                    l5 = "5 V"
+                    l1 = "4.0 V"
+                    l2 = "3.0 V"
+                    l3 = "3.3 V"
+                    l4 = "1.8 V"
+                    l5 = "5.0 V"
                     info_file = self.topdir+"/"+mydir+"/params.json"
                     if os.path.isfile(info_file):
                         params_curr = json.loads(open(info_file).read())

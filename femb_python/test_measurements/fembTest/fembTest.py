@@ -88,12 +88,12 @@ def main(**params):
                 tests.append( Test(**params_test) )
         i+=1
 
-    #Test with internal clocks
-    params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
-                        datasubdir="fembTest_gainenc_test_g2_s2_intpulse_intclock", 
-                        outlabel="fembTest_gainenc_test_g2_s2_intpulse_intclock", 
-                        gain=2, shape=2, base=0, useInternalPulser=True, useExtAdcClock=False)
-    tests.append ( Test(**params_test) )
+    #Test with internal clocks - remove for non-P1 ADCs
+    #params_test.update( executable="femb_test_gainenc", argstr="{paramfile}",
+    #                    datasubdir="fembTest_gainenc_test_g2_s2_intpulse_intclock", 
+    #                    outlabel="fembTest_gainenc_test_g2_s2_intpulse_intclock", 
+    #                    gain=2, shape=2, base=0, useInternalPulser=True, useExtAdcClock=False)
+    #tests.append ( Test(**params_test) )
 
     #Current Measurement
     params_test_current = dict(params)

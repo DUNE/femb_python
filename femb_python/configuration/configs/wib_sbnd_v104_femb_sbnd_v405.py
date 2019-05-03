@@ -204,7 +204,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
     def initBoard(self):
         self.initWib()
-        for femb in range(1,4,1):
+        for femb in range(0,4,1):
             self.selectFemb(femb)
             self.initFemb()
         
@@ -391,9 +391,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
     def wib_switch(self):
         #Set IP addresses based in wib number:
         #For SBND-LArIAT
-        iplist = ["131.225.150.203","131.225.150.206"]
+        #iplist = ["131.225.150.203","131.225.150.206"]
         #For BNL testing
-        #iplist = ["192.168.121.50"]
+        iplist = ["192.168.121.1"]
         self.femb.UDP_IP = iplist[self.wibNum]
         print("IP address is now ",self.femb.UDP_IP)
     
@@ -445,13 +445,13 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         
         #FEMB power enable
         if(fembVal == 0):
-            regVal = 0x1000F
+            regVal = 0x31000F
         if(fembVal == 1):
-            regVal = 0x200F0
+            regVal = 0x5200F0
         if(fembVal == 2):
-            regVal = 0x40F00
+            regVal = 0x940F00
         if(fembVal == 3):
-            regVal = 0x8F000
+            regVal = 0x118F000
 
         pwrVal = 0x100000 | regVal | oldVal
 

@@ -77,9 +77,19 @@ class FEMB_TEST_GAIN(object):
         #make sure output directory exists
         self.write_data.assure_filedir()
 
+        #check that femb number is valid
+        if ( int(self.fembNum) < 0 ) or ( int( self.fembNum) >= self.femb_config.NFEMBS ):
+            print("Error running doFembTest - Invalid FEMB # specified.")
+            return    
+
+        #assign FEMB # to test 
+        self.femb_config.selectFemb(self.fembNum)
+        
         #check if register interface is working
         print("Checking register interface")
         regVal = self.femb_config.femb.read_reg(6)
+        #print("reg6",regVal)
+        
         if (regVal == None):
             print("Error running doFembTest - FEMB register interface is not working.")
             print(" Turn on or debug FEMB UDP readout.")       
@@ -90,13 +100,6 @@ class FEMB_TEST_GAIN(object):
             return
         print("Read register 6, value = " + str( hex( regVal ) ) )
 
-        #check that femb number is valid
-        if ( int(self.fembNum) < 0 ) or ( int( self.fembNum) >= self.femb_config.NFEMBS ):
-            print("Error running doFembTest - Invalid FEMB # specified.")
-            return    
-
-        #assign FEMB # to test 
-        self.femb_config.selectFemb(self.fembNum)
 
         #initialize FEMB to known state
         print("Initializing board")
