@@ -121,9 +121,9 @@ class ALIVE_TESTER(object):
                 
                 self.functions.turnOffAsics()
                 if (cycle < int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_1"])):
-                    time.sleep(int(self.config["ALIVE_SETTINGS"]["ALIVE_TIME_OFF_1"]))
+                    time.sleep(float(self.config["ALIVE_SETTINGS"]["ALIVE_TIME_OFF_1"]))
                 else:
-                    time.sleep(int(self.config["ALIVE_SETTINGS"]["ALIVE_TIME_OFF_2"]))
+                    time.sleep(float(self.config["ALIVE_SETTINGS"]["ALIVE_TIME_OFF_2"]))
                 self.functions.turnOnAsics()
                 
                 for test in ["test_off", "test_ext"]:
@@ -232,7 +232,6 @@ class ALIVE_TESTER(object):
             if (self.params['temperature'] == "LN"):
                 total_cycles = int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_1"]) + int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_2"])
                 for cycle in range(total_cycles):
-                    print(self.power_cycle_PCB_power)
                     self.jsondict['vdda_shunt_voltage_cycle{}'.format(cycle)] = self.power_cycle_PCB_power[cycle][num][0][0]
                     self.jsondict['vdda_bus_voltage_cycle{}'.format(cycle)] = self.power_cycle_PCB_power[cycle][num][0][1]
                     self.jsondict['vdda_current_cycle{}'.format(cycle)] = self.power_cycle_PCB_power[cycle][num][0][2]
