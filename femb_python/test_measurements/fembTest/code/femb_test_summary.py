@@ -101,7 +101,7 @@ class FEMB_SUMMARY(object):
             pdf.cell(25, 5, txt=fet, align='L')            
             #for jfe in params['fe_asics'][i]:
             #    pdf.cell(12, 5, txt=str(jfe), align='L')            
-            #pdf.ln(5)
+            pdf.ln(5)
 
             pdf.cell(40, 5, txt=adct, align='L')
             
