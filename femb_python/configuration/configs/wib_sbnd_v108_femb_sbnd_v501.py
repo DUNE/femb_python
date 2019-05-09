@@ -274,7 +274,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #FEMB power enable on WIB
         self.powerOnFemb(fembVal)
-        time.sleep(4)
 
         #Make sure register interface is for correct FEMB
         self.selectFemb(fembVal)
@@ -283,14 +282,32 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         print("Checking register interface")
         regVal = self.femb.read_reg(6)
         if (regVal == None) or (regVal == -1):
-            print("Error - FEMB register interface is not working.")
-            print(" Will not initialize FEMB.")       
-            return
+
+            # try again
+            self.powerOffFemb(fembVal)
+            sleep(2)
+            self.powerOnFemb(fembVal)
+
+            newregVal = self.femb.read_reg(6)
+            if (newregVal == None) or (newregVal == -1):
+                
+                print("Error - FEMB register interface is not working.")
+                print(" Will not initialize FEMB.")
+                return
 
         checkFirmware = self.checkFirmwareVersion()
         if checkFirmware == False:
-            print("Error - invalid firmware, will not attempt to initialize board")
-            return
+
+            # try again
+            self.powerOffFemb(fembVal)
+            sleep(2)
+            self.powerOnFemb(fembVal)
+
+            newcheckFirmware = self.checkFirmwareVersion()
+            if newcheckFirmware == False:
+
+                print("Error - invalid firmware, will not attempt to initialize board")
+                return
 
         #turn off pulser
         self.femb.write_reg_bits( self.REG_FPGA_TP_EN, 0,0x1,0) #test pulse enable
@@ -325,9 +342,51 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.checkFembSpi()
         print("SPI STATUS","\t",self.spiStatus)
 
+        #Enable Streaming
+        self.femb.write_reg(9,9)
+        self.femb.write_reg(9,9)
+        time.sleep(0.1)
+
         # write to WIB
         self.wib_reg_enable()
 
+        # check link status
+        retry_links = False
+        link_status = self.femb.read_reg(0x21)
+        if (fembVal == 0):
+            femb_link = link_status & 0xFF
+        elif (fembVal == 1):
+            femb_link = (link_status & 0xFF00)>>8
+        elif (fembVal == 2):
+            femb_link = (link_status & 0xFF0000)>>16
+        elif (fembVal == 3):
+            femb_link = (link_status & 0xFF000000)>>24
+        if (!femb_link):
+            retry_links == True
+            print("HS link error:",hex(femb_link))
+                
+        if (retry_links):
+            #Enable Streaming
+            self.selectFemb(fembVal)
+            self.femb.write_reg(9,9)
+            self.femb.write_reg(9,9)
+            time.sleep(1)
+
+            self.wib_reg_enable()
+            link_status = self.femb.read_reg(0x21)
+            if (fembVal == 0):
+                femb_link = link_status & 0xFF
+            elif (fembVal == 1):
+                femb_link = (link_status & 0xFF00)>>8
+            elif (fembVal == 2):
+                femb_link = (link_status & 0xFF0000)>>16
+            elif (fembVal == 3):
+                femb_link = (link_status & 0xFF000000)>>24
+            if (!femb_link):
+                print("HS link error:",hex(femb_link))
+                return
+            
+        #reset the error counters
         self.femb.write_reg(20,3)
         self.femb.write_reg(20,3)
         time.sleep(0.001)
@@ -347,11 +406,6 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         # return to FEMB control
         self.selectFemb(fembVal)
-
-        #Enable Streaming
-        self.femb.write_reg(9,9)
-        self.femb.write_reg(9,9)
-        time.sleep(0.1)
 
         #Print some happy messages for shifters
         print("Finished initializing ASICs for WIB{:d} FEMB{:d}".format(self.wibNum,fembVal)) 
@@ -496,12 +550,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if(fembVal == 3):
             regVal = 0x118F000
 
-        pwrVal = 0x100000 | regVal | oldVal
+        pwrVal = regVal | oldVal
 
-        self.femb.write_reg(8, 0)
-        time.sleep(3)
         self.femb.write_reg(8, pwrVal)
-        time.sleep(5)
+        time.sleep(2)
         
         regVal = self.femb.read_reg(8)
         if regVal == None:
@@ -524,15 +576,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #FEMB power disable
         if(fembVal == 0):
-            regVal = 0x1000F
+            regVal = 0x31000F
         if(fembVal == 1):
-            regVal = 0x200F0
+            regVal = 0x5200F0
         if(fembVal == 2):
-            regVal = 0x40F00
+            regVal = 0x940F00
         if(fembVal == 3):
-            regVal = 0x8F000
+            regVal = 0x118F000
         
-        pwrVal = 0x100000 | (regVal ^ oldVal)
+        pwrVal = regVal ^ oldVal
 
         self.femb.write_reg(8, pwrVal)
         
@@ -704,15 +756,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #turn off HS data before register writes
         self.femb.write_reg_bits(9 , 0, 0x1, 0 )
         print("HS link turned off")
-        time.sleep(2)
+        time.sleep(1)
 
         #run the SPI programming
         self.doAsicConfig()
 
         #turn HS link back on
         print("HS link turned back on")
-        time.sleep(2)
         self.femb.write_reg_bits(9 , 0, 0x1, 1 )
+        time.sleep(1)
 
 
     def doAsicConfig(self):
