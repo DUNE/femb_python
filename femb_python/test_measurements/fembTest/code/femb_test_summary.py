@@ -142,11 +142,20 @@ class FEMB_SUMMARY(object):
                             gainlabel = gaininfo[0]+"_"+gaininfo[1]+"_"+gaininfo[2]
                             gainsummary[gainlabel] = gaininfo
                     
-                    if ("g2_s2_extpulse" in mydir):
+                    # print either g2_s2_extpulse or g2_s2_intpulse png to summary, whichever is found first
+                    if ("g2_s2_extpulse" in mydir && printgain == False):
                         if os.path.isfile(self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"):
                             gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 2 us, Internal FPGA Pulser"
                             gainimage = self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"
                             printgain = True
+
+                    if ("g2_s2_intpulse" in mydir && printgain == False):
+                        if os.path.isfile(self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"):
+                            gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 2 us, Internal FE ASIC Pulser"
+                            gainimage = self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"
+                            printgain = True
+
+                            
                 #Power cycle summary:
                 if ("powercycle" in mydir):
                     pc_text = "FEMB power cycled 5 times at beginning of data collection with no failure."
