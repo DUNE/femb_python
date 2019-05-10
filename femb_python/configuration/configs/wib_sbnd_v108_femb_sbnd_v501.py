@@ -285,7 +285,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             # try again
             self.powerOffFemb(fembVal)
-            sleep(2)
+            time.sleep(10)
             self.powerOnFemb(fembVal)
 
             newregVal = self.femb.read_reg(6)
@@ -300,7 +300,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
             # try again
             self.powerOffFemb(fembVal)
-            sleep(2)
+            time.sleep(10)
             self.powerOnFemb(fembVal)
 
             newcheckFirmware = self.checkFirmwareVersion()
@@ -361,19 +361,20 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             femb_link = (link_status & 0xFF0000)>>16
         elif (fembVal == 3):
             femb_link = (link_status & 0xFF000000)>>24
-        if (!femb_link):
-            retry_links == True
-            print("HS link error:",hex(femb_link))
-                
+        if (not femb_link):
+            retry_links = True
+        else:
+            print("HS links enabled")
+            
         if (retry_links):
             #Enable Streaming
             self.selectFemb(fembVal)
             self.femb.write_reg(9,9)
             self.femb.write_reg(9,9)
-            time.sleep(1)
+            time.sleep(2)
 
             self.wib_reg_enable()
-            link_status = self.femb.read_reg(0x21)
+            print("linkstatus",hex(link_status))
             if (fembVal == 0):
                 femb_link = link_status & 0xFF
             elif (fembVal == 1):
@@ -382,10 +383,12 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 femb_link = (link_status & 0xFF0000)>>16
             elif (fembVal == 3):
                 femb_link = (link_status & 0xFF000000)>>24
-            if (!femb_link):
-                print("HS link error:",hex(femb_link))
+            if (not femb_link):
+                print("HS link error, LINK STATUS:",hex(femb_link))
                 return
-            
+            else:
+                print("HS links enabled on retry")
+                
         #reset the error counters
         self.femb.write_reg(20,3)
         self.femb.write_reg(20,3)
@@ -552,6 +555,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         pwrVal = regVal | oldVal
 
+        self.femb.write_reg(8,0)
+        time.sleep(1)
         self.femb.write_reg(8, pwrVal)
         time.sleep(2)
         
@@ -573,19 +578,20 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         # read back existing power setting
         oldVal = self.femb.read_reg(8)
-
+                
+        regVal = 0
         #FEMB power disable
-        if(fembVal == 0):
+        if(fembVal == 0 and (oldVal & 0xF) != 0):
             regVal = 0x31000F
-        if(fembVal == 1):
+        if(fembVal == 1 and (oldVal & 0xF0)>>4 != 0):
             regVal = 0x5200F0
-        if(fembVal == 2):
+        if(fembVal == 2 and (oldVal & 0xF00)>>8 != 0):
             regVal = 0x940F00
-        if(fembVal == 3):
+        if(fembVal == 3 and (oldVal & 0xF000)>>16 != 0):
             regVal = 0x118F000
         
-        pwrVal = regVal ^ oldVal
-
+        pwrVal = 0x100000 | (regVal ^ oldVal)
+        
         self.femb.write_reg(8, pwrVal)
         
         regVal = self.femb.read_reg(8)
