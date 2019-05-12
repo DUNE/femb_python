@@ -102,7 +102,7 @@ class FEMB_TEST_GAIN(object):
 
 
         #initialize FEMB to known state
-        print("Initializing board")
+        #print("Initializing FEMB",self.fembNum)
         self.femb_config.feasicGain = self.gain
         self.femb_config.feasicShape = self.shape
         self.femb_config.feasicBaseline = self.base
@@ -132,14 +132,16 @@ class FEMB_TEST_GAIN(object):
         #check if data streaming is working
         print("Checking data streaming")
         testData = self.write_data.femb.get_data_packets(1)
-        if testData == None:
-            print("Error running doFembTest - FEMB is not streaming data.")
-            print(" Turn on and initialize FEMB UDP readout.")
-            return
-        if len(testData) == 0:
-            print("Error running doFembTest - FEMB is not streaming data.")
-            print(" Turn on and initialize FEMB UDP readout.")
-            return
+        if testData == None or len(testData) == 0:
+
+            #try again
+            print("No data: reinitializing FEMB",self.fembNum)
+            self.femb_config.initFemb()
+            testData = self.write_data.femb.get_data_packets(1)
+            if testData == None or len(testData) == 0:
+                print("Error running doFembTest - FEMB is not streaming data.")
+                print(" Turn on and initialize FEMB UDP readout.")
+                return
 
         print("Received data packet " + str(len(testData[0])) + " bytes long")
 

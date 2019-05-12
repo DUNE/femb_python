@@ -88,7 +88,7 @@ class FEMB_TEST_SIMPLE(object):
         self.femb_config.selectFemb(self.fembNum)
 
         #initialize FEMB to known state
-        print("Initializing board")
+        #print("Initializing FEMB",self.fembNum)
         self.femb_config.isRoomTemp = self.isRoomTemp
         self.femb_config.initFemb()
 
@@ -108,14 +108,16 @@ class FEMB_TEST_SIMPLE(object):
         #check if data streaming is working
         print("Checking data streaming")
         testData = self.write_data.femb.get_data_packets(1)
-        if testData == None:
-            print("Error running doFembTest - FEMB is not streaming data.")
-            print(" Turn on and initialize FEMB UDP readout.")
-            return
-        if len(testData) == 0:
-            print("Error running doFembTest - FEMB is not streaming data.")
-            print(" Turn on and initialize FEMB UDP readout.")
-            return
+        if testData == None or len(testData) == 0:
+
+            #try again
+            print("No data: reinitializing FEMB",self.fembNum)
+            self.femb_config.initFemb()
+            testData = self.write_data.femb.get_data_packets(1)
+            if testData == None or len(testData) == 0:
+                print("Error running doFembTest - FEMB is not streaming data.")
+                print(" Turn on and initialize FEMB UDP readout.")
+                return
 
         print("Received data packet " + str(len(testData[0])) + " bytes long")
 
