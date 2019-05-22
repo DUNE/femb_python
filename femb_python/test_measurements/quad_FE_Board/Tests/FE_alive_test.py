@@ -193,14 +193,15 @@ class ALIVE_TESTER(object):
         self.jsondict['alive_acdc'] = self.config["ALIVE_SETTINGS"]["ALIVE_ACDC"]
         self.jsondict['alive_baseline'] = self.config["ALIVE_SETTINGS"]["ALIVE_BASELINE"]
         
-        self.jsondict['PS_heating_voltage'] = self.heating_results[0]
-        self.jsondict['PS_heating_current'] = self.heating_results[1]
-        self.jsondict['PS_quad_voltage'] = self.quad_results[0]
-        self.jsondict['PS_quad_current'] = self.quad_results[1]
-        self.jsondict['PS_fpga_voltage'] = self.fpga_results[0]
-        self.jsondict['PS_fpga_current'] = self.fpga_results[1]
+        if (self.params['using_power_supply'] == True):  
+            self.jsondict['PS_heating_voltage'] = self.heating_results[0]
+            self.jsondict['PS_heating_current'] = self.heating_results[1]
+            self.jsondict['PS_quad_voltage'] = self.quad_results[0]
+            self.jsondict['PS_quad_current'] = self.quad_results[1]
+            self.jsondict['PS_fpga_voltage'] = self.fpga_results[0]
+            self.jsondict['PS_fpga_current'] = self.fpga_results[1]
         
-        if (self.params['temperature'] == "LN"):
+        if ((self.params['temperature'] == "LN") and (self.params['using_power_supply'] == True)):
             total_cycles = int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_1"]) + int(self.config["ALIVE_SETTINGS"]["ALIVE_POWER_CYCLES_2"])
             for cycle in range(total_cycles):
                 self.jsondict['PS_heating_voltage_cycle{}'.format(cycle)] = self.power_cycle_heating_results[cycle][0]

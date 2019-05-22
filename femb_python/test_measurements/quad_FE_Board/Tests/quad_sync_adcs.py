@@ -61,7 +61,8 @@ class SYNC_ADCS(object):
             chip_outpathlabel = os.path.join(self.params["datadir"], chip_name, self.params["outlabel"])
             data = self.low_level.get_data_chipX(chip = chip_index, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), tagged = True)
             print("quad_sync_adcs--> Printing internal synchronization plot for Chip {}".format(chip_name))
-            savefig = os.path.join(chip_outpathlabel, "Sync_Plot_Internal")
+            sync_int_text = self.config["FILENAMES"]["SYNC_FILE_INT"].format(chip_name)
+            savefig = os.path.join(chip_outpathlabel, sync_int_text)
             power_info = self.functions.PCB_power_monitor(chips = i)
             self.power_info_total.append(power_info)
             self.plotting.plot_chip(data = data, plot_name = savefig, title_name = "Chip {} Internal Sync: Gain = {}/fC, Peaking Time = {}".format(chip_name, self.config["SYNC_SETTINGS"]["SYNC_GAIN"],
@@ -80,7 +81,8 @@ class SYNC_ADCS(object):
             chip_outpathlabel = os.path.join(self.params["datadir"], chip_name, self.params["outlabel"])
             data = self.low_level.get_data_chipX(chip = chip_index, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), tagged = True)
             print("quad_sync_adcs--> Printing external synchronization plot for Chip {}".format(chip_name))
-            savefig = os.path.join(chip_outpathlabel, "Sync_Plot_External")
+            sync_ext_text = self.config["FILENAMES"]["SYNC_FILE_EXT"].format(chip_name)
+            savefig = os.path.join(chip_outpathlabel, sync_ext_text)
             power_info = self.functions.PCB_power_monitor(chips = i)
             self.plotting.plot_chip(data = data, plot_name = savefig, title_name = "Chip {} External Sync: Gain = {}/fC, Peaking Time = {}".format(chip_name, self.config["SYNC_SETTINGS"]["SYNC_GAIN"],
                                                                                                                                                         self.config["SYNC_SETTINGS"]["SYNC_PEAK"]), 
@@ -133,12 +135,13 @@ class SYNC_ADCS(object):
         self.syncdict['sync_executable'] = self.params['executable']
         self.syncdict['sync_datasubdir'] = self.params['datasubdir']
         
-        self.syncdict['PS_heating_voltage'] = self.heating_results[0]
-        self.syncdict['PS_heating_current'] = self.heating_results[1]
-        self.syncdict['PS_quad_voltage'] = self.quad_results[0]
-        self.syncdict['PS_quad_current'] = self.quad_results[1]
-        self.syncdict['PS_fpga_voltage'] = self.fpga_results[0]
-        self.syncdict['PS_fpga_current'] = self.fpga_results[1]
+        if (self.params['using_power_supply'] == True):  
+            self.syncdict['PS_heating_voltage'] = self.heating_results[0]
+            self.syncdict['PS_heating_current'] = self.heating_results[1]
+            self.syncdict['PS_quad_voltage'] = self.quad_results[0]
+            self.syncdict['PS_quad_current'] = self.quad_results[1]
+            self.syncdict['PS_fpga_voltage'] = self.fpga_results[0]
+            self.syncdict['PS_fpga_current'] = self.fpga_results[1]
 
         for num, i in enumerate(self.params['working_chips']):
             chip_index = self.params['chip_list'][i][0]

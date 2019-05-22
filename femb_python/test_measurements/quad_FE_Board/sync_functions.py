@@ -113,7 +113,7 @@ class SYNC_FUNCTIONS(object):
                 #Prints a plot of the whole chip so we can be sure there was no sketchiness (takes some time)
                 print("sync_functions--> Printing synchronization plot for Chip {}({})".format(chip_id[0],chip_id[1]))
                 data = self.low_func.get_data_chipX(chip = chip_id[0], packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), tagged = True)
-                plot_path = os.path.join(self.savefigpath,self.config["FILENAMES"]["SYNC_LINK"])
+                plot_path = os.path.join(self.savefigpath,self.config["FILENAMES"]["SYNC_LINK"].format(chip_id[1]))
                 power_info = self.i2c.PCB_power_monitor(chips = i)
                 self.plot.plot_chip(data = data, plot_name = plot_path, title_name = "Chip {} synchronization: Gain = {}/fC, Peaking Time = {}, Buffer {}, "
                                                                                      "DAC Pulse at {} \nPeaks should be between {} and {}, Baseline should be between "
@@ -156,7 +156,7 @@ class SYNC_FUNCTIONS(object):
                 #Prints a plot of the monitor test pin so we can be sure there was no sketchiness
                 print("sync_functions--> Printing synchronization plot for Chip {}({})".format(chip_id[0],chip_id[1]))
                 data = self.low_func.get_data_chipXchnX_tagged(chip = chip_id[0], chn = 1, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), data_format = "counts")
-                plot_path = os.path.join(self.savefigpath,self.config["FILENAMES"]["SYNC_LINK_MONITOR"])
+                plot_path = os.path.join(self.savefigpath,self.config["FILENAMES"]["SYNC_LINK_MONITOR"].format(chip_id[1]))
                 title = "Pulses for synchronization: Gain = {}/fC, Peaking Time = {}, Buffer {}, DAC Pulse at {} \nPeaks should be between {} and {}, Baseline should be between {} and {}".format(self.config["SYNC_SETTINGS"]["SYNC_GAIN"], 
                         self.config["SYNC_SETTINGS"]["SYNC_PEAK"], self.config["SYNC_SETTINGS"]["SYNC_BUFFER"], self.config["SYNC_SETTINGS"]["SYNC_DAC_PEAK_HEIGHT"], self.config["SYNC_SETTINGS"]["SYNC_PEAK_MIN"], 
                         self.config["SYNC_SETTINGS"]["SYNC_PEAK_MAX"], self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MIN"], self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MAX"])

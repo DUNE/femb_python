@@ -81,7 +81,7 @@ class Data_Analysis:
         else:
             ax.text(0.05,0.95,"All peaks found!",transform=ax.transAxes, fontsize = 20)
         
-        alive_text = self.config["FILENAMES"]["ALIVE_LINK"]
+        alive_text = self.config["FILENAMES"]["ALIVE_LINK"].format(chip)
         save_file = os.path.join(directory,alive_text)
         fig_summary.savefig (save_file)
         plt.close(fig_summary)      
@@ -106,7 +106,7 @@ class Data_Analysis:
             data_mv.append(data[i] * self.bits_to_mv)
         
         failure = False
-        peaks_index = detect_peaks(x = data_mv, mph = int(self.config["ALIVE_SETTINGS"]["ALIVE_PEAK_MIN"])/2, mpd=int(self.config["SYNC_SETTINGS"]["SYNC_PULSE_SPACING"])-5)
+        peaks_index = detect_peaks(x = data_mv, mph = int(self.config["ALIVE_SETTINGS"]["ALIVE_PEAK_MIN"]), mpd=int(self.config["SYNC_SETTINGS"]["SYNC_PULSE_SPACING"])-5)
         peaks_value = []
         for i in peaks_index :
             peaks_value.append(data_mv[i])

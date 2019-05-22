@@ -58,7 +58,10 @@ class GUI_WINDOW(tk.Frame):
         self.master.protocol("WM_DELETE_WINDOW", lambda arg=self.master: self.on_closing(arg))
         self.WF_GUI = None
         self.analysis = "basic"
-        self.PowerSupply = Power_Supply(self.config)
+        try:
+            self.PowerSupply = Power_Supply(self.config)
+        except BrokenPipeError:
+            self.PowerSupply = None
         #Variables that I want to save in the JSON but aren't included in the generic runner
         self.params = dict(
             test_category = "feasic_quad_cold",
@@ -635,8 +638,8 @@ class GUI_WINDOW(tk.Frame):
                 param_json["sync_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
-                linked_file1 = self.config["FILENAMES"]["SYNC_LINK"]
-                linked_file2 = self.config["FILENAMES"]["SYNC_LINK_MONITOR"]
+                linked_file1 = self.config["FILENAMES"]["SYNC_LINK"].format(chip_name)
+                linked_file2 = self.config["FILENAMES"]["SYNC_LINK_MONITOR"].format(chip_name)
                 linked_file_path1 = os.path.join(linked_folder, linked_file1)
                 linked_file_path2 = os.path.join(linked_folder, linked_file2)
                 label.bind("<Button-1>",lambda event, arg=linked_file_path1: self.link_label(arg))

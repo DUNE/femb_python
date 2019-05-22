@@ -122,12 +122,13 @@ class BASELINE_TESTER(object):
         self.jsondict['baseline_leak'] = self.config["BASELINE_SETTINGS"]["BASELINE_LEAK"]
         self.jsondict['baseline_buffer'] = self.config["BASELINE_SETTINGS"]["BASELINE_BUFFER"]
         
-        self.jsondict['PS_heating_voltage'] = self.heating_results[0]
-        self.jsondict['PS_heating_current'] = self.heating_results[1]
-        self.jsondict['PS_quad_voltage'] = self.quad_results[0]
-        self.jsondict['PS_quad_current'] = self.quad_results[1]
-        self.jsondict['PS_fpga_voltage'] = self.fpga_results[0]
-        self.jsondict['PS_fpga_current'] = self.fpga_results[1]
+        if (self.params['using_power_supply'] == True):  
+            self.jsondict['PS_heating_voltage'] = self.heating_results[0]
+            self.jsondict['PS_heating_current'] = self.heating_results[1]
+            self.jsondict['PS_quad_voltage'] = self.quad_results[0]
+            self.jsondict['PS_quad_current'] = self.quad_results[1]
+            self.jsondict['PS_fpga_voltage'] = self.fpga_results[0]
+            self.jsondict['PS_fpga_current'] = self.fpga_results[1]
 
         for num,i in enumerate(self.params['working_chips']):
             chip_name = self.params['chip_list'][i][1]
