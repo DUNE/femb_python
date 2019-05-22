@@ -29,7 +29,7 @@ class MONITOR_TESTER(object):
         
         #json output, note module version number defined here
         self.jsondict = {'type':'baseline_test'}
-        self.jsondict['monitor_code_version'] = '1.0'
+        self.jsondict['monitor_code_version'] = '1.1'
         self.jsondict['monitor_timestamp']  = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
 
         

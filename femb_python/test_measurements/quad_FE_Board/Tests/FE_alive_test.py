@@ -30,7 +30,7 @@ class ALIVE_TESTER(object):
         
         #json output, note module version number defined here
         self.jsondict = {'type':'baseline_test'}
-        self.jsondict['alive_code_version'] = '1.0'
+        self.jsondict['alive_code_version'] = '1.1'
         self.jsondict['alive_timestamp']  = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
         
     def check_setup(self):

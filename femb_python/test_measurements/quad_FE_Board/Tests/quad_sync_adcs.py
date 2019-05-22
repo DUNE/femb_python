@@ -30,7 +30,7 @@ class SYNC_ADCS(object):
 
         #json output, note module version number defined here
         self.syncdict = {'type':'sync_adcs'}
-        self.syncdict['sync_code_version'] = '1.0'
+        self.syncdict['sync_code_version'] = '1.1'
         self.syncdict['sync_timestamp']  = datetime.datetime.today().strftime('%Y%m%d%H%M%S')
         
     def check_setup(self):
