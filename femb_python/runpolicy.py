@@ -381,7 +381,7 @@ def make_runner(test_category, use_sumatra=True, **params):
         MB = stat.f_bavail * stat.f_frsize >> 20
         freedisks.append((MB, dd))
     freedisks.sort()
-    params.update(lo_disk = freedisks[0][1], hi_disk = freedisks[-1][1])
+    params.update(lo_disk = freedisks[1][1], hi_disk = freedisks[0][1])
 
     now = time.time()
     params["session_start_time"] = time.strftime("%Y%m%dT%H%M%S", time.localtime(now))
