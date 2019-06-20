@@ -95,7 +95,7 @@ class SYNC_FUNCTIONS(object):
         
             print ("sync_functions--> Trying to sync ADC {}({})".format(chip_id[0],chip_id[1]))
             channel_output_result = True
-            for chn in range(int(self.config["DEFAULT"]["NASICS"])):
+            for chn in range(int(self.config["DEFAULT"]["NASICCH"])):
                 #Tests if it's synchronized, returns True if it is
                 unsync = self.testUnsync(chip = chip_id, chn = chn)
                 if unsync != True:
@@ -106,8 +106,10 @@ class SYNC_FUNCTIONS(object):
                         print ("sync_functions--> Unable to fix Chip {}({}), Chn {}".format(chip_id[0],chip_id[1], chn))
             if (channel_output_result == True):
                 print ("sync_functions--> ADC {}({}) regular output channels synced!".format(chip_id[0],chip_id[1]))
+                printed_result = "passed"
             else:
                 print ("sync_functions--> ADC {}({}) regular output channels failed!".format(chip_id[0],chip_id[1]))
+                printed_result = "failed"
 
             if (print_when_good == True):
                 #Prints a plot of the whole chip so we can be sure there was no sketchiness (takes some time)
@@ -115,9 +117,9 @@ class SYNC_FUNCTIONS(object):
                 data = self.low_func.get_data_chipX(chip = chip_id[0], packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), tagged = True)
                 plot_path = os.path.join(self.savefigpath,self.config["FILENAMES"]["SYNC_LINK"].format(chip_id[1]))
                 power_info = self.i2c.PCB_power_monitor(chips = i)
-                self.plot.plot_chip(data = data, plot_name = plot_path, title_name = "Chip {} synchronization: Gain = {}/fC, Peaking Time = {}, Buffer {}, "
+                self.plot.plot_chip(data = data, plot_name = plot_path, title_name = "Chip {} synchronization {}: Gain = {}/fC, Peaking Time = {}, Buffer {}, "
                                                                                      "DAC Pulse at {} \nPeaks should be between {} and {}, Baseline should be between "
-                                                                                     "{} and {}".format(chip_id[1], self.config["SYNC_SETTINGS"]["SYNC_GAIN"], self.config["SYNC_SETTINGS"]["SYNC_PEAK"], 
+                                                                                     "{} and {}".format(chip_id[1], printed_result, self.config["SYNC_SETTINGS"]["SYNC_GAIN"], self.config["SYNC_SETTINGS"]["SYNC_PEAK"], 
                                                                                     self.config["SYNC_SETTINGS"]["SYNC_BUFFER"], self.config["SYNC_SETTINGS"]["SYNC_DAC_PEAK_HEIGHT"], 
                                                                                     self.config["SYNC_SETTINGS"]["SYNC_PEAK_MIN"], self.config["SYNC_SETTINGS"]["SYNC_PEAK_MAX"], 
                                                                                     self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MIN"], self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MAX"]), power = power_info)
@@ -144,8 +146,10 @@ class SYNC_FUNCTIONS(object):
                     print ("sync_functions--> Something is wrong with Chip {}({}) (test ADC)".format(chip_id[0],chip_id[1]))
             if (monitor_test_result == True):
                 print ("sync_functions--> Chip {}({}) (test ADC) synced!".format(chip_id[0],chip_id[1]))
+                printed_result = "passed"
             else:
                 print ("sync_functions--> Chip {}({}) (test ADC) failed!".format(chip_id[0],chip_id[1]))
+                printed_result = "failed"
                 
             if (channel_output_result and monitor_test_result):
                 return_array[chip_id[0]] = True
@@ -157,7 +161,8 @@ class SYNC_FUNCTIONS(object):
                 print("sync_functions--> Printing synchronization plot for Chip {}({})".format(chip_id[0],chip_id[1]))
                 data = self.low_func.get_data_chipXchnX_tagged(chip = chip_id[0], chn = 1, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), data_format = "counts")
                 plot_path = os.path.join(self.savefigpath,self.config["FILENAMES"]["SYNC_LINK_MONITOR"].format(chip_id[1]))
-                title = "Pulses for synchronization: Gain = {}/fC, Peaking Time = {}, Buffer {}, DAC Pulse at {} \nPeaks should be between {} and {}, Baseline should be between {} and {}".format(self.config["SYNC_SETTINGS"]["SYNC_GAIN"], 
+                title = "Pulses for synchronization {}: Gain = {}/fC, Peaking Time = {}, Buffer {}, DAC Pulse at {} \nPeaks should be between {} and {}, Baseline should be between {} and {}".format(printed_result,
+                        self.config["SYNC_SETTINGS"]["SYNC_GAIN"], 
                         self.config["SYNC_SETTINGS"]["SYNC_PEAK"], self.config["SYNC_SETTINGS"]["SYNC_BUFFER"], self.config["SYNC_SETTINGS"]["SYNC_DAC_PEAK_HEIGHT"], self.config["SYNC_SETTINGS"]["SYNC_PEAK_MIN"], 
                         self.config["SYNC_SETTINGS"]["SYNC_PEAK_MAX"], self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MIN"], self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MAX"])
                 self.plot.debugScatterplot(data = data, save_location = plot_path, title = title, peaks_index = None)
@@ -186,14 +191,15 @@ class SYNC_FUNCTIONS(object):
         
         return return_array
                 
-    def testUnsync(self, chip, chn, index=0):
+    def testUnsync(self, chip, chn, index=0, mon = False):
         save_error_path = os.path.join(self.savefigpath, "sync_fails")
         os.makedirs(save_error_path, exist_ok=True)
         #Get some packets of data
         self.low_func.selectChipChannel(chip = chip[0], chn = chn)
         data = list(self.low_func.get_data_chipXchnX_tagged(chip = chip[0], chn = chn, packets = int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"]), data_format = "counts"))
-        peaks_index = detect_peaks(x=data, mph=int(self.config["SYNC_SETTINGS"]["SYNC_PEAK_MIN"]), mpd=int(self.config["SYNC_SETTINGS"]["SYNC_PULSE_SPACING"])/2)
-        
+        peaks_index = detect_peaks(x=data, mph=int(self.config["SYNC_SETTINGS"]["SYNC_PEAK_MIN"]), mpd=int(self.config["SYNC_SETTINGS"]["SYNC_MPD"]))
+        if (mon):
+            chn = "mon"
         #Check that we have the amount of peaks we want (sync issues lead to too many or too little peaks)
         if (len(peaks_index) != int(self.config["SYNC_SETTINGS"]["SYNC_PACKETS"])):
             error = "sync_functions: Chip {}({}), Chn {} has {} peaks".format(chip[0],chip[1], chn, len(peaks_index))
@@ -213,10 +219,10 @@ class SYNC_FUNCTIONS(object):
             if ((peak < int(self.config["SYNC_SETTINGS"]["SYNC_PEAK_MIN"])) or (peak > int(self.config["SYNC_SETTINGS"]["SYNC_PEAK_MAX"]))):
                 error = "sync_functions: Chip {}({}), Chn {} has a peak that's {}".format(chip[0],chip[1], chn, peak)
                 print (error)
-                save_location = os.path.join(save_error_path,"chip{}chn{}peak{}.jpg".format(chip,chn,peak))
+                save_location = os.path.join(save_error_path,"chip{}chn{}peak{}.jpg".format(chip[1],chn,peak))
                 self.plot.debugScatterplot(data=data, peaks_index=peaks_index, title=error, save_location=save_location)
                 return False 
-                
+        print("Chip {}, chn {}, peaks {}, values {}".format(chip, chn, peaks_index, peaks_value))
         #Check if the baseline is right (this also gets halved and doubled with unsynced ADCs) (grab a middle section to avoid the peaks)
         try:
             baseline_area_start = peaks_index[0] + int(self.config["SYNC_SETTINGS"]["SYNC_PULSE_WIDTH"])
@@ -233,7 +239,7 @@ class SYNC_FUNCTIONS(object):
         if ((baseline < int(self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MIN"])) or (baseline > int(self.config["SYNC_SETTINGS"]["SYNC_BASELINE_MAX"]))):
             error = "sync_functions--> Chip {}({}), Chn {} has a baseline that's {}".format(chip[0],chip[1], chn, baseline)
             print (error)
-            save_location = os.path.join(save_error_path,"chip{}chn{}baseline{}.jpg".format(chip,chn,baseline))
+            save_location = os.path.join(save_error_path,"chip{}chn{}baseline{}.jpg".format(chip[1],chn,baseline))
             self.plot.debugScatterplot(data=data, peaks_index=peaks_index, title=error, save_location=save_location)
                 
         #check if the pulse has high frequency noise
@@ -399,7 +405,7 @@ class SYNC_FUNCTIONS(object):
                 
                 self.femb_udp.write_reg(test_reg, really_final)
                 index = (shift+4) + phase + 100
-                unsync = self.testUnsync(chip = chip, chn = 1, index = index)
+                unsync = self.testUnsync(chip = chip, chn = 1, index = index, mon = True)
                 if unsync == True:
                     print ("FEMB_CONFIG--> Chip {}({}) test ADC fixed!".format(chip[0], chip[1]))
                     return True

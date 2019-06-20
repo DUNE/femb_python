@@ -46,6 +46,9 @@ class plot_functions:
         
         ax1 = fig.add_subplot(16,1,16)
         plt.plot(time_x, data[0][:length])
+        start, end = ax1.get_ylim()
+        ax1.yaxis.set_ticks(range(int(start), int(end), int(end/4)))
+
 #        plt.setp(ax1.get_xticklabels(), fontsize=12)
         ax1.set_title("Chn 0")
         ax2 = ax1.twinx()
@@ -62,6 +65,8 @@ class plot_functions:
                 time_x.append(self.sample_period * k)
             ax = fig.add_subplot(16,1,15-j, sharex=ax1)
             plt.plot(time_x, data[j+1][:length])
+            start, end = ax1.get_ylim()
+            ax.yaxis.set_ticks(range(int(start), int(end), int(end/4)))
             for item in (ax.get_xticklabels()):
                 item.set_fontsize(20)
             plt.setp(ax.get_xticklabels(), visible=False)
