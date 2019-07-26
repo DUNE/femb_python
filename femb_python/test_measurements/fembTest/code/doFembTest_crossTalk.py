@@ -26,22 +26,20 @@ from femb_python.configuration.cppfilerunner import CPP_FILE_RUNNER
 
 #specify location of femb_udp package
 
-class FEMB_TEST_SIMPLE(object):
+class FEMB_TEST_XTALK(object):
 
-    def __init__(self, datadir="data", outlabel="simpleMeasurement",fembNum=0):
+    def __init__(self, datadir="data", outlabel="xtalk",fembNum=0):
         #set internal variables
         self.datadir = datadir
         self.outlabel = outlabel + str("_femb_") + str(fembNum)
         self.outpathlabel = os.path.join(self.datadir, self.outlabel)
         self.fembNum = int(fembNum)
 
-        print("Test type\t" + str(self.outlabel) )
-        print("Data path\t" + str(datadir) )
-        print("FEMB #\t" + str(self.fembNum) )
+        print( "FEMB # " + str(self.fembNum) )
 
         #import femb_udp modules from femb_udp package
         self.femb_config = CONFIG()
-        self.write_data = WRITE_DATA(datadir)
+        self.write_data = WRITE_DATA(self.datadir)
         #set appropriate packet size
         self.write_data.femb.MAX_PACKET_SIZE = 8000
         self.cppfr = CPP_FILE_RUNNER()
@@ -51,24 +49,46 @@ class FEMB_TEST_SIMPLE(object):
         self.status_record_data = 0
         self.status_do_analysis = 0
         self.status_archive_results = 0
+
+        #misc variables
+        self.gain = 0
+        self.shape = 0
+        self.base = 0
+        self.leakage = 0
+        self.leakagex10 = 0
+        self.buffer = 1
+        self.acdc = 0
+        self.useInternalPulser = False
+        self.useExtAdcClock = False
         self.isRoomTemp = False
+        self.isAPA = False
+        self.useDefaultGainFactor = False
 
         #json output, note module version number defined here
-        self.jsondict = {'type':'fembTest_simple'}
+        self.jsondict = {'type':'fembTest_xtalk'}
         self.jsondict['version'] = '1.0'
         self.jsondict['timestamp']  = str(self.write_data.date)
 
     def check_setup(self):
         #CHECK STATUS AND INITIALIZATION
-        print("SIMPLE MEASUREMENT - CHECKING READOUT STATUS")
+        print("CROSS TALK MEASUREMENT - CHECKING READOUT STATUS")
         self.status_check_setup = 0
 
         #make sure output directory exists
         self.write_data.assure_filedir()
 
+        #check that femb number is valid
+        if ( int(self.fembNum) < 0 ) or ( int( self.fembNum) >= self.femb_config.NFEMBS ):
+            print("Error running doFembTest - Invalid FEMB # specified.")
+            return    
+
+        #assign FEMB # to test 
+        self.femb_config.selectFemb(self.fembNum)
+        
         #check if register interface is working
         print("Checking register interface")
         regVal = self.femb_config.femb.read_reg(255)
+        
         if (regVal == None):
             print("Error running doFembTest - FEMB register interface is not working.")
             print(" Turn on or debug FEMB UDP readout.")       
@@ -79,17 +99,20 @@ class FEMB_TEST_SIMPLE(object):
             return
         print("Read register 255, value = " + str( hex( regVal ) ) )
 
-        #check that femb number is valid
-        if ( int(self.fembNum) < 0 ) or ( int( self.fembNum) >= self.femb_config.NFEMBS ):
-            print("Error running doFembTest - Invalid FEMB # specified.")
-            return    
-
-        #assign FEMB # to test
-        self.femb_config.selectFemb(self.fembNum)
 
         #initialize FEMB to known state
         #print("Initializing FEMB",self.fembNum)
+        self.femb_config.feasicGain = self.gain
+        self.femb_config.feasicShape = self.shape
+        self.femb_config.feasicBaseline = self.base
+        self.femb_config.feasicLeakageVal = self.leakage
+        self.femb_config.feasicLeakagex10Val = self.leakagex10
+        self.femb_config.bufVal = self.buffer
+        self.femb_config.acdcVal = self.acdc
+        self.femb_config.feasicEnableTestInput = 0 #important
+        self.femb_config.useExtAdcClock = self.useExtAdcClock
         self.femb_config.isRoomTemp = self.isRoomTemp
+        #self.femb_config.printParameters()
         self.femb_config.initFemb()
 
         #test firmware versions
@@ -126,7 +149,7 @@ class FEMB_TEST_SIMPLE(object):
             print('parseBinaryFile not found, run setup.sh')
             return
 
-        print("SIMPLE MEASUREMENT - READOUT STATUS OK" + "\n")
+        print("CROSS TALK MEASUREMENT - READOUT STATUS OK" + "\n")
         self.status_check_setup = 1
 
     def record_data(self):
@@ -138,14 +161,12 @@ class FEMB_TEST_SIMPLE(object):
             return
 
         #MEASUREMENT SECTION
-        print("SIMPLE MEASUREMENT - RECORDING DATA")
+        print("CROSS TALK MEASUREMENT - RECORDING DATA")
 
         #wait to make sure HS link is back on after check_setup
         sleep(5)
 
-        self.femb_config.printParameters()
-
-        #setup output file and record data
+        #setup output file
         self.write_data.filename = self.outlabel+".bin"
         print("Recording " + self.write_data.filename )
 
@@ -154,21 +175,79 @@ class FEMB_TEST_SIMPLE(object):
             print( "Error running doFembTest - Could not open output data file for writing, ending test" )
         subrun = 0
 
+        #config FE ASICs
+        print("FE ASIC Settings: Gain " + str(self.gain) + ", Shaping Time " + str(self.shape) + ", Baseline " + str(self.base) )
+        print("FE ASIC Settings: Leakage Current " + str(self.leakage) + ", Leakage x10 " + str(self.leakagex10) )
+        print("FE ASIC Settings: Output Buffer " + str(self.buffer) + ", AC/DC " + str(self.acdc) )
+        self.femb_config.feasicGain = self.gain
+        self.femb_config.feasicShape = self.shape
+        self.femb_config.feasicBaseline = self.base
+        self.femb_config.feasicLeakageVal = self.leakage
+        self.femb_config.feasicLeakagex10Val = self.leakagex10
+        self.femb_config.bufVal = self.buffer
+        self.femb_config.acdcVal = self.acdc
+        self.femb_config.feasicEnableTestInput = 0 #important
+        self.femb_config.useExtAdcClock = self.useExtAdcClock
+        self.femb_config.isRoomTemp = self.isRoomTemp
+        self.femb_config.configFeAsic()
+
+        #disable pulsers
+        self.femb_config.setInternalPulser(0,0x0)
+        self.femb_config.setFpgaPulser(0,0x0)
+
+        self.femb_config.printParameters()
+
         #record data
-        self.write_data.numpacketsrecord = 100
+        self.write_data.numpacketsrecord = 500
         self.write_data.run = 0
         self.write_data.runtype = 0
         self.write_data.runversion = 0
 
+        #take initial noise data run
+        subrun = 0
         asicCh = 0
-        for asic in range(0,8,1):
+        for asic in range(0,self.femb_config.NASICS,1):
           self.femb_config.selectChannel(asic,asicCh)
           self.write_data.record_data(subrun, asic, asicCh)
+
+        #don't connect all channels to test cap, start pulser section
+        self.femb_config.feasicEnableTestInput = 0
+        self.femb_config.configFeAsic()
+
+        # array of channels to pulse: must be run AFTER configFEAsic
+        self.femb_config.selectPulserChannels([50])
+
+        #select pulser type
+        if self.useInternalPulser == False :
+            self.femb_config.setFpgaPulser(1,0)
+        else:
+            self.femb_config.setInternalPulser(1,0)
+        subrun = 1
+
+        #loop over pulser configurations, each configuration is it's own subrun
+        for p in range(0,10,1):
+            pVal = int(p)
+            if self.useInternalPulser == False :
+                self.femb_config.setFpgaPulser(1,pVal)
+            else:
+                self.femb_config.setInternalPulser(1,pVal)
+            print("Pulse amplitude " + str(pVal) )
+
+            #loop over channels
+            for asic in range(0,8,1):
+                self.femb_config.selectChannel(asic,asicCh)
+                self.write_data.record_data(subrun, asic, asicCh)
+
+            #increment subrun, important
+            subrun = subrun + 1
+
+        #close file
         self.write_data.close_file()
 
+        #turn off FEMB
         self.femb_config.powerOffFemb(self.fembNum)
 
-        print("SIMPLE MEASUREMENT - DONE RECORDING DATA" + "\n")
+        print("CROSS TALK MEASUREMENT - DONE RECORDING DATA" + "\n")
         self.status_record_data = 1
 
     def do_analysis(self):
@@ -179,8 +258,7 @@ class FEMB_TEST_SIMPLE(object):
             print("Analysis already complete")
             return
         #ANALYSIS SECTION
-
-        print("SIMPLE MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
+        print("CROSS TALK MEASUREMENT - ANALYZING AND SUMMARIZING DATA")
 
         #parse binary
         self.cppfr.run("test_measurements/fembTest/code/parseBinaryFile", [self.write_data.data_file_path])
@@ -188,15 +266,28 @@ class FEMB_TEST_SIMPLE(object):
         #run analysis program
         parseBinaryFile = self.outpathlabel + "-parseBinaryFile.root"
         call(["mv", "output_parseBinaryFile.root" , parseBinaryFile])
-        self.cppfr.run("test_measurements/fembTest/code/processNtuple_simpleMeasurement",  [parseBinaryFile])
+        useInternalPulserFlag = "1"
+        useDefaultGainFactorFlag = "1"
+        if self.useInternalPulser == False :
+            useInternalPulserFlag = "0"
+        if (self.useDefaultGainFactor == False):
+            useDefaultGainFactorFlag = "0"
+        self.cppfr.run("test_measurements/fembTest/code/processNtuple_xtalkMeasurement",  [parseBinaryFile,useInternalPulserFlag,useDefaultGainFactorFlag])
+        #if self.useInternalPulser == False :
+        #    self.cppfr.run("test_measurements/fembTest/code/processNtuple_xtalkMeasurement",  [parseBinaryFile,"0"])
+        #else :
+        #    self.cppfr.run("test_measurements/fembTest/code/processNtuple_xtalkMeasurement",  [parseBinaryFile,"1"])
 
         processNtupleFile = self.outpathlabel + "-processNtupleFile.root"
-        call(["mv", "output_processNtuple_simpleMeasurement.root" , processNtupleFile])
+        call(["mv", "output_processNtuple_xtalkMeasurement.root" , processNtupleFile])
 
         summaryPlot = self.outpathlabel + "-summaryPlot.png"
-        call(["mv", "summaryPlot_simpleMeasurement.png" , summaryPlot])
+        call(["mv", "summaryPlot_xtalkMeasurement.png" , summaryPlot])
 
-        print("SIMPLE MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
+        resultsFile = self.outpathlabel + "-results.list"
+        call(["mv", "output_processNtuple_xtalkMeasurement.list" , resultsFile])
+
+        print("CROSS TALK MEASUREMENT - DONE ANALYZING AND SUMMARIZING DATA" + "\n")
         self.status_do_analysis = 1
 
     def archive_results(self):
@@ -210,23 +301,45 @@ class FEMB_TEST_SIMPLE(object):
             print("Results already archived")
             return
         #ARCHIVE SECTION
-        print("SIMPLE MEASUREMENT - ARCHIVE")
+        print("CROSS TALK MEASUREMENT - ARCHIVE")
 
         #add summary variables to output
-        self.jsondict['femb']  = self.fembNum
-        self.jsondict['filedir'] = str( self.write_data.filedir )
         self.jsondict['status_check_setup'] = str(self.status_check_setup)
         self.jsondict['status_record_data'] = str(self.status_record_data)
         self.jsondict['status_do_analysis'] = str(self.status_do_analysis)
         self.jsondict['status_archive_results'] = str(1)
+        self.jsondict['filedir'] = str(self.write_data.filedir )
+        self.jsondict['config_gain'] = str(self.gain)
+        self.jsondict['config_shape'] = str(self.shape)
+        self.jsondict['config_base'] = str(self.base)
+        self.jsondict['useInternalPulser'] = str(self.useInternalPulser)
         self.jsondict['syncStatus'] = str(self.femb_config.syncStatus)
+        self.jsondict['spiStatus'] = str(self.femb_config.spiStatus)
+
+        if self.status_do_analysis == 1:
+          #parse the output results, kind of messy
+          listFile = self.outpathlabel + "-results.list"
+
+          lines = []
+          with open( listFile ) as infile:
+            for line in infile:
+                line = line.strip('\n')
+                line = line.split(',') #measurements separated by commas
+                parseline = {}
+                for n in range(0,len(line),1):
+                    word = line[n].split(' ')
+                    if( len(word) != 2 ):
+                        continue
+                    parseline[ str(word[0]) ] = str(word[1])
+                lines.append(parseline)
+            self.jsondict['results'] = lines
 
         #dump results into json
         jsonFile = self.outpathlabel + "-results.json"
         with open( jsonFile , 'w') as outfile:
             json.dump( self.jsondict, outfile, indent=4)
 
-        print("SIMPLE MEASUREMENT - DONE ARCHIVING" + "\n")
+        print("CROSS TALK MEASUREMENT - DONE STORING RESULTS IN DATABASE" + "\n")
         self.status_archive_results = 1
 
     def shutdown_setup(self):
@@ -234,32 +347,62 @@ class FEMB_TEST_SIMPLE(object):
         self.femb_config.powerOffFemb(self.fembNum)
 
 def main():
-    '''
-    Run a simple FEMB measurement.
-    '''
-    #default parameters
+    #default data taking parameters
     datadir = "data"
+    #wibslots = [0,1,2,3]
     wibslots = [1]
+    gain = 2
+    shape = 1
+    base = 0
+    useInternalPulser = True
+    useExtAdcClock = False
     isRoomTemp = False
+    isAPA = False
+    useDefaultGainFactor = False
 
+    #get parameters from input JSON file
     if len(sys.argv) == 2 :
         params = json.loads(open(sys.argv[1]).read())
         if 'datadir' in params:
             datadir = params['datadir']
+        if 'outlabel' in params:
+            outlabel = params['outlabel']
         if 'wibslots' in params:
             wibslots = params['wibslots']
+        if 'gain' in params:
+            gain = params['gain']
+        if 'shape' in params:
+            shape = params['shape']
+        if 'base' in params:
+            base = params['base']
+        if 'useInternalPulser' in params:
+            useInternalPulser = params['useInternalPulser']
+        if 'useExtAdcClock' in params:
+            useExtAdcClock = params['useExtAdcClock']
         if 'isRoomTemp' in params:
             isRoomTemp = params['isRoomTemp']
+        if 'useDefaultGainFactor' in params:
+            useDefaultGainFactor = params['useDefaultGainFactor']
+        if 'isAPA' in params:
+            isAPA = params['isAPA']
 
     #do some sanity checks
     if len(wibslots) > 4 :
         print("doFembTest - Invalid # of FEMBs specified")
         return
-      
+
     #actually run the test, one per FEMB slot
     for femb in wibslots:
-        femb_test = FEMB_TEST_SIMPLE(datadir,"simpleMeasurement",femb)
+        femb_test = FEMB_TEST_XTALK(datadir,"xtalkMeasurement",femb)
+        femb_test.gain = gain
+        femb_test.shape = shape
+        femb_test.base = base
+        femb_test.useInternalPulser = useInternalPulser
+        femb_test.useExtAdcClock = useExtAdcClock
         femb_test.isRoomTemp = isRoomTemp
+        femb_test.isAPA = isAPA
+        femb_test.useDefaultGainFactor = useDefaultGainFactor
+
         femb_test.check_setup()
         femb_test.record_data()
         femb_test.do_analysis()

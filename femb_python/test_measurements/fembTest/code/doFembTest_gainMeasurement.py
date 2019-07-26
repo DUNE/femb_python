@@ -87,8 +87,7 @@ class FEMB_TEST_GAIN(object):
         
         #check if register interface is working
         print("Checking register interface")
-        regVal = self.femb_config.femb.read_reg(6)
-        #print("reg6",regVal)
+        regVal = self.femb_config.femb.read_reg(255)
         
         if (regVal == None):
             print("Error running doFembTest - FEMB register interface is not working.")
@@ -98,7 +97,7 @@ class FEMB_TEST_GAIN(object):
             print("Error running doFembTest - FEMB register interface is not working.")
             print(" Turn on or debug FEMB UDP readout.")       
             return
-        print("Read register 6, value = " + str( hex( regVal ) ) )
+        print("Read register 255, value = " + str( hex( regVal ) ) )
 
 
         #initialize FEMB to known state

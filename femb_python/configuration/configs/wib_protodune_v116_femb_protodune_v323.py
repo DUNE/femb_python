@@ -628,7 +628,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Write ADC ASIC SPI
         #if syncAttempt == 0:
         if True :
-            print("ADC reconfig")
+            #print("ADC reconfig")
             self.femb.write_reg( self.REG_RESET,0x4) #reset timestamp
             time.sleep(0.01)
             self.femb.write_reg( self.REG_ASIC_RESET, 1) #reset ASIC SPI
@@ -941,6 +941,76 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         else:
             self.femb.write_reg_bits( self.REG_ASIC_TP_EN , 0, 0x3, 0x0 )
 
+    def selectPulserChannels(self,setchannels):
+        # attach test cap to a set of channels given by the array testchannels
+        testchannels = []
+        
+        # check channel list
+        for i in range(0,len(setchannels),1):
+            if(setchannels[i] >= 0 and setchannels[i] <= 127):
+                testchannels.append(setchannels[i])
+            else:
+                print("Invalid channel:",setchannels[i],"removed from list")                
+
+        print("Selecting channels for pulser:", testchannels)
+
+        ch = [[-1 for i in range(self.NASICCH)] for j in range(self.NASICS)]
+        
+        for asic in range(0,self.NASICS,1):
+            baseReg = self.REG_SPI_BASE + int(asic)*9
+
+            # read back current state of channel regs
+            ch[asic][0] = (self.femb.read_reg( baseReg + 4 ) & 0xFF0000) >> 16
+            ch[asic][1] = (self.femb.read_reg( baseReg + 4 ) & 0xFF000000) >> 24
+            ch[asic][2] = (self.femb.read_reg( baseReg + 5 ) & 0xFF)
+            ch[asic][3] = (self.femb.read_reg( baseReg + 5 ) & 0xFF00) >> 8
+            ch[asic][4] = (self.femb.read_reg( baseReg + 5 ) & 0xFF0000) >> 16 
+            ch[asic][5] = (self.femb.read_reg( baseReg + 5 ) & 0xFF000000) >> 24
+            ch[asic][6] = (self.femb.read_reg( baseReg + 6 ) & 0xFF)
+            ch[asic][7] = (self.femb.read_reg( baseReg + 6 ) & 0xFF00) >> 8
+            ch[asic][8] = (self.femb.read_reg( baseReg + 6 ) & 0xFF0000) >> 16 
+            ch[asic][9] = (self.femb.read_reg( baseReg + 6 ) & 0xFF000000) >> 24
+            ch[asic][10] = (self.femb.read_reg( baseReg + 7 ) & 0xFF)
+            ch[asic][11] = (self.femb.read_reg( baseReg + 7 ) & 0xFF00) >> 8
+            ch[asic][12] = (self.femb.read_reg( baseReg + 7 ) & 0xFF0000) >> 16 
+            ch[asic][13] = (self.femb.read_reg( baseReg + 7 ) & 0xFF000000) >> 24
+            ch[asic][14] = (self.femb.read_reg( baseReg + 8 ) & 0xFF)
+            ch[asic][15] = (self.femb.read_reg( baseReg + 8 ) & 0xFF00) >> 8
+
+            # 0 test cap all channels
+            for i in range(0,self.NASICCH,1):
+                ch[asic][i] = ch[asic][i] & 0x7F
+                
+        # 1 test cap if channel is in list
+        for tc in range(0,len(testchannels),1):
+            thisasic = int(testchannels[tc]/self.NASICCH)
+            thischan = int((testchannels[tc]/self.NASICCH-thisasic)*self.NASICCH)
+
+            ch[thisasic][thischan] = ch[thisasic][thischan] + 0x80
+
+        #write channel regs 
+        for asic in range(0,self.NASICS,1):
+            baseReg = self.REG_SPI_BASE + int(asic)*9
+            self.femb.write_reg_bits( baseReg + 4 , 16, 0xFF, ch[asic][0] )
+            self.femb.write_reg_bits( baseReg + 4 , 24, 0xFF, ch[asic][1] )
+            self.femb.write_reg_bits( baseReg + 5 ,  0, 0xFF, ch[asic][2] )
+            self.femb.write_reg_bits( baseReg + 5 ,  8, 0xFF, ch[asic][3] )
+            self.femb.write_reg_bits( baseReg + 5 , 16, 0xFF, ch[asic][4] )
+            self.femb.write_reg_bits( baseReg + 5 , 24, 0xFF, ch[asic][5] )
+            self.femb.write_reg_bits( baseReg + 6 ,  0, 0xFF, ch[asic][6] )
+            self.femb.write_reg_bits( baseReg + 6 ,  8, 0xFF, ch[asic][7] )
+            self.femb.write_reg_bits( baseReg + 6 , 16, 0xFF, ch[asic][8] )
+            self.femb.write_reg_bits( baseReg + 6 , 24, 0xFF, ch[asic][9] )
+            self.femb.write_reg_bits( baseReg + 7 ,  0, 0xFF, ch[asic][10] )
+            self.femb.write_reg_bits( baseReg + 7 ,  8, 0xFF, ch[asic][11] )
+            self.femb.write_reg_bits( baseReg + 7 , 16, 0xFF, ch[asic][12] )
+            self.femb.write_reg_bits( baseReg + 7 , 24, 0xFF, ch[asic][13] )
+            self.femb.write_reg_bits( baseReg + 8 ,  0, 0xFF, ch[asic][14] )
+            self.femb.write_reg_bits( baseReg + 8 ,  8, 0xFF, ch[asic][15] )
+            
+        self.doAsicConfig()
+
+            
     def checkFirmwareVersion(self):
         #set UDP ports to WIB
         self.femb.UDP_PORT_WREG = 32000

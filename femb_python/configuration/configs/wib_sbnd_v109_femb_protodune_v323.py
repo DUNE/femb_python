@@ -187,14 +187,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.femb.write_reg_bits( self.REG_TP, 8,0xFF,0x00) #test pulse delay
 
         #phase control
-        if self.isRoomTemp == True:
-            print("ADC clock phase:",self.CLKSELECT_val_RT,self.CLKSELECT2_val_RT)
-            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_RT ) #clock select
-            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, self.CLKSELECT2_val_RT ) #clock select 2
-        else:
-            print("Using cryogenic parameters, ADC clock phase:",self.CLKSELECT_val_CT,self.CLKSELECT2_val_CT)
-            self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, self.CLKSELECT_val_CT ) #clock select
-            self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF,  self.CLKSELECT2_val_CT ) #clock select 2            
+
         self.femb.write_reg_bits(self.REG_LATCHLOC_3_TO_0 , 0, 0xFFFFFFFF, self.REG_LATCHLOC_3_TO_0_val ) #datashift
         self.femb.write_reg_bits(self.REG_LATCHLOC_7_TO_4 , 0, 0xFFFFFFFF, self.REG_LATCHLOC_7_TO_4_val ) #datashift
 
@@ -454,7 +447,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             
         syncSuccess = False
         oldSyncVal = 0xFFFF
-
+            
         # start with the default values for the configuration
         def_clksel_rt = self.CLKSELECT_val_RT
         def_clksel2_rt = self.CLKSELECT2_val_RT
@@ -466,14 +459,11 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         lastStep = 1
 
         didJump = False
+        trial = 0
+        totTrial = 50
         
-        while (syncSuccess == False) :
+        while (syncSuccess == False and trial <= totTrial) :
 
-            # give up after 50 trials
-            if trial == 50:
-                print("Could not find good clock phase, SYNC STATUS:",hex(syncVal))
-                return
-            
             #phase control
             if self.isRoomTemp == True:
                 print("ADC clock phase:",self.CLKSELECT_val_RT,self.CLKSELECT2_val_RT)
@@ -485,6 +475,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF,  self.CLKSELECT2_val_CT ) #clock select 2
                
             # check sync
+            regVal = -1
             regVal = self.femb.read_reg(6)
             if regVal == None:
                 print("doAsicConfig: Could not check SYNC status, bad")
@@ -540,30 +531,31 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                         
                 else:
 
-                    # already jumped once
-                    if didJump == True:
-                        print("Could not find good clock phase, SYNC STATUS:",hex(syncVal))
-                        return
+                    # haven't jumped yet
+                    if didJump == False:
                     
-                    # jump back to start and switch directions
-                    if self.isRoomTemp == True:
-                        if self.CLKSELECT_val_RT < 0xFF :
-                            self.CLKSELECT_val_RT = def_clksel_rt - 1
+                        # jump back to start and switch directions
+                        if self.isRoomTemp == True:
+                            if self.CLKSELECT_val_RT < 0xFF :
+                                self.CLKSELECT_val_RT = def_clksel_rt - 1
                         
-                        if self.CLKSELECT2_val_RT < 0xFF :
-                            self.CLKSELECT2_val_RT = def_clksel2_rt - 1
+                                if self.CLKSELECT2_val_RT < 0xFF :
+                                    self.CLKSELECT2_val_RT = def_clksel2_rt - 1
 
-                    else:        
-                        if self.CLKSELECT_val_CT < 0xFF :
-                            self.CLKSELECT_val_CT = def_clksel_ct - 1
+                        else:        
+                            if self.CLKSELECT_val_CT < 0xFF :
+                                self.CLKSELECT_val_CT = def_clksel_ct - 1
                             
-                        if self.CLKSELECT2_val_CT < 0xFF :
-                            self.CLKSELECT2_val_CT = def_clksel2_ct - 1
+                                if self.CLKSELECT2_val_CT < 0xFF :
+                                    self.CLKSELECT2_val_CT = def_clksel2_ct - 1
 
-                    lastStep = -1
-                    didJump = True
-                    oldSyncVal = 0xFFFF
+                        lastStep = -1
+                        didJump = True
+                        oldSyncVal = 0xFFFF
 
+                    else:
+                        trial = totTrial # bail out
+                        
                 syncSuccess = False
                 
             else :
@@ -575,8 +567,118 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                     print("Found good CT clock phase:",hex(self.CLKSELECT_val_CT),hex(self.CLKSELECT2_val_CT))
 
             trial = trial + 1
+
+        if syncSuccess == False:
+            print("Could not find good clock phase near default values")
+            if self.isRoomTemp == True:
+                print("SYNC STATUS:",hex(syncVal),"at",hex(self.CLKSELECT_val_RT),hex(self.CLKSELECT2_val_RT))
+            else:
+                print("SYNC STATUS:",hex(syncVal),"at",hex(self.CLKSELECT_val_CT),hex(self.CLKSELECT2_val_CT))
+            
+        bruteForce = True
+
+        # did not find a good phase near the defaults
+        if bruteForce == True and syncSuccess == False:
+
+            oldSyncVal = 0xFFFF
+            minClksel = 0xFF
+            minClksel2 = 0xFF
+            syncVal = -1
+
+            print("Searching all values")
+            
+            # start with 0xFF
+            clksel = 0xFF
+            clksel2 = 0xFF
+
+            trial = 0
                 
-        
+            # step through phases until ADCs sync
+            while (syncSuccess == False and clksel != 0) :
+
+                #phase control
+                print("ADC clock phase:",clksel,clksel2)
+                self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, clksel ) #clock select
+                self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, clksel2 ) #clock select 2
+               
+                # check sync
+                regVal = self.femb.read_reg(6)
+                if regVal == None:
+                    print("doAsicConfig: Could not check SYNC status, bad")
+                    return
+            
+                syncVal = ((regVal >> 16) & 0xFFFF)
+                self.syncStatus = syncVal
+                print("SYNC ATTEMPT\t",trial,"\tSYNC VAL " , hex(syncVal) )
+
+                if syncVal < oldSyncVal :
+                    oldSyncVal = syncVal
+                    minClksel = clksel
+                    minClksel2 = clksel2
+                    
+                # try again if sync not achieved
+                if syncVal != 0x0 :
+
+                    clksel = clksel - 1
+                    clksel2 = clksel2 - 1
+
+                    syncSuccess = False
+                    trial = trial + 1
+                    
+                else:
+
+                    syncSuccess = True
+                    print("Found good clock phase:",hex(clksel),hex(clksel2))
+
+            if clksel == 0:
+                print("Could not find good clock phase")
+                print("Minimum sync value found:",hex(oldSyncVal),"at",hex(minClksel),hex(minClksel2))
+                print("One last try")
+
+                lastSyncSuccess = False
+                lasttrial = 0
+                lastClksel2 = 0xFF
+                lastSyncVal = 0xFFFF
+                
+                # step through phases until ADCs sync
+                while (lastSyncSuccess == False and lastClksel2 != 0) :
+
+                    #phase control
+                    print("ADC clock phase:",minClksel,lastClksel2)
+                    self.femb.write_reg_bits(self.CLK_SELECT , 0, 0xFF, minClksel ) #clock select
+                    self.femb.write_reg_bits(self.CLK_SELECT2 , 0, 0xFF, lastClksel2 ) #clock select 2
+               
+                    # check sync
+                    regVal = self.femb.read_reg(6)
+                    if regVal == None:
+                        print("doAsicConfig: Could not check SYNC status, bad")
+                        return
+            
+                    lastSyncVal = ((regVal >> 16) & 0xFFFF)
+                    print("SYNC ATTEMPT\t",lasttrial,"\tSYNC VAL " , hex(lastSyncVal) )
+
+                    # try again if sync not achieved
+                    if lastSyncVal != 0x0 :
+
+                        lastClksel2 = lastClksel2 - 1
+
+                        lastSyncSuccess = False
+                        lasttrial = lasttrial + 1
+                    
+                    else:
+
+                        lastSyncSuccess = True
+
+                        if self.isRoomTemp == True:
+                            self.CLKSELECT_val_RT = minClksel
+                            self.CLKSELECT2_val_RT = lastClksel2
+                            print("Found good RT clock phases:",hex(self.CLKSELECT_val_RT),hex(self.CLKSELECT2_val_RT))
+                        else:
+                            self.CLKSELECT_val_CT = minClksel
+                            self.CLKSELECT2_val_CT = lastClksel2
+                            print("Found good CT clock phases:",hex(self.CLKSELECT_val_CT),hex(self.CLKSELECT2_val_CT))
+
+                
     def doAsicConfig(self, syncAttempt=0):
         if syncAttempt == 0:
             print("Program ASIC SPI")
@@ -600,7 +702,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #Write ADC ASIC SPI
         #if syncAttempt == 0:
         if True :
-            print("ADC reconfig")
+            #print("ADC reconfig")
             self.femb.write_reg( self.REG_RESET,0x4) #reset timestamp
             time.sleep(0.01)
             self.femb.write_reg( self.REG_ASIC_RESET, 1) #reset ASIC SPI
@@ -913,6 +1015,75 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         else:
             self.femb.write_reg_bits( self.REG_ASIC_TP_EN , 0, 0x3, 0x0 )
 
+    def selectPulserChannels(self,setchannels):
+        # attach test cap to a set of channels given by the array testchannels
+        testchannels = []
+        
+        # check channel list
+        for i in range(0,len(setchannels),1):
+            if(setchannels[i] >= 0 and setchannels[i] <= 127):
+                testchannels.append(setchannels[i])
+            else:
+                print("Invalid channel:",setchannels[i],"removed from list")                
+
+        print("Selecting channels for pulser:", testchannels)
+
+        ch = [[-1 for i in range(self.NASICCH)] for j in range(self.NASICS)]
+        
+        for asic in range(0,self.NASICS,1):
+            baseReg = self.REG_SPI_BASE + int(asic)*9
+
+            # read back current state of channel regs
+            ch[asic][0] = (self.femb.read_reg( baseReg + 4 ) & 0xFF0000) >> 16
+            ch[asic][1] = (self.femb.read_reg( baseReg + 4 ) & 0xFF000000) >> 24
+            ch[asic][2] = (self.femb.read_reg( baseReg + 5 ) & 0xFF)
+            ch[asic][3] = (self.femb.read_reg( baseReg + 5 ) & 0xFF00) >> 8
+            ch[asic][4] = (self.femb.read_reg( baseReg + 5 ) & 0xFF0000) >> 16 
+            ch[asic][5] = (self.femb.read_reg( baseReg + 5 ) & 0xFF000000) >> 24
+            ch[asic][6] = (self.femb.read_reg( baseReg + 6 ) & 0xFF)
+            ch[asic][7] = (self.femb.read_reg( baseReg + 6 ) & 0xFF00) >> 8
+            ch[asic][8] = (self.femb.read_reg( baseReg + 6 ) & 0xFF0000) >> 16 
+            ch[asic][9] = (self.femb.read_reg( baseReg + 6 ) & 0xFF000000) >> 24
+            ch[asic][10] = (self.femb.read_reg( baseReg + 7 ) & 0xFF)
+            ch[asic][11] = (self.femb.read_reg( baseReg + 7 ) & 0xFF00) >> 8
+            ch[asic][12] = (self.femb.read_reg( baseReg + 7 ) & 0xFF0000) >> 16 
+            ch[asic][13] = (self.femb.read_reg( baseReg + 7 ) & 0xFF000000) >> 24
+            ch[asic][14] = (self.femb.read_reg( baseReg + 8 ) & 0xFF)
+            ch[asic][15] = (self.femb.read_reg( baseReg + 8 ) & 0xFF00) >> 8
+
+            # 0 test cap all channels
+            for i in range(0,self.NASICCH,1):
+                ch[asic][i] = ch[asic][i] & 0x7F
+                
+        # 1 test cap if channel is in list
+        for tc in range(0,len(testchannels),1):
+            thisasic = int(testchannels[tc]/self.NASICCH)
+            thischan = int((testchannels[tc]/self.NASICCH-thisasic)*self.NASICCH)
+
+            ch[thisasic][thischan] = ch[thisasic][thischan] + 0x80
+
+        #write channel regs 
+        for asic in range(0,self.NASICS,1):
+            baseReg = self.REG_SPI_BASE + int(asic)*9
+            self.femb.write_reg_bits( baseReg + 4 , 16, 0xFF, ch[asic][0] )
+            self.femb.write_reg_bits( baseReg + 4 , 24, 0xFF, ch[asic][1] )
+            self.femb.write_reg_bits( baseReg + 5 ,  0, 0xFF, ch[asic][2] )
+            self.femb.write_reg_bits( baseReg + 5 ,  8, 0xFF, ch[asic][3] )
+            self.femb.write_reg_bits( baseReg + 5 , 16, 0xFF, ch[asic][4] )
+            self.femb.write_reg_bits( baseReg + 5 , 24, 0xFF, ch[asic][5] )
+            self.femb.write_reg_bits( baseReg + 6 ,  0, 0xFF, ch[asic][6] )
+            self.femb.write_reg_bits( baseReg + 6 ,  8, 0xFF, ch[asic][7] )
+            self.femb.write_reg_bits( baseReg + 6 , 16, 0xFF, ch[asic][8] )
+            self.femb.write_reg_bits( baseReg + 6 , 24, 0xFF, ch[asic][9] )
+            self.femb.write_reg_bits( baseReg + 7 ,  0, 0xFF, ch[asic][10] )
+            self.femb.write_reg_bits( baseReg + 7 ,  8, 0xFF, ch[asic][11] )
+            self.femb.write_reg_bits( baseReg + 7 , 16, 0xFF, ch[asic][12] )
+            self.femb.write_reg_bits( baseReg + 7 , 24, 0xFF, ch[asic][13] )
+            self.femb.write_reg_bits( baseReg + 8 ,  0, 0xFF, ch[asic][14] )
+            self.femb.write_reg_bits( baseReg + 8 ,  8, 0xFF, ch[asic][15] )
+            
+        self.doAsicConfig()
+        
     def checkFirmwareVersion(self):
         #set UDP ports to WIB
         self.femb.UDP_PORT_WREG = 32000
