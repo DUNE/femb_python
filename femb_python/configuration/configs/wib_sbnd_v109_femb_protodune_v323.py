@@ -235,6 +235,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         if regVal == None:
             print("doAsicConfigcheckFembSpi: Could not check SYNC status, bad")
             return
+        syncVal = 0
         syncVal = ((regVal >> 16) & 0xFFFF)
         self.syncStatus = syncVal
 
@@ -480,7 +481,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             if regVal == None:
                 print("doAsicConfig: Could not check SYNC status, bad")
                 return
-            
+
+            syncVal = 0
             syncVal = ((regVal >> 16) & 0xFFFF)
             self.syncStatus = syncVal
             print("SYNC ATTEMPT\t",trial,"\tSYNC VAL " , hex(syncVal) )
@@ -606,7 +608,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                 if regVal == None:
                     print("doAsicConfig: Could not check SYNC status, bad")
                     return
-            
+                
+                syncVal = 0
                 syncVal = ((regVal >> 16) & 0xFFFF)
                 self.syncStatus = syncVal
                 print("SYNC ATTEMPT\t",trial,"\tSYNC VAL " , hex(syncVal) )
@@ -722,11 +725,14 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #check the sync
         if self.doReSync == False:
             return
-
+        
+        regVal = 0
         regVal = self.femb.read_reg(6)
         if regVal == None:
             print("doAsicConfig: Could not check SYNC status, bad")
             return
+
+        syncVal = 0
         syncVal = ((regVal >> 16) & 0xFFFF)
         self.syncStatus = syncVal
         #print("SYNC ATTEMPT\t",syncAttempt,"\tSYNC VAL " , hex(syncVal) )
@@ -1034,22 +1040,22 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             baseReg = self.REG_SPI_BASE + int(asic)*9
 
             # read back current state of channel regs
-            ch[asic][0] = (self.femb.read_reg( baseReg + 4 ) & 0xFF0000) >> 16
-            ch[asic][1] = (self.femb.read_reg( baseReg + 4 ) & 0xFF000000) >> 24
-            ch[asic][2] = (self.femb.read_reg( baseReg + 5 ) & 0xFF)
-            ch[asic][3] = (self.femb.read_reg( baseReg + 5 ) & 0xFF00) >> 8
-            ch[asic][4] = (self.femb.read_reg( baseReg + 5 ) & 0xFF0000) >> 16 
-            ch[asic][5] = (self.femb.read_reg( baseReg + 5 ) & 0xFF000000) >> 24
-            ch[asic][6] = (self.femb.read_reg( baseReg + 6 ) & 0xFF)
-            ch[asic][7] = (self.femb.read_reg( baseReg + 6 ) & 0xFF00) >> 8
-            ch[asic][8] = (self.femb.read_reg( baseReg + 6 ) & 0xFF0000) >> 16 
-            ch[asic][9] = (self.femb.read_reg( baseReg + 6 ) & 0xFF000000) >> 24
-            ch[asic][10] = (self.femb.read_reg( baseReg + 7 ) & 0xFF)
-            ch[asic][11] = (self.femb.read_reg( baseReg + 7 ) & 0xFF00) >> 8
-            ch[asic][12] = (self.femb.read_reg( baseReg + 7 ) & 0xFF0000) >> 16 
-            ch[asic][13] = (self.femb.read_reg( baseReg + 7 ) & 0xFF000000) >> 24
-            ch[asic][14] = (self.femb.read_reg( baseReg + 8 ) & 0xFF)
-            ch[asic][15] = (self.femb.read_reg( baseReg + 8 ) & 0xFF00) >> 8
+            ch[asic][15] = (self.femb.read_reg( baseReg + 4 ) & 0xFF0000) >> 16
+            ch[asic][14] = (self.femb.read_reg( baseReg + 4 ) & 0xFF000000) >> 24
+            ch[asic][13] = (self.femb.read_reg( baseReg + 5 ) & 0xFF)
+            ch[asic][12] = (self.femb.read_reg( baseReg + 5 ) & 0xFF00) >> 8
+            ch[asic][11] = (self.femb.read_reg( baseReg + 5 ) & 0xFF0000) >> 16 
+            ch[asic][10] = (self.femb.read_reg( baseReg + 5 ) & 0xFF000000) >> 24
+            ch[asic][9] = (self.femb.read_reg( baseReg + 6 ) & 0xFF)
+            ch[asic][8] = (self.femb.read_reg( baseReg + 6 ) & 0xFF00) >> 8
+            ch[asic][7] = (self.femb.read_reg( baseReg + 6 ) & 0xFF0000) >> 16 
+            ch[asic][6] = (self.femb.read_reg( baseReg + 6 ) & 0xFF000000) >> 24
+            ch[asic][5] = (self.femb.read_reg( baseReg + 7 ) & 0xFF)
+            ch[asic][4] = (self.femb.read_reg( baseReg + 7 ) & 0xFF00) >> 8
+            ch[asic][3] = (self.femb.read_reg( baseReg + 7 ) & 0xFF0000) >> 16 
+            ch[asic][2] = (self.femb.read_reg( baseReg + 7 ) & 0xFF000000) >> 24
+            ch[asic][1] = (self.femb.read_reg( baseReg + 8 ) & 0xFF)
+            ch[asic][0] = (self.femb.read_reg( baseReg + 8 ) & 0xFF00) >> 8
 
             # 0 test cap all channels
             for i in range(0,self.NASICCH,1):
@@ -1065,22 +1071,22 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #write channel regs 
         for asic in range(0,self.NASICS,1):
             baseReg = self.REG_SPI_BASE + int(asic)*9
-            self.femb.write_reg_bits( baseReg + 4 , 16, 0xFF, ch[asic][0] )
-            self.femb.write_reg_bits( baseReg + 4 , 24, 0xFF, ch[asic][1] )
-            self.femb.write_reg_bits( baseReg + 5 ,  0, 0xFF, ch[asic][2] )
-            self.femb.write_reg_bits( baseReg + 5 ,  8, 0xFF, ch[asic][3] )
-            self.femb.write_reg_bits( baseReg + 5 , 16, 0xFF, ch[asic][4] )
-            self.femb.write_reg_bits( baseReg + 5 , 24, 0xFF, ch[asic][5] )
-            self.femb.write_reg_bits( baseReg + 6 ,  0, 0xFF, ch[asic][6] )
-            self.femb.write_reg_bits( baseReg + 6 ,  8, 0xFF, ch[asic][7] )
-            self.femb.write_reg_bits( baseReg + 6 , 16, 0xFF, ch[asic][8] )
-            self.femb.write_reg_bits( baseReg + 6 , 24, 0xFF, ch[asic][9] )
-            self.femb.write_reg_bits( baseReg + 7 ,  0, 0xFF, ch[asic][10] )
-            self.femb.write_reg_bits( baseReg + 7 ,  8, 0xFF, ch[asic][11] )
-            self.femb.write_reg_bits( baseReg + 7 , 16, 0xFF, ch[asic][12] )
-            self.femb.write_reg_bits( baseReg + 7 , 24, 0xFF, ch[asic][13] )
-            self.femb.write_reg_bits( baseReg + 8 ,  0, 0xFF, ch[asic][14] )
-            self.femb.write_reg_bits( baseReg + 8 ,  8, 0xFF, ch[asic][15] )
+            self.femb.write_reg_bits( baseReg + 4 , 16, 0xFF, ch[asic][15] )
+            self.femb.write_reg_bits( baseReg + 4 , 24, 0xFF, ch[asic][14] )
+            self.femb.write_reg_bits( baseReg + 5 ,  0, 0xFF, ch[asic][13] )
+            self.femb.write_reg_bits( baseReg + 5 ,  8, 0xFF, ch[asic][12] )
+            self.femb.write_reg_bits( baseReg + 5 , 16, 0xFF, ch[asic][11] )
+            self.femb.write_reg_bits( baseReg + 5 , 24, 0xFF, ch[asic][10] )
+            self.femb.write_reg_bits( baseReg + 6 ,  0, 0xFF, ch[asic][9] )
+            self.femb.write_reg_bits( baseReg + 6 ,  8, 0xFF, ch[asic][8] )
+            self.femb.write_reg_bits( baseReg + 6 , 16, 0xFF, ch[asic][7] )
+            self.femb.write_reg_bits( baseReg + 6 , 24, 0xFF, ch[asic][6] )
+            self.femb.write_reg_bits( baseReg + 7 ,  0, 0xFF, ch[asic][5] )
+            self.femb.write_reg_bits( baseReg + 7 ,  8, 0xFF, ch[asic][4] )
+            self.femb.write_reg_bits( baseReg + 7 , 16, 0xFF, ch[asic][3] )
+            self.femb.write_reg_bits( baseReg + 7 , 24, 0xFF, ch[asic][2] )
+            self.femb.write_reg_bits( baseReg + 8 ,  0, 0xFF, ch[asic][1] )
+            self.femb.write_reg_bits( baseReg + 8 ,  8, 0xFF, ch[asic][0] )
             
         self.doAsicConfig()
         

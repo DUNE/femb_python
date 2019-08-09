@@ -86,6 +86,7 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         self.REG_LATCHLOC_7_TO_4_val = 0x04040404
         self.fe_regs = [0x00000000]*(16+2)*8*8
         self.fe_REGS = [0x00000000]*(8+1)*4
+        self.fe_REGS_all = [0x00000000]*(8+1)*8
         self.useLArIATmap = False #True
 
         #COTS shifts
@@ -700,6 +701,9 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
                         bits32 = chip_regs[i*32: (i+1)*32]
                         self.fe_REGS[int(chip/2*len32 + i) ] = (sum(v<<j for j, v in enumerate(bits32)))
 
+        for i in range(len(self.fe_REGS)):
+            self.fe_REGS_all[i] = self.fe_REGS[i]
+            self.fe_REGS_all[i+36] = self.fe_REGS[i]
 
         #turn off HS data before register writes
         self.femb.write_reg_bits(9 , 0, 0x1, 0 )
@@ -724,9 +728,8 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             time.sleep(0.01)
 
             i = 0
-            for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+len(self.fe_REGS),1):
-                self.femb.write_reg( regNum, self.fe_REGS[i])
-                self.femb.write_reg( regNum+36, self.fe_REGS[i])
+            for regNum in range(self.REG_SPI_BASE,self.REG_SPI_BASE+len(self.fe_REGS_all),1):
+                self.femb.write_reg( regNum, self.fe_REGS_all[i])
                 i += 1
             time.sleep(0.01)
             self.femb.write_reg( self.REG_ASIC_SPIPROG, 1)
@@ -801,16 +804,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg( self.EXT_TP_EN, 0x3) #pulser disabled
 
         #connect channel test input to external pin
-        firstfourasics = int(self.NASICS/2)
-        for asic in range(0,firstfourasics,1):
+        for asic in range(0,self.NASICS,1):
             baseReg = int(asic)*9
 
-            self.fe_REGS[baseReg+4] = self.fe_REGS[baseReg+4] & 0xFFFF0000
-            self.fe_REGS[baseReg+8] = self.fe_REGS[baseReg+8] & 0x0000FFFF
+            self.fe_REGS_all[baseReg+4] = self.fe_REGS_all[baseReg+4] & 0xFFFF0000
+            self.fe_REGS_all[baseReg+8] = self.fe_REGS_all[baseReg+8] & 0x0000FFFF
                 
             if enableVal == 1:
-                self.fe_REGS[baseReg+4] = self.fe_REGS[baseReg+4] | 0x2<<8
-                self.fe_REGS[baseReg+8] = self.fe_REGS[baseReg+8] | 0x2<<24
+                self.fe_REGS_all[baseReg+4] = self.fe_REGS_all[baseReg+4] | 0x2<<8
+                self.fe_REGS_all[baseReg+8] = self.fe_REGS_all[baseReg+8] | 0x2<<24
 
         self.doAsicConfig()
 
@@ -847,16 +849,15 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         #print(hex(asicWord))
             
         #connect channel test input to external pin
-        firstfourasics = int(self.NASICS/2)
-        for asic in range(0,firstfourasics,1):
+        for asic in range(0,self.NASICS,1):
             baseReg = int(asic)*9
 
-            self.fe_REGS[baseReg+4] = self.fe_REGS[baseReg+4] & 0xFFFF0000
-            self.fe_REGS[baseReg+8] = self.fe_REGS[baseReg+8] & 0x0000FFFF
+            self.fe_REGS_all[baseReg+4] = self.fe_REGS_all[baseReg+4] & 0xFFFF0000
+            self.fe_REGS_all[baseReg+8] = self.fe_REGS_all[baseReg+8] & 0x0000FFFF
                 
             if enableVal == 1:
-                self.fe_REGS[baseReg+4] = self.fe_REGS[baseReg+4] | asicWord
-                self.fe_REGS[baseReg+8] = self.fe_REGS[baseReg+8] | asicWord<<16
+                self.fe_REGS_all[baseReg+4] = self.fe_REGS_all[baseReg+4] | asicWord
+                self.fe_REGS_all[baseReg+8] = self.fe_REGS_all[baseReg+8] | asicWord<<16
 
         self.doAsicConfig()
 
@@ -864,6 +865,83 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
             self.femb.write_reg_bits( self.REG_ASIC_TP_EN , 0, 0x3, 0x2 ) #NOTE, also disabling FPGA pulser here
         else:
             self.femb.write_reg_bits( self.REG_ASIC_TP_EN , 0, 0x3, 0x0 )
+
+    def selectPulserChannels(self,setchannels):
+        # attach test cap to a set of channels given by the array testchannels
+        testchannels = []
+        
+        # check channel list
+        for i in range(0,len(setchannels),1):
+            if(setchannels[i] >= 0 and setchannels[i] <= 127):
+                testchannels.append(setchannels[i])
+            else:
+                print("Invalid channel:",setchannels[i],"removed from list")                
+
+        print("Selecting channels for pulser:", testchannels)
+
+        ch = [[-1 for i in range(self.NASICCH)] for j in range(self.NASICS)]
+        
+        for asic in range(0,self.NASICS,1):
+            baseReg = int(asic)*9
+
+            # read back current state of channel regs
+            ch[asic][15] = (self.fe_REGS_all[ baseReg ] & 0xFF0000) >> 16
+            ch[asic][14] = (self.fe_REGS_all[ baseReg ] & 0xFF000000) >> 24
+            ch[asic][13] = (self.fe_REGS_all[ baseReg ] & 0xFF)
+            ch[asic][12] = (self.fe_REGS_all[ baseReg ] & 0xFF00) >> 8
+            ch[asic][11] = (self.fe_REGS_all[ baseReg ] & 0xFF0000) >> 16 
+            ch[asic][10] = (self.fe_REGS_all[ baseReg ] & 0xFF000000) >> 24
+            ch[asic][9] = (self.fe_REGS_all[ baseReg ] & 0xFF)
+            ch[asic][8] = (self.fe_REGS_all[ baseReg ] & 0xFF00) >> 8
+            ch[asic][7] = (self.fe_REGS_all[ baseReg ] & 0xFF0000) >> 16 
+            ch[asic][6] = (self.fe_REGS_all[ baseReg ] & 0xFF000000) >> 24
+            ch[asic][5] = (self.fe_REGS_all[ baseReg ] & 0xFF)
+            ch[asic][4] = (self.fe_REGS_all[ baseReg ] & 0xFF00) >> 8
+            ch[asic][3] = (self.fe_REGS_all[ baseReg ] & 0xFF0000) >> 16 
+            ch[asic][2] = (self.fe_REGS_all[ baseReg ] & 0xFF000000) >> 24
+            ch[asic][1] = (self.fe_REGS_all[ baseReg ] & 0xFF)
+            ch[asic][0] = (self.fe_REGS_all[ baseReg ] & 0xFF00) >> 8
+
+            # 0 test cap all channels
+            for i in range(0,self.NASICCH,1):
+                ch[asic][i] = ch[asic][i] & 0x7F
+                
+        # 1 test cap if channel is in list
+        for tc in range(0,len(testchannels),1):
+            thisasic = int(testchannels[tc]/self.NASICCH)
+            thischan = int((testchannels[tc]/self.NASICCH-thisasic)*self.NASICCH)
+
+            ch[thisasic][thischan] = ch[thisasic][thischan] + 0x80
+
+        #save channel regs 
+        for asic in range(0,self.NASICS,1):
+            baseReg = int(asic)*9
+            
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFF00FFFF) | ch[asic][15] << 16
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0x00FFFFFF) | ch[asic][14] << 24
+            
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFFFF00) | ch[asic][13]
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFF00FF) | ch[asic][12] << 8
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFF00FFFF) | ch[asic][11] << 16
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0x00FFFFFF) | ch[asic][10] << 24
+
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFFFF00) | ch[asic][9]
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFF00FF) | ch[asic][8] << 8
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFF00FFFF) | ch[asic][7] << 16
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0x00FFFFFF) | ch[asic][6] << 24
+
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFFFF00) | ch[asic][5]
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFF00FF) | ch[asic][4] << 8
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFF00FFFF) | ch[asic][3] << 16
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0x00FFFFFF) | ch[asic][2] << 24
+            
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFFFF00) | ch[asic][1]
+            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFF00FF) | ch[asic][0] << 8
+
+        for i in range(len(self.fe_REGS_all)):
+            print(i,hex(self.fe_REGS_all[i]))
+                       
+        self.doAsicConfig()
 
     def checkFirmwareVersion(self):
         #set UDP ports to WIB
