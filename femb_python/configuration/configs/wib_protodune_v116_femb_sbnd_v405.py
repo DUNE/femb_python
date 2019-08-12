@@ -882,29 +882,48 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         ch = [[-1 for i in range(self.NASICCH)] for j in range(self.NASICS)]
         
         for asic in range(0,self.NASICS,1):
-            baseReg = int(asic)*9
+            if(asic % 2 == 0):
+                baseReg = int(asic/2)*9
 
-            # read back current state of channel regs
-            ch[asic][15] = (self.fe_REGS_all[ baseReg ] & 0xFF0000) >> 16
-            ch[asic][14] = (self.fe_REGS_all[ baseReg ] & 0xFF000000) >> 24
-            ch[asic][13] = (self.fe_REGS_all[ baseReg ] & 0xFF)
-            ch[asic][12] = (self.fe_REGS_all[ baseReg ] & 0xFF00) >> 8
-            ch[asic][11] = (self.fe_REGS_all[ baseReg ] & 0xFF0000) >> 16 
-            ch[asic][10] = (self.fe_REGS_all[ baseReg ] & 0xFF000000) >> 24
-            ch[asic][9] = (self.fe_REGS_all[ baseReg ] & 0xFF)
-            ch[asic][8] = (self.fe_REGS_all[ baseReg ] & 0xFF00) >> 8
-            ch[asic][7] = (self.fe_REGS_all[ baseReg ] & 0xFF0000) >> 16 
-            ch[asic][6] = (self.fe_REGS_all[ baseReg ] & 0xFF000000) >> 24
-            ch[asic][5] = (self.fe_REGS_all[ baseReg ] & 0xFF)
-            ch[asic][4] = (self.fe_REGS_all[ baseReg ] & 0xFF00) >> 8
-            ch[asic][3] = (self.fe_REGS_all[ baseReg ] & 0xFF0000) >> 16 
-            ch[asic][2] = (self.fe_REGS_all[ baseReg ] & 0xFF000000) >> 24
-            ch[asic][1] = (self.fe_REGS_all[ baseReg ] & 0xFF)
-            ch[asic][0] = (self.fe_REGS_all[ baseReg ] & 0xFF00) >> 8
+                # read back current state of channel regs (2 asics)
+                ch[asic][15] = (self.fe_REGS_all[ baseReg ] & 0xFF)
+                ch[asic][14] = (self.fe_REGS_all[ baseReg ] & 0xFF00) >> 8
+                ch[asic][13] = (self.fe_REGS_all[ baseReg ] & 0xFF0000) >> 16 
+                ch[asic][12] = (self.fe_REGS_all[ baseReg ] & 0xFF000000) >> 24
+                ch[asic][11] = (self.fe_REGS_all[ baseReg + 1 ] & 0xFF)
+                ch[asic][10] = (self.fe_REGS_all[ baseReg + 1 ] & 0xFF00) >> 8
+                ch[asic][9] = (self.fe_REGS_all[ baseReg + 1 ] & 0xFF0000) >> 16 
+                ch[asic][8] = (self.fe_REGS_all[ baseReg + 1 ] & 0xFF000000) >> 24
+                ch[asic][7] = (self.fe_REGS_all[ baseReg + 2 ] & 0xFF)
+                ch[asic][6] = (self.fe_REGS_all[ baseReg + 2 ] & 0xFF00) >> 8
+                ch[asic][5] = (self.fe_REGS_all[ baseReg + 2 ] & 0xFF0000) >> 16 
+                ch[asic][4] = (self.fe_REGS_all[ baseReg + 2 ] & 0xFF000000) >> 24
+                ch[asic][3] = (self.fe_REGS_all[ baseReg + 3 ] & 0xFF)
+                ch[asic][2] = (self.fe_REGS_all[ baseReg + 3 ] & 0xFF00) >> 8
+                ch[asic][1] = (self.fe_REGS_all[ baseReg + 3 ] & 0xFF0000) >> 16
+                ch[asic][0] = (self.fe_REGS_all[ baseReg + 3 ] & 0xFF000000) >> 24
 
-            # 0 test cap all channels
-            for i in range(0,self.NASICCH,1):
-                ch[asic][i] = ch[asic][i] & 0x7F
+                ch[asic+1][15] = (self.fe_REGS_all[ baseReg + 4 ] & 0xFF0000) >> 16 
+                ch[asic+1][14] = (self.fe_REGS_all[ baseReg + 4 ] & 0xFF000000) >> 24
+                ch[asic+1][13] = (self.fe_REGS_all[ baseReg + 5 ] & 0xFF)
+                ch[asic+1][12] = (self.fe_REGS_all[ baseReg + 5 ] & 0xFF00) >> 8
+                ch[asic+1][11] = (self.fe_REGS_all[ baseReg + 5 ] & 0xFF0000) >> 16 
+                ch[asic+1][10] = (self.fe_REGS_all[ baseReg + 5 ] & 0xFF000000) >> 24
+                ch[asic+1][9] = (self.fe_REGS_all[ baseReg + 6 ] & 0xFF)
+                ch[asic+1][8] = (self.fe_REGS_all[ baseReg + 6 ] & 0xFF00) >> 8
+                ch[asic+1][7] = (self.fe_REGS_all[ baseReg + 6 ] & 0xFF0000) >> 16 
+                ch[asic+1][6] = (self.fe_REGS_all[ baseReg + 6 ] & 0xFF000000) >> 24
+                ch[asic+1][5] = (self.fe_REGS_all[ baseReg + 7 ] & 0xFF)
+                ch[asic+1][4] = (self.fe_REGS_all[ baseReg + 7 ] & 0xFF00) >> 8
+                ch[asic+1][3] = (self.fe_REGS_all[ baseReg + 7 ] & 0xFF0000) >> 16
+                ch[asic+1][2] = (self.fe_REGS_all[ baseReg + 7 ] & 0xFF000000) >> 24
+                ch[asic+1][1] = (self.fe_REGS_all[ baseReg + 8 ] & 0xFF)
+                ch[asic+1][0] = (self.fe_REGS_all[ baseReg + 8 ] & 0xFF00) >> 8
+            
+                # 0 test cap all channels
+                for i in range(0,self.NASICCH,1):
+                    ch[asic][i] = ch[asic][i] & 0x7F
+                    ch[asic+1][i] = ch[asic+1][i] & 0x7F
                 
         # 1 test cap if channel is in list
         for tc in range(0,len(testchannels),1):
@@ -915,28 +934,43 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
 
         #save channel regs 
         for asic in range(0,self.NASICS,1):
-            baseReg = int(asic)*9
-            
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFF00FFFF) | ch[asic][15] << 16
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0x00FFFFFF) | ch[asic][14] << 24
-            
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFFFF00) | ch[asic][13]
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFF00FF) | ch[asic][12] << 8
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFF00FFFF) | ch[asic][11] << 16
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0x00FFFFFF) | ch[asic][10] << 24
+            if(asic % 2 == 0):
+                baseReg = int(asic/2)*9
 
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFFFF00) | ch[asic][9]
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFF00FF) | ch[asic][8] << 8
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFF00FFFF) | ch[asic][7] << 16
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0x00FFFFFF) | ch[asic][6] << 24
+                self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFFFF00) | ch[asic][15]
+                self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFF00FF) | ch[asic][14] << 8
+                self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFF00FFFF) | ch[asic][13] << 16
+                self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0x00FFFFFF) | ch[asic][12] << 24
+                self.fe_REGS_all[ baseReg + 1 ] = (self.fe_REGS_all[ baseReg + 1 ] & 0xFFFFFF00) | ch[asic][11]
+                self.fe_REGS_all[ baseReg + 1 ] = (self.fe_REGS_all[ baseReg + 1 ] & 0xFFFF00FF) | ch[asic][10] << 8
+                self.fe_REGS_all[ baseReg + 1 ] = (self.fe_REGS_all[ baseReg + 1 ] & 0xFF00FFFF) | ch[asic][9] << 16
+                self.fe_REGS_all[ baseReg + 1 ] = (self.fe_REGS_all[ baseReg + 1 ] & 0x00FFFFFF) | ch[asic][8] << 24
+                self.fe_REGS_all[ baseReg + 2 ] = (self.fe_REGS_all[ baseReg + 2 ] & 0xFFFFFF00) | ch[asic][7]
+                self.fe_REGS_all[ baseReg + 2 ] = (self.fe_REGS_all[ baseReg + 2 ] & 0xFFFF00FF) | ch[asic][6] << 8
+                self.fe_REGS_all[ baseReg + 2 ] = (self.fe_REGS_all[ baseReg + 2 ] & 0xFF00FFFF) | ch[asic][5] << 16
+                self.fe_REGS_all[ baseReg + 2 ] = (self.fe_REGS_all[ baseReg + 2 ] & 0x00FFFFFF) | ch[asic][4] << 24
+                self.fe_REGS_all[ baseReg + 3 ] = (self.fe_REGS_all[ baseReg + 3 ] & 0xFFFFFF00) | ch[asic][3]
+                self.fe_REGS_all[ baseReg + 3 ] = (self.fe_REGS_all[ baseReg + 3 ] & 0xFFFF00FF) | ch[asic][2] << 8
+                self.fe_REGS_all[ baseReg + 3 ] = (self.fe_REGS_all[ baseReg + 3 ] & 0xFF00FFFF) | ch[asic][1] << 16
+                self.fe_REGS_all[ baseReg + 3 ] = (self.fe_REGS_all[ baseReg + 3 ] & 0x00FFFFFF) | ch[asic][0] << 24
 
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFFFF00) | ch[asic][5]
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFF00FF) | ch[asic][4] << 8
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFF00FFFF) | ch[asic][3] << 16
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0x00FFFFFF) | ch[asic][2] << 24
-            
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFFFF00) | ch[asic][1]
-            self.fe_REGS_all[ baseReg ] = (self.fe_REGS_all[ baseReg ] & 0xFFFF00FF) | ch[asic][0] << 8
+                self.fe_REGS_all[ baseReg + 4 ] = (self.fe_REGS_all[ baseReg + 4 ] & 0xFF00FFFF) | ch[asic+1][15] << 16
+                self.fe_REGS_all[ baseReg + 4 ] = (self.fe_REGS_all[ baseReg + 4 ] & 0x00FFFFFF) | ch[asic+1][14] << 24
+                self.fe_REGS_all[ baseReg + 5 ] = (self.fe_REGS_all[ baseReg + 5 ] & 0xFFFFFF00) | ch[asic+1][13]
+                self.fe_REGS_all[ baseReg + 5 ] = (self.fe_REGS_all[ baseReg + 5 ] & 0xFFFF00FF) | ch[asic+1][12] << 8
+                self.fe_REGS_all[ baseReg + 5 ] = (self.fe_REGS_all[ baseReg + 5 ] & 0xFF00FFFF) | ch[asic+1][11] << 16
+                self.fe_REGS_all[ baseReg + 5 ] = (self.fe_REGS_all[ baseReg + 5 ] & 0x00FFFFFF) | ch[asic+1][10] << 24
+                self.fe_REGS_all[ baseReg + 6 ] = (self.fe_REGS_all[ baseReg + 6 ] & 0xFFFFFF00) | ch[asic+1][9]
+                self.fe_REGS_all[ baseReg + 6 ] = (self.fe_REGS_all[ baseReg + 6 ] & 0xFFFF00FF) | ch[asic+1][8] << 8
+                self.fe_REGS_all[ baseReg + 6 ] = (self.fe_REGS_all[ baseReg + 6 ] & 0xFF00FFFF) | ch[asic+1][7] << 16
+                self.fe_REGS_all[ baseReg + 6 ] = (self.fe_REGS_all[ baseReg + 6 ] & 0x00FFFFFF) | ch[asic+1][6] << 24
+                self.fe_REGS_all[ baseReg + 7 ] = (self.fe_REGS_all[ baseReg + 7 ] & 0xFFFFFF00) | ch[asic+1][5]
+                self.fe_REGS_all[ baseReg + 7 ] = (self.fe_REGS_all[ baseReg + 7 ] & 0xFFFF00FF) | ch[asic+1][4] << 8
+                self.fe_REGS_all[ baseReg + 7 ] = (self.fe_REGS_all[ baseReg + 7 ] & 0xFF00FFFF) | ch[asic+1][3] << 16
+                self.fe_REGS_all[ baseReg + 7 ] = (self.fe_REGS_all[ baseReg + 7 ] & 0x00FFFFFF) | ch[asic+1][2] << 24
+                self.fe_REGS_all[ baseReg + 8 ] = (self.fe_REGS_all[ baseReg + 8 ] & 0xFFFFFF00) | ch[asic+1][1]
+                self.fe_REGS_all[ baseReg + 8 ] = (self.fe_REGS_all[ baseReg + 8 ] & 0xFFFF00FF) | ch[asic+1][0] << 8
+                
 
         for i in range(len(self.fe_REGS_all)):
             print(i,hex(self.fe_REGS_all[i]))
