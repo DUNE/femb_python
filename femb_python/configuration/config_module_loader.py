@@ -12,12 +12,50 @@ import pkg_resources
 import os
 import importlib
 import sys
+import json
+import getpass
 import os.path, pkgutil
 from . import configs as configs
+import configparser
 
 #PKGNAME="femb_python"
 #PKGCONFIGPREFIX = "configuration"
 #VARNAME="FEMB_CONFIG"
+
+def getDefaultDirectory():
+    try:
+        femb_config = os.environ["FEMB_CONFIG"]  # required
+    except KeyError:
+        print( "ERROR RUNPOLICY - Please set the environment variable FEMB_config" )
+        return None
+
+    # Check out the data disk situation and find the most available disk
+    freedisks = list()
+    datadisks=["/tmp"]
+    hostname = os.uname()[1]
+    if (hostname.startswith("hoth") or hostname.startswith("hunk")):
+        datadisks = ["/dsk/1", "/dsk/2"]
+    for dd in datadisks:
+        stat = os.statvfs(dd)
+        MB = stat.f_bavail * stat.f_frsize >> 20
+        freedisks.append((MB, dd))
+    freedisks.sort()
+    lo_disk = freedisks[0][1]
+
+    user = getpass.getuser()
+    if ("user" == "oper"):
+        datadisk = "{}/data".format(lo_disk)
+    else:
+        datadisk = "{}/tmp".format(lo_disk)
+        
+    step2 = os.path.join(datadisk,user,femb_config)
+    step1 = os.path.join(datadisk,user)
+    
+    for i in [step1,step2]:
+        if not os.path.exists(i):
+            os.makedirs(i)
+    
+    return step2
 
 class CONFIGURATION_MODULE_LOADER(object):
   """
@@ -40,8 +78,20 @@ class CONFIGURATION_MODULE_LOADER(object):
       try:
         return module.FEMB_CONFIG
       except AttributeError:
-          print("Error: Config module '{}' doesn't contain the class FEMB_CONFIG".format(config_name))
-          sys.exit(1)
+          module = self.config_file_finder_ini(config_name)
+          try:
+              print("Found INI file for {}".format(module['DEFAULT']['NAME']))
+              return module
+          except:
+              print("Error: Config module '{}' doesn't contain the class FEMB_CONFIG, no INI file either".format(config_name))
+              sys.exit(1)
+          
+  def config_file_finder_ini(self,requestedModuleName):
+      config = configparser.ConfigParser()
+      #This returns the directory of the file we're currently in (config_module_loader.py), NOT the working directory that launched this from command line
+      current_dir = os.path.dirname(os.path.abspath(__file__))
+      config.read('{}/configs/{}.ini'.format(current_dir,requestedModuleName))
+      return config
   
   def config_file_finder(self,requestedModuleName):
       """

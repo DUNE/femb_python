@@ -35,7 +35,7 @@ class FEMB_TEST_GAIN(object):
         self.outpathlabel = os.path.join(self.datadir, self.outlabel)
         self.fembNum = int(fembNum)
 
-        print( "FEMB # " + str(fembNum) )
+        print( "FEMB # " + str(self.fembNum) )
 
         #import femb_udp modules from femb_udp package
         self.femb_config = CONFIG()
@@ -56,7 +56,7 @@ class FEMB_TEST_GAIN(object):
         self.base = 0
         self.leakage = 0
         self.leakagex10 = 0
-        self.buffer = 0
+        self.buffer = 1
         self.acdc = 0
         self.useInternalPulser = False
         self.useExtAdcClock = False
@@ -77,9 +77,18 @@ class FEMB_TEST_GAIN(object):
         #make sure output directory exists
         self.write_data.assure_filedir()
 
+        #check that femb number is valid
+        if ( int(self.fembNum) < 0 ) or ( int( self.fembNum) >= self.femb_config.NFEMBS ):
+            print("Error running doFembTest - Invalid FEMB # specified.")
+            return    
+
+        #assign FEMB # to test 
+        self.femb_config.selectFemb(self.fembNum)
+        
         #check if register interface is working
         print("Checking register interface")
-        regVal = self.femb_config.femb.read_reg(6)
+        regVal = self.femb_config.femb.read_reg(255)
+        
         if (regVal == None):
             print("Error running doFembTest - FEMB register interface is not working.")
             print(" Turn on or debug FEMB UDP readout.")       
@@ -88,18 +97,11 @@ class FEMB_TEST_GAIN(object):
             print("Error running doFembTest - FEMB register interface is not working.")
             print(" Turn on or debug FEMB UDP readout.")       
             return
-        print("Read register 6, value = " + str( hex( regVal ) ) )
+        print("Read register 255, value = " + str( hex( regVal ) ) )
 
-        #check that femb number is valid
-        if ( int(self.fembNum) < 0 ) or ( int( self.fembNum) >= self.femb_config.NFEMBS ):
-            print("Error running doFembTest - Invalid FEMB # specified.")
-            return    
-
-        #assign FEMB # to test 
-        self.femb_config.selectFemb(self.fembNum)
 
         #initialize FEMB to known state
-        print("Initializing board")
+        #print("Initializing FEMB",self.fembNum)
         self.femb_config.feasicGain = self.gain
         self.femb_config.feasicShape = self.shape
         self.femb_config.feasicBaseline = self.base
@@ -129,14 +131,16 @@ class FEMB_TEST_GAIN(object):
         #check if data streaming is working
         print("Checking data streaming")
         testData = self.write_data.femb.get_data_packets(1)
-        if testData == None:
-            print("Error running doFembTest - FEMB is not streaming data.")
-            print(" Turn on and initialize FEMB UDP readout.")
-            return
-        if len(testData) == 0:
-            print("Error running doFembTest - FEMB is not streaming data.")
-            print(" Turn on and initialize FEMB UDP readout.")
-            return
+        if testData == None or len(testData) == 0:
+
+            #try again
+            print("No data: reinitializing FEMB",self.fembNum)
+            self.femb_config.initFemb()
+            testData = self.write_data.femb.get_data_packets(1)
+            if testData == None or len(testData) == 0:
+                print("Error running doFembTest - FEMB is not streaming data.")
+                print(" Turn on and initialize FEMB UDP readout.")
+                return
 
         print("Received data packet " + str(len(testData[0])) + " bytes long")
 

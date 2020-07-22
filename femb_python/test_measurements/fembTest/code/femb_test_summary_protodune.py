@@ -64,9 +64,9 @@ class FEMB_SUMMARY(object):
                 boxtext = ""
             else:
                 name = params['box_ids'][i]
-                boxtext = "FEMB "
+                boxtext = "CE Box "
 
-            text_title = "SBND FEMB QC Summary: "+boxtext+name
+            text_title = "protoDUNE FEMB QC Summary: "+boxtext+name
 
             timestamp = "Timestamp: "+params['session_start_time']
 
@@ -90,8 +90,8 @@ class FEMB_SUMMARY(object):
 
             amt = "Analog MB ID: "
             fmt = "FPGA Mezz ID: "
-            fet = "V7 FE ASICs"
-            adct = "COTS ADCs"
+            fet = "FE ASICS: "
+            adct = "ADC ASICS: "
 
             t1 = amt+params['am_ids'][i]
             pdf.cell(40, 5, txt=t1, align='L')
@@ -99,12 +99,15 @@ class FEMB_SUMMARY(object):
             pdf.cell(25, 5, txt=t2, align='L',ln=1)
 
             pdf.cell(25, 5, txt=fet, align='L')            
-            #for jfe in params['fe_asics'][i]:
-            #    pdf.cell(12, 5, txt=str(jfe), align='L')            
+            for jfe in params['fe_asics'][i]:
+                pdf.cell(13, 5, txt=str(jfe), align='L')            
             pdf.ln(5)
 
-            pdf.cell(40, 5, txt=adct, align='L')
-            
+            pdf.cell(25, 5, txt=adct, align='L')            
+            for jadc in params['adc_asics'][i]:
+                pdf.cell(13, 5, txt=str(jadc), align='L')
+            pdf.ln(5)
+
             printgain = False
             printpc = False
             printcurrent = False
@@ -142,20 +145,11 @@ class FEMB_SUMMARY(object):
                             gainlabel = gaininfo[0]+"_"+gaininfo[1]+"_"+gaininfo[2]
                             gainsummary[gainlabel] = gaininfo
                     
-                    # print either g2_s2_extpulse or g2_s2_intpulse png to summary, whichever is found first
-                    if (("g2_s2_extpulse" in mydir) and (printgain == False)):
+                    if ("g2_s2_intpulse" in mydir):
                         if os.path.isfile(self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"):
-                            gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 2 us, Internal FPGA Pulser"
+                            gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 2 us, Internal Pulser"
                             gainimage = self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"
                             printgain = True
-
-                    if (("g2_s2_intpulse" in mydir) and (printgain == False)):
-                        if os.path.isfile(self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"):
-                            gaintext = "Gain/ENC Measurement: Gain = 14 mV/fC, Shaping Time = 2 us, Internal FE ASIC Pulser"
-                            gainimage = self.topdir+"/"+mydir+"/gainMeasurement_femb_"+str(slot)+"-summaryPlot.png"
-                            printgain = True
-
-                            
                 #Power cycle summary:
                 if ("powercycle" in mydir):
                     pc_text = "FEMB power cycled 5 times at beginning of data collection with no failure."
@@ -166,11 +160,11 @@ class FEMB_SUMMARY(object):
                     currentmonitortext = "Current Monitoring:"
                     voltage_text = "Voltage (V):"                    
                     current_text = "Current (A):"
-                    l1 = "4.0 V"
-                    l2 = "3.0 V"
-                    l3 = "3.3 V"
-                    l4 = "1.8 V"
-                    l5 = "5.0 V"
+                    l1 = "4.2 V"
+                    l2 = "3 V"
+                    l3 = "2.5 V"
+                    l4 = "1.5 V"
+                    l5 = "5 V"
                     info_file = self.topdir+"/"+mydir+"/params.json"
                     if os.path.isfile(info_file):
                         params_curr = json.loads(open(info_file).read())

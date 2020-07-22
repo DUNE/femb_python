@@ -1,4 +1,4 @@
-//compile independently with: g++ -std=c++11 -o processNtuple_gainMeasurement processNtuple_gainMeasurement.cxx `root-config --cflags --glibs`
+//compile independently with: g++ -std=c++11 -o processNtuple_xtalkMeasurement processNtuple_xtalkMeasurement.cxx `root-config --cflags --glibs`
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -137,9 +137,9 @@ Analyze::Analyze(std::string inputName,bool useInternalPulser=0,bool useDefaultG
 	getInputTree();
 
 	//make output file
-  	std::string outputFileName = "output_processNtuple_gainMeasurement.root";
+  	std::string outputFileName = "output_processNtuple_xtalkMeasurement.root";
 	//if( processFileName( inputFileName, outputFileName ) )
-	//	outputFileName = "output_processNtuple_gainMeasurement_" + outputFileName;
+	//	outputFileName = "output_processNtuple_xtalkMeasurement_" + outputFileName;
   	gOut = new TFile(outputFileName.c_str() , "RECREATE");
 
 	//initialize bad channel mask
@@ -633,7 +633,7 @@ void Analyze::outputResults(){
 
 void Analyze::writeToTextFile(){
 	//output to file here:
-  	std::string outputFileName = "output_processNtuple_gainMeasurement.list";
+  	std::string outputFileName = "output_processNtuple_xtalkMeasurement.list";
 	ofstream listfile;
         listfile.open (outputFileName);
   	//ASIC results
@@ -704,7 +704,7 @@ void Analyze::makeSummaryPlot(){
 	TImage *img = TImage::Create();
 	img->FromPad(c0);
   	std::stringstream imgstream;
-	imgstream << "summaryPlot_gainMeasurement.png";
+	imgstream << "summaryPlot_xtalkMeasurement.png";
 	std::string imgstring( imgstream.str() );
   	img->WriteImage(imgstring.c_str());
 }

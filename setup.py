@@ -179,6 +179,16 @@ setup(
             'femb_feasic_gain_externaldac=femb_python.test_measurements.feAsicTest.doFembTest_gainMeasurement_externalDac:main',
             'femb_control_power=femb_python.test_measurements.feAsicTest.doFemb_controlPower:main',
             
+            #General cold FE quad
+            'feasic_quad_testgui=femb_python.test_measurements.quad_FE_Board.gui_fe_asic_cold:main',
+            'feasic_quad_sync=femb_python.test_measurements.quad_FE_Board.Tests.quad_sync_adcs:main',
+            'feasic_quad_baseline=femb_python.test_measurements.quad_FE_Board.Tests.FE_baseline_test:main',
+            'feasic_quad_monitor=femb_python.test_measurements.quad_FE_Board.Tests.FE_monitor_test:main',
+            'feasic_quad_alive=femb_python.test_measurements.quad_FE_Board.Tests.FE_alive_test:main',
+            'feasic_quad_dac=femb_python.test_measurements.quad_FE_Board.Tests.FE_dac_test:main',
+            'feasic_quad_gain=femb_python.test_measurements.quad_FE_Board.Tests.FE_pulse_test:main',
+            'feasic_quad_ledge=femb_python.test_measurements.quad_FE_Board.Tests.FE_ledge_test:main',
+            
             #sbnd cold electronics testing
             'femb_feasic_sbnd_testgui=femb_python.test_measurements.sbnd_femb_test.gui_sbnd_fembTest:main',
             'femb_sync_adcs=femb_python.test_measurements.sbnd_femb_test.sync_adcs:main',

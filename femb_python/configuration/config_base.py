@@ -15,6 +15,12 @@ from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
+import time
+import sys
+import os
+import json
+from femb_python.test_measurements.quad_FE_Board.config_functions import FEMB_CONFIG_FUNCTIONS as quadFE
+from femb_python.configuration.config_module_loader import getDefaultDirectory
 
 class FEMBConfigError(Exception):
     """Base class exception for femb_python configuration errors"""
@@ -43,98 +49,155 @@ class FEMB_CONFIG_BASE(object):
     of functions.  
     """
 
-    def __init__(self,exitOnError=True):
+    def __init__(self, config_file = None, exitOnError=True):
         """
-        Initialize this class (no board communication here. Should setup self.femb as a femb_udp instance.)
+        Initialize this class (no board communication here. Should setup self.femb_interface as a femb_udp instance.)
         if exitOnError is false, methods should raise error that subclass FEMBConfigError
         """
-        self.femb = None
-        self.NASICS = 1
-        self.NBOARDS = 1
-        self.COLD = False
+        if (config_file == None):
+            from femb_python.configuration import CONFIG
+            self.config = CONFIG
+        else:
+            self.config = config_file
+            
+        all_tests = {'quadFE': quadFE}
+        try:
+            board = all_tests[self.config["DEFAULT"]["NAME"]]
+        except KeyError:
+            print("FEMB_CONFIG_BASE --> self.config is {}".format(self.config))
+            sys.exit("FEMB_CONFIG_BASE --> No board class for {}".format(self.config["DEFAULT"]["NAME"]))
+        self.test = board()
+        self.FE_Regs = self.test.asic_config.FE_Regs
+        self.ASIC_functions = self.test.asic_config
+        self.i2c = self.test.i2c
+        
+        self.root_dir = getDefaultDirectory()
+        file_name = os.path.join(self.root_dir,self.config["FILENAMES"]["DEFAULT_GUI_FILE_NAME"])
+        if os.path.isfile(file_name):
+            self.default_settings = dict()
+            with open(file_name, 'r') as f:
+                jsondata = json.load(f)
+                for i in jsondata:
+                    self.default_settings[i] = jsondata[i]
+                    
+        try:
+            self.master_chip_list = []
+            for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
+                tup = [i, self.default_settings["asic{}id".append(chip)]]
+                self.master_chip_list.append(tup)
+                
+        except(AttributeError):
+            self.master_chip_list = [[0,0], [1,1], [2,2], [3,3]]
+    
+        self.femb_interface = self.test.femb_udp
+        self.lower_functions = self.test.low_func
+        self.sync = self.test.sync_functions
         self.exitOnError=exitOnError
-
+        
     def resetBoard(self):
         """
-        Send reset to board/asics
+        Resets board.  Some of them really do need 5 seconds before you can communicate
         """
-        pass
+        print ("FEMB_CONFIG_BASE--> Reset FEMB (5 Seconds)")
+        self.femb_interface.write_reg ( self.config["REGISTERS"]["REG_RESET"], self.config["DEFINITIONS"]["RESET"])
+        time.sleep(5)
+        print ("FEMB_CONFIG_BASE--> Reset FEMB is DONE")
 
-    def initBoard(self):
+    def initBoard(self, **kwargs):
         """
-        Initialize board/asics with default configuration
+        Initialize board/asics with default configuration as determined by their own classes, since it's so specific
         """
-        pass
+        result = self.test.initBoard(**kwargs)
+        
+        if (result != None):
+            print ("FEMB_CONFIG_BASE--> Init Board Passed!")
+            return (result)
+        else:
+            print("FEMB_CONFIG_BASE --> initBoard failed - Response was {}".format(result))
+    
+    #Note, on the FE quad board, REG_ON_OFF also returns the status of the buttons being pushed, so it won't always return exactly what you wrote, hence doReadback=False
+    def turnOffAsics(self, **kwargs):
+        self.test.turnOffAsics(**kwargs)
+        
+    def turnOnAsics(self, **kwargs):
+        self.test.turnOnAsics(**kwargs)
 
-    def configAdcAsic(self,Adcasic_regs):
+    def writeADC(self,Adcasic_regs):
         """
         Configure ADCs with given list of registers
         """
         pass
-
-    def configFeAsic_regs(self,feasic_regs):
-        """
-        Configure FEs with given list of registers
-        """
-        pass
-
-    def configFeAsic(self,gain,shape,base,slk=None,slkh=None,monitorBandgap=None,monitorTemp=None):
-        """
-        Configure FEs with given gain/shape/base values.
-        Also, configure leakage current slk = 0 for 500 pA, 1 for 100 pA
-            and slkh = 0 for 1x leakage current, 1 for 10x leakage current
-        if monitorBandgap is True: monitor bandgap instead of signal
-        if monitorTemp is True: monitor temperature instead of signal
-        """
-        pass
-
+    
     def configAdcAsic(self,enableOffsetCurrent=None,offsetCurrent=None,testInput=None,
                             freqInternal=None,sleep=None,pdsr=None,pcsr=None,
                             clockMonostable=None,clockExternal=None,clockFromFIFO=None,
                             sLSB=None,f0=None,f1=None,f2=None,f3=None,f4=None,f5=None):
-        """
-        Configure ADCs
-          enableOffsetCurrent: 0 disable offset current, 1 enable offset current
-          offsetCurrent: 0-15, amount of current to draw from sample and hold
-          testInput: 0 digitize normal input, 1 digitize test input
-          freqInternal: internal clock frequency: 0 1MHz, 1 2MHz
-          sleep: 0 disable sleep mode, 1 enable sleep mode
-          pdsr: if pcsr=0: 0 PD is low, 1 PD is high
-          pcsr: 0 power down controlled by pdsr, 1 power down controlled externally
-          Only one of these can be enabled:
-            clockMonostable: True ADC uses monostable clock
-            clockExternal: True ADC uses external clock
-            clockFromFIFO: True ADC uses digital generator FIFO clock
-          sLSB: LSB current steering mode. 0 for full, 1 for partial (ADC7 P1)
-          f0, f1, f2, f3, f4, f5: version specific
-        """
-        if clockMonostable and clockExternal:
-            raise Exception("Only clockMonostable, clockExternal, OR, clockFromFIFO can be true, clockMonostable and clockExternal were set true")
-        if clockMonostable and clockFromFIFO:
-            raise Exception("Only clockMonostable, clockExternal, OR, clockFromFIFO can be true, clockMonostable and clockFromFIFO were set true")
-        if clockExternal and clockFromFIFO:
-            raise Exception("Only clockMonostable, clockExternal, OR, clockFromFIFO can be true, clockExternal and clockFromFIFO were set true")
-
-    def selectChannel(self,asic,chan, hsmode= 1 ):
-        """
-        asic is chip number 0 to 7
-        chan is channel within asic from 0 to 15
-        hsmode: if 0 then streams all channels of a chip, 
-                if 1 only te selected channel
-                defaults to 1. Not enabled for all firmware versions
-        """
+       #Need to set for new ADC
         pass
 
-    def setInternalPulser(self,pulserEnable,pulseHeight):
+    def writeFE(self):
         """
-        pulserEnable = 0 for disable, 1 for enable
-        pulseHeight = 0 to 31
+        This will write the last configFeAsic settings to the actual chips, so all those new settings come into affect AFTER this method
         """
-        pass
+        try:
+            response = self.ASIC_functions.writeFE()
+        except AttributeError:
+            sys.exit("FEMB_CONFIG_BASE --> {} does not have writeFE() method!".format(self.config["DEFAULT"]["NAME"]))
+            
+        for count, name in self.master_chip_list:
+            if count not in response:
+                print("FEMB_CONFIG_BASE --> Chip {}({}) failed FE SPI write!".format(count, name))
 
-    def syncADC(self):
+    def configFeAsic(self,**kwargs):
         """
-        Syncronize the ADCs
-        Should return isAlreadySynced, latchloc1, latchloc2, phase
+        Prepares ASIC configuration registers for new settings but does NOT send them and make them active
         """
-        pass
+        try:
+            self.ASIC_functions.configFeAsic(**kwargs)
+        except AttributeError:
+            print("FEMB_CONFIG_BASE --> {} does not have configFeAsic() method!".format(self.config["DEFAULT"]["NAME"]))
+
+    #Returns boolean array of the chips that pass.  If a chips is not part of "working chips", its place will be empty in the array
+    #chip_id[0] is the index of the chip, where it sits on the board (spot 0, 1, 2, 3 etc...)
+    #chip_id[1] is its name (A2567, A2568, etc...)
+    def syncADC(self, **kwargs):
+        response = self.sync.syncADC(**kwargs)
+        if (response == False):
+            print("FEMB_CONFIG_BASE --> syncADC() failed")
+    
+    def get_fw_version(self):
+        try:
+            resp = self.femb_interface.read_reg(int(self.config["REGISTERS"]["REG_FW_VER"]))
+        except KeyError:
+            sys.exit("FEMB_CONFIG_BASE --> {} does not have a register for firmware version!!".format(self.config["DEFAULT"]["NAME"]))
+
+        if (resp != None):
+            return resp
+        else:
+            print("FEMB_CONFIG_BASE --> No response for firmware version!!")
+            
+    def PCB_power_monitor(self, **kwargs):
+        return self.i2c.PCB_power_monitor(**kwargs)
+        
+    #Get a whole chip's worth of data
+    def get_data_chipX(self, chip, packets = 1, data_format = "counts", tagged = False, header = False):
+        chip_data = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
+        for chn in range(int(self.config["DEFAULT"]["NASICCH"])):
+            for i in range(packets):
+                if (tagged == False):
+                    chip_data[chn].extend(list(self.lower_functions.get_data_chipXchnX(chip, chn, packets = packets, data_format = data_format, header = header)))
+                else:
+                    chip_data[chn].extend(list(self.lower_functions.get_data_chipXchnX_tagged(chip, chn, packets = packets, data_format = data_format, header = header)))
+        return chip_data
+        
+    def setInternalPulser(self, **kwargs):
+        try:
+            self.lower_functions.setInternalPulser(**kwargs)
+        except AttributeError:
+            print("FEMB_CONFIG_BASE --> {} does not have setInternalPulser() method!".format(self.config["DEFAULT"]["NAME"]))
+        
+    def setExternalPulser(self, **kwargs):
+        try:
+            self.lower_functions.setExternalPulser(**kwargs)
+        except AttributeError:
+            print("FEMB_CONFIG_BASE --> {} does not have setExternalPulser() method!".format(self.config["DEFAULT"]["NAME"]))
