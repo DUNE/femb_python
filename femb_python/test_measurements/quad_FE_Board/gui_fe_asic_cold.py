@@ -122,7 +122,7 @@ class GUI_WINDOW(tk.Frame):
             index = 3
                 
         if (self.selections[index].get() == "Other"):
-                self.other_entries[index].grid(sticky=tk.W,row=index+2,column=2)
+                self.other_entries[index].grid(sticky=tk.W,row=index+2,column=3)
                 self.others[index] = True
         else:
             self.other_entries[index].grid_forget()
@@ -184,7 +184,7 @@ class GUI_WINDOW(tk.Frame):
             self.other_entries.append(entry_other)
             if (selection.get() == "Other"):
                 entry_other.insert(tk.END, i[4])
-                entry_other.grid(sticky=tk.W,row=2+num,column=2)
+                entry_other.grid(sticky=tk.W,row=2+num,column=3)
                 other = True
             else:
                 entry_other.grid_forget()
@@ -351,6 +351,7 @@ class GUI_WINDOW(tk.Frame):
         gui_check = self.config["GUI_SETTINGS"]
         asic_tup = []
         sock_tup = []
+        
         for i, chip in enumerate(range(int(self.config["DEFAULT"]["NASIC_MIN"]), int(self.config["DEFAULT"]["NASIC_MAX"]) + 1, 1)):
             asic_tup.append("asic{}id".format(chip))
             sock_tup.append("socket{}id".format(chip))
@@ -377,7 +378,6 @@ class GUI_WINDOW(tk.Frame):
             self.update_idletasks()
             return
             
-        
         if (self.advanced_variables[0].get() == True):
             self.params['using_power_supply'] = True
             self.get_power_supply()
@@ -392,21 +392,20 @@ class GUI_WINDOW(tk.Frame):
         if (self.advanced_variables[1].get() == True):
             self.params['temperature'] = "LN"
             self.get_power_supply()
-            if (self.PowerSupply.interface == None):
-                return
-            else:
+            
+            if (self.PowerSupply.interface != None):
                 self.power_on()
                 
         else:
             self.params['temperature'] = "RT"
-        
+            
         fw_ver = self.functions.get_fw_version()
         self.params['fw_ver'] = hex(fw_ver)
         
         if (fw_ver < int(self.config["DEFAULT"]["LATEST_FW"], 16)):
             messagebox.showinfo("Warning!", "The FPGA is running firmware version {} when the latest firmware is version {}.  Please let an expert know!".format(hex(fw_ver), hex(int(self.config["DEFAULT"]["LATEST_FW"], 16))))
             
-        
+        print("got here")
         self.functions.turnOnAsics()
         self.functions.resetBoard()
         
@@ -634,7 +633,11 @@ class GUI_WINDOW(tk.Frame):
                 label = self.results_array[0][i]
                 result = results['sync_result']
                 test_list["sync_result"] = result
-                overall_result = overall_result and result
+                if (result == "FAIL"):
+                    bool_result = False
+                else:
+                    bool_result = True
+                overall_result = overall_result and bool_result
                 param_json["sync_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
@@ -644,7 +647,6 @@ class GUI_WINDOW(tk.Frame):
                 linked_file_path2 = os.path.join(linked_folder, linked_file2)
                 label.bind("<Button-1>",lambda event, arg=linked_file_path1: self.link_label(arg))
                 label.bind("<Button-3>",lambda event, arg=linked_file_path2: self.link_label(arg))
-                
             if "baseline_outlabel" in test_list:
                 outlabel = test_list["baseline_outlabel"]
                 jsonFile = os.path.join(results_path, outlabel, self.config["FILENAMES"]["RESULTS"])
@@ -653,14 +655,17 @@ class GUI_WINDOW(tk.Frame):
                 label = self.results_array[1][i]
                 result = results['baseline_result']
                 test_list["baseline_result"] = result
-                overall_result = overall_result and result
+                if (result == "FAIL"):
+                    bool_result = False
+                else:
+                    bool_result = True
+                overall_result = overall_result and bool_result
                 param_json["baseline_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
                 linked_file = self.config["FILENAMES"]["BASELINE_LINK"].format(chip_name)
                 linked_file_path = os.path.join(linked_folder, linked_file)
                 label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
-                
             if "monitor_outlabel" in test_list:
                 outlabel = test_list["monitor_outlabel"]
                 jsonFile = os.path.join(results_path, outlabel, self.config["FILENAMES"]["RESULTS"])
@@ -669,14 +674,17 @@ class GUI_WINDOW(tk.Frame):
                 label = self.results_array[2][i]
                 result = results['monitor_result']
                 test_list["monitor_result"] = result
-                overall_result = overall_result and result
+                if (result == "FAIL"):
+                    bool_result = False
+                else:
+                    bool_result = True
+                overall_result = overall_result and bool_result
                 param_json["monitor_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
                 linked_file = self.config["FILENAMES"]["MONITOR_LINK"].format(chip_name)
                 linked_file_path = os.path.join(linked_folder, linked_file)
                 label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
-                
             if "alive_outlabel" in test_list:
                 outlabel = test_list["alive_outlabel"]
                 jsonFile = os.path.join(results_path, outlabel, self.config["FILENAMES"]["RESULTS"])
@@ -685,18 +693,25 @@ class GUI_WINDOW(tk.Frame):
                 label = self.results_array[3][i]
                 result = results['alive_result']
                 test_list["alive_result"] = result
-                overall_result = overall_result and result
+                if (result == "FAIL"):
+                    bool_result = False
+                else:
+                    bool_result = True
+                overall_result = overall_result and bool_result
                 param_json["alive_result_{}".format(i)] = result
                 self.update_label(label, result)
                 linked_folder = os.path.join(results_path, outlabel)
                 linked_file = self.config["FILENAMES"]["ALIVE_LINK"].format(chip_name)
                 linked_file_path = os.path.join(linked_folder, linked_file)
                 label.bind("<Button-1>",lambda event, arg=linked_file_path: self.link_label(arg))
-                
             if "verified" in test_list:
-                param_json["overall_result_{}".format(i)] = overall_result
+                if (overall_result):
+                    overall_result_string = "PASS"
+                else:
+                    overall_result_string = "FAIL"
+                param_json["overall_result_{}".format(i)] = overall_result_string
                 label = self.results_array[7][i]
-                self.update_label(label, overall_result)
+                self.update_label(label, overall_result_string)
                 
             with open(jsonFile_chip,'w') as outfile:
                 json.dump(test_list, outfile, indent=4)
