@@ -966,10 +966,10 @@ class FEMB_CONFIG(FEMB_CONFIG_BASE):
         fembVerReg = (fembVerReg & 0xFFF)
         #print( "FEMB Firmware Version HERE : " + str(hex(fembVerReg)) )
         if wibVerReg != 0x120 :
-            print("Invalid WIB firmware version detected " + str(wibVerReg) + ", this configuration requires version 0x120")
+            print("Invalid WIB firmware version detected " + str(hex(wibVerReg)) + ", this configuration requires version 0x120")
             return False
         if fembVerReg != 0x323 :
-            print("Invalid FEMB firmware version detected " + str(fembVerReg) + ", this configuration requires version 0x323")
+            print("Invalid FEMB firmware version detected " + str(hex(fembVerReg)) + ", this configuration requires version 0x323")
             return False
         
         print( "WIB Firmware Version : " + str(hex(wibVerReg)) )
