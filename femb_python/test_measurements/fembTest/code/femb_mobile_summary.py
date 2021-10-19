@@ -63,7 +63,7 @@ class FEMB_SUMMARY(object):
             name = params['box_ids']
             boxtext = "CE Box "
 
-            text_title = "protoDUNE FEMB EMT Summary: "+boxtext+name
+            text_title = "SBND FEMB QC  Summary: "+boxtext+name
 
             timestamp = "Timestamp: "+params['session_start_time']
 
@@ -84,7 +84,6 @@ class FEMB_SUMMARY(object):
             pdf.cell(60, 5, txt=timestamp, align='L')
             pdf.cell(60, 5, txt=user, align='L')
             pdf.cell(60, 5, txt=temp, align='L',ln=1)
-
 
 
             printgain = False
@@ -140,11 +139,11 @@ class FEMB_SUMMARY(object):
                     currentmonitortext = "Current Monitoring:"
                     voltage_text = "Voltage (V):"                    
                     current_text = "Current (A):"
-                    l1 = "4.2 V"
-                    l2 = "3 V"
-                    l3 = "2.5 V"
-                    l4 = "1.5 V"
-                    l5 = "5 V"
+                    l1 = "4.0 V"
+                    l2 = "3.0 V"
+                    l3 = "3.3 V"
+                    l4 = "1.8 V"
+                    l5 = "5.0 V"
                     info_file = self.topdir+"/"+mydir+"/params.json"
                     if os.path.isfile(info_file):
                         params_curr = json.loads(open(info_file).read())
@@ -223,9 +222,9 @@ class FEMB_SUMMARY(object):
                 
 
             text = "Data stored on "+params['hostname']+": "
-            pdf.cell(50, 5, txt=text, align='L')
+            pdf.cell(50, 5, txt=text, align='L', ln=1)
             text = self.topdir
-            pdf.cell(100, 5, txt=text, align='L', ln=1)
+            pdf.cell(0, 5, txt=text, align='L', ln=1)
             text = "Position on WIB for test: "+str(slot)
             pdf.cell(200, 5, txt=text, align='L', ln=1)
             pdf.output(self.datadir+"/femb"+name+"_summary.pdf",'F')
